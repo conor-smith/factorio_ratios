@@ -8,6 +8,9 @@ const moduleEffects = ["speed", "consumption", "productivity", "pollution"];
 
 /// This object contains the full graph of relevant objects
 /// It will fully create all M-M relationships between recipes, items, buildings, etc
+/// All items have an "id" field
+/// This is used internally by the db and to match objects
+/// It has no relation to anything within Factorio itself
 class ItemContext {
   /// List of applied mods
   final List<String> mods;
