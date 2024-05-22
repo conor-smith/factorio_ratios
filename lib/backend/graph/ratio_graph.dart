@@ -7,7 +7,64 @@ import 'package:factorio_ratios/backend/graph/moduled_building.dart';
 /// Creation, deletion, and balancing of nodes are all handled by this object
 /// Anytime a new node is added to the graph, all required dependant nodes will be created to supply it
 class RatioGraph {
-  // TODO
+  final ItemContext itemContext;
+
+  final Map<GraphNode, GraphEdge> _fullGraph = {};
+  final List<ImmutableModuledBuilding> _defaultBuildings = [];
+  late final List<ImmutableModuledBuilding> _defaultBuildingsView;
+
+  RatioGraph(this.itemContext) {
+    _defaultBuildingsView = UnmodifiableListView(_defaultBuildings);
+  }
+
+  /// Will add a new productionLineNode
+  /// All required dependency nodes will also be created
+  /// with constraint "implicitMinimumOutput"
+  /// Cannot use "implicitMinimumOutput" in this method
+  void addProductionLineNode(
+      {required ProductionLineConstraint constraint,
+      Map<Item, double>? ioConstraint,
+      int? buildingsConstraint,
+      required Map<Recipe, ImmutableModuledBuilding> primaryProductionLines,
+      Map<Recipe, ImmutableModuledBuilding>? secondaryProductionLines}) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  /// Resizes all nodes based on the total number of buildings within them
+  void resizeAllBasedOnNumberOfBuildings() {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  /// If applyToExisting == true,
+  /// All production lines or balancers with recipes produced by the old building
+  /// will be replaced by the new one
+  void editDefaultBuilding(ImmutableModuledBuilding oldBuilding,
+      ImmutableModuledBuilding newBuilding,
+      {bool applyToExisting = false}) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  /// Removes a node from the graph
+  /// If the node is a production line node or balancer node, all production lines will be moved
+  /// the secondary slots within dependants
+  /// Will throw error if removal is not possible
+  void removeNode(GraphNode node) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  /// Sum total of netIo of all contained nodes
+  Map<Item, double> get excess {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  List<GraphNode> get nodes => List.from(_fullGraph.keys);
+  List<GraphEdge> get edges => List.from(_fullGraph.values);
+  List<ImmutableModuledBuilding> get defaultBuildings => _defaultBuildingsView;
 }
 
 /// Represents "mode" of a graph node within GUI
@@ -42,6 +99,9 @@ abstract class GraphNode {
   int _corner2x;
   int _corner2y;
 
+  // Supplied and managed by RatioGraph object
+  final List<GraphEdge> edges;
+
   // Initial mode should always be ratiosMode
   GraphNodeMode _mode = GraphNodeMode.defaultMode;
 
@@ -49,7 +109,8 @@ abstract class GraphNode {
       {required int corner1x,
       required int corner1y,
       required int corner2x,
-      required int corner2y})
+      required int corner2y,
+      required this.edges})
       : _corner1x = corner1x,
         _corner1y = corner1y,
         _corner2x = corner2x,
@@ -81,11 +142,6 @@ abstract class GraphNode {
   /// Any offsets that result in a width or height of 0 will internally correct to 1
   ///
   /// If two sides cross over eachother, the co-ordinates will simply be flipped
-  /// Eg. If maxXSide has x co-ordinate 10, and minXSide has x co-ordinate 5
-  /// and an offset of -20 is applied to maxXSide
-  /// The resulting rectangle will have a maxXSide with x co-ordinate 5 (minXSide's old value)
-  /// and a minXSide with x co-ordinate -10
-  /// Essentially acting as if the rectangle as a whole had been flipped
   void resize(
       {int maxXSideOffset = 0,
       int minXSideOffset = 0,
@@ -144,6 +200,8 @@ class GraphEdge {
 /// But can be used for any item if the user decides it doesn't matter how a particular item is produced
 /// Will also be initially used for items with more than one potential source
 /// This allows the user to pick from several potential recipes
+///
+/// This node cannot be resized
 class ResourceNode extends GraphNode {
   final Item resource;
 
@@ -156,11 +214,38 @@ class ResourceNode extends GraphNode {
       required super.corner1x,
       required super.corner1y,
       required super.corner2x,
-      required super.corner2y})
+      required super.corner2y,
+      required super.edges})
       : _output = initialOutput;
 
   @override
+  set mode(GraphNodeMode newMode) {
+    // TODO
+    throw UnimplementedError();
+    super.mode = mode;
+  }
+
+  @override
   Map<Item, double> get netIo => {resource: _output};
+}
+
+/// This defines what to calculate when creating a ProductionLineNode
+/// Only one may be applied
+enum ProductionLineConstraint {
+  /// For PL nodes where a required output is explicitly set
+  /// To be used with ioConstraint field
+  /// The items in ioConstraint must be producible by the primary production lines
+  /// in this node
+  explicitMinimumOutput,
+
+  /// For PL nodes where a required output is implicitly set
+  /// eg. A dependency node
+  implicitMinimumOutput,
+
+  /// For production line nodes where a number of buildings is set
+  /// In order to use this constraint, a production line node may only have one
+  /// primary production line as this is where the constraint will apply
+  requiredBuildings
 }
 
 /// This node represents a "traditional" production line
@@ -188,22 +273,34 @@ class ResourceNode extends GraphNode {
 /// A primary production line cannot be a direct dependency of another primary production line
 /// Secondary production lines must be a direct dependency of either a primary or secondary production line
 class ProductionLineNode extends GraphNode {
+  ProductionLineConstraint _constraint;
+  Map<Item, double>? _ioConstraint;
+  int? _buildingsConstraint;
+
   final Map<Recipe, ImmutableModuledBuilding> _primaryPls;
   final Map<Recipe, ImmutableModuledBuilding> _secondaryPls;
-  late final Map<Recipe, ImmutableModuledBuilding> primaryProductionLines;
-  late final Map<Recipe, ImmutableModuledBuilding> secondaryProductionLines;
+  late final Map<Recipe, ImmutableModuledBuilding> _primaryPlsView;
+  late final Map<Recipe, ImmutableModuledBuilding> _secondaryPlsView;
 
   ProductionLineNode._(
-      {required Recipe recipe,
-      required ImmutableModuledBuilding building,
+      {required ProductionLineConstraint constraint,
+      Map<Item, double>? ioConstraint,
+      int? buildingsConstraint,
+      required Map<Recipe, ImmutableModuledBuilding> primaryProductionLines,
+      Map<Recipe, ImmutableModuledBuilding>? secondaryProductionLines,
       required super.corner1x,
       required super.corner1y,
       required super.corner2x,
-      required super.corner2y})
-      : _primaryPls = {recipe: building},
-        _secondaryPls = {} {
-    primaryProductionLines = UnmodifiableMapView(_primaryPls);
-    secondaryProductionLines = UnmodifiableMapView(_secondaryPls);
+      required super.corner2y,
+      required super.edges})
+      : _constraint = constraint,
+        _ioConstraint = ioConstraint,
+        _buildingsConstraint = buildingsConstraint,
+        _primaryPls = primaryProductionLines,
+        _secondaryPls = secondaryProductionLines ?? {} {
+    // TODO: Error checking
+    _primaryPlsView = UnmodifiableMapView(_primaryPls);
+    _secondaryPlsView = UnmodifiableMapView(_secondaryPls);
   }
 
   @override
@@ -211,6 +308,84 @@ class ProductionLineNode extends GraphNode {
     // TODO
     throw UnimplementedError();
   }
+
+  void setConstraint(ProductionLineConstraint constraint,
+      {Map<Item, double>? ioConstraint, int? buildingsConstraint}) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  /// Can also be used to change ImmutableModuledBuilding on existing production lines
+  void addOrModifyPrimary(
+      Map<Recipe, ImmutableModuledBuilding> newProductionLines) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  void removePrimary(List<Recipe> toRemove) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  /// Can also be used to change ImmutableModuledBuilding on existing production lines
+  void addOrModifySecondary(
+      Map<Recipe, ImmutableModuledBuilding> newProductionLines) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  void removeSecondary(List<Recipe> toRemove) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  /// Allows user to get the individual input of each building for a particular recipe
+  /// Useful for cyclical recipes that have an item as both input and output
+  /// Eg. Coal Liquefaction
+  Map<Item, double> getBuildingInput(Recipe recipe) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  /// Allows user to get the individual output of each building for a particular recipe
+  /// Useful for cyclical recipes that have an item as both input and output
+  /// Eg. Coal Liquefaction
+  Map<Item, double> getBuildingOutput(Recipe recipe) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  Map<Recipe, double> get buildingsPerRecipe {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  double get totalConsumption {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  double get totalPowerDrain {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  double get totalPollution {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  ProductionLineConstraint get constraint => _constraint;
+
+  Map<Item, double>? get ioConstraint => _ioConstraint;
+
+  int? get buildingsConstraint => _buildingsConstraint;
+
+  Map<Recipe, ImmutableModuledBuilding> get primaryProductionLines =>
+      _primaryPlsView;
+
+  Map<Recipe, ImmutableModuledBuilding> get secondaryProductionLines =>
+      _secondaryPlsView;
 }
 
 /// This is used for complicated production lines that require balancing
@@ -222,6 +397,7 @@ class BalancerNode extends GraphNode {
 
   BalancerNode._(
       {required Map<Recipe, ImmutableModuledBuilding> productionLines,
+      required super.edges,
       required super.corner1x,
       required super.corner1y,
       required super.corner2x,
