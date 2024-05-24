@@ -3,23 +3,43 @@ import 'dart:collection';
 import 'package:factorio_ratios/backend/factorio_objects/objects.dart';
 import 'package:factorio_ratios/backend/graph/moduled_building.dart';
 
-/// Represents entirety of ratio graph
-/// Creation, deletion, and balancing of nodes are all handled by this object
-/// Anytime a new node is added to the graph, all required dependant nodes will be created to supply it
-class RatioGraph {
+/// Represents entirety of the factorio base
+///
+/// Logically, this is a directed graph
+/// with "ItemProducers" as nodes and "ItemTransport" as edges
+///
+/// This is intended for display within a GUI
+/// As such, ItemProducers are represented as boxes
+/// and ItemTransports as complex lines connecting said boxes
+/// For more information on how these are drawn,
+/// refer to ItemProducer and ItemTransport documentation below
+///
+/// Creation, deletion, and balancing of producers and transporters
+/// are all handled by this object and this object alone
+/// To ensure singular responsibility,
+/// all constructors, setters, and methods required for controlling the graph are private
+/// Users may not directly instantiate nodes, edges, etc
+/// All list and maps will be unmodifiable views over the internal objects
+class FactorioBase {
   final ItemContext itemContext;
 
-  final Map<GraphNode, GraphEdge> _fullGraph = {};
+  final Map<ItemProducer, List<ItemTransport>> _fullBase = {};
   final List<ImmutableModuledBuilding> _defaultBuildings = [];
-  late final List<ImmutableModuledBuilding> _defaultBuildingsView;
+  late final List<ImmutableModuledBuilding> _defaultBuildingsView =
+      UnmodifiableListView(_defaultBuildings);
 
-  RatioGraph(this.itemContext) {
-    _defaultBuildingsView = UnmodifiableListView(_defaultBuildings);
-  }
+  FactorioBase(this.itemContext);
 
-  /// Will add a new productionLineNode
-  /// All required dependency nodes will also be created
-  /// with constraint "implicitMinimumOutput"
+  /// Will add a new ProductionLine
+  /// Any dependency items will result in the creation of another ItemProducer
+  ///
+  /// If said dependency item has only one possible recipe, a new ProductionLine with
+  /// one primary item crafter will be created with constraint "implicitMinimumOutput"
+  /// This same operation will occur for any dependencies of this new ProductionLine
+  ///
+  /// If the dependency has 0 or >1 potential recipes,
+  /// An ItemSource will be created instead
+  ///
   /// Cannot use "implicitMinimumOutput" in this method
   void addProductionLineNode(
       {required ProductionLineConstraint constraint,
@@ -31,7 +51,7 @@ class RatioGraph {
     throw UnimplementedError();
   }
 
-  /// Resizes all nodes based on the total number of buildings within them
+  /// Resizes all producers based on the total number of buildings within them (where applicable)
   void resizeAllBasedOnNumberOfBuildings() {
     // TODO
     throw UnimplementedError();
@@ -47,260 +67,319 @@ class RatioGraph {
     throw UnimplementedError();
   }
 
-  /// Removes a node from the graph
-  /// If the node is a production line node or balancer node, all production lines will be moved
-  /// the secondary slots within dependants
-  /// Will throw error if removal is not possible
-  void removeNode(GraphNode node) {
-    // TODO
-    throw UnimplementedError();
-  }
-
   /// Sum total of netIo of all contained nodes
   Map<Item, double> get excess {
     // TODO
     throw UnimplementedError();
   }
 
-  List<GraphNode> get nodes => List.from(_fullGraph.keys);
-  List<GraphEdge> get edges => List.from(_fullGraph.values);
+  /// Full list of all ItemProducers
+  /// WARNING: Does not update in real time
+  /// You will need to retrieve this list every time a change occurs
+  List<ItemProducer> get nodes => List.from(_fullBase.keys);
+
+  /// Full list of all ItemProducers
+  /// WARNING: Does not update in real time
+  /// You will need to retrieve this list every time a change occurs
+  List<ItemTransport> get edges => List.from(_fullBase.values);
+
   List<ImmutableModuledBuilding> get defaultBuildings => _defaultBuildingsView;
 }
 
-/// Represents "mode" of a graph node within GUI
-/// This mode controls what operations can be performed on the node
-enum GraphNodeMode {
-  /// This mode allows "ordinary" operations pertaining to the actual ratio graph
-  /// Eg. Adding recipes to ProductionLineNodes, adjusting output of ResourceNodes, etc
-  defaultMode,
+/// Represents xy co-ordinate on 2D plane
+/// Intended for use in GUI
+class Point {
+  double _x;
+  double _y;
 
-  /// This mode is to be used when a node is being dragged around within the co-ordinates
-  dragMode,
+  Point({required double x, required double y})
+      : _x = x,
+        _y = y;
 
-  /// This mode is to be used when resizing the node within the co-ordinates
-  resizeMode
+  double get x => _x;
+  double get y => _y;
 }
 
-/// Represents a single node in the ratio graph
-/// Has a net input/output given by netIo field
-/// Negative numbers in netIo represent inputs, positive numbers represent output
+/// Represents sides of a box
+/// Intended for use in the GUI
+enum BoxSide { top, bottom, left, right }
+
+/// Represents a single "node" in the overall graph
+/// netIO field gives items produced and consumed
+/// connections give a map containing all input/output transports
 ///
-/// As the graph is intended to be displayed in a GUI, graphNodes also contain co-ordinates to be displayed in a grid
+/// GUI documentation
+/// As the graph is intended to be displayed in a GUI, graphNodes also contain co-ordinates to be displayed graphically
 /// Nodes are displayed as a resizable, draggagle rectangle
-/// It's co-ordinates and size are given by the fields corner1x, corner1y, corner2x and corner2y
-/// These fields represent two diagonal corners of the rectangle
-/// Ints are used here because I want the rectangles to "snap to" certain co-ordinates
-/// This same constraint is not applied to edges
+/// It's position and size are given by the corner1 and corner2 fields
+/// These points represent two diagonal corners of the rectangle
+/// The x and y co-ordinates will always equal a whole number, rather than a decimal
+/// This is so the boxes will "snap" to position within the graph
 ///
-/// In order to move or resize the rectangle, you must first set the appropriate mode
-abstract class GraphNode {
-  int _corner1x;
-  int _corner1y;
-  int _corner2x;
-  int _corner2y;
+/// Adjusting co-ordinates:
+/// There exist two operations that adjust the x and y co-ordinates of this box: drag and resize
+/// Both of them required the user to call beginDragging/Resizing at the start
+/// and endDragging/Resizing at the end
+/// Failure to call these methods will result in an error being thrown
+/// Only one of these operations can be performed at a time within the whole graph
+/// Attempting to resize / drag another producer before calling endDrag/Resize will throw an error
+///
+/// ItemTransport connections:
+/// The positioning of ItemTransport connections is also handled by this box
+/// In the GUI, every ItemTransport has to visibly connect to one side of the box
+/// This is given by the .connections field
+/// If one side of the box has multiple connections,
+/// the connections are spaced out, and ordered by their position within the list
+/// If the box is too small to properly space out connections, some will overlap
+/// These connections can be modified with the .adjustConnectionOrder(...)
+/// and the .changeConnectionSide(...) methods
+abstract class ItemProducer {
+  // The ratioGraph this node is a part of
+  final FactorioBase factorioBase;
 
-  // Supplied and managed by RatioGraph object
-  final List<GraphEdge> edges;
+  final Point corner1;
+  final Point corner2;
 
-  // Initial mode should always be ratiosMode
-  GraphNodeMode _mode = GraphNodeMode.defaultMode;
+  final Map<BoxSide, ItemTransport> connections = {};
 
-  GraphNode(
-      {required int corner1x,
-      required int corner1y,
-      required int corner2x,
-      required int corner2y,
-      required this.edges})
-      : _corner1x = corner1x,
-        _corner1y = corner1y,
-        _corner2x = corner2x,
-        _corner2y = corner2y;
+  ItemProducer(
+      {required this.factorioBase,
+      required this.corner1,
+      required this.corner2});
 
-  set mode(GraphNodeMode newMode) {
-    // TODO
+  /// Must be called before dragging rectangle in GUI
+  void beginDragging() {
     throw UnimplementedError();
   }
 
-  /// Before calling this method, you must set mode = dragMode
-  /// When mode is changed to dragMode, the rectangles current position will be saved internally
-  /// xOffset and yOffset will always be applied to this original x and y co-ordiantes
-  /// Once mode is changed again, the current offset is "committed"
+  /// Must be called after dragging rectangle in GUI
+  void endDragging() {
+    throw UnimplementedError();
+  }
+
+  /// This method allows the user to drag the rectangle around the GUI,
+  /// changing the x and y values of corner1 and corner2
+  /// Before calling this method, you first call .beginDragging(), and end by calling .endDragging()
+  /// when .beginDragging() is called, the rectangles current position will be saved internally
+  /// xOffset and yOffset will always be applied to this original x and y co-ordinates
+  /// Once .endDragging() is called, the current offset is "committed" and the new position is set
   void drag({int xOffset = 0, int yOffset = 0}) {
     // TODO
     throw UnimplementedError();
   }
 
-  /// Before calling this method, you must set mode = resizeMode
-  /// When mode is changed to resizeMode, the rectangle's current size will be saved internally
+  /// Must call before resizing rectange in GUI
+  void beginResizing() {
+    throw UnimplementedError();
+  }
+
+  /// Must call after resizing rectangle in GUI
+  void endResizing() {
+    throw UnimplementedError();
+  }
+
+  /// This method allows the user to resize the rectangle in the GUI
+  /// changing the x and y values of corner1 and corner2
+  /// Before calling this method, you must first call .beginResizing(), and end by calling .endResizing()
+  /// After calling .beginResizing(), the rectangle's current co-ordinates will be saved internally
   /// All calls to this method will be applied to those initial co-ordiantes
   /// Once mode is changed again, the current size is "committed"
-  ///
-  /// Each field represents a an offset as applied to a side of the rectangle
-  /// Eg. maxXSideOffset represents the offset applied to the side of the rectangle with the highest x co-ordinate
   ///
   /// The box will have a minimum width and height of 1
   /// Any offsets that result in a width or height of 0 will internally correct to 1
   ///
   /// If two sides cross over eachother, the co-ordinates will simply be flipped
-  void resize(
-      {int maxXSideOffset = 0,
-      int minXSideOffset = 0,
-      int maxYSideOffset = 0,
-      int minYSideOffset = 0}) {
+  /// Eg. Applying an offset of -10 to leftSide when leftSide is at x co-ordinate 5,
+  /// and rightSide is at x co-ordinate 0
+  /// will result in a rectangle where leftSide is at x co-ordinate 0,
+  /// and rightSide is at x co-ordinate -5
+  void resize(Map<BoxSide, int> offsets) {
     // TODO
     throw UnimplementedError();
   }
 
-  int get corner1x => _corner1x;
-  int get corner1y => _corner1y;
-  int get corner2x => _corner2x;
-  int get corner2y => _corner2y;
+  /// Changes the position of one ItemTransport connection on a particular side
+  /// relative to other connections on the same side
+  /// Attempting to set newPostion to <0 or > [number of connections]
+  /// will default to 0 or [number of connections]
+  void changeConnectionOrder(ItemTransport transport, int newPosition) {
+    // TODO
+    throw UnimplementedError();
+  }
 
-  GraphNodeMode get mode => _mode;
+  /// Changes the side a particular ItemTransport is connected to
+  void changeConnectionSide(
+      ItemTransport transport, BoxSide newSide, int newPosition) {
+    // TODO
+    throw UnimplementedError();
+  }
 
-  // To be implemented by children
+  /// Negative numbers represent inputs / consumed items
+  /// Positive numbers represent outputs
   Map<Item, double> get netIo;
 }
 
-/// Represents a line on the gui, drawn as part of an edge
-/// Must be at a right angle. No diagonal lines
-class GraphEdgeLine {
-  // TODO
-}
-
-/// Represents a directional edge within the graph
+/// Represents items flowing from one ItemProducer to another
 /// Items flow from the parent to the child
-/// As this is intended to be displayed in a GUI, the edge itself consists of one or more lines
-/// linking the two nodes together
-/// These lines exist only at right angles to better match factorio itself
-/// The edge itself can connect to any side of the parent and child nodes
-class GraphEdge {
+/// THis object can also be queried to determine how many belts are required to
+/// transport items, if applicable
+///
+/// GUI documentation
+/// In the GUI, this edge is represented as a complex line connecting two nodes
+/// This line is represented by the .points field, containing an ordered list of points in the line
+/// All angles are right angles, to better represent the factorio game
+/// New points/turns can be added via reverseAngle(...), goAround(...), or extendPath(...),
+/// all of which are documented below
+///
+/// When ItemProducers are moved / being resized, or when the connectionSide of
+/// a parent or child is changed, the FactorioBase will take care of adjusting
+/// this object
+class ItemTransport {
   final Item item;
-  final GraphNode parent;
-  final GraphNode child;
+  final ItemProducer parent;
+  final ItemProducer child;
   double _amount;
 
-  final List<GraphEdgeLine> _guiLines;
-  late final List<GraphEdgeLine> lines;
+  /// Only set to true if a dependency cannot produce all required output
+  /// See ProductionLineConstraint for info on how this may happen
+  bool _isBottleNeck = false;
 
-  GraphEdge._(
+  final List<Point> _points;
+  late final List<Point> _pointsView = UnmodifiableListView(_points);
+
+  ItemTransport._(
       {required this.item,
       required this.parent,
       required this.child,
       required double initialAmount,
-      required List<GraphEdgeLine> lines})
+      required List<Point> points})
       : _amount = initialAmount,
-        _guiLines = lines {
-    this.lines = UnmodifiableListView(_guiLines);
-  }
+        _points = points;
+
+  List<Point> get points => _pointsView;
+  bool get isBottleNeck => _isBottleNeck;
 }
 
-/// Represents a node with an output but no required input
+/// Represents a source of items with no required inputs or crafters
 /// Used for things like ore, crude oil, or other natural resources
 /// But can be used for any item if the user decides it doesn't matter how a particular item is produced
-/// Will also be initially used for items with more than one potential source
-/// This allows the user to pick from several potential recipes
 ///
-/// This node cannot be resized
-class ResourceNode extends GraphNode {
+/// Any item that has no recipe (natural resources) must be provided by an ItemSource
+/// But this will also be used for items with multiple potential sources
+/// After the user has picked a recipe, the ItemSource can be replaced
+///
+/// Cannot be resized in GUI
+class ItemSource extends ItemProducer {
   final Item resource;
 
   // Only to be adjusted by RatioGraph object
   double _output;
 
-  ResourceNode._(
+  ItemSource._(
       {required this.resource,
       required double initialOutput,
-      required super.corner1x,
-      required super.corner1y,
-      required super.corner2x,
-      required super.corner2y,
-      required super.edges})
-      : _output = initialOutput;
-
-  @override
-  set mode(GraphNodeMode newMode) {
-    // TODO
-    throw UnimplementedError();
-    super.mode = mode;
-  }
+      required FactorioBase factorioBase,
+      required Point topRightCorner})
+      : _output = initialOutput,
+        super(
+            factorioBase: factorioBase,
+            corner1: topRightCorner,
+            corner2: Point(x: topRightCorner._x - 3, y: topRightCorner._y - 3));
 
   @override
   Map<Item, double> get netIo => {resource: _output};
 }
 
-/// This defines what to calculate when creating a ProductionLineNode
+/// This defines what to calculate when creating a ProductionLine
 /// Only one may be applied
 enum ProductionLineConstraint {
-  /// For PL nodes where a required output is explicitly set
+  /// For PLs where a required output is explicitly set
   /// To be used with ioConstraint field
-  /// The items in ioConstraint must be producible by the primary production lines
+  /// The items in ioConstraint must be producible by the primary crafters
   /// in this node
   explicitMinimumOutput,
 
   /// For PL nodes where a required output is implicitly set
-  /// eg. A dependency node
+  /// To be used with ioConstraint field
+  /// Only used for dependencies
   implicitMinimumOutput,
 
+  /// For PLs which are intended to consume all excess supply of a particular item
+  /// To be used with consumeAllConstraint
+  consumeAllExcess,
+
   /// For production line nodes where a number of buildings is set
-  /// In order to use this constraint, a production line node may only have one
-  /// primary production line as this is where the constraint will apply
+  /// Can only be applied to primary crafters
+  /// To be used with buildingsConstraint
+  ///
+  /// WARNING: A requiredBuildings ProductionLine may not be able to produce
+  /// enough items for dependants
+  /// The FactorioBase will flag this by setting ItemTransport.isBottleNeck to true
+  /// This is on the user to fix
   requiredBuildings
 }
 
-/// This node represents a "traditional" production line
-/// In this context, a production line is a recipe, and the buildings that craft said recipe
+/// This producer represents a "traditional" production line
+/// with "crafters", as represented by key-value pairs of a recipe and a ModuledBuilding
 ///
-/// A production line node will contain at least one primary production line,
-/// although multiple primary production lines can be specified
-/// Optionally, several secondary production line nodes can be added
+/// A ProductionLine will contain at least one primary crafter,
+/// although multiple primary crafters can be specified
+/// Secondary crafters are entirely optional
 ///
-/// The primary production lines determine the output of this node
-/// Secondary production lines are for potential dependencies of the primary production lines
+/// The primary crafters determine the output
+/// Secondary crafters are for dependencies of the primary crafters
 /// Eg. When building circuits, you may prefer to assemble copper circuits on site
-/// rather than give them their own dedicated node
-/// As such, copper circuits can be added as a secondary production line to better represent that
-/// The secondary production lines will produce only what is required to feed the primary production lines
-/// Furthermore, secondary production lines can also be added to support other secondary production lines
+/// rather than give them their own dedicated ProductionLine
+/// As such, copper circuits can be added as a secondary crafter to better represent this
+/// The secondary crafters will only produce enough items to feed the primary crafters
+/// Furthermore, secondary crafters can also be added to support other secondary crafters
 /// Eg. Assembling a satellite requires radars, which also require iron gear wheels
-/// Both the radars and iron gear wheels can be added to secondary production lines
-/// Although iron gear wheels are not a direct dependency of satellites, they are a dependency of radars
+/// Both the radars and iron gear wheels can be added as secondary crafters
+/// The iron gear wheel crafter will support the radar crafter, which supports the primary satellite crafter
 ///
-/// If a any production line produces more than one item, excess or unnecessary items will be added to the node output
+/// If a crafter produces multiple items, excess or unnecessary items will be added to the output
 ///
-/// No two production lines may produce the same item
-/// For recipe balancing (eg. Advanced oil processing), see "BalancerNode"
-/// A primary production line cannot be a direct dependency of another primary production line
-/// Secondary production lines must be a direct dependency of either a primary or secondary production line
-class ProductionLineNode extends GraphNode {
+/// Restrictions:
+/// No two crafters may produce the same item
+/// For recipe balancing (eg. Advanced oil processing), see "Balancer"
+/// Primary crafters cannot be dependencies of one another
+/// Secondary crafters must be a direct dependency of either a primary or secondary crafter
+class ProductionLineNode extends ItemProducer {
   ProductionLineConstraint _constraint;
   Map<Item, double>? _ioConstraint;
-  int? _buildingsConstraint;
+  List<Item>? _consumeAllConstraint;
+  Map<Recipe, int>? _buildingsConstraint;
 
-  final Map<Recipe, ImmutableModuledBuilding> _primaryPls;
-  final Map<Recipe, ImmutableModuledBuilding> _secondaryPls;
-  late final Map<Recipe, ImmutableModuledBuilding> _primaryPlsView;
-  late final Map<Recipe, ImmutableModuledBuilding> _secondaryPlsView;
+  final Map<Recipe, ImmutableModuledBuilding> _primaryCrafters;
+  final Map<Recipe, ImmutableModuledBuilding> _secondaryCrafters;
+
+  late final Map<Recipe, ImmutableModuledBuilding> _primaryCraftersView =
+      UnmodifiableMapView(_primaryCrafters);
+  late final Map<Recipe, ImmutableModuledBuilding> _secondaryCraftersView =
+      UnmodifiableMapView(_secondaryCrafters);
 
   ProductionLineNode._(
       {required ProductionLineConstraint constraint,
       Map<Item, double>? ioConstraint,
-      int? buildingsConstraint,
-      required Map<Recipe, ImmutableModuledBuilding> primaryProductionLines,
-      Map<Recipe, ImmutableModuledBuilding>? secondaryProductionLines,
-      required super.corner1x,
-      required super.corner1y,
-      required super.corner2x,
-      required super.corner2y,
-      required super.edges})
+      List<Item>? consumeAllConstraint,
+      Map<Recipe, int>? buildingsConstraint,
+      required Map<Recipe, ImmutableModuledBuilding> primaryCrafters,
+      Map<Recipe, ImmutableModuledBuilding>? secondaryCrafters,
+      required super.factorioBase,
+      required super.corner1,
+      required super.corner2})
       : _constraint = constraint,
-        _ioConstraint = ioConstraint,
-        _buildingsConstraint = buildingsConstraint,
-        _primaryPls = primaryProductionLines,
-        _secondaryPls = secondaryProductionLines ?? {} {
+        _ioConstraint =
+            ioConstraint != null ? UnmodifiableMapView(ioConstraint) : null,
+        _consumeAllConstraint = consumeAllConstraint != null
+            ? UnmodifiableListView(consumeAllConstraint)
+            : null,
+        _buildingsConstraint = buildingsConstraint != null
+            ? UnmodifiableMapView(buildingsConstraint)
+            : null,
+        _primaryCrafters = primaryCrafters,
+        _secondaryCrafters = secondaryCrafters ?? {} {
     // TODO: Error checking
-    _primaryPlsView = UnmodifiableMapView(_primaryPls);
-    _secondaryPlsView = UnmodifiableMapView(_secondaryPls);
   }
 
   @override
@@ -310,31 +389,33 @@ class ProductionLineNode extends GraphNode {
   }
 
   void setConstraint(ProductionLineConstraint constraint,
-      {Map<Item, double>? ioConstraint, int? buildingsConstraint}) {
+      {Map<Item, double>? ioConstraint,
+      List<Recipe>? consumeAllConstraint,
+      Map<Recipe, int>? buildingsConstraint}) {
     // TODO
     throw UnimplementedError();
   }
 
-  /// Can also be used to change ImmutableModuledBuilding on existing production lines
-  void addOrModifyPrimary(
+  /// Can also be used to change ImmutableModuledBuilding on existing crafters
+  void addOrModifyPrimaryCrafters(
+      Map<Recipe, ImmutableModuledBuilding> newCrafters) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  void removePrimaryCrafters(List<Recipe> toRemove) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  /// Can also be used to change ImmutableModuledBuilding on existing crafters
+  void addOrModifySecondaryCrafters(
       Map<Recipe, ImmutableModuledBuilding> newProductionLines) {
     // TODO
     throw UnimplementedError();
   }
 
-  void removePrimary(List<Recipe> toRemove) {
-    // TODO
-    throw UnimplementedError();
-  }
-
-  /// Can also be used to change ImmutableModuledBuilding on existing production lines
-  void addOrModifySecondary(
-      Map<Recipe, ImmutableModuledBuilding> newProductionLines) {
-    // TODO
-    throw UnimplementedError();
-  }
-
-  void removeSecondary(List<Recipe> toRemove) {
+  void removeSecondaryCrafters(List<Recipe> toRemove) {
     // TODO
     throw UnimplementedError();
   }
@@ -379,31 +460,89 @@ class ProductionLineNode extends GraphNode {
 
   Map<Item, double>? get ioConstraint => _ioConstraint;
 
-  int? get buildingsConstraint => _buildingsConstraint;
+  List<Item>? get consumeAllConstraint => _consumeAllConstraint;
 
-  Map<Recipe, ImmutableModuledBuilding> get primaryProductionLines =>
-      _primaryPlsView;
+  Map<Recipe, int>? get buildingsConstraint => _buildingsConstraint;
 
-  Map<Recipe, ImmutableModuledBuilding> get secondaryProductionLines =>
-      _secondaryPlsView;
+  Map<Recipe, ImmutableModuledBuilding> get primaryCrafters =>
+      _primaryCraftersView;
+
+  Map<Recipe, ImmutableModuledBuilding> get secondaryCrafters =>
+      _secondaryCraftersView;
 }
 
 /// This is used for complicated production lines that require balancing
 /// between multiple recipes with similar outputs
 /// Eg. Advanced oil processing
-class BalancerNode extends GraphNode {
-  final Map<Recipe, ImmutableModuledBuilding> _pls;
-  late final Map<Recipe, ImmutableModuledBuilding> productionLines;
+/// Much like a production line, this also consists of crafters,
+/// although it makes no distinction between primary and secondary
+///
+/// Restrictions:
+/// No more than two crafters may produce the same item
+/// All crafters must be a direct dependency or dependant of another crafter
+/// At least two crafters are required. Otherwise, use a ProductionLine
+/// Only has one possible constraint: requiredOutput
+class Balancer extends ItemProducer {
+  Map<Item, double> _requiredOutput;
 
-  BalancerNode._(
-      {required Map<Recipe, ImmutableModuledBuilding> productionLines,
-      required super.edges,
-      required super.corner1x,
-      required super.corner1y,
-      required super.corner2x,
-      required super.corner2y})
-      : _pls = productionLines {
-    this.productionLines = UnmodifiableMapView(productionLines);
+  final Map<Recipe, ImmutableModuledBuilding> _crafters;
+  late final Map<Recipe, ImmutableModuledBuilding> _craftersView =
+      UnmodifiableMapView(_crafters);
+
+  Balancer._(
+      {required Map<Recipe, ImmutableModuledBuilding> crafters,
+      required Map<Item, double> requiredOutput,
+      required super.factorioBase,
+      required super.corner1,
+      required super.corner2})
+      : _requiredOutput = Map.unmodifiable(requiredOutput),
+        _crafters = crafters;
+
+  set requiredOutput(Map<Item, double> newOutput) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  /// Can also be used to change ImmutableModuledBuilding on existing crafters
+  void addOrModifyCrafters(Map<Recipe, ImmutableModuledBuilding> newCrafters) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  /// Allows user to get the individual input of each building for a particular recipe
+  /// Useful for cyclical recipes that have an item as both input and output
+  /// Eg. Coal Liquefaction
+  Map<Item, double> getBuildingInput(Recipe recipe) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  /// Allows user to get the individual output of each building for a particular recipe
+  /// Useful for cyclical recipes that have an item as both input and output
+  /// Eg. Coal Liquefaction
+  Map<Item, double> getBuildingOutput(Recipe recipe) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  Map<Recipe, double> get buildingsPerRecipe {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  double get totalConsumption {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  double get totalPowerDrain {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  double get totalPollution {
+    // TODO
+    throw UnimplementedError();
   }
 
   @override
@@ -411,4 +550,8 @@ class BalancerNode extends GraphNode {
     // TODO
     throw UnimplementedError();
   }
+
+  Map<Item, double> get requiredOutput => _requiredOutput;
+
+  Map<Recipe, ImmutableModuledBuilding> get crafters => _craftersView;
 }

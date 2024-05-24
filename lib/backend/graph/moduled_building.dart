@@ -49,9 +49,16 @@ class ImmutableModuledBuilding implements AbstractModuledBuilding {
 class RealTimeModuledBuilding implements AbstractModuledBuilding {
   CraftingBuilding _building;
   final Map<Module, int> _buildingModules;
-  late final Map<Module, int> _buildingModulesView;
   final Map<Beacon, Map<Module, int>> _beaconModules;
-  late final Map<Beacon, Map<Module, int>> _beaconModulesView;
+
+  late final Map<Module, int> _buildingModulesView =
+      UnmodifiableMapView(_buildingModules);
+  // It is technically still possible to edit the Map<Module, int> values in this map
+  // I considered creating a new view object for each value, or copying the whole map for each get
+  // but that seemed overkill
+  // I'm sure it's fine
+  late final Map<Beacon, Map<Module, int>> _beaconModulesView =
+      UnmodifiableMapView(_beaconModules);
   double _speedMultiplier;
   double _productivityMultiplier;
   double _consumptionMultiplier;
@@ -64,10 +71,7 @@ class RealTimeModuledBuilding implements AbstractModuledBuilding {
         _speedMultiplier = building.baseSpeed,
         _productivityMultiplier = 1.0,
         _consumptionMultiplier = 1.0,
-        _pollutionMultiplier = 1.0 {
-    _buildingModulesView = UnmodifiableMapView(_buildingModules);
-    _beaconModulesView = UnmodifiableMapView(_beaconModules);
-  }
+        _pollutionMultiplier = 1.0;
 
   set building(CraftingBuilding building) => throw UnimplementedError();
 
