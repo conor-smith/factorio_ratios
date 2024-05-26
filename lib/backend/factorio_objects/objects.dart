@@ -28,8 +28,7 @@ class ItemContext {
 
   ItemContext.unpopulated({required this.gameVersion, this.mods = const []});
 
-  factory ItemContext.fromDatabase(String gameVersion,
-      [List<String> mods = const []]) {
+  ItemContext.fromDatabase({required this.gameVersion, this.mods = const []}) {
     // TODO
     throw UnimplementedError();
   }
