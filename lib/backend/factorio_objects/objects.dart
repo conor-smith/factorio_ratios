@@ -114,7 +114,7 @@ class Recipe {
 }
 
 /// Represents possible module effects
-enum ModuleEffect { speed, productivity, consumption, pollution }
+enum CraftingEffect { speed, productivity, consumption, pollution }
 
 /// Represents a factorio module
 /// Bonuses are represented as doubles within effects map
@@ -124,7 +124,7 @@ class Module {
 
   final String id;
   final Item item;
-  final Map<ModuleEffect, double> effects;
+  final Map<CraftingEffect, double> effects;
 
   Module(
       {required this.context,
@@ -135,10 +135,10 @@ class Module {
       double productivityBonus = 0.0,
       double pollutionBonus = 0.0})
       : effects = Map.unmodifiable({
-          ModuleEffect.speed: speedBonus,
-          ModuleEffect.productivity: productivityBonus,
-          ModuleEffect.consumption: consumptionBonus,
-          ModuleEffect.pollution: pollutionBonus
+          CraftingEffect.speed: speedBonus,
+          CraftingEffect.productivity: productivityBonus,
+          CraftingEffect.consumption: consumptionBonus,
+          CraftingEffect.pollution: pollutionBonus
         }..removeWhere((effect, value) => value == 0));
 
   String get name => item.name;
@@ -153,7 +153,7 @@ class CraftingBuilding {
   final int moduleSlots;
 
   /// Specifies what module effects can be applied to this building
-  final List<ModuleEffect> allowedEffects;
+  final List<CraftingEffect> allowedEffects;
 
   /// Full list of recipe categories this building can craft
   final List<String> recipeCategories;
@@ -173,7 +173,7 @@ class CraftingBuilding {
       required List<String> recipeCategories,
       this.baseSpeed = 1.0,
       required this.moduleSlots,
-      required List<ModuleEffect> allowedEffects})
+      required List<CraftingEffect> allowedEffects})
       : recipeCategories = List.unmodifiable(recipeCategories),
         allowedEffects = List.unmodifiable(allowedEffects);
 
@@ -206,7 +206,7 @@ class Beacon {
   final int moduleSlots;
 
   /// Specifies what module effects can be applied to beacon
-  final List<ModuleEffect> allowedEffects;
+  final List<CraftingEffect> allowedEffects;
 
   /// Valid modules based upon allowedEffects
   late final List<Module> allowedModules = List.unmodifiable(context.modules
@@ -220,7 +220,7 @@ class Beacon {
       this.buildingApplication,
       required this.distributionEffectivity,
       required this.moduleSlots,
-      required List<ModuleEffect> allowedEffects})
+      required List<CraftingEffect> allowedEffects})
       : allowedEffects = List.unmodifiable(allowedEffects);
 
   String get name => item.name;

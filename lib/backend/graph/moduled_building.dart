@@ -6,10 +6,7 @@ abstract class AbstractModuledBuilding {
   CraftingBuilding get building;
   Map<Module, int> get buildingModules;
   Map<Beacon, Map<Module, int>> get beaconModules;
-  double get speedMultiplier;
-  double get productivityMultiplier;
-  double get consumptionMultiplier;
-  double get pollutionMultiplier;
+  Map<CraftingEffect, double> get multipliers;
 }
 
 /// Represents a crafting building with modules applied
@@ -21,25 +18,24 @@ class ImmutableModuledBuilding implements AbstractModuledBuilding {
   @override
   final Map<Beacon, Map<Module, int>> beaconModules;
   @override
-  final double speedMultiplier;
-  @override
-  final double productivityMultiplier;
-  @override
-  final double consumptionMultiplier;
-  @override
-  final double pollutionMultiplier;
+  final Map<CraftingEffect, double> multipliers;
 
-  ImmutableModuledBuilding._(
-      {required this.building,
-      required Map<Module, int> buildingModules,
-      required Map<Beacon, Map<Module, int>> beaconModules,
-      required this.speedMultiplier,
-      required this.productivityMultiplier,
-      required this.consumptionMultiplier,
-      required this.pollutionMultiplier})
-      : buildingModules = Map.unmodifiable(buildingModules),
-        beaconModules = Map.unmodifiable(beaconModules.map(
-            (beacon, modules) => MapEntry(beacon, Map.unmodifiable(modules))));
+  ImmutableModuledBuilding(this.building)
+      : buildingModules = const {},
+        beaconModules = const {},
+        multipliers = {
+          CraftingEffect.speed: building.baseSpeed,
+          CraftingEffect.productivity: 1.0,
+          CraftingEffect.consumption: 1.0,
+          CraftingEffect.pollution: 1.0
+        };
+
+  ImmutableModuledBuilding._fromRTMB(RealTimeModuledBuilding rtmb)
+      : building = rtmb.building,
+        buildingModules = Map.unmodifiable(rtmb._buildingModules),
+        beaconModules = Map.unmodifiable(rtmb._beaconModules.map(
+            (beacon, modules) => MapEntry(beacon, Map.unmodifiable(modules)))),
+        multipliers = Map.unmodifiable(rtmb._multipliers);
 }
 
 /// Intended to be used in GUIs
@@ -59,19 +55,21 @@ class RealTimeModuledBuilding implements AbstractModuledBuilding {
   // I'm sure it's fine
   late final Map<Beacon, Map<Module, int>> _beaconModulesView =
       UnmodifiableMapView(_beaconModules);
-  double _speedMultiplier;
-  double _productivityMultiplier;
-  double _consumptionMultiplier;
-  double _pollutionMultiplier;
+
+  final Map<CraftingEffect, double> _multipliers;
+  late final Map<CraftingEffect, double> _multipliersView =
+      UnmodifiableMapView(_multipliers);
 
   RealTimeModuledBuilding(CraftingBuilding building)
       : _building = building,
         _buildingModules = {},
         _beaconModules = {},
-        _speedMultiplier = building.baseSpeed,
-        _productivityMultiplier = 1.0,
-        _consumptionMultiplier = 1.0,
-        _pollutionMultiplier = 1.0;
+        _multipliers = {
+          CraftingEffect.speed: building.baseSpeed,
+          CraftingEffect.productivity: 1.0,
+          CraftingEffect.consumption: 1.0,
+          CraftingEffect.pollution: 1.0
+        };
 
   set building(CraftingBuilding building) => throw UnimplementedError();
 
@@ -90,11 +88,5 @@ class RealTimeModuledBuilding implements AbstractModuledBuilding {
   @override
   Map<Beacon, Map<Module, int>> get beaconModules => _beaconModulesView;
   @override
-  double get speedMultiplier => _speedMultiplier;
-  @override
-  double get productivityMultiplier => _productivityMultiplier;
-  @override
-  double get consumptionMultiplier => _consumptionMultiplier;
-  @override
-  double get pollutionMultiplier => _pollutionMultiplier;
+  Map<CraftingEffect, double> get multipliers => _multipliersView;
 }
