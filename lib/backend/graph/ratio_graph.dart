@@ -555,3 +555,26 @@ class Balancer extends ItemProducer {
 
   Map<Recipe, ImmutableModuledBuilding> get crafters => _craftersView;
 }
+
+/// This is solely for launching the end game rocket
+/// Calculates how long it takes to launch a rocket based on number of rocket parts produced
+/// Accepts 1 item as rocket cargo and produces relevant output
+class RocketLaunch extends ItemProducer {
+  Item? _cargo;
+
+  RocketLaunch._(
+      {Item? cargo,
+      required super.factorioBase,
+      required super.corner1,
+      required super.corner2})
+      : _cargo = cargo;
+
+  @override
+  Map<Item, double> get netIo => throw UnimplementedError();
+
+  set cargo(Item? newCargo) {
+    throw UnimplementedError();
+  }
+
+  Item? get cargo => _cargo;
+}
