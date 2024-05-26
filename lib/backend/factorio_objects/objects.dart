@@ -21,6 +21,7 @@ class ItemContext {
   final List<Module> modules;
   final List<Beacon> beacons;
   final List<Belt> belts;
+  final int rocketPartsRequired;
 
   ItemContext._(
       {required List<String> mods,
@@ -30,7 +31,7 @@ class ItemContext {
       required List<Module> modules,
       required List<Beacon> beacons,
       required List<Belt> belts,
-      required Map<Item, MapEntry<Item, double>> rocketLaunchProducts})
+      required this.rocketPartsRequired})
       : mods = List.unmodifiable(mods),
         items = List.unmodifiable(items),
         recipes = List.unmodifiable(recipes),
@@ -64,6 +65,9 @@ class Item {
   /// Populated by ItemContext during build
   late final List<Recipe> consumedBy;
 
+  /// Items produced when this item is placed in a rocket
+  late final Map<Item, int>? rocketProducts;
+
   Item(
       {required this.id,
       required this.name,
@@ -76,6 +80,11 @@ class Item {
 
   set consumedBy(List<Recipe> consumedBy) {
     this.consumedBy = List.unmodifiable(consumedBy);
+  }
+
+  set rocketProducts(Map<Item, int>? rocketProducts) {
+    this.rocketProducts =
+        rocketProducts != null ? Map.unmodifiable(rocketProducts) : null;
   }
 }
 
