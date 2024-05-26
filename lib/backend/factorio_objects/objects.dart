@@ -1,5 +1,3 @@
-// TODO: Should I add error checking to the constructors of these classes?
-
 /// The only item category a productivity bonus will apply to
 const intermediateProducts = "intermediateProducts";
 
@@ -26,12 +24,9 @@ class ItemContext {
   late final Map<Item, Map<Item, int>> rocketProducts;
 
   /// Number of rocket parts required for rocket in this game version and mod set
-  final int rocketPartsRequired;
+  late final int rocketPartsRequired;
 
-  ItemContext.unpopulated(
-      {required this.gameVersion,
-      required this.rocketPartsRequired,
-      this.mods = const []});
+  ItemContext.unpopulated({required this.gameVersion, this.mods = const []});
 
   factory ItemContext.fromDatabase(String gameVersion,
       [List<String> mods = const []]) {
