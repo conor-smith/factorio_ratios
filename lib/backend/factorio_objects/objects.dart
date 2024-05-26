@@ -1,5 +1,5 @@
 /// The only item category a productivity bonus will apply to
-const intermediateProducts = "intermediateProducts";
+const intermediateProductsCategory = "intermediate-products";
 
 /// This object contains the full graph of relevant objects
 /// It will fully manage all M-M relationships between recipes, items, buildings, etc
@@ -64,7 +64,7 @@ class Item {
       {required this.context,
       required this.id,
       required this.name,
-      required this.isFluid,
+      this.isFluid = false,
       required this.category});
 }
 
@@ -184,20 +184,9 @@ class Beacon {
   final String id;
   final Item item;
 
-  /// Represents how many of this beacon can be applied to a single building
-  /// If null, assumed to be (theoretically) infinite
-  /// Eg. For the base game beacon, there is no limit on how many can be applied to a building
-  /// Practically of course, it is limited by the size of the building
-  /// But there is no hard limit, so the base game beacon does not have a limit
-  /// This does not account for diminishing effectiveness
-  final int? buildingApplication;
-
   /// Represents the effective power of applied modules
   /// Eg. Base game beacon = 0.5
   final double distributionEffectivity;
-
-  /// This limitation will not apply if buildingApplication == null
-  final int moduleSlots;
 
   /// Specifies what module effects can be applied to beacon
   final List<CraftingEffect> allowedEffects;
@@ -211,9 +200,7 @@ class Beacon {
       {required this.context,
       required this.id,
       required this.item,
-      this.buildingApplication,
       required this.distributionEffectivity,
-      required this.moduleSlots,
       required List<CraftingEffect> allowedEffects})
       : allowedEffects = List.unmodifiable(allowedEffects);
 
