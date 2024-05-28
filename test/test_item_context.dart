@@ -170,7 +170,7 @@ void initialiseTestContext() {
         distributionEffectivity: 0.5,
         allowedEffects: CraftingEffect.values);
 
-    var itemsList = [
+    var itemsSet = {
       speedModuleItem,
       productivityModuleItem,
       efficiencyModuleItem,
@@ -180,23 +180,31 @@ void initialiseTestContext() {
       beaconItem,
       beaconAllowedEffectsItem,
       beaconDistributionEffectivityItem
-    ];
+    };
 
-    var buildingsList = [
+    var moduleSet = {
+      speedModule,
+      productivityModule,
+      efficiencyModule,
+      impossibleModule
+    };
+
+    var buildingsSet = {
       craftingBuilding0SlotsLowSpeed,
       craftingBuildingExclusive2SlotsNormalSpeed,
       craftingBuildingAllowedEffects4SlotsHighSpeed
-    ];
+    };
 
-    var beaconList = [
+    var beaconSet = {
       beacon,
       beaconAllowedEffects,
       beaconDistributionEffectivity
-    ];
+    };
 
-    testContext.items = itemsList;
-    testContext.buildings = buildingsList;
-    testContext.beacons = beaconList;
+    testContext.items = itemsSet;
+    testContext.modules = moduleSet;
+    testContext.buildings = buildingsSet;
+    testContext.beacons = beaconSet;
   }
 }
 

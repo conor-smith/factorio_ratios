@@ -1,8 +1,15 @@
 import 'dart:collection';
 
 import 'package:factorio_ratios/backend/factorio_objects/objects.dart';
+import 'package:sorted_list/sorted_list.dart';
 
 const maxModules = 50;
+const minMultipliers = {
+  CraftingEffect.speed: 0.2,
+  CraftingEffect.productivity: 1.0,
+  CraftingEffect.consumption: 0.2,
+  CraftingEffect.pollution: 1.0
+};
 
 class ModuledBuildingException implements Exception {
   final String message;
@@ -45,10 +52,13 @@ class ImmutableModuledBuilding implements AbstractModuledBuilding {
             (beacon, modules) => MapEntry(beacon, List.unmodifiable(modules)))),
         multipliers = Map.unmodifiable(rtmb._multipliers);
 
-  RealTimeModuledBuilding createRealTimeModuledBuilding() {
-    throw UnimplementedError();
-  }
+  RealTimeModuledBuilding createRealTimeModuledBuilding() =>
+      RealTimeModuledBuilding._fromImmutableModuledBuilding(this);
 }
+
+// Used in sorted lists
+int Function(Module, Module) _compareModules =
+    (module1, module2) => module1.name.compareTo(module2.name);
 
 /// Intended to be used in GUIs
 /// Will allow users to swap out buildings, beacons and modules,
@@ -57,8 +67,10 @@ class ImmutableModuledBuilding implements AbstractModuledBuilding {
 class RealTimeModuledBuilding implements AbstractModuledBuilding {
   CraftingBuilding _building;
 
-  final List<Module> _buildingModules;
-  final Map<Beacon, List<Module>> _beaconModules;
+  // Lists are sorted alphabetically according to .name
+  // TODO: Is alphabetically the best way to sort?
+  final SortedList<Module> _buildingModules;
+  final Map<Beacon, SortedList<Module>> _beaconModules;
 
   ImmutableModuledBuilding _cachedBuilding;
   bool _edited;
@@ -79,31 +91,160 @@ class RealTimeModuledBuilding implements AbstractModuledBuilding {
   RealTimeModuledBuilding._fromImmutableModuledBuilding(
       ImmutableModuledBuilding parent)
       : _building = parent.building,
-        _buildingModules = List.from(parent.buildingModules),
-        _beaconModules = Map.from(parent.beaconModules.map(
-            (beacon, moduleMap) => MapEntry(beacon, List.from(moduleMap)))),
+        _buildingModules = SortedList(_compareModules)
+          ..addAll(parent.buildingModules),
+        _beaconModules = Map.from(parent.beaconModules.map((beacon,
+                moduleList) =>
+            MapEntry(beacon, SortedList(_compareModules)..addAll(moduleList)))),
         _multipliers = Map.from(parent.multipliers),
         _cachedBuilding = parent,
         _edited = false;
 
-  set building(CraftingBuilding building) => throw UnimplementedError();
+  set building(CraftingBuilding newBuilding) {
+    // Remove any forbidden modules
+    if (!_building.allowedEffects
+        .every((effect) => newBuilding.allowedEffects.contains(effect))) {
+      _buildingModules.removeWhere(
+          (module) => !newBuilding.allowedModules.contains(module));
 
-  void addBuildingModule(Module module) => throw UnimplementedError();
-  void removeBuildingModule(Module module) => throw UnimplementedError();
-  void clearBuildingModules() => throw UnimplementedError();
+      // Remove any beacon entries that have been completely emptied
+      _beaconModules
+        ..forEach((beacon, modules) => modules.removeWhere(
+            (module) => !newBuilding.allowedModules.contains(module)))
+        ..removeWhere((beacon, modules) => modules.isEmpty);
+    }
 
-  void addBeaconModule(Beacon beacon, Module module) =>
-      throw UnimplementedError();
-  void removeBeaconModule(Beacon beacon, Module module) =>
-      throw UnimplementedError();
-  void clearBeacon(Beacon beacon) => throw UnimplementedError();
+    // If newBuilding has less slots, remove modules
+    if (newBuilding.moduleSlots < _buildingModules.length) {
+      _buildingModules.removeRange(
+          newBuilding.moduleSlots, _buildingModules.length);
+    }
 
-  bool get edited => _edited;
+    _building = newBuilding;
 
-  ImmutableModuledBuilding createImmutableModuledBuilding() {
-    throw UnimplementedError();
+    _calculateMultipliers();
   }
 
+  void addBuildingModule(Module module) {
+    if (!_building.allowedModules.contains(module)) {
+      throw ModuledBuildingException(
+          "Module '${module.name}' cannot be placed in building '${_building.name}'");
+    } else if (_buildingModules.length >= _building.moduleSlots) {
+      throw const ModuledBuildingException("Building module slots are full");
+    }
+
+    _buildingModules.add(module);
+
+    _calculateMultipliers();
+  }
+
+  void removeBuildingModule(Module module) {
+    if (!_buildingModules.remove(module)) {
+      throw const ModuledBuildingException(
+          "Module must be in building in order to be removed");
+    }
+
+    _calculateMultipliers();
+  }
+
+  void clearBuildingModules() {
+    if (_buildingModules.isNotEmpty) {
+      _buildingModules.removeRange(0, _buildingModules.length);
+    }
+
+    _calculateMultipliers();
+  }
+
+  void addBeaconModule(Beacon beacon, Module module) {
+    if ((_beaconModules[beacon]?.length ?? 0) >= maxModules) {
+      throw const ModuledBuildingException(
+          "Cannot apply more than $maxModules modules to a beacon");
+    }
+
+    if (!_building.allowedModules.contains(module) ||
+        !beacon.allowedModules.contains(module)) {
+      throw ModuledBuildingException(
+          "Module '${module.name} is forbidden either by building '${building.name}' or beacon '${beacon.name}'");
+    }
+
+    _beaconModules.update(beacon, (modules) => modules..add(module),
+        ifAbsent: () => SortedList(_compareModules)..add(module));
+
+    _calculateMultipliers();
+  }
+
+  void removeBeaconModule(Beacon beacon, Module module) {
+    if (!(_beaconModules[beacon]?.remove(module) ?? false)) {
+      throw const ModuledBuildingException(
+          "Module must be applied to beacon in order to be removed");
+    }
+
+    if (_beaconModules[beacon]!.isEmpty) {
+      _beaconModules.remove(beacon);
+    }
+
+    _calculateMultipliers();
+  }
+
+  void clearBeacon(Beacon beacon) {
+    if (_beaconModules.remove(beacon) == null) {
+      throw const ModuledBuildingException(
+          "Beacon must be present in order to be cleared");
+    }
+
+    _calculateMultipliers();
+  }
+
+  ImmutableModuledBuilding createImmutableModuledBuilding() {
+    if (_edited) {
+      _edited = false;
+      _cachedBuilding = ImmutableModuledBuilding._fromRTMB(this);
+    }
+
+    return _cachedBuilding;
+  }
+
+  void _calculateMultipliers() {
+    // Create a map of module: counter
+    // This also takes distributionEffectivity of beacons into account
+    // I prefer doing this as opposed to straight incrementing as this reduces
+    // floating point inaccuracies
+    var allModules = <Module, double>{};
+
+    for (var module in _buildingModules) {
+      allModules.update(module, (counter) => counter + 1, ifAbsent: () => 1);
+    }
+
+    _beaconModules.forEach((beacon, modules) {
+      for (var module in modules) {
+        allModules.update(
+            module, (counter) => counter + beacon.distributionEffectivity,
+            ifAbsent: () => beacon.distributionEffectivity);
+      }
+    });
+
+    // Reset to default values
+    _multipliers.updateAll((effect, multiplier) => 1.0);
+    // Apply bonuses to multipliers
+    allModules.forEach((module, counter) {
+      module.effects.forEach((effect, bonus) => _multipliers.update(
+          effect, (multiplier) => multiplier + bonus * counter));
+    });
+
+    // Compare against minimum values
+    _multipliers.updateAll((effect, multiplier) =>
+        multiplier < minMultipliers[effect]!
+            ? minMultipliers[effect]!
+            : multiplier);
+
+    // Apply building base speed multiplier
+    _multipliers[CraftingEffect.speed] =
+        _multipliers[CraftingEffect.speed]! * _building.baseSpeed;
+
+    _edited = true;
+  }
+
+  bool get edited => _edited;
   @override
   CraftingBuilding get building => _building;
   @override

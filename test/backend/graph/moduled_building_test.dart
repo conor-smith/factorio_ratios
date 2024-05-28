@@ -13,8 +13,8 @@ void main() {
           ImmutableModuledBuilding(craftingBuilding0SlotsLowSpeed);
 
       expect(slowImmutable.building, craftingBuilding0SlotsLowSpeed);
-      expect(slowImmutable.buildingModules, equals(const {}));
-      expect(slowImmutable.beaconModules, equals(const {}));
+      expect(slowImmutable.buildingModules, isEmpty);
+      expect(slowImmutable.beaconModules, isEmpty);
       expect(
           slowImmutable.multipliers,
           equals({
@@ -84,6 +84,14 @@ void main() {
           equals({
             beacon: [speedModule],
             beaconDistributionEffectivity: [efficiencyModule, efficiencyModule]
+          }));
+
+      rtb.removeBeaconModule(beaconDistributionEffectivity, efficiencyModule);
+      expect(
+          rtb.beaconModules,
+          equals({
+            beacon: [speedModule],
+            beaconDistributionEffectivity: [efficiencyModule]
           }));
 
       rtb.clearBeacon(beaconDistributionEffectivity);
@@ -228,9 +236,9 @@ void main() {
         ..addBeaconModule(beacon, speedModule);
 
       expect(rtb.buildingModules, contains(productivityModule));
-      expect(rtb.beaconModules[beacon], productivityModule);
+      expect(rtb.beaconModules[beacon], contains(productivityModule));
 
-      // Removes disallowed beacons upon building change
+      // Removes forbidden modules upon building change
       rtb.building = craftingBuildingAllowedEffects4SlotsHighSpeed;
       expect(rtb.buildingModules.contains(productivityModule), isFalse);
       expect(rtb.beaconModules[beacon]!.contains(productivityModule), isFalse);
