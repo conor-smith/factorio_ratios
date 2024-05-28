@@ -5,6 +5,10 @@ import '../../test_item_context.dart';
 void main() {
   initialiseTestContext();
 
+  group("Test default buildings", () {
+    // TODO
+  });
+
   group("Test production lines", () {
     // TODO
   });
