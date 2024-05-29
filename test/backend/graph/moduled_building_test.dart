@@ -76,13 +76,13 @@ void main() {
       expect(rtb.buildingModules, isEmpty);
 
       rtb
-        ..addBeaconModule(beacon, speedModule)
+        ..addBeaconModule(beaconDefault, speedModule)
         ..addBeaconModule(beaconDistributionEffectivity, efficiencyModule)
         ..addBeaconModule(beaconDistributionEffectivity, efficiencyModule);
       expect(
           rtb.beaconModules,
           equals({
-            beacon: [speedModule],
+            beaconDefault: [speedModule],
             beaconDistributionEffectivity: [efficiencyModule, efficiencyModule]
           }));
 
@@ -90,7 +90,7 @@ void main() {
       expect(
           rtb.beaconModules,
           equals({
-            beacon: [speedModule],
+            beaconDefault: [speedModule],
             beaconDistributionEffectivity: [efficiencyModule]
           }));
 
@@ -98,14 +98,14 @@ void main() {
       expect(
           rtb.beaconModules,
           equals({
-            beacon: [speedModule]
+            beaconDefault: [speedModule]
           }));
 
-      rtb.removeBeaconModule(beacon, speedModule);
+      rtb.removeBeaconModule(beaconDefault, speedModule);
       expect(rtb.beaconModules, isEmpty);
 
-      expect(
-          () => rtb.removeBeaconModule(beacon, speedModule), throwsException);
+      expect(() => rtb.removeBeaconModule(beaconDefault, speedModule),
+          throwsException);
       expect(() => rtb.removeBuildingModule(speedModule), throwsException);
     });
 
@@ -115,9 +115,9 @@ void main() {
       rtb
         ..addBuildingModule(productivityModule)
         ..addBuildingModule(productivityModule)
-        ..addBeaconModule(beacon, efficiencyModule)
-        ..addBeaconModule(beacon, efficiencyModule)
-        ..addBeaconModule(beacon, efficiencyModule)
+        ..addBeaconModule(beaconDefault, efficiencyModule)
+        ..addBeaconModule(beaconDefault, efficiencyModule)
+        ..addBeaconModule(beaconDefault, efficiencyModule)
         ..addBeaconModule(beaconDistributionEffectivity, speedModule);
 
       // effects = 2 * productivity module + 3 * efficiency module + 0.5 * speed module
@@ -140,7 +140,11 @@ void main() {
       expect(
           rtb.beaconModules,
           equals({
-            beacon: [efficiencyModule, efficiencyModule, efficiencyModule],
+            beaconDefault: [
+              efficiencyModule,
+              efficiencyModule,
+              efficiencyModule
+            ],
             beaconDistributionEffectivity: [speedModule]
           }));
 
@@ -163,7 +167,7 @@ void main() {
       expect(rtb.multipliers[CraftingEffect.speed],
           craftingBuilding0SlotsLowSpeed.baseSpeed);
 
-      rtb.addBeaconModule(beacon, speedModule);
+      rtb.addBeaconModule(beaconDefault, speedModule);
 
       expect(
           rtb.multipliers[CraftingEffect.speed],
@@ -176,7 +180,7 @@ void main() {
 
       rtb.building = craftingBuilding0SlotsLowSpeed;
 
-      rtb.addBeaconModule(beacon, impossibleModule);
+      rtb.addBeaconModule(beaconDefault, impossibleModule);
 
       // Speed minimum = 0.2 * building base speed
       // TODO: Confirm minimum pollution
@@ -209,10 +213,11 @@ void main() {
       var rtb = normalImmutable.createRealTimeModuledBuilding();
 
       for (var i = 0; i < maxModules; i++) {
-        rtb.addBeaconModule(beacon, speedModule);
+        rtb.addBeaconModule(beaconDefault, speedModule);
       }
 
-      expect(() => rtb.addBeaconModule(beacon, speedModule), throwsException);
+      expect(() => rtb.addBeaconModule(beaconDefault, speedModule),
+          throwsException);
 
       // Should execute without issue
       rtb.addBeaconModule(beaconDistributionEffectivity, speedModule);
@@ -232,19 +237,20 @@ void main() {
       rtb
         ..addBuildingModule(productivityModule)
         ..addBuildingModule(speedModule)
-        ..addBeaconModule(beacon, productivityModule)
-        ..addBeaconModule(beacon, speedModule);
+        ..addBeaconModule(beaconDefault, productivityModule)
+        ..addBeaconModule(beaconDefault, speedModule);
 
       expect(rtb.buildingModules, contains(productivityModule));
-      expect(rtb.beaconModules[beacon], contains(productivityModule));
+      expect(rtb.beaconModules[beaconDefault], contains(productivityModule));
 
       // Removes forbidden modules upon building change
       rtb.building = craftingBuildingAllowedEffects4SlotsHighSpeed;
       expect(rtb.buildingModules.contains(productivityModule), isFalse);
-      expect(rtb.beaconModules[beacon]!.contains(productivityModule), isFalse);
+      expect(rtb.beaconModules[beaconDefault]!.contains(productivityModule),
+          isFalse);
 
       expect(() => rtb.addBuildingModule(productivityModule), throwsException);
-      expect(() => rtb.addBeaconModule(beacon, productivityModule),
+      expect(() => rtb.addBeaconModule(beaconDefault, productivityModule),
           throwsException);
     });
   });

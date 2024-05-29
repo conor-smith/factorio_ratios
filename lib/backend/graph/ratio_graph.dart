@@ -46,7 +46,8 @@ class FactorioBase {
       Map<Item, double>? ioConstraint,
       int? buildingsConstraint,
       required Map<Recipe, ImmutableModuledBuilding> primaryProductionLines,
-      Map<Recipe, ImmutableModuledBuilding>? secondaryProductionLines}) {
+      Map<Recipe, ImmutableModuledBuilding>? secondaryProductionLines,
+      required Point centrePoint}) {
     // TODO
     throw UnimplementedError();
   }
