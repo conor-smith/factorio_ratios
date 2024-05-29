@@ -6,7 +6,7 @@ const String logisticsCategory = "logistics";
 const String productionCategory = "production";
 const String intermediateCategory = intermediateProductsCategory;
 
-const String recipeCategory = "recipe-cat-1";
+const String defaultRecipeCategory = "recipe-cat-1";
 const String exclusiveRecipeCategory = "recipe-cat-2";
 const String rocketPartCategory = "rocket-part-cat";
 
@@ -87,24 +87,24 @@ late final Beacon beaconDistributionEffectivity;
 late final Item rocketScience;
 late final Item rocketPart;
 late final Item satellite;
-late final Item dep1NonProductive;
+late final Item dep1NonIntermediate;
 late final Item dep2;
 late final Item dep3;
 late final Item dep4;
-late final Item balancerInternalItem; // Represents heavy oil
-late final Item balancerOutput1;
-late final Item balancerOutput2;
-late final Item resource;
+late final Item heavyOil;
+late final Item lightOil;
+late final Item petroleum;
+late final Item coal;
 
 late final Recipe recipeRocketPart;
 late final Recipe recipeSatellite;
 late final Recipe recipeDep1;
 late final Recipe recipeDep2Exclusive;
-late final Recipe recipeDep3Cyclical;
-late final Recipe recipeDep4;
-late final Recipe recipeBalancer1Cyclical;
-late final Recipe recipeBalancer2;
-late final Recipe recipeBalancer3;
+late final Recipe recipeDep3;
+late final Recipe recipeDep4Cyclical;
+late final Recipe recipeCoalLiquefaction;
+late final Recipe recipeHeavyOilCracking;
+late final Recipe recipeLightOilCracking;
 
 bool _initialized = false;
 
@@ -116,16 +116,31 @@ void initialiseTestContext() {
     var modules = _createModules();
     var buildings = _createBuildings();
     var beacons = _createBeacons();
+    var recipes = _createRecipes();
+    var rocketOutput = {
+      satellite: {rocketScience: 12},
+      beaconDefaultItem: {rocketSiloItem: 1}
+    };
 
     var allItems = <Item>{}
       ..addAll(modules.map((module) => module.item))
       ..addAll(buildings.map((building) => building.item))
-      ..addAll(beacons.map((beacon) => beacon.item));
+      ..addAll(beacons.map((beacon) => beacon.item))
+      ..addAll(recipes
+          .map((recipe) => List<Item>.from(recipe.ingredients.keys)
+            ..addAll(recipe.products.keys))
+          .reduce((items1, items2) => items1..addAll(items2)))
+      ..addAll(rocketOutput.values
+          .map((outputs) => List<Item>.from(outputs.keys))
+          .reduce((outputs1, outputs2) => outputs1..addAll(outputs2)));
 
     testContext.items = allItems;
     testContext.modules = modules;
     testContext.buildings = buildings;
     testContext.beacons = beacons;
+    testContext.rocketPart = rocketPart;
+    testContext.rocketPartsRequired = 100;
+    testContext.rocketProducts = rocketOutput;
   }
 }
 
@@ -203,7 +218,7 @@ Set<CraftingBuilding> _createBuildings() {
       context: testContext,
       id: _createId(),
       item: craftingBuilding0SlotsLowSpeedItem,
-      recipeCategories: const [recipeCategory],
+      recipeCategories: const [defaultRecipeCategory],
       baseSpeed: 0.7,
       moduleSlots: 0,
       allowedEffects: CraftingEffect.values);
@@ -211,7 +226,7 @@ Set<CraftingBuilding> _createBuildings() {
       context: testContext,
       id: _createId(),
       item: craftingBuildingExclusive2SlotsNormalSpeedItem,
-      recipeCategories: [exclusiveRecipeCategory, recipeCategory],
+      recipeCategories: [exclusiveRecipeCategory, defaultRecipeCategory],
       baseSpeed: 1.0,
       moduleSlots: 2,
       allowedEffects: CraftingEffect.values);
@@ -219,7 +234,7 @@ Set<CraftingBuilding> _createBuildings() {
       context: testContext,
       id: _createId(),
       item: craftingBuildingAllowedEffects4SlotsHighSpeedItem,
-      recipeCategories: [recipeCategory],
+      recipeCategories: [defaultRecipeCategory],
       baseSpeed: 1.2,
       moduleSlots: 4,
       allowedEffects: const [CraftingEffect.speed, CraftingEffect.consumption]);
@@ -268,6 +283,152 @@ Set<Beacon> _createBeacons() {
       allowedEffects: CraftingEffect.values);
 
   return {beaconDefault, beaconAllowedEffects, beaconDistributionEffectivity};
+}
+
+Set<Recipe> _createRecipes() {
+  rocketScience = Item(
+      context: testContext,
+      id: _createId(),
+      name: "rocket science",
+      category: intermediateCategory);
+  rocketPart = Item(
+      context: testContext,
+      id: _createId(),
+      name: "rocket part",
+      category: intermediateCategory);
+  satellite = Item(
+      context: testContext,
+      id: _createId(),
+      name: "satellite",
+      category: productionCategory);
+  dep1NonIntermediate = Item(
+      context: testContext,
+      id: _createId(),
+      name: "dep 1",
+      category: productionCategory);
+  dep2 = Item(
+      context: testContext,
+      id: _createId(),
+      name: "dep 2",
+      category: intermediateCategory);
+  dep3 = Item(
+      context: testContext,
+      id: _createId(),
+      name: "dep 3",
+      category: intermediateCategory);
+  dep4 = Item(
+      context: testContext,
+      id: _createId(),
+      name: "dep 4",
+      category: intermediateCategory);
+  heavyOil = Item(
+      context: testContext,
+      id: _createId(),
+      name: "heavy oil",
+      isFluid: true,
+      category: intermediateCategory);
+  lightOil = Item(
+      context: testContext,
+      id: _createId(),
+      name: "light oil",
+      isFluid: true,
+      category: intermediateCategory);
+  petroleum = Item(
+      context: testContext,
+      id: _createId(),
+      name: "petroleum",
+      isFluid: true,
+      category: intermediateCategory);
+  coal = Item(
+      context: testContext,
+      id: _createId(),
+      name: "coal",
+      category: intermediateCategory);
+
+  recipeRocketPart = Recipe(
+      context: testContext,
+      id: _createId(),
+      name: "rocket-part-recipe",
+      ingredients: {lightOil: 16, dep1NonIntermediate: 20, dep2: 11},
+      products: {rocketPart: 1},
+      time: 3,
+      recipeCategory: rocketPartCategory);
+  recipeSatellite = Recipe(
+      context: testContext,
+      id: _createId(),
+      name: "satellite-recipe",
+      ingredients: {dep1NonIntermediate: 8, dep3: 16},
+      products: {satellite: 1},
+      time: 5,
+      recipeCategory: exclusiveRecipeCategory);
+  recipeDep1 = Recipe(
+      context: testContext,
+      id: _createId(),
+      name: "dep-1-recipe",
+      ingredients: {dep3: 14, dep4: 6},
+      products: {dep1NonIntermediate: 12},
+      time: 10,
+      recipeCategory: defaultRecipeCategory);
+  recipeDep2Exclusive = Recipe(
+      context: testContext,
+      id: _createId(),
+      name: "dep-2-recipe",
+      ingredients: {dep4: 6},
+      products: {dep2: 1},
+      time: 9,
+      recipeCategory: exclusiveRecipeCategory);
+  recipeDep3 = Recipe(
+      context: testContext,
+      id: _createId(),
+      name: "dep-3-recipe",
+      ingredients: {lightOil: 12, petroleum: 16},
+      products: {dep3: 2},
+      time: 0.5,
+      recipeCategory: defaultRecipeCategory);
+  recipeDep4Cyclical = Recipe(
+      context: testContext,
+      id: _createId(),
+      name: "dep-4-recipe",
+      ingredients: {lightOil: 14, dep4: 6},
+      products: {dep4: 14},
+      time: 5,
+      recipeCategory: defaultRecipeCategory);
+  recipeCoalLiquefaction = Recipe(
+      context: testContext,
+      id: _createId(),
+      name: "coal-liquefaction",
+      ingredients: {coal: 10, heavyOil: 20},
+      products: {heavyOil: 45, lightOil: 10, petroleum: 10},
+      time: 2,
+      recipeCategory: defaultRecipeCategory);
+  recipeHeavyOilCracking = Recipe(
+      context: testContext,
+      id: _createId(),
+      name: "heavy-oil-cracking",
+      ingredients: {heavyOil: 5},
+      products: {lightOil: 10},
+      time: 2,
+      recipeCategory: defaultRecipeCategory);
+  recipeLightOilCracking = Recipe(
+      context: testContext,
+      id: _createId(),
+      name: "light-oil-cracking",
+      ingredients: {lightOil: 5},
+      products: {petroleum: 10},
+      time: 2,
+      recipeCategory: defaultRecipeCategory);
+
+  return {
+    recipeRocketPart,
+    recipeSatellite,
+    recipeDep1,
+    recipeDep2Exclusive,
+    recipeDep3,
+    recipeDep4Cyclical,
+    recipeCoalLiquefaction,
+    recipeHeavyOilCracking,
+    recipeLightOilCracking
+  };
 }
 
 int _idToIncrement = 0;

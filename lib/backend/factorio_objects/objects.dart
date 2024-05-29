@@ -24,11 +24,16 @@ class ItemContext {
   late final Map<Item, Map<Item, int>> rocketProducts;
 
   /// Number of rocket parts required for rocket in this game version and mod set
+  late final Item rocketPart;
   late final int rocketPartsRequired;
 
-  ItemContext.unpopulated({required this.gameVersion, this.mods = const {}});
+  ItemContext.unpopulated(
+      {required this.gameVersion, Set<String> mods = const {}})
+      : mods = Set.unmodifiable(mods);
 
-  ItemContext.fromDatabase({required this.gameVersion, this.mods = const {}}) {
+  ItemContext.fromDatabase(
+      {required this.gameVersion, Set<String> mods = const {}})
+      : mods = Set.unmodifiable(mods) {
     // TODO
     throw UnimplementedError();
   }
