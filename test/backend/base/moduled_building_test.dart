@@ -1,5 +1,5 @@
 import 'package:factorio_ratios/backend/factorio_objects/objects.dart';
-import 'package:factorio_ratios/backend/graph/moduled_building.dart';
+import 'package:factorio_ratios/backend/base/moduled_building.dart';
 import 'package:test/test.dart';
 
 import '../../test_item_context.dart';
