@@ -11,49 +11,49 @@ const minMultipliers = {
   CraftingEffect.pollution: 1.0
 };
 
-class ModuledBuildingException implements Exception {
+class ModuledMachineException implements Exception {
   final String message;
 
-  const ModuledBuildingException(this.message);
+  const ModuledMachineException(this.message);
 }
 
-abstract class AbstractModuledBuilding {
-  CraftingBuilding get building;
-  List<Module> get buildingModules;
+abstract class AbstractModuledMachine {
+  CraftingMachine get machine;
+  List<Module> get machineModules;
   Map<Beacon, List<Module>> get beaconModules;
   Map<CraftingEffect, double> get multipliers;
 }
 
-/// Represents a crafting building with modules applied
-class ImmutableModuledBuilding implements AbstractModuledBuilding {
+/// Represents a crafting machine with modules applied
+class ImmutableModuledMachine implements AbstractModuledMachine {
   @override
-  final CraftingBuilding building;
+  final CraftingMachine machine;
   @override
-  final List<Module> buildingModules;
+  final List<Module> machineModules;
   @override
   final Map<Beacon, List<Module>> beaconModules;
   @override
   final Map<CraftingEffect, double> multipliers;
 
-  ImmutableModuledBuilding(this.building)
-      : buildingModules = const [],
+  ImmutableModuledMachine(this.machine)
+      : machineModules = const [],
         beaconModules = const {},
         multipliers = {
-          CraftingEffect.speed: building.baseSpeed,
+          CraftingEffect.speed: machine.baseSpeed,
           CraftingEffect.productivity: 1.0,
           CraftingEffect.powerConsumption: 1.0,
           CraftingEffect.pollution: 1.0
         };
 
-  ImmutableModuledBuilding._fromRTMB(RealTimeModuledBuilding rtmb)
-      : building = rtmb.building,
-        buildingModules = List.unmodifiable(rtmb._buildingModules),
+  ImmutableModuledMachine._fromRTMM(RealTimeModuledMachine rtmb)
+      : machine = rtmb.machine,
+        machineModules = List.unmodifiable(rtmb._machineModules),
         beaconModules = Map.unmodifiable(rtmb._beaconModules.map(
             (beacon, modules) => MapEntry(beacon, List.unmodifiable(modules)))),
         multipliers = Map.unmodifiable(rtmb._multipliers);
 
-  RealTimeModuledBuilding createRealTimeModuledBuilding() =>
-      RealTimeModuledBuilding._fromImmutableModuledBuilding(this);
+  RealTimeModuledMachine createRealTimeModuledMachine() =>
+      RealTimeModuledMachine._fromIMM(this);
 }
 
 // Used in sorted lists
@@ -61,22 +61,22 @@ int Function(Module, Module) _compareModules =
     (module1, module2) => module1.name.compareTo(module2.name);
 
 /// Intended to be used in GUIs
-/// Will allow users to swap out buildings, beacons and modules,
+/// Will allow users to swap out machines, beacons and modules,
 /// and see the effects in real time
 /// Modifications to number of modules must be done through provided add/remove methods
-class RealTimeModuledBuilding implements AbstractModuledBuilding {
-  CraftingBuilding _building;
+class RealTimeModuledMachine implements AbstractModuledMachine {
+  CraftingMachine _machine;
 
   // Lists are sorted alphabetically according to .name
   // TODO: Is alphabetically the best way to sort?
-  final SortedList<Module> _buildingModules;
+  final SortedList<Module> _machineModules;
   final Map<Beacon, SortedList<Module>> _beaconModules;
 
-  ImmutableModuledBuilding _cachedBuilding;
+  ImmutableModuledMachine _cachedMachine;
   bool _edited;
 
-  late final List<Module> _buildingModulesView =
-      UnmodifiableListView(_buildingModules);
+  late final List<Module> _machineModulesView =
+      UnmodifiableListView(_machineModules);
   // It is technically still possible to edit the List<Module> values in this map view
   // I considered creating a new view object for each value, or copying the whole map for each get
   // but that seemed overkill
@@ -88,68 +88,67 @@ class RealTimeModuledBuilding implements AbstractModuledBuilding {
   late final Map<CraftingEffect, double> _multipliersView =
       UnmodifiableMapView(_multipliers);
 
-  RealTimeModuledBuilding._fromImmutableModuledBuilding(
-      ImmutableModuledBuilding parent)
-      : _building = parent.building,
-        _buildingModules = SortedList(_compareModules)
-          ..addAll(parent.buildingModules),
+  RealTimeModuledMachine._fromIMM(ImmutableModuledMachine parent)
+      : _machine = parent.machine,
+        _machineModules = SortedList(_compareModules)
+          ..addAll(parent.machineModules),
         _beaconModules = Map.from(parent.beaconModules.map((beacon,
                 moduleList) =>
             MapEntry(beacon, SortedList(_compareModules)..addAll(moduleList)))),
         _multipliers = Map.from(parent.multipliers),
-        _cachedBuilding = parent,
+        _cachedMachine = parent,
         _edited = false;
 
-  set building(CraftingBuilding newBuilding) {
+  set machine(CraftingMachine newMachine) {
     // Remove any forbidden modules
-    if (!_building.allowedEffects
-        .every((effect) => newBuilding.allowedEffects.contains(effect))) {
-      _buildingModules.removeWhere(
-          (module) => !newBuilding.allowedModules.contains(module));
+    if (!_machine.allowedEffects
+        .every((effect) => newMachine.allowedEffects.contains(effect))) {
+      _machineModules
+          .removeWhere((module) => !newMachine.allowedModules.contains(module));
 
       // Remove any beacon entries that have been completely emptied
       _beaconModules
         ..forEach((beacon, modules) => modules.removeWhere(
-            (module) => !newBuilding.allowedModules.contains(module)))
+            (module) => !newMachine.allowedModules.contains(module)))
         ..removeWhere((beacon, modules) => modules.isEmpty);
     }
 
-    // If newBuilding has less slots, remove modules
-    if (newBuilding.moduleSlots < _buildingModules.length) {
-      _buildingModules.removeRange(
-          newBuilding.moduleSlots, _buildingModules.length);
+    // If newMachine has less slots, remove modules
+    if (newMachine.moduleSlots < _machineModules.length) {
+      _machineModules.removeRange(
+          newMachine.moduleSlots, _machineModules.length);
     }
 
-    _building = newBuilding;
+    _machine = newMachine;
 
     _calculateMultipliers();
   }
 
-  void addBuildingModule(Module module) {
-    if (!_building.allowedModules.contains(module)) {
-      throw ModuledBuildingException(
-          "Module '${module.name}' cannot be placed in building '${_building.name}'");
-    } else if (_buildingModules.length >= _building.moduleSlots) {
-      throw const ModuledBuildingException("Building module slots are full");
+  void addMachineModule(Module module) {
+    if (!_machine.allowedModules.contains(module)) {
+      throw ModuledMachineException(
+          "Module '${module.name}' cannot be placed in machine '${_machine.name}'");
+    } else if (_machineModules.length >= _machine.moduleSlots) {
+      throw const ModuledMachineException("Machine module slots are full");
     }
 
-    _buildingModules.add(module);
+    _machineModules.add(module);
 
     _calculateMultipliers();
   }
 
-  void removeBuildingModule(Module module) {
-    if (!_buildingModules.remove(module)) {
-      throw const ModuledBuildingException(
-          "Module must be in building in order to be removed");
+  void removeMachineModule(Module module) {
+    if (!_machineModules.remove(module)) {
+      throw const ModuledMachineException(
+          "Module must be in machine in order to be removed");
     }
 
     _calculateMultipliers();
   }
 
-  void clearBuildingModules() {
-    if (_buildingModules.isNotEmpty) {
-      _buildingModules.removeRange(0, _buildingModules.length);
+  void clearMachineModules() {
+    if (_machineModules.isNotEmpty) {
+      _machineModules.removeRange(0, _machineModules.length);
     }
 
     _calculateMultipliers();
@@ -157,14 +156,14 @@ class RealTimeModuledBuilding implements AbstractModuledBuilding {
 
   void addBeaconModule(Beacon beacon, Module module) {
     if ((_beaconModules[beacon]?.length ?? 0) >= maxModules) {
-      throw const ModuledBuildingException(
+      throw const ModuledMachineException(
           "Cannot apply more than $maxModules modules to a beacon");
     }
 
-    if (!_building.allowedModules.contains(module) ||
+    if (!_machine.allowedModules.contains(module) ||
         !beacon.allowedModules.contains(module)) {
-      throw ModuledBuildingException(
-          "Module '${module.name} is forbidden either by building '${building.name}' or beacon '${beacon.name}'");
+      throw ModuledMachineException(
+          "Module '${module.name} is forbidden either by machine '${machine.name}' or beacon '${beacon.name}'");
     }
 
     _beaconModules.update(beacon, (modules) => modules..add(module),
@@ -175,7 +174,7 @@ class RealTimeModuledBuilding implements AbstractModuledBuilding {
 
   void removeBeaconModule(Beacon beacon, Module module) {
     if (!(_beaconModules[beacon]?.remove(module) ?? false)) {
-      throw const ModuledBuildingException(
+      throw const ModuledMachineException(
           "Module must be applied to beacon in order to be removed");
     }
 
@@ -188,20 +187,20 @@ class RealTimeModuledBuilding implements AbstractModuledBuilding {
 
   void clearBeacon(Beacon beacon) {
     if (_beaconModules.remove(beacon) == null) {
-      throw const ModuledBuildingException(
+      throw const ModuledMachineException(
           "Beacon must be present in order to be cleared");
     }
 
     _calculateMultipliers();
   }
 
-  ImmutableModuledBuilding createImmutableModuledBuilding() {
+  ImmutableModuledMachine createImmutableModuledMachine() {
     if (_edited) {
       _edited = false;
-      _cachedBuilding = ImmutableModuledBuilding._fromRTMB(this);
+      _cachedMachine = ImmutableModuledMachine._fromRTMM(this);
     }
 
-    return _cachedBuilding;
+    return _cachedMachine;
   }
 
   void _calculateMultipliers() {
@@ -211,7 +210,7 @@ class RealTimeModuledBuilding implements AbstractModuledBuilding {
     // floating point inaccuracies
     var allModules = <Module, double>{};
 
-    for (var module in _buildingModules) {
+    for (var module in _machineModules) {
       allModules.update(module, (counter) => counter + 1, ifAbsent: () => 1);
     }
 
@@ -237,18 +236,18 @@ class RealTimeModuledBuilding implements AbstractModuledBuilding {
             ? minMultipliers[effect]!
             : multiplier);
 
-    // Apply building base speed multiplier
+    // Apply machine base speed multiplier
     _multipliers[CraftingEffect.speed] =
-        _multipliers[CraftingEffect.speed]! * _building.baseSpeed;
+        _multipliers[CraftingEffect.speed]! * _machine.baseSpeed;
 
     _edited = true;
   }
 
   bool get edited => _edited;
   @override
-  CraftingBuilding get building => _building;
+  CraftingMachine get machine => _machine;
   @override
-  List<Module> get buildingModules => _buildingModulesView;
+  List<Module> get machineModules => _machineModulesView;
   @override
   Map<Beacon, List<Module>> get beaconModules => _beaconModulesView;
   @override

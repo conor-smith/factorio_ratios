@@ -1,5 +1,5 @@
 import 'package:factorio_ratios/backend/factorio_objects/objects.dart';
-import 'package:factorio_ratios/backend/base/moduled_building.dart';
+import 'package:factorio_ratios/backend/base/moduled_machine.dart';
 import 'package:test/test.dart';
 
 import '../../test_item_context.dart';
@@ -7,31 +7,31 @@ import '../../test_item_context.dart';
 void main() {
   initialiseTestContext();
 
-  group("Test immutableModuledBuilding", () {
-    test("create immutableModuledBuilding", () {
+  group("Test immutableModuledMachine", () {
+    test("create immutableModuledMachine", () {
       var slowImmutable =
-          ImmutableModuledBuilding(craftingBuilding0SlotsLowSpeed);
+          ImmutableModuledMachine(craftingMachine0SlotsLowSpeed);
 
-      expect(slowImmutable.building, craftingBuilding0SlotsLowSpeed);
-      expect(slowImmutable.buildingModules, isEmpty);
+      expect(slowImmutable.machine, craftingMachine0SlotsLowSpeed);
+      expect(slowImmutable.machineModules, isEmpty);
       expect(slowImmutable.beaconModules, isEmpty);
       expect(
           slowImmutable.multipliers,
           equals({
-            CraftingEffect.speed: craftingBuilding0SlotsLowSpeed.baseSpeed,
+            CraftingEffect.speed: craftingMachine0SlotsLowSpeed.baseSpeed,
             CraftingEffect.productivity: 1.0,
             CraftingEffect.powerConsumption: 1.0,
             CraftingEffect.pollution: 1.0
           }));
 
       var normalImmutable =
-          ImmutableModuledBuilding(craftingBuildingExclusive2SlotsNormalSpeed);
+          ImmutableModuledMachine(craftingMachineExclusive2SlotsNormalSpeed);
 
       expect(
           normalImmutable.multipliers,
           equals({
             CraftingEffect.speed:
-                craftingBuildingExclusive2SlotsNormalSpeed.baseSpeed,
+                craftingMachineExclusive2SlotsNormalSpeed.baseSpeed,
             CraftingEffect.productivity: 1.0,
             CraftingEffect.powerConsumption: 1.0,
             CraftingEffect.pollution: 1.0
@@ -39,41 +39,41 @@ void main() {
     });
   });
 
-  group("Test realTimeModuledBuilding", () {
+  group("Test realTimeModuledMachine", () {
     var normalImmutable =
-        ImmutableModuledBuilding(craftingBuildingExclusive2SlotsNormalSpeed);
+        ImmutableModuledMachine(craftingMachineExclusive2SlotsNormalSpeed);
 
     test("edited field works", () {
-      var rtb = normalImmutable.createRealTimeModuledBuilding();
+      var rtb = normalImmutable.createRealTimeModuledMachine();
 
       expect(rtb.edited, isFalse);
 
-      rtb.building = craftingBuilding0SlotsLowSpeed;
+      rtb.machine = craftingMachine0SlotsLowSpeed;
 
       expect(rtb.edited, isTrue);
 
-      var newImmutable = rtb.createImmutableModuledBuilding();
+      var newImmutable = rtb.createImmutableModuledMachine();
 
       expect(newImmutable, isNotNull);
       expect(rtb.edited, isFalse);
     });
 
     test("add and remove modules", () {
-      var rtb = normalImmutable.createRealTimeModuledBuilding();
+      var rtb = normalImmutable.createRealTimeModuledMachine();
 
       rtb
-        ..addBuildingModule(efficiencyModule)
-        ..addBuildingModule(efficiencyModule);
-      expect(rtb.buildingModules, equals([efficiencyModule, efficiencyModule]));
+        ..addMachineModule(efficiencyModule)
+        ..addMachineModule(efficiencyModule);
+      expect(rtb.machineModules, equals([efficiencyModule, efficiencyModule]));
 
-      rtb.removeBuildingModule(efficiencyModule);
-      expect(rtb.buildingModules, equals([efficiencyModule]));
+      rtb.removeMachineModule(efficiencyModule);
+      expect(rtb.machineModules, equals([efficiencyModule]));
 
-      rtb.addBuildingModule(speedModule);
-      expect(rtb.buildingModules, containsAll([efficiencyModule, speedModule]));
+      rtb.addMachineModule(speedModule);
+      expect(rtb.machineModules, containsAll([efficiencyModule, speedModule]));
 
-      rtb.clearBuildingModules();
-      expect(rtb.buildingModules, isEmpty);
+      rtb.clearMachineModules();
+      expect(rtb.machineModules, isEmpty);
 
       rtb
         ..addBeaconModule(beaconDefault, speedModule)
@@ -106,15 +106,15 @@ void main() {
 
       expect(() => rtb.removeBeaconModule(beaconDefault, speedModule),
           throwsException);
-      expect(() => rtb.removeBuildingModule(speedModule), throwsException);
+      expect(() => rtb.removeMachineModule(speedModule), throwsException);
     });
 
     test("calculate module multipliers", () {
-      var rtb = normalImmutable.createRealTimeModuledBuilding();
+      var rtb = normalImmutable.createRealTimeModuledMachine();
 
       rtb
-        ..addBuildingModule(productivityModule)
-        ..addBuildingModule(productivityModule)
+        ..addMachineModule(productivityModule)
+        ..addMachineModule(productivityModule)
         ..addBeaconModule(beaconDefault, efficiencyModule)
         ..addBeaconModule(beaconDefault, efficiencyModule)
         ..addBeaconModule(beaconDefault, efficiencyModule)
@@ -135,8 +135,8 @@ void main() {
             1.0 + productivityModule.effects[CraftingEffect.pollution]! * 2
       };
 
-      expect(rtb.buildingModules,
-          equals([productivityModule, productivityModule]));
+      expect(
+          rtb.machineModules, equals([productivityModule, productivityModule]));
       expect(
           rtb.beaconModules,
           equals({
@@ -159,58 +159,57 @@ void main() {
           closeTo(newMultipliers[CraftingEffect.pollution]!, 0.001));
     });
 
-    test("calculate building multipliers", () {
-      var rtb = normalImmutable.createRealTimeModuledBuilding();
+    test("calculate machine multipliers", () {
+      var rtb = normalImmutable.createRealTimeModuledMachine();
 
-      rtb.building = craftingBuilding0SlotsLowSpeed;
+      rtb.machine = craftingMachine0SlotsLowSpeed;
 
       expect(rtb.multipliers[CraftingEffect.speed],
-          craftingBuilding0SlotsLowSpeed.baseSpeed);
+          craftingMachine0SlotsLowSpeed.baseSpeed);
 
       rtb.addBeaconModule(beaconDefault, speedModule);
 
       expect(
           rtb.multipliers[CraftingEffect.speed],
-          craftingBuilding0SlotsLowSpeed.baseSpeed *
+          craftingMachine0SlotsLowSpeed.baseSpeed *
               (1.0 + speedModule.effects[CraftingEffect.speed]!));
     });
 
     test("multipliers do not drop below min value", () {
-      var rtb = normalImmutable.createRealTimeModuledBuilding();
+      var rtb = normalImmutable.createRealTimeModuledMachine();
 
-      rtb.building = craftingBuilding0SlotsLowSpeed;
+      rtb.machine = craftingMachine0SlotsLowSpeed;
 
       rtb.addBeaconModule(beaconDefault, impossibleModule);
 
-      // Speed minimum = 0.2 * building base speed
+      // Speed minimum = 0.2 * machine base speed
       // TODO: Confirm minimum pollution
       expect(
           rtb.multipliers,
           equals({
-            CraftingEffect.speed:
-                craftingBuilding0SlotsLowSpeed.baseSpeed * 0.2,
+            CraftingEffect.speed: craftingMachine0SlotsLowSpeed.baseSpeed * 0.2,
             CraftingEffect.productivity: 1.0,
             CraftingEffect.powerConsumption: 0.2,
             CraftingEffect.pollution: 1.0
           }));
     });
 
-    test("building modules does not exceed maximum amount", () {
-      var rtb = normalImmutable.createRealTimeModuledBuilding();
+    test("machine modules does not exceed maximum amount", () {
+      var rtb = normalImmutable.createRealTimeModuledMachine();
 
-      rtb.addBuildingModule(speedModule);
-      rtb.addBuildingModule(speedModule);
+      rtb.addMachineModule(speedModule);
+      rtb.addMachineModule(speedModule);
 
-      expect(() => rtb.addBuildingModule(speedModule), throwsException);
+      expect(() => rtb.addMachineModule(speedModule), throwsException);
 
-      rtb.building = craftingBuilding0SlotsLowSpeed;
+      rtb.machine = craftingMachine0SlotsLowSpeed;
 
-      expect(rtb.buildingModules, isEmpty);
-      expect(() => rtb.addBuildingModule(speedModule), throwsException);
+      expect(rtb.machineModules, isEmpty);
+      expect(() => rtb.addMachineModule(speedModule), throwsException);
     });
 
     test("beacon modules do not exceed maximum amount", () {
-      var rtb = normalImmutable.createRealTimeModuledBuilding();
+      var rtb = normalImmutable.createRealTimeModuledMachine();
 
       for (var i = 0; i < maxModules; i++) {
         rtb.addBeaconModule(beaconDefault, speedModule);
@@ -223,8 +222,8 @@ void main() {
       rtb.addBeaconModule(beaconDistributionEffectivity, speedModule);
     });
 
-    test("building and modules allowed effects", () {
-      var rtb = normalImmutable.createRealTimeModuledBuilding();
+    test("machine and modules allowed effects", () {
+      var rtb = normalImmutable.createRealTimeModuledMachine();
 
       // Executes without issue
       rtb.addBeaconModule(beaconAllowedEffects, efficiencyModule);
@@ -235,21 +234,21 @@ void main() {
       rtb.clearBeacon(beaconAllowedEffects);
 
       rtb
-        ..addBuildingModule(productivityModule)
-        ..addBuildingModule(speedModule)
+        ..addMachineModule(productivityModule)
+        ..addMachineModule(speedModule)
         ..addBeaconModule(beaconDefault, productivityModule)
         ..addBeaconModule(beaconDefault, speedModule);
 
-      expect(rtb.buildingModules, contains(productivityModule));
+      expect(rtb.machineModules, contains(productivityModule));
       expect(rtb.beaconModules[beaconDefault], contains(productivityModule));
 
-      // Removes forbidden modules upon building change
-      rtb.building = craftingBuildingAllowedEffects4SlotsHighSpeed;
-      expect(rtb.buildingModules.contains(productivityModule), isFalse);
+      // Removes forbidden modules upon machine change
+      rtb.machine = craftingMachineAllowedEffects4SlotsHighSpeed;
+      expect(rtb.machineModules.contains(productivityModule), isFalse);
       expect(rtb.beaconModules[beaconDefault]!.contains(productivityModule),
           isFalse);
 
-      expect(() => rtb.addBuildingModule(productivityModule), throwsException);
+      expect(() => rtb.addMachineModule(productivityModule), throwsException);
       expect(() => rtb.addBeaconModule(beaconDefault, productivityModule),
           throwsException);
     });

@@ -20,15 +20,15 @@ late final Module productivityModule;
 late final Module efficiencyModule;
 late final Module impossibleModule;
 
-late final Item craftingBuilding0SlotsLowSpeedItem;
-late final Item craftingBuildingExclusive2SlotsNormalSpeedItem;
-late final Item craftingBuildingAllowedEffects4SlotsHighSpeedItem;
+late final Item craftingMachine0SlotsLowSpeedItem;
+late final Item craftingMachineExclusive2SlotsNormalSpeedItem;
+late final Item craftingMachineAllowedEffects4SlotsHighSpeedItem;
 late final Item rocketSiloItem;
 
-late final CraftingBuilding craftingBuilding0SlotsLowSpeed;
-late final CraftingBuilding craftingBuildingExclusive2SlotsNormalSpeed;
-late final CraftingBuilding craftingBuildingAllowedEffects4SlotsHighSpeed;
-late final CraftingBuilding rocketSilo;
+late final CraftingMachine craftingMachine0SlotsLowSpeed;
+late final CraftingMachine craftingMachineExclusive2SlotsNormalSpeed;
+late final CraftingMachine craftingMachineAllowedEffects4SlotsHighSpeed;
+late final CraftingMachine rocketSilo;
 
 late final Item beaconDefaultItem;
 late final Item beaconAllowedEffectsItem;
@@ -119,7 +119,7 @@ void initialiseTestContext() {
         category: intermediateCategory);
 
     var modules = _createModules();
-    var buildings = _createBuildings();
+    var machines = _createMachines();
     var beacons = _createBeacons();
     var recipes = _createRecipes();
     var rocketOutput = {
@@ -129,7 +129,7 @@ void initialiseTestContext() {
 
     var allItems = <Item>{}
       ..addAll(modules.map((module) => module.item))
-      ..addAll(buildings.map((building) => building.item))
+      ..addAll(machines.map((machine) => machine.item))
       ..addAll(beacons.map((beacon) => beacon.item))
       ..addAll(recipes
           .map((recipe) => List<Item>.from(recipe.ingredients.keys)
@@ -141,7 +141,7 @@ void initialiseTestContext() {
 
     testContext.items = allItems;
     testContext.modules = modules;
-    testContext.buildings = buildings;
+    testContext.machines = machines;
     testContext.beacons = beacons;
     testContext.rocketPart = rocketPart;
     testContext.rocketPartsRequired = 100;
@@ -202,21 +202,21 @@ Set<Module> _createModules() {
   return {speedModule, productivityModule, efficiencyModule, impossibleModule};
 }
 
-Set<CraftingBuilding> _createBuildings() {
-  craftingBuilding0SlotsLowSpeedItem = Item(
+Set<CraftingMachine> _createMachines() {
+  craftingMachine0SlotsLowSpeedItem = Item(
       context: testContext,
       id: _createId(),
-      name: "crafting building",
+      name: "crafting machine",
       category: productionCategory);
-  craftingBuildingExclusive2SlotsNormalSpeedItem = Item(
+  craftingMachineExclusive2SlotsNormalSpeedItem = Item(
       context: testContext,
       id: _createId(),
-      name: "exclusive crafting building",
+      name: "exclusive crafting machine",
       category: productionCategory);
-  craftingBuildingAllowedEffects4SlotsHighSpeedItem = Item(
+  craftingMachineAllowedEffects4SlotsHighSpeedItem = Item(
       context: testContext,
       id: _createId(),
-      name: "allowed effects crafting building",
+      name: "allowed effects crafting machine",
       category: productionCategory);
   rocketSiloItem = Item(
       context: testContext,
@@ -224,26 +224,35 @@ Set<CraftingBuilding> _createBuildings() {
       name: "rocket silo",
       category: productionCategory);
 
-  craftingBuilding0SlotsLowSpeed = CraftingBuilding(
+  craftingMachine0SlotsLowSpeed = CraftingMachine(
       context: testContext,
       id: _createId(),
-      item: craftingBuilding0SlotsLowSpeedItem,
-      recipeCategories: const [defaultRecipeCategory],
+      item: craftingMachine0SlotsLowSpeedItem,
+      powerConsumption: 75000,
+      powerDrain: 2500,
+      pollutionPerMinute: 4,
+      recipeCategories: [defaultRecipeCategory],
       baseSpeed: 0.7,
       moduleSlots: 0,
       allowedEffects: CraftingEffect.values);
-  craftingBuildingExclusive2SlotsNormalSpeed = CraftingBuilding(
+  craftingMachineExclusive2SlotsNormalSpeed = CraftingMachine(
       context: testContext,
       id: _createId(),
-      item: craftingBuildingExclusive2SlotsNormalSpeedItem,
+      item: craftingMachineExclusive2SlotsNormalSpeedItem,
+      powerConsumption: 150000,
+      powerDrain: 5000,
+      pollutionPerMinute: 3,
       recipeCategories: [exclusiveRecipeCategory, defaultRecipeCategory],
       baseSpeed: 1.0,
       moduleSlots: 2,
       allowedEffects: CraftingEffect.values);
-  craftingBuildingAllowedEffects4SlotsHighSpeed = CraftingBuilding(
+  craftingMachineAllowedEffects4SlotsHighSpeed = CraftingMachine(
       context: testContext,
       id: _createId(),
-      item: craftingBuildingAllowedEffects4SlotsHighSpeedItem,
+      item: craftingMachineAllowedEffects4SlotsHighSpeedItem,
+      powerConsumption: 375000,
+      powerDrain: 12500,
+      pollutionPerMinute: 2,
       recipeCategories: [defaultRecipeCategory],
       baseSpeed: 1.2,
       moduleSlots: 4,
@@ -251,18 +260,21 @@ Set<CraftingBuilding> _createBuildings() {
         CraftingEffect.speed,
         CraftingEffect.powerConsumption
       ]);
-  rocketSilo = CraftingBuilding(
+  rocketSilo = CraftingMachine(
       context: testContext,
       id: _createId(),
       item: rocketSiloItem,
+      powerConsumption: 4000000,
+      powerDrain: 0,
+      pollutionPerMinute: 2,
       recipeCategories: [rocketPartCategory],
       moduleSlots: 4,
       allowedEffects: CraftingEffect.values);
 
   return {
-    craftingBuilding0SlotsLowSpeed,
-    craftingBuildingExclusive2SlotsNormalSpeed,
-    craftingBuildingAllowedEffects4SlotsHighSpeed
+    craftingMachine0SlotsLowSpeed,
+    craftingMachineExclusive2SlotsNormalSpeed,
+    craftingMachineAllowedEffects4SlotsHighSpeed
   };
 }
 

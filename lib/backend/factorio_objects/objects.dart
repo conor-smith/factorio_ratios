@@ -2,7 +2,7 @@
 const intermediateProductsCategory = "intermediate-products";
 
 /// This object contains the full graph of relevant objects
-/// It will fully manage all M-M relationships between recipes, items, buildings, etc
+/// It will fully manage all M-M relationships between recipes, items, machines, etc
 /// All items have an "id" field
 /// This is used internally by the db and application
 /// It has no relation to anything within Factorio itself
@@ -15,7 +15,7 @@ class ItemContext {
 
   late final Set<Item> items;
   late final Set<Recipe> recipes;
-  late final Set<CraftingBuilding> buildings;
+  late final Set<CraftingMachine> machines;
   late final Set<Module> modules;
   late final Set<Beacon> beacons;
   late final Set<Belt> belts;
@@ -92,13 +92,13 @@ class Recipe {
   /// Time taken for the recipe to complete at crafting speed 1
   final double time;
 
-  /// Controls what buildings can craft this recipe
+  /// Controls what machiness can craft this recipe
   final String recipeCategory;
 
-  /// Contains a full list of buildings that can craft this recipe
-  late final Set<CraftingBuilding> validBuildings = Set.unmodifiable(context
-      .buildings
-      .where((building) => building.recipeCategories.contains(recipeCategory)));
+  /// Contains a full list of machiness that can craft this recipe
+  late final Set<CraftingMachine> validMachines = Set.unmodifiable(context
+      .machines
+      .where((machine) => machine.recipeCategories.contains(recipeCategory)));
 
   Recipe(
       {required this.context,
@@ -143,18 +143,27 @@ class Module {
   String get name => item.name;
 }
 
-/// Represents a crafting building
-class CraftingBuilding {
+/// Represents a crafting machine
+class CraftingMachine {
   final ItemContext context;
 
   final String id;
   final Item item;
+
   final int moduleSlots;
 
-  /// Specifies what module effects can be applied to this building
+  /// Given in watts
+  final int powerConsumption;
+
+  /// Given in watts
+  final int powerDrain;
+  final bool isBurner;
+  final double pollutionPerMinute;
+
+  /// Specifies what module effects can be applied to this machine
   final Set<CraftingEffect> allowedEffects;
 
-  /// Full list of recipe categories this building can craft
+  /// Full list of recipe categories this machine can craft
   final Set<String> recipeCategories;
 
   /// Base speed multiplier
@@ -165,10 +174,14 @@ class CraftingBuilding {
       .where((module) => module.effects.keys
           .every((effect) => allowedEffects.contains(effect))));
 
-  CraftingBuilding(
+  CraftingMachine(
       {required this.context,
       required this.id,
       required this.item,
+      required this.powerConsumption,
+      required this.powerDrain,
+      this.isBurner = false,
+      required this.pollutionPerMinute,
       required List<String> recipeCategories,
       this.baseSpeed = 1.0,
       required this.moduleSlots,
