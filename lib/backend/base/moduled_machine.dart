@@ -22,10 +22,16 @@ abstract class AbstractModuledMachine {
   List<Module> get machineModules;
   Map<Beacon, List<Module>> get beaconModules;
   Map<CraftingEffect, double> get multipliers;
+  double get moduledPowerConsumption;
+  double get moduledPollutionPerMin;
+
+  double get basePowerConsumption => machine.powerConsumption;
+  double get basePollutionPerMin => machine.pollutionPerMin;
+  double get powerDrain => machine.powerDrain;
 }
 
 /// Represents a crafting machine with modules applied
-class ImmutableModuledMachine implements AbstractModuledMachine {
+class ImmutableModuledMachine extends AbstractModuledMachine {
   @override
   final CraftingMachine machine;
   @override
@@ -34,6 +40,10 @@ class ImmutableModuledMachine implements AbstractModuledMachine {
   final Map<Beacon, List<Module>> beaconModules;
   @override
   final Map<CraftingEffect, double> multipliers;
+  @override
+  final double moduledPowerConsumption;
+  @override
+  final double moduledPollutionPerMin;
 
   ImmutableModuledMachine(this.machine)
       : machineModules = const [],
@@ -43,14 +53,18 @@ class ImmutableModuledMachine implements AbstractModuledMachine {
           CraftingEffect.productivity: 1.0,
           CraftingEffect.powerConsumption: 1.0,
           CraftingEffect.pollution: 1.0
-        };
+        },
+        moduledPowerConsumption = machine.powerConsumption,
+        moduledPollutionPerMin = machine.pollutionPerMin;
 
-  ImmutableModuledMachine._fromRTMM(RealTimeModuledMachine rtmb)
-      : machine = rtmb.machine,
-        machineModules = List.unmodifiable(rtmb._machineModules),
-        beaconModules = Map.unmodifiable(rtmb._beaconModules.map(
+  ImmutableModuledMachine._fromRTMM(RealTimeModuledMachine rtmm)
+      : machine = rtmm.machine,
+        machineModules = List.unmodifiable(rtmm._machineModules),
+        beaconModules = Map.unmodifiable(rtmm._beaconModules.map(
             (beacon, modules) => MapEntry(beacon, List.unmodifiable(modules)))),
-        multipliers = Map.unmodifiable(rtmb._multipliers);
+        multipliers = Map.unmodifiable(rtmm._multipliers),
+        moduledPowerConsumption = rtmm.moduledPowerConsumption,
+        moduledPollutionPerMin = rtmm.moduledPollutionPerMin;
 
   RealTimeModuledMachine createRealTimeModuledMachine() =>
       RealTimeModuledMachine._fromIMM(this);
@@ -64,7 +78,7 @@ int Function(Module, Module) _compareModules =
 /// Will allow users to swap out machines, beacons and modules,
 /// and see the effects in real time
 /// Modifications to number of modules must be done through provided add/remove methods
-class RealTimeModuledMachine implements AbstractModuledMachine {
+class RealTimeModuledMachine extends AbstractModuledMachine {
   CraftingMachine _machine;
 
   // Lists are sorted alphabetically according to .name
@@ -252,4 +266,11 @@ class RealTimeModuledMachine implements AbstractModuledMachine {
   Map<Beacon, List<Module>> get beaconModules => _beaconModulesView;
   @override
   Map<CraftingEffect, double> get multipliers => _multipliersView;
+  @override
+  double get moduledPowerConsumption =>
+      _machine.powerConsumption *
+      (multipliers[CraftingEffect.powerConsumption] ?? 1);
+  @override
+  double get moduledPollutionPerMin =>
+      _machine.pollutionPerMin * (multipliers[CraftingEffect.pollution] ?? 1);
 }

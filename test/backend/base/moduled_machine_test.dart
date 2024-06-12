@@ -23,6 +23,16 @@ void main() {
             CraftingEffect.powerConsumption: 1.0,
             CraftingEffect.pollution: 1.0
           }));
+      expect(slowImmutable.basePowerConsumption,
+          craftingMachine0SlotsLowSpeed.powerConsumption);
+      expect(slowImmutable.moduledPowerConsumption,
+          craftingMachine0SlotsLowSpeed.powerConsumption);
+      expect(
+          slowImmutable.powerDrain, craftingMachine0SlotsLowSpeed.powerDrain);
+      expect(slowImmutable.basePollutionPerMin,
+          craftingMachine0SlotsLowSpeed.pollutionPerMin);
+      expect(slowImmutable.moduledPollutionPerMin,
+          craftingMachine0SlotsLowSpeed.pollutionPerMin);
 
       var normalImmutable =
           ImmutableModuledMachine(craftingMachineExclusive2SlotsNormalSpeed);
@@ -111,6 +121,10 @@ void main() {
 
     test("calculate module multipliers", () {
       var rtb = normalImmutable.createRealTimeModuledMachine();
+      expect(rtb.moduledPowerConsumption,
+          craftingMachineExclusive2SlotsNormalSpeed.powerConsumption);
+      expect(rtb.moduledPollutionPerMin,
+          craftingMachineExclusive2SlotsNormalSpeed.pollutionPerMin);
 
       rtb
         ..addMachineModule(productivityModule)
@@ -157,6 +171,18 @@ void main() {
           closeTo(newMultipliers[CraftingEffect.powerConsumption]!, 0.001));
       expect(rtb.multipliers[CraftingEffect.pollution],
           closeTo(newMultipliers[CraftingEffect.pollution]!, 0.001));
+      expect(rtb.basePowerConsumption,
+          craftingMachineExclusive2SlotsNormalSpeed.powerConsumption);
+      expect(
+          rtb.moduledPowerConsumption,
+          craftingMachineExclusive2SlotsNormalSpeed.powerConsumption *
+              rtb.multipliers[CraftingEffect.powerConsumption]!);
+      expect(rtb.basePollutionPerMin,
+          craftingMachineExclusive2SlotsNormalSpeed.pollutionPerMin);
+      expect(
+          rtb.moduledPollutionPerMin,
+          craftingMachineExclusive2SlotsNormalSpeed.pollutionPerMin *
+              rtb.multipliers[CraftingEffect.pollution]!);
     });
 
     test("calculate machine multipliers", () {

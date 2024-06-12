@@ -153,12 +153,12 @@ class CraftingMachine {
   final int moduleSlots;
 
   /// Given in watts
-  final int powerConsumption;
+  final double powerConsumption;
 
   /// Given in watts
-  final int powerDrain;
+  final double powerDrain;
   final bool isBurner;
-  final double pollutionPerMinute;
+  final double pollutionPerMin;
 
   /// Specifies what module effects can be applied to this machine
   final Set<CraftingEffect> allowedEffects;
@@ -181,7 +181,7 @@ class CraftingMachine {
       required this.powerConsumption,
       required this.powerDrain,
       this.isBurner = false,
-      required this.pollutionPerMinute,
+      required this.pollutionPerMin,
       required List<String> recipeCategories,
       this.baseSpeed = 1.0,
       required this.moduleSlots,
