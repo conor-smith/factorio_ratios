@@ -20,7 +20,7 @@ void main() {
           equals({
             CraftingEffect.speed: craftingBuilding0SlotsLowSpeed.baseSpeed,
             CraftingEffect.productivity: 1.0,
-            CraftingEffect.consumption: 1.0,
+            CraftingEffect.powerConsumption: 1.0,
             CraftingEffect.pollution: 1.0
           }));
 
@@ -33,7 +33,7 @@ void main() {
             CraftingEffect.speed:
                 craftingBuildingExclusive2SlotsNormalSpeed.baseSpeed,
             CraftingEffect.productivity: 1.0,
-            CraftingEffect.consumption: 1.0,
+            CraftingEffect.powerConsumption: 1.0,
             CraftingEffect.pollution: 1.0
           }));
     });
@@ -127,10 +127,10 @@ void main() {
             speedModule.effects[CraftingEffect.speed]! * 0.5,
         CraftingEffect.productivity:
             1.0 + productivityModule.effects[CraftingEffect.productivity]! * 2,
-        CraftingEffect.consumption: 1.0 +
-            productivityModule.effects[CraftingEffect.consumption]! * 2 +
-            efficiencyModule.effects[CraftingEffect.consumption]! * 3 +
-            speedModule.effects[CraftingEffect.consumption]! * 0.5,
+        CraftingEffect.powerConsumption: 1.0 +
+            productivityModule.effects[CraftingEffect.powerConsumption]! * 2 +
+            efficiencyModule.effects[CraftingEffect.powerConsumption]! * 3 +
+            speedModule.effects[CraftingEffect.powerConsumption]! * 0.5,
         CraftingEffect.pollution:
             1.0 + productivityModule.effects[CraftingEffect.pollution]! * 2
       };
@@ -153,8 +153,8 @@ void main() {
           closeTo(newMultipliers[CraftingEffect.speed]!, 0.001));
       expect(rtb.multipliers[CraftingEffect.productivity],
           closeTo(newMultipliers[CraftingEffect.productivity]!, 0.001));
-      expect(rtb.multipliers[CraftingEffect.consumption],
-          closeTo(newMultipliers[CraftingEffect.consumption]!, 0.001));
+      expect(rtb.multipliers[CraftingEffect.powerConsumption],
+          closeTo(newMultipliers[CraftingEffect.powerConsumption]!, 0.001));
       expect(rtb.multipliers[CraftingEffect.pollution],
           closeTo(newMultipliers[CraftingEffect.pollution]!, 0.001));
     });
@@ -190,7 +190,7 @@ void main() {
             CraftingEffect.speed:
                 craftingBuilding0SlotsLowSpeed.baseSpeed * 0.2,
             CraftingEffect.productivity: 1.0,
-            CraftingEffect.consumption: 0.2,
+            CraftingEffect.powerConsumption: 0.2,
             CraftingEffect.pollution: 1.0
           }));
     });

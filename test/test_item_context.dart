@@ -112,6 +112,11 @@ void initialiseTestContext() {
   if (!_initialized) {
     _initialized = true;
     testContext = ItemContext.unpopulated(gameVersion: "test");
+    rocketScience = Item(
+        context: testContext,
+        id: _createId(),
+        name: "rocket science",
+        category: intermediateCategory);
 
     var modules = _createModules();
     var buildings = _createBuildings();
@@ -213,6 +218,11 @@ Set<CraftingBuilding> _createBuildings() {
       id: _createId(),
       name: "allowed effects crafting building",
       category: productionCategory);
+  rocketSiloItem = Item(
+      context: testContext,
+      id: _createId(),
+      name: "rocket silo",
+      category: productionCategory);
 
   craftingBuilding0SlotsLowSpeed = CraftingBuilding(
       context: testContext,
@@ -237,7 +247,17 @@ Set<CraftingBuilding> _createBuildings() {
       recipeCategories: [defaultRecipeCategory],
       baseSpeed: 1.2,
       moduleSlots: 4,
-      allowedEffects: const [CraftingEffect.speed, CraftingEffect.consumption]);
+      allowedEffects: const [
+        CraftingEffect.speed,
+        CraftingEffect.powerConsumption
+      ]);
+  rocketSilo = CraftingBuilding(
+      context: testContext,
+      id: _createId(),
+      item: rocketSiloItem,
+      recipeCategories: [rocketPartCategory],
+      moduleSlots: 4,
+      allowedEffects: CraftingEffect.values);
 
   return {
     craftingBuilding0SlotsLowSpeed,
@@ -274,7 +294,7 @@ Set<Beacon> _createBeacons() {
       id: _createId(),
       item: beaconAllowedEffectsItem,
       distributionEffectivity: 1,
-      allowedEffects: const [CraftingEffect.consumption]);
+      allowedEffects: const [CraftingEffect.powerConsumption]);
   beaconDistributionEffectivity = Beacon(
       context: testContext,
       id: _createId(),
@@ -286,11 +306,6 @@ Set<Beacon> _createBeacons() {
 }
 
 Set<Recipe> _createRecipes() {
-  rocketScience = Item(
-      context: testContext,
-      id: _createId(),
-      name: "rocket science",
-      category: intermediateCategory);
   rocketPart = Item(
       context: testContext,
       id: _createId(),

@@ -104,7 +104,7 @@ class Recipe {
       {required this.context,
       required this.id,
       required this.name,
-      required Map<Item, int> ingredients,
+      required Map<Item, double> ingredients,
       required Map<Item, double> products,
       required this.time,
       required this.recipeCategory})
@@ -113,7 +113,7 @@ class Recipe {
 }
 
 /// Represents possible module effects
-enum CraftingEffect { speed, productivity, consumption, pollution }
+enum CraftingEffect { speed, productivity, powerConsumption, pollution }
 
 /// Represents a factorio module
 /// Bonuses are represented as doubles within effects map
@@ -136,7 +136,7 @@ class Module {
       : effects = Map.unmodifiable({
           CraftingEffect.speed: speedBonus,
           CraftingEffect.productivity: productivityBonus,
-          CraftingEffect.consumption: consumptionBonus,
+          CraftingEffect.powerConsumption: consumptionBonus,
           CraftingEffect.pollution: pollutionBonus
         }..removeWhere((effect, value) => value == 0));
 

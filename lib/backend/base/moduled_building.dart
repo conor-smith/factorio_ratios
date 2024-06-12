@@ -7,7 +7,7 @@ const maxModules = 50;
 const minMultipliers = {
   CraftingEffect.speed: 0.2,
   CraftingEffect.productivity: 1.0,
-  CraftingEffect.consumption: 0.2,
+  CraftingEffect.powerConsumption: 0.2,
   CraftingEffect.pollution: 1.0
 };
 
@@ -41,7 +41,7 @@ class ImmutableModuledBuilding implements AbstractModuledBuilding {
         multipliers = {
           CraftingEffect.speed: building.baseSpeed,
           CraftingEffect.productivity: 1.0,
-          CraftingEffect.consumption: 1.0,
+          CraftingEffect.powerConsumption: 1.0,
           CraftingEffect.pollution: 1.0
         };
 
