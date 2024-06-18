@@ -18,8 +18,8 @@ class FactorioGraph {
       UnmodifiableMapView(_fullGraph);
   late final List<ImmutableModuledMachine> defaultMachines =
       UnmodifiableListView(_defaultMachines);
-  late final List<ImmutableModuledMachine> _defaultMachines =
-      _createDefaultMachinesList();
+  // TODO
+  final List<ImmutableModuledMachine> _defaultMachines = [];
 
   FactorioGraph(this.itemContext);
 
@@ -40,12 +40,7 @@ class FactorioGraph {
     throw UnimplementedError();
   }
 
-  List<ImmutableModuledMachine> _createDefaultMachinesList() {
-    // TODO
-    throw UnimplementedError();
-  }
-
-  ImmutableModuledMachine _getDefaultMachine(Recipe recipe) {
+  ImmutableModuledMachine getDefaultMachine(Recipe recipe) {
     // TODO
     throw UnimplementedError();
   }
