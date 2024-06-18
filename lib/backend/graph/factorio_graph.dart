@@ -30,7 +30,7 @@ class FactorioGraph {
     throw UnimplementedError();
   }
 
-  void updateFromNode(GraphNode node) {
+  ImmutableModuledMachine getDefaultMachine(Recipe recipe) {
     // TODO
     throw UnimplementedError();
   }
@@ -40,7 +40,27 @@ class FactorioGraph {
     throw UnimplementedError();
   }
 
-  ImmutableModuledMachine getDefaultMachine(Recipe recipe) {
+  void updateFromNode(GraphNode node) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  void addNewNode(GraphNode node) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  void replaceExistingNodes(GraphNode newNode, List<GraphNode> nodesToReplace) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  void removeNode(GraphNode toRemove) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  void moveNodeCraftersToDependants(GraphNode node) {
     // TODO
     throw UnimplementedError();
   }
