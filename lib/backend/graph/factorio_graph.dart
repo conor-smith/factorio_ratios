@@ -30,7 +30,12 @@ class FactorioGraph {
     throw UnimplementedError();
   }
 
-  void _updateFromNode(GraphNode node) {
+  void updateFromNode(GraphNode node) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  void update() {
     // TODO
     throw UnimplementedError();
   }
@@ -134,27 +139,9 @@ abstract class GraphNode {
 
   GraphNode({required this.factorioGraph});
 
-  void setConstraint(NodeConstraint nodeConstraint, dynamic constraintSpec) {
-    _setConstraint(nodeConstraint, constraintSpec);
-
-    factorioGraph._updateFromNode(this);
-  }
-
-  set primaryCraftersSpec(Map<Recipe, ImmutableModuledMachine> spec) {
-    _setPCSpec(spec);
-
-    factorioGraph._updateFromNode(this);
-  }
-
-  set secondaryCraftersSpec(Map<Recipe, ImmutableModuledMachine> spec) {
-    _setSCSpec(spec);
-
-    factorioGraph._updateFromNode(this);
-  }
-
-  void _setConstraint(NodeConstraint nodeConstraint, dynamic constraintSpec);
-  void _setPCSpec(Map<Recipe, ImmutableModuledMachine> spec);
-  void _setSCSpec(Map<Recipe, ImmutableModuledMachine> spec);
+  void setConstraint(NodeConstraint nodeConstraint, dynamic constraintSpec);
+  set primaryCraftersSpec(Map<Recipe, ImmutableModuledMachine> spec);
+  set secondaryCraftersSpec(Map<Recipe, ImmutableModuledMachine> spec);
 
   NodeType get nodeType;
   NodeConstraint get constraint;
@@ -198,7 +185,7 @@ class ResourceNode extends GraphNode {
   dynamic get constraintSpec => {_resource: _amount};
 
   @override
-  void _setConstraint(NodeConstraint nodeConstraint, dynamic constraintSpec) {
+  void setConstraint(NodeConstraint nodeConstraint, dynamic constraintSpec) {
     // TODO
     throw UnimplementedError();
   }
@@ -207,10 +194,10 @@ class ResourceNode extends GraphNode {
   Map<Item, double> get netIo => {_resource: _amount};
 
   @override
-  void _setPCSpec(Map<Recipe, ImmutableModuledMachine> spec) =>
+  set primaryCraftersSpec(Map<Recipe, ImmutableModuledMachine> spec) =>
       throw _resourceNodeException;
   @override
-  void _setSCSpec(Map<Recipe, ImmutableModuledMachine> spec) =>
+  set secondaryCraftersSpec(Map<Recipe, ImmutableModuledMachine> spec) =>
       throw _resourceNodeException;
   @override
   Map<Recipe, ImmutableModuledMachine> get primaryCraftersSpec => const {};
@@ -279,19 +266,19 @@ class ProductionLineNode extends GraphNode {
   }
 
   @override
-  void _setPCSpec(Map<Recipe, ImmutableModuledMachine> spec) {
+  set primaryCraftersSpec(Map<Recipe, ImmutableModuledMachine> spec) {
     // TODO
     throw UnimplementedError();
   }
 
   @override
-  void _setSCSpec(Map<Recipe, ImmutableModuledMachine> spec) {
+  set secondaryCraftersSpec(Map<Recipe, ImmutableModuledMachine> spec) {
     // TODO
     throw UnimplementedError();
   }
 
   @override
-  void _setConstraint(NodeConstraint nodeConstraint, constraintSpec) {
+  void setConstraint(NodeConstraint nodeConstraint, constraintSpec) {
     // TODO
     throw UnimplementedError();
   }
@@ -308,4 +295,98 @@ class ProductionLineNode extends GraphNode {
   double get totalPowerDrain => _totalPowerDrain;
   @override
   double get totalPollutionPerMin => _totalPollutionPerMin;
+}
+
+class RocketSiloNode extends GraphNode {
+  @override
+  NodeType get nodeType => NodeType.rocketSilo;
+
+  NodeConstraint _constraint;
+  dynamic _constraintSpec;
+
+  Recipe _rocketPartRecipe;
+  ImmutableModuledMachine _rocketPartMachine;
+  Item? _cargo;
+  late Crafter _rocketPartCrafter;
+
+  @override
+  Map<Recipe, ImmutableModuledMachine> get primaryCraftersSpec =>
+      {_rocketPartRecipe: _rocketPartMachine};
+  @override
+  List<Crafter> get primaryCrafters => [_rocketPartCrafter];
+
+  final Map<Recipe, ImmutableModuledMachine> _secondaryCraftersSpec;
+  final SortedList<Crafter> _secondaryCrafters = SortedList(_compareCrafters);
+
+  @override
+  late final Map<Recipe, ImmutableModuledMachine> secondaryCraftersSpec =
+      UnmodifiableMapView(_secondaryCraftersSpec);
+  @override
+  late final List<Crafter> secondaryCrafters =
+      UnmodifiableListView(_secondaryCrafters);
+
+  // Initially set to 0 / empty to stop dart from yelling at me
+  Map<Item, double> _netIo = {};
+  double _totalPowerConsumption = 0;
+  double _totalPowerDrain = 0;
+  double _totalPollutionPerMin = 0;
+
+  double _rocketCompletionPerSecond = 0;
+
+  RocketSiloNode(
+      {required super.factorioGraph,
+      required NodeConstraint constraint,
+      required dynamic constraintSpec,
+      required Recipe rocketPartRecipe,
+      required ImmutableModuledMachine rocketPartMachine,
+      Item? cargo,
+      Map<Recipe, ImmutableModuledMachine> secondaryCraftersSpec = const {}})
+      : _constraint = constraint,
+        _constraintSpec = constraintSpec,
+        _rocketPartRecipe = rocketPartRecipe,
+        _rocketPartMachine = rocketPartMachine,
+        _secondaryCraftersSpec = Map.from(secondaryCraftersSpec) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  @override
+  void setConstraint(NodeConstraint nodeConstraint, constraintSpec) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  @override
+  set primaryCraftersSpec(Map<Recipe, ImmutableModuledMachine> spec) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  @override
+  set secondaryCraftersSpec(Map<Recipe, ImmutableModuledMachine> spec) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  set cargo(Item? cargo) {
+    // TODO
+    throw UnimplementedError();
+  }
+
+  Item? get cargo => _cargo;
+  double get rocketCompletionPerSecond => _rocketCompletionPerSecond;
+
+  @override
+  NodeConstraint get constraint => _constraint;
+  @override
+  dynamic get constraintSpec => _constraintSpec;
+
+  @override
+  Map<Item, double> get netIo => _netIo;
+  @override
+  double get totalPollutionPerMin => _totalPollutionPerMin;
+  @override
+  double get totalPowerConsumption => _totalPowerConsumption;
+  @override
+  double get totalPowerDrain => _totalPowerDrain;
 }
