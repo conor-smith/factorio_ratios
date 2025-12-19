@@ -1,3 +1,4 @@
+import 'package:factorio_ratios/ui/graph.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -32,19 +33,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.blue, title: Text(widget.title)),
-      body: InteractiveViewer(
-        clipBehavior: Clip.hardEdge,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              left: 100,
-              top: 100,
-              child: Container(width: 100, height: 100, color: Colors.green),
-            ),
-          ],
-        ),
-      ),
+      body: Container(child: GraphWidget()),
     );
   }
 }
