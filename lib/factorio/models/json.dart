@@ -16,8 +16,8 @@ FactorioDatabase decodeRawDataDumpJson(String rawJson) {
     if(itemJson['hidden'] == true || itemJson['parameter'] == true) {
       _logger.info('Item $key will not be decoded');
     } else {
-      _logger.info('Decoding "$key"');
-      itemMap[key] = Item.fromJson(itemJson);
+      _logger.info('Decoding item "$key"');
+      itemMap[key] = SolidItem.fromJson(itemJson);
     }
   });
 
@@ -27,7 +27,7 @@ FactorioDatabase decodeRawDataDumpJson(String rawJson) {
     if(value['hidden'] == true || value['parameter'] == true) {
       _logger.info('Recipe $key will not be decoded');
     } else {
-      _logger.info('Decoding "$key"');
+      _logger.info('Decoding recipe "$key"');
       recipeList.add(Recipe.fromJson(value));
     }
    });
@@ -35,7 +35,7 @@ FactorioDatabase decodeRawDataDumpJson(String rawJson) {
   Map rawCraftingMachineMap = factorioRawData['assembling-machine'];
   List<CraftingMachine> craftingMachineList = [];
   rawCraftingMachineMap.forEach((key, value) {
-    _logger.info('Decoding "$key"');
+    _logger.info('Decoding craftingMachine "$key"');
     craftingMachineList.add(CraftingMachine.fromJson(value));
   });
 
