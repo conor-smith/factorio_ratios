@@ -4,148 +4,120 @@ class CraftingMachine {
   // TODO - Quality effects on module and energy usage
   // TODO - EffectReceiver
 
-  String name;
-  String? icon;
-  double craftingSpeed;
-  double energyUsage;
-  int moduleSlots;
+  final FactorioDatabase factorioDb;
 
-  CraftingMachineEnergySource? energySource;
+  final String name;
+  final double craftingSpeed;
+  final double energyUsage;
+  final int moduleSlots;
 
-  List<String>? craftingCategories;
-  List<String>? allowedEffects;
+  final CraftingMachineEnergySource? energySource;
+
+  final Set<String> craftingCategories;
+  final Set<String> allowedEffects;
 
   CraftingMachine._internal(
+    this.factorioDb,
     this.name,
-    this.icon,
     this.craftingSpeed,
     this.energyUsage,
     this.moduleSlots,
     this.energySource,
     this.craftingCategories,
-    this.allowedEffects
+    this.allowedEffects,
   );
 
-  factory CraftingMachine.fromJson(Map json) {
-
-    List<String> allowedEffects = const [];
+  factory CraftingMachine.fromJson(FactorioDatabase factorioDb, Map json) {
+    Set<String> allowedEffects = const {};
     var rawAllowedEffects = json['allowed_effects'];
-    if(rawAllowedEffects is String) {
-      allowedEffects = [rawAllowedEffects];
+    if (rawAllowedEffects is String) {
+      allowedEffects = Set.unmodifiable({rawAllowedEffects});
     } else if (rawAllowedEffects is List) {
-      allowedEffects = rawAllowedEffects.cast();
+      allowedEffects = Set.unmodifiable(rawAllowedEffects).cast();
     }
 
-    double energyUsage = _convertStringToWatts(json['energy_usage']);
+    double energyUsage = _convertStringToEnergy(json['energy_usage'])!;
 
     return CraftingMachine._internal(
+      factorioDb,
       json['name'],
-      _getIcon(json),
       json['crafting_speed'].toDouble(),
       energyUsage,
       json['module_slots'] ?? 0,
       CraftingMachineEnergySource.fromJson(json, energyUsage),
-      (json['crafting_categories'] as List).cast(),
-      allowedEffects
+      Set.unmodifiable(json['crafting_categories'] as List).cast(),
+      allowedEffects,
     );
   }
 }
 
 class CraftingMachineEnergySource {
-  EnergySourceType type;
-  Map<String, double> emissionsPerMinute;
+  final EnergySourceType type;
+  final Map<String, double> emissionsPerMinute;
 
-  ElectricEnergySource? electric;
-  BurnerEnergySource? burner;
-  FluidEnergySource? fluid;
-  HeatEnergySource? heat;
-
-  CraftingMachineEnergySource._internal(
-    this.type,
-    this.emissionsPerMinute,
-    this.electric,
-    this.burner,
-    this.fluid,
-    this.heat
-  );
+  CraftingMachineEnergySource._internal(this.type, Map json)
+    : emissionsPerMinute = Map.unmodifiable(
+        json["emissions_per_minute"] as Map? ?? const {},
+      ).cast();
 
   factory CraftingMachineEnergySource.fromJson(Map json, double energyUsage) {
-    late EnergySourceType type;
-    ElectricEnergySource? electric;
-    BurnerEnergySource? burner;
-    FluidEnergySource? fluid;
-    HeatEnergySource? heat;
-
-    switch(json['type'] as String) {
-      case 'electric':
-        type = EnergySourceType.electric;
-        electric = ElectricEnergySource.fromJson(json, energyUsage);
-      case 'burner':
-        type = EnergySourceType.burner;
-        burner = BurnerEnergySource.fromJson(json);
-      case 'fluid':
-        type = EnergySourceType.fluid;
-        fluid = FluidEnergySource.fromJson(json);
-      case 'heat':
-        type = EnergySourceType.heat;
-        heat = HeatEnergySource.fromJson(json);
-      case 'void':
-      default:
-        type = EnergySourceType.fVoid;
-    }
-
-    Map<String, double> emissionsPerMinute = (json["emissions-per-minute"] as Map?)?.cast() ?? const {};
-
-    return CraftingMachineEnergySource._internal(
-      type,
-      emissionsPerMinute,
-      electric,
-      burner,
-      fluid,
-      heat
-    );
+    return switch (json['type'] as String) {
+      'electric' => ElectricEnergySource.fromJson(json, energyUsage),
+      'burner' => BurnerEnergySource.fromJson(json),
+      'fluid' => FluidEnergySource.fromJson(json),
+      'heat' => HeatEnergySource.fromJson(json),
+      _ => CraftingMachineEnergySource._internal(EnergySourceType.fVoid, json),
+    };
   }
 }
 
 // void is a keyword in dart. Can't use that as is
-enum EnergySourceType {electric, burner, heat, fluid, fVoid}
+enum EnergySourceType { electric, burner, heat, fluid, fVoid }
 
-class ElectricEnergySource {
-  String drain;
+class ElectricEnergySource extends CraftingMachineEnergySource {
+  final double drain;
 
-  ElectricEnergySource.fromJson(Map json, double energyUsage) :
-    drain = json['drain'] ?? (energyUsage / 30);
+  ElectricEnergySource.fromJson(Map json, double energyUsage)
+    : drain = _convertStringToEnergy(json['drain']) ?? (energyUsage / 30),
+      super._internal(EnergySourceType.electric, json);
 }
 
-class BurnerEnergySource {
-  double effectivity;
-  String burnerUsage;
-  List<String> fuelCategories;
+class BurnerEnergySource extends CraftingMachineEnergySource {
+  final double effectivity;
+  final String burnerUsage;
+  final Set<String> fuelCategories;
 
-  BurnerEnergySource.fromJson(Map json) :
-    effectivity = json['effectivity'] ?? 1,
-    burnerUsage = json['burner_usage'] ?? 'fuel',
-    fuelCategories = json['fuel_categories'] ?? const {'chemical'};
+  BurnerEnergySource.fromJson(Map json)
+    : effectivity = json['effectivity'] ?? 1,
+      burnerUsage = json['burner_usage'] ?? 'fuel',
+      fuelCategories = Set.unmodifiable(
+        json['fuel_categories'] as List? ?? const ['chemical'],
+      ).cast(),
+      super._internal(EnergySourceType.burner, json);
 }
 
-class FluidEnergySource {
-  double effectivity;
-  bool burnsFluid;
-  double fluidUsagePerTick;
+class FluidEnergySource extends CraftingMachineEnergySource {
+  final double effectivity;
+  final bool burnsFluid;
+  final double fluidUsagePerTick;
 
-  FluidEnergySource.fromJson(Map json) :
-    effectivity = json['effectivity'] ?? 1,
-    burnsFluid = json['burns_fluid'] ?? false,
-    fluidUsagePerTick = json['fluid_usage_per_tick'] ?? 0;
+  FluidEnergySource.fromJson(Map json)
+    : effectivity = json['effectivity']?.toDouble() ?? 1,
+      burnsFluid = json['burns_fluid'] ?? false,
+      fluidUsagePerTick = json['fluid_usage_per_tick']?.toDouble() ?? 0,
+      super._internal(EnergySourceType.fluid, json);
 }
 
-class HeatEnergySource {
-  double defaultTemperature;
-  double minWorkingTemperature;
-  double specificHeat;
+class HeatEnergySource extends CraftingMachineEnergySource {
+  final double defaultTemperature;
+  final double maxTemperature;
+  final double minWorkingTemperature;
+  final double specificHeat;
 
-  HeatEnergySource.fromJson(Map json) :
-    defaultTemperature = json['default_temperature'] ?? 15,
-    minWorkingTemperature = json['min_working_temperature'] ?? 15,
-    specificHeat = _convertStringToJoules(json['specific_heat']);
+  HeatEnergySource.fromJson(Map json)
+    : defaultTemperature = json['default_temperature']?.toDouble() ?? 15,
+      maxTemperature = json['max_temperature'].toDouble(),
+      minWorkingTemperature = json['min_working_temperature'].toDouble() ?? 15,
+      specificHeat = _convertStringToEnergy(json['specific_heat'])!,
+      super._internal(EnergySourceType.heat, json);
 }

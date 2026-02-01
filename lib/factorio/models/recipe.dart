@@ -1,27 +1,25 @@
 part of 'models.dart';
 
 class Recipe {
-  String name;
-  String? icon;
-  String category;
-  double energyRequired;
-  double maximumProductivity;
-  double emissionsMultiplier;
+  final String name;
+  final String category;
+  final double energyRequired;
+  final double maximumProductivity;
+  final double emissionsMultiplier;
 
-  bool enabled;
-  bool allowConsumption;
-  bool allowSpeed;
-  bool allowProductivity;
-  bool allowPollution;
-  bool allowQuality;
+  final bool enabled;
+  final bool allowConsumption;
+  final bool allowSpeed;
+  final bool allowProductivity;
+  final bool allowPollution;
+  final bool allowQuality;
 
-  List<RecipeItem> ingredients;
-  List<RecipeItem> results;
-  List<SurfaceCondition> surfaceConditions;
+  final Set<RecipeItem> ingredients;
+  final Set<RecipeItem> results;
+  final Set<SurfaceCondition> surfaceConditions;
 
   Recipe._internal(
     this.name,
-    this.icon,
     this.category,
     this.energyRequired,
     this.maximumProductivity,
@@ -34,31 +32,44 @@ class Recipe {
     this.allowQuality,
     this.ingredients,
     this.results,
-    this.surfaceConditions
+    this.surfaceConditions,
   );
 
   factory Recipe.fromJson(Map json) {
     // Empty ingredients are serialised as "{}" in json rather than null or "[]"
     // As such, a factory method is needed
+    late Set<RecipeItem> ingredients;
     var rawIngredients = json['ingredients'] ?? const [];
-    late List<RecipeItem> ingredients;
-    if(rawIngredients is List) {
-      ingredients = rawIngredients.map((ingredientJson) => RecipeItem.fromJson(ingredientJson)).toList();
+    if (rawIngredients is List) {
+      ingredients = Set.unmodifiable(
+        rawIngredients.map(
+          (ingredientJson) => RecipeItem.fromJson(ingredientJson),
+        ),
+      );
     } else {
-      ingredients = const [];
+      ingredients = const {};
     }
 
+    late Set<RecipeItem> results;
     var rawResults = json['results'] ?? const [];
-    late List<RecipeItem> results;
-    if(rawResults is List) {
-      results = rawResults.map((ingredientJson) => RecipeItem.fromJson(ingredientJson)).toList();
+    if (rawResults is List) {
+      results = Set.unmodifiable(
+        rawResults.map((ingredientJson) => RecipeItem.fromJson(ingredientJson)),
+      );
     } else {
-      results = const [];
+      results = const {};
     }
+
+    List rawSurfaceConditions = json['surface_conditions'] as List? ?? const [];
+    Set<SurfaceCondition> surfaceConditions = Set.unmodifiable(
+      rawSurfaceConditions.map(
+        (surfaceConditionJson) =>
+            SurfaceCondition.fromJson(surfaceConditionJson),
+      ),
+    );
 
     return Recipe._internal(
       json['name'],
-      _getIcon(json),
       json['category'] ?? 'crafting',
       json['energy_required']?.toDouble() ?? 0.5,
       json['maximum_productivity']?.toDouble() ?? 3,
@@ -71,31 +82,31 @@ class Recipe {
       json['allow_quality'] ?? true,
       ingredients,
       results,
-      (json['surface_conditions'] as List? ?? const []).map((surfaceConditionsJson) => SurfaceCondition.fromJson(surfaceConditionsJson)).toList()
+      surfaceConditions,
     );
   }
 }
 
 class RecipeItem {
-  String name;
-  String type;
-  int amount;
-  double probability;
+  final String name;
+  final String type;
+  final int amount;
+  final double probability;
 
-  RecipeItem.fromJson(Map json) :
-    name = json['name'],
-    type = json['type'],
-    amount = json['amount'],
-    probability = json['probability']?.toDouble() ?? 1;
+  RecipeItem.fromJson(Map json)
+    : name = json['name'],
+      type = json['type'],
+      amount = json['amount'],
+      probability = json['probability']?.toDouble() ?? 1;
 }
 
 class SurfaceCondition {
-  String property;
-  double min;
-  double max;
+  final String property;
+  final double min;
+  final double max;
 
-  SurfaceCondition.fromJson(Map json) :
-    property = json['property'],
-    min = json['min']?.toDouble() ?? double.negativeInfinity,
-    max = json['max']?.toDouble() ?? double.infinity;
+  SurfaceCondition.fromJson(Map json)
+    : property = json['property'],
+      min = json['min']?.toDouble() ?? double.negativeInfinity,
+      max = json['max']?.toDouble() ?? double.infinity;
 }
