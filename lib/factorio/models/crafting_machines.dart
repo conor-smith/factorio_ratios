@@ -4,20 +4,22 @@ class CraftingMachine {
   // TODO - Quality effects on module and energy usage
   // TODO - EffectReceiver
 
-  final FactorioDatabase factorioDb;
+  final FactorioDatabase _factorioDb;
 
   final String name;
   final double craftingSpeed;
   final double energyUsage;
   final int moduleSlots;
 
-  final CraftingMachineEnergySource? energySource;
+  final CraftingMachineEnergySource energySource;
 
-  final Set<String> craftingCategories;
-  final Set<String> allowedEffects;
+  final List<String> craftingCategories;
+  final List<String> allowedEffects;
+
+  late final List<Recipe> recipes = _getRecipes();
 
   CraftingMachine._internal(
-    this.factorioDb,
+    this._factorioDb,
     this.name,
     this.craftingSpeed,
     this.energyUsage,
@@ -28,12 +30,12 @@ class CraftingMachine {
   );
 
   factory CraftingMachine.fromJson(FactorioDatabase factorioDb, Map json) {
-    Set<String> allowedEffects = const {};
+    List<String> allowedEffects = const [];
     var rawAllowedEffects = json['allowed_effects'];
     if (rawAllowedEffects is String) {
-      allowedEffects = Set.unmodifiable({rawAllowedEffects});
+      allowedEffects = List.unmodifiable({rawAllowedEffects});
     } else if (rawAllowedEffects is List) {
-      allowedEffects = Set.unmodifiable(rawAllowedEffects).cast();
+      allowedEffects = List.unmodifiable(rawAllowedEffects).cast();
     }
 
     double energyUsage = _convertStringToEnergy(json['energy_usage'])!;
@@ -45,8 +47,23 @@ class CraftingMachine {
       energyUsage,
       json['module_slots'] ?? 0,
       CraftingMachineEnergySource.fromJson(json, energyUsage),
-      Set.unmodifiable(json['crafting_categories'] as List).cast(),
+      List.unmodifiable(json['crafting_categories'] as List).cast(),
       allowedEffects,
+    );
+  }
+
+  List<Recipe> _getRecipes() {
+    Map<String, List<Recipe>> filteredMap = {};
+    for (var category in craftingCategories) {
+      filteredMap[category] =
+          _factorioDb._craftingCategoriesAndRecipes[category]!;
+    }
+
+    return List.unmodifiable(
+      filteredMap.values
+          .reduce((list1, list2) => list1..addAll(list2))
+          .toSet()
+          .toList(),
     );
   }
 }
@@ -85,12 +102,12 @@ class ElectricEnergySource extends CraftingMachineEnergySource {
 class BurnerEnergySource extends CraftingMachineEnergySource {
   final double effectivity;
   final String burnerUsage;
-  final Set<String> fuelCategories;
+  final List<String> fuelCategories;
 
   BurnerEnergySource.fromJson(Map json)
     : effectivity = json['effectivity'] ?? 1,
       burnerUsage = json['burner_usage'] ?? 'fuel',
-      fuelCategories = Set.unmodifiable(
+      fuelCategories = List.unmodifiable(
         json['fuel_categories'] as List? ?? const ['chemical'],
       ).cast(),
       super._internal(EnergySourceType.burner, json);

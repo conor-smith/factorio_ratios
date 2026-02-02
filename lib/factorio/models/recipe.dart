@@ -1,8 +1,10 @@
 part of 'models.dart';
 
 class Recipe {
+  final FactorioDatabase _factorioDb;
+
   final String name;
-  final String category;
+  final List<String> categories;
   final double energyRequired;
   final double maximumProductivity;
   final double emissionsMultiplier;
@@ -14,13 +16,16 @@ class Recipe {
   final bool allowPollution;
   final bool allowQuality;
 
-  final Set<RecipeItem> ingredients;
-  final Set<RecipeItem> results;
-  final Set<SurfaceCondition> surfaceConditions;
+  final List<RecipeItem> ingredients;
+  final List<RecipeItem> results;
+  final List<SurfaceCondition> surfaceConditions;
+
+  late final List<CraftingMachine> craftingMachines = _getCraftingMachines();
 
   Recipe._internal(
+    this._factorioDb,
     this.name,
-    this.category,
+    this.categories,
     this.energyRequired,
     this.maximumProductivity,
     this.emissionsMultiplier,
@@ -35,33 +40,49 @@ class Recipe {
     this.surfaceConditions,
   );
 
-  factory Recipe.fromJson(Map json) {
+  factory Recipe.fromJson(FactorioDatabase factorioDb, Map json) {
+    late List<String> categories;
+    String? rawCategory = json['category'];
+    List<String> rawAdditionalCategories =
+        (json['categories'] as List? ?? const []).cast();
+    if (rawCategory == null && rawAdditionalCategories.isEmpty) {
+      categories = const ['crafting'];
+    } else {
+      categories = [];
+      categories.addAll(rawAdditionalCategories);
+      if (rawCategory != null) {
+        categories.add(rawCategory);
+      }
+
+      categories = List.unmodifiable(categories);
+    }
+
     // Empty ingredients are serialised as "{}" in json rather than null or "[]"
     // As such, a factory method is needed
-    late Set<RecipeItem> ingredients;
+    late List<RecipeItem> ingredients;
     var rawIngredients = json['ingredients'] ?? const [];
     if (rawIngredients is List) {
-      ingredients = Set.unmodifiable(
+      ingredients = List.unmodifiable(
         rawIngredients.map(
           (ingredientJson) => RecipeItem.fromJson(ingredientJson),
         ),
       );
     } else {
-      ingredients = const {};
+      ingredients = const [];
     }
 
-    late Set<RecipeItem> results;
+    late List<RecipeItem> results;
     var rawResults = json['results'] ?? const [];
     if (rawResults is List) {
-      results = Set.unmodifiable(
+      results = List.unmodifiable(
         rawResults.map((ingredientJson) => RecipeItem.fromJson(ingredientJson)),
       );
     } else {
-      results = const {};
+      results = const [];
     }
 
     List rawSurfaceConditions = json['surface_conditions'] as List? ?? const [];
-    Set<SurfaceCondition> surfaceConditions = Set.unmodifiable(
+    List<SurfaceCondition> surfaceConditions = List.unmodifiable(
       rawSurfaceConditions.map(
         (surfaceConditionJson) =>
             SurfaceCondition.fromJson(surfaceConditionJson),
@@ -69,8 +90,9 @@ class Recipe {
     );
 
     return Recipe._internal(
+      factorioDb,
       json['name'],
-      json['category'] ?? 'crafting',
+      categories,
       json['energy_required']?.toDouble() ?? 0.5,
       json['maximum_productivity']?.toDouble() ?? 3,
       json['emissions_multiplier']?.toDouble() ?? 1,
@@ -85,18 +107,38 @@ class Recipe {
       surfaceConditions,
     );
   }
+
+  List<CraftingMachine> _getCraftingMachines() {
+    Map<String, List<CraftingMachine>> filteredMap = {};
+    for (var category in categories) {
+      filteredMap[category] =
+          _factorioDb._craftingCategoriesAndMachines[category]!;
+    }
+
+    return List.unmodifiable(
+      filteredMap.values
+          .reduce((list1, list2) => list1..addAll(list2))
+          .toSet()
+          .toList()
+        ..sort(
+          (machine1, machine2) =>
+              machine1.craftingSpeed.compareTo(machine2.craftingSpeed),
+        ),
+    );
+  }
 }
 
 class RecipeItem {
-  final String name;
+  final String _name;
+  late final Item item;
   final String type;
-  final int amount;
+  final double amount;
   final double probability;
 
   RecipeItem.fromJson(Map json)
-    : name = json['name'],
+    : _name = json['name'],
       type = json['type'],
-      amount = json['amount'],
+      amount = json['amount'].toDouble(),
       probability = json['probability']?.toDouble() ?? 1;
 }
 
