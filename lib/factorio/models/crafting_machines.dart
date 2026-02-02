@@ -1,4 +1,4 @@
-part of 'models.dart';
+part of '../models.dart';
 
 class CraftingMachine {
   // TODO - Quality effects on module and energy usage

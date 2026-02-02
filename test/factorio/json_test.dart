@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:factorio_ratios/factorio/models/json.dart';
-import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/factorio/json.dart';
+import 'package:factorio_ratios/factorio/models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logging/logging.dart';
 

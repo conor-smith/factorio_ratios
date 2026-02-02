@@ -2,9 +2,9 @@ import 'dart:math';
 
 import 'package:logging/logging.dart';
 
-part 'item.dart';
-part 'recipe.dart';
-part 'crafting_machines.dart';
+part 'models/item.dart';
+part 'models/recipe.dart';
+part 'models/crafting_machines.dart';
 
 final Map<String, double> _multipliers = {
   "k": pow(10, 3).toDouble(),

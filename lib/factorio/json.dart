@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/factorio/models.dart';
 import 'package:logging/logging.dart';
 
 final _logger = Logger('DecodeFactorioJson');
