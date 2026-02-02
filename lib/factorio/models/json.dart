@@ -38,6 +38,11 @@ FactorioDatabase decodeRawDataDumpJson(String rawJson) {
     'upgrade-item',
     'selection-tool',
   ];
+  List<String> machineSections = [
+    'assembling-machine',
+    'rocket-silo',
+    'furnace'
+  ];
 
   Map<String, Map> rawItems = {};
   for (var section in itemSections) {
@@ -45,29 +50,37 @@ FactorioDatabase decodeRawDataDumpJson(String rawJson) {
   }
 
   rawItems.forEach((name, itemJson) {
-    _logger.info('decoding item $name');
+    if (itemJson['parameter'] != true) {
+      _logger.info('decoding item $name');
 
-    items[name] = SolidItem.fromJson(db, itemJson);
+      items[name] = SolidItem.fromJson(db, itemJson);
+    }
   });
 
   Map<String, Map> rawFluids = (factorioRawData['fluid'] as Map).cast();
   rawFluids.forEach((name, fluidJson) {
-    _logger.info('decoding fluid $name');
+    if (fluidJson['parameter'] != true) {
+      _logger.info('decoding fluid $name');
 
-    items[name] = FluidItem.fromJson(db, fluidJson);
+      items[name] = FluidItem.fromJson(db, fluidJson);
+    }
   });
 
   _logger.info('decoding recipes');
   Map<String, Map> rawRecipes = (factorioRawData['recipe'] as Map).cast();
   rawRecipes.forEach((name, recipeJson) {
-    _logger.info('decoding recipe $name');
+    if (recipeJson['parameter'] != true) {
+      _logger.info('decoding recipe $name');
 
-    recipes[name] = Recipe.fromJson(db, recipeJson);
+      recipes[name] = Recipe.fromJson(db, recipeJson);
+    }
   });
 
   _logger.info('decoding machines');
-  Map<String, Map> rawCraftingMachines =
-      (factorioRawData['assembling-machine'] as Map).cast();
+  Map<String, Map> rawCraftingMachines = {};
+  for(var machineSection in machineSections) {
+    rawCraftingMachines.addAll((factorioRawData[machineSection] as Map).cast());
+  }
   rawCraftingMachines.forEach((name, machineJson) {
     _logger.info('decoding crafting machine $name');
 

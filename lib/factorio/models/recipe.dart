@@ -109,21 +109,18 @@ class Recipe {
   }
 
   List<CraftingMachine> _getCraftingMachines() {
-    Map<String, List<CraftingMachine>> filteredMap = {};
+    Set<CraftingMachine> machines = {};
     for (var category in categories) {
-      filteredMap[category] =
-          _factorioDb._craftingCategoriesAndMachines[category]!;
+      machines.addAll(
+        _factorioDb._craftingCategoriesAndMachines[category] ?? const [],
+      );
     }
 
     return List.unmodifiable(
-      filteredMap.values
-          .reduce((list1, list2) => list1..addAll(list2))
-          .toSet()
-          .toList()
-        ..sort(
-          (machine1, machine2) =>
-              machine1.craftingSpeed.compareTo(machine2.craftingSpeed),
-        ),
+      machines.toList()..sort(
+        (machine1, machine2) =>
+            machine1.craftingSpeed.compareTo(machine2.craftingSpeed),
+      ),
     );
   }
 }

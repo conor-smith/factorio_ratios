@@ -53,18 +53,14 @@ class CraftingMachine {
   }
 
   List<Recipe> _getRecipes() {
-    Map<String, List<Recipe>> filteredMap = {};
+    Set<Recipe> recipes = {};
     for (var category in craftingCategories) {
-      filteredMap[category] =
-          _factorioDb._craftingCategoriesAndRecipes[category]!;
+      recipes.addAll(
+        _factorioDb._craftingCategoriesAndRecipes[category] ?? const [],
+      );
     }
 
-    return List.unmodifiable(
-      filteredMap.values
-          .reduce((list1, list2) => list1..addAll(list2))
-          .toSet()
-          .toList(),
-    );
+    return List.unmodifiable(recipes);
   }
 }
 
