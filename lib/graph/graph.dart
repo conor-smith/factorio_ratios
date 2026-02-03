@@ -10,8 +10,11 @@ class Graph {
   final Map<GraphVertex, List<GraphEdge>> _parents = {};
   final Map<GraphVertex, List<GraphEdge>> _children = {};
 
+  final Map<GraphCondition, GraphVertex> _conditions = {};
+
   late final List<GraphVertex> vertices = UnmodifiableListView(_vertices);
   late final List<GraphEdge> edges = UnmodifiableListView(_edges);
+  late final Map<GraphCondition, GraphVertex> conditions = UnmodifiableMapView(_conditions);
 }
 
 class GraphEdge {
@@ -30,6 +33,9 @@ class GraphVertex extends ProductionLine {
   GraphVertex._(this._graph, this._containedLine);
 
   ProductionLine get containedLine => _containedLine;
+
+  List<GraphEdge> get children => UnmodifiableListView(_graph._parents[this] ?? const []);
+  List<GraphEdge> get parents => UnmodifiableListView(_graph._children[this] ?? const []);
 
   @override
   List<ItemAmount> get ingredientsPerSecond =>
