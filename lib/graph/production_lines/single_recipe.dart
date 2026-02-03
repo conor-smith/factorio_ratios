@@ -43,6 +43,7 @@ class SingleRecipeProductionLine extends ProductionLine {
     );
 
     double requiredMachines = requiredCycles * recipe.energyRequired;
+    _craftingMachine._amount = requiredMachines;
 
     Map<String, double> modifiablePpm = Map.from(
       _craftingMachine.craftingMachine.energySource.emissionsPerMinute,
