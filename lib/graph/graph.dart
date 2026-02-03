@@ -2,6 +2,13 @@ import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/models.dart';
 
+part 'production_lines/infinite_lines.dart';
+part 'production_lines/single_recipe.dart';
+
+class GraphException implements Exception {
+
+}
+
 class Graph {
   final List<GraphVertex> _vertices = [];
   final List<GraphEdge> _edges = [];
@@ -14,7 +21,9 @@ class Graph {
 
   late final List<GraphVertex> vertices = UnmodifiableListView(_vertices);
   late final List<GraphEdge> edges = UnmodifiableListView(_edges);
-  late final Map<GraphCondition, GraphVertex> conditions = UnmodifiableMapView(_conditions);
+  late final Map<GraphCondition, GraphVertex> conditions = UnmodifiableMapView(
+    _conditions,
+  );
 }
 
 class GraphEdge {
@@ -25,7 +34,7 @@ class GraphEdge {
   GraphEdge._(this.parent, this.child, this.flow);
 }
 
-class GraphVertex extends ProductionLine {
+class GraphVertex implements ProductionLine {
   final Graph _graph;
 
   ProductionLine _containedLine;
@@ -34,8 +43,10 @@ class GraphVertex extends ProductionLine {
 
   ProductionLine get containedLine => _containedLine;
 
-  List<GraphEdge> get children => UnmodifiableListView(_graph._parents[this] ?? const []);
-  List<GraphEdge> get parents => UnmodifiableListView(_graph._children[this] ?? const []);
+  List<GraphEdge> get children =>
+      UnmodifiableListView(_graph._parents[this] ?? const []);
+  List<GraphEdge> get parents =>
+      UnmodifiableListView(_graph._children[this] ?? const []);
 
   @override
   List<ItemAmount> get ingredientsPerSecond =>
@@ -56,8 +67,8 @@ class GraphVertex extends ProductionLine {
   List<ItemAmount> get fluidFuelPerSecond => _containedLine.fluidFuelPerSecond;
 
   @override
-  Map<String, double> get pollutionPerMinute =>
-      _containedLine.pollutionPerMinute;
+  Map<String, double> get emissionsPerMinute =>
+      _containedLine.emissionsPerMinute;
 
   @override
   double get electricityW => _containedLine.electricityW;
@@ -75,7 +86,7 @@ class GraphCondition {
   GraphCondition._(this.requiredOutput);
 }
 
-abstract class ProductionLine {
+abstract interface class ProductionLine {
   List<ItemAmount> get ingredientsPerSecond;
   List<ItemAmount> get resultsPerSecond;
 
@@ -85,7 +96,7 @@ abstract class ProductionLine {
   List<ItemAmount> get burntOutputPerSecond;
   List<ItemAmount> get fluidFuelPerSecond;
 
-  Map<String, double> get pollutionPerMinute;
+  Map<String, double> get emissionsPerMinute;
 
   double get electricityW;
   double get solidFuelW;
@@ -97,8 +108,7 @@ class ItemAmount {
   final Item item;
   double _amount;
 
-  ItemAmount._(this.item, {double amount = 0})
-    : this._amount = amount;
+  ItemAmount._(this.item, {double amount = 0}) : this._amount = amount;
 
   double get amount => _amount;
 }
@@ -130,7 +140,7 @@ class CraftingMachineAmount {
   ItemAmount? get burntFuelPerSecond {
     Item? burntResult = (_solidFuelPerSecond?.item as SolidItem?)?.burntResult;
 
-    if(burntResult == null) {
+    if (burntResult == null) {
       return null;
     } else {
       return ItemAmount._(burntResult, amount: _amount);
