@@ -2,30 +2,32 @@ part of '../production_line.dart';
 
 class SingleRecipeLine extends BasicUpdateable implements ProductionLine {
   QualityRecipe _recipe;
-  ModuledMachine _moduledMachine;
+  _ModuledMachineWrapper _moduledMachine;
   bool _recipeOrMachineUpdate;
 
   SingleRecipeLine._(
     this._recipe,
-    this._moduledMachine,
+    ModuledMachine machine,
     Map<ItemData, double> initialConditions,
   ) : _recipeOrMachineUpdate = true,
+      _moduledMachine = _ModuledMachineWrapper(machine),
       super(initialConditions) {
     _verifyRecipeAndMachine();
+    _moduledMachine._parentLine = this;
     update();
   }
 
   void _verifyRecipeAndMachine({
     QualityRecipe? newRecipe,
-    ModuledMachine? newMachine,
+    CraftingMachine? newMachine,
   }) {
     QualityRecipe recipe = newRecipe ?? _recipe;
-    ModuledMachine machine = newMachine ?? _moduledMachine;
+    CraftingMachine machine = newMachine ?? _moduledMachine.craftingMachine;
     // TODO
   }
 
   @override
-  bool get awaitingUpdate => _recipeOrMachineUpdate || _moduledMachine.awaitingUpdate || super.awaitingUpdate;
+  bool get awaitingUpdate => _recipeOrMachineUpdate || super.awaitingUpdate;
 
   @override
   void update() {
@@ -37,6 +39,19 @@ class SingleRecipeLine extends BasicUpdateable implements ProductionLine {
 
   @override
   Map<ItemData, double> get ioPerSecond => throw UnimplementedError();
+}
+
+class _ModuledMachineWrapper implements ModuledMachine {
+  final ModuledMachine _moduledMachine;
+  late final SingleRecipeLine _parentLine;
+
+  _ModuledMachineWrapper(this._moduledMachine);
+
   @override
-  ProductionLineType get type => throw UnimplementedError();
+  CraftingMachine get craftingMachine => _moduledMachine.craftingMachine;
+  @override
+  set craftingMachine(CraftingMachine newMachine) {
+    _parentLine._verifyRecipeAndMachine(newMachine: newMachine);
+    _moduledMachine.craftingMachine = newMachine;
+  }
 }

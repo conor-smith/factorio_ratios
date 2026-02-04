@@ -8,9 +8,6 @@ class InfiniteLine extends BasicUpdateable implements ProductionLine {
   InfiniteLine._(this._item, [this._amount = 0]);
 
   @override
-  ProductionLineType get type => ProductionLineType.noRecipe;
-
-  @override
   bool get awaitingUpdate =>
       conditionsToAddAndUpdate.isNotEmpty || conditionsToRemove.isNotEmpty;
 

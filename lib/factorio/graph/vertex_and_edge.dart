@@ -1,17 +1,21 @@
 part of '../graph.dart';
 
+enum VertexType {noRecipe, singleRecipe, multiRecipe}
+
 class Vertex extends BasicUpdateable implements ProductionLine {
   ProductionLine _internalLine;
-  Vertex._(this._internalLine);
+  VertexType _type;
+
+  Vertex._(this._internalLine, this._type);
 
   @override
   void update() {
     // TODO: implement update
     super.update();
   }
-  
-  @override
-  ProductionLineType get type => _internalLine.type;
+
+  VertexType get type => _type;
+
   @override
   Map<ItemData, double> get ioPerSecond => _internalLine.ioPerSecond;
 }
