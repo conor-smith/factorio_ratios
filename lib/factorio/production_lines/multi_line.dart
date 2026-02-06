@@ -11,6 +11,10 @@ part of '../production_line.dart';
  * Every item may only have 1 producer
  */
 class PlanetaryBase extends ProductionLine {
+  // TODO
+  // Handle recipes with multiple outputs
+  // Figure out a better way to represent edges / item flows
+  // Only update nodes that need to be updated
   final Map<ItemData, double> _ioPerSecond = {};
   @override
   late final Map<ItemData, double> ioPerSecond = UnmodifiableMapView(
@@ -64,22 +68,53 @@ class PlanetaryBase extends ProductionLine {
 
   @override
   void update(Map<ItemData, double> requirements) {
+    Map<ProdLineNode, ItemData> filteredOutputNodes = {};
+
     for (var itemD in requirements.keys) {
       if (!_outputNodes.containsKey(itemD)) {
         throw FactorioException(
           'No output node exists for item "${itemD.item.name}"',
         );
+      } else {
+        ProdLineNode outputNode = _outputNodes[itemD]!;
+        filteredOutputNodes[outputNode] = itemD;
       }
     }
 
     // Perform depth first traversal to determine order of updates
     // Also identifies circular dependencies and orphans
-    Map<ProdLineNode, int> order = {};
+    Map<ProdLineNode, int> nodesWithOrder = {};
     Set<ProdLineNode> parents = {};
 
-    for (var node in _outputNodes.values) {
-      _traverseChildNodes(order, parents, node, 0);
+    for (var outputNode in filteredOutputNodes.keys) {
+      for (var directChild in outputNode.children.map((flow) => flow.child)) {
+        _traverseChildNodes(nodesWithOrder, parents, directChild, 1);
+      }
     }
+
+    filteredOutputNodes.forEach((outputNode, itemD) {
+      outputNode._productionLine.update({itemD: requirements[itemD]!});
+      _updateChildFlows(outputNode);
+    });
+
+    (nodesWithOrder.entries.toList()
+          ..sort((entry1, entry2) => entry1.value.compareTo(entry2.value)))
+        .map((entry) => entry.key)
+        .forEach((node) {
+          Map<ItemData, double> nodeRequirements = {};
+
+          for (var flow in node.parents) {
+            nodeRequirements.update(
+              flow.itemData,
+              (currentValue) => currentValue += flow._amount,
+              ifAbsent: () => flow._amount,
+            );
+          }
+
+          node._productionLine.update(nodeRequirements);
+
+          _updateChildFlows(node);
+        });
   }
 
   void _traverseChildNodes(
@@ -93,7 +128,9 @@ class PlanetaryBase extends ProductionLine {
       String trace = parents
           .map((node) => node.name)
           .reduce((parent, child) => '$parent -> $child');
-      throw FactorioException('Circular dependency detected: $trace -> ${node.name}');
+      throw FactorioException(
+        'Circular dependency detected: $trace -> ${node.name}',
+      );
     }
 
     int? currentOrder = allNodesOrder[node];
@@ -101,12 +138,23 @@ class PlanetaryBase extends ProductionLine {
       allNodesOrder[node] = order;
       parents.add(node);
 
-      for(var child in node.children.map((flow) => flow.child)) {
+      for (var child in node.children.map((flow) => flow.child)) {
         _traverseChildNodes(allNodesOrder, parents, child, order + 1);
       }
 
       parents.remove(node);
     }
+  }
+
+  void _updateChildFlows(ProdLineNode node) {
+    node._productionLine.ioPerSecond.forEach((itemd, amount) {
+      if (amount < 0) {
+        ItemFlow childFlow = node.children.firstWhere(
+          (flow) => flow.itemData == itemd,
+        );
+        childFlow._amount = amount;
+      }
+    });
   }
 
   @override
