@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:logging/logging.dart';
 
 part 'models/crafting_machines.dart';
-part 'models/dynamic_models.dart';
 part 'models/item.dart';
 part 'models/recipe.dart';
 
@@ -20,32 +19,41 @@ final Map<String, double> _multipliers = {
   "Q": pow(10, 30).toDouble(),
 };
 
-double? _convertStringToEnergy(String? energyUsage) {
-  if (energyUsage == null) {
-    return null;
-  }
-
-  String multiplier = energyUsage.substring(
-    energyUsage.length - 2,
-    energyUsage.length - 1,
-  );
-
-  if (_multipliers.containsKey(multiplier)) {
-    return double.parse(energyUsage.substring(0, energyUsage.length - 2)) *
-        _multipliers[multiplier]!;
-  } else {
-    return double.parse(energyUsage.substring(0, energyUsage.length - 1));
-  }
-}
-
-// Relationships between entities are lazily evaluated
-// The exception to this are the relationships between recipes and items
-// to iterate over all recipes for items, categories, etc, than to search through them
+/*
+ * All entities (items, recipes, etc) are created from the JSON output from `factorio --dump-data`
+ * Once instantiated, the database and all entities within it are immutable
+ * All constructors are private. Entities may only be created by the db and no new entities can be added
+ * In order to update the db to include mod entities, the entire db must be rebuilt
+ * Relationships can be accessed via the entities themselves
+ * Some relationships are lazily evaluated, but most are determined when building the db
+ */
 class FactorioDatabase {
+  /*
+   * TODO
+   * Move JSON logic into here
+   * Better logging
+   * Index for spoiled results
+   * Index for burnt results
+   * Index for fuel categories
+   * Module entities
+   * Beacon entities
+   * Belt entities
+   * Planet entities
+   * Inserter entities (maybe)
+   * Relationships between physical entities and items
+   * Percent spoiled for items
+   * Icons
+   * Mod support
+   * Heating energy (for Aquilo)
+   * Crafting machine fixed recipes
+   * Crafting machine defualt productivity
+   */
+
   late final Map<String, Item> _itemMap;
   late final Map<String, Recipe> _recipeMap;
   late final Map<String, CraftingMachine> _craftingMachineMap;
 
+  // Each of these fields acts as an index when querying the db
   Map<String, List<Recipe>> _craftingCategoriesAndRecipes = {};
   Map<String, List<CraftingMachine>> _craftingCategoriesAndMachines = {};
 
@@ -124,4 +132,23 @@ class FactorioDatabase {
   Map<String, Item> get itemMap => _itemMap;
   Map<String, Recipe> get recipeMap => _recipeMap;
   Map<String, CraftingMachine> get craftingMachineMap => _craftingMachineMap;
+}
+
+
+double? _convertStringToEnergy(String? energyUsage) {
+  if (energyUsage == null) {
+    return null;
+  }
+
+  String multiplier = energyUsage.substring(
+    energyUsage.length - 2,
+    energyUsage.length - 1,
+  );
+
+  if (_multipliers.containsKey(multiplier)) {
+    return double.parse(energyUsage.substring(0, energyUsage.length - 2)) *
+        _multipliers[multiplier]!;
+  } else {
+    return double.parse(energyUsage.substring(0, energyUsage.length - 1));
+  }
 }

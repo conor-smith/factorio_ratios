@@ -1,57 +1,46 @@
 part of '../production_line.dart';
 
-class SingleRecipeLine extends BasicUpdateable implements ProductionLine {
-  QualityRecipe _recipe;
-  _ModuledMachineWrapper _moduledMachine;
-  bool _recipeOrMachineUpdate;
+class SingleRecipeLine extends ProductionLine with ModuledMachineMixin {
+  final QualityRecipe qRecipe;
+  CraftingMachine _craftingMachine;
+  double _machineAmount = 1;
+  bool _machineChange = false;
 
-  SingleRecipeLine._(
-    this._recipe,
-    ModuledMachine machine,
-    Map<ItemData, double> initialConditions,
-  ) : _recipeOrMachineUpdate = true,
-      _moduledMachine = _ModuledMachineWrapper(machine),
-      super(initialConditions) {
-    _verifyRecipeAndMachine();
-    _moduledMachine._parentLine = this;
-    update();
+  final Map<ItemData, double> _ioPerSecond = {};
+  @override
+  late final Map<ItemData, double> ioPerSecond = UnmodifiableMapView(
+    _ioPerSecond,
+  );
+
+  SingleRecipeLine(this.qRecipe, this._craftingMachine) {
+    _verifyMachineCompatibility(_craftingMachine);
+
+    for (var ingredient in qRecipe.recipe.ingredients) {
+      _ioPerSecond[ItemData(ingredient.item)] = -ingredient.amount;
+    }
+
+    for (var result in qRecipe.recipe.results) {
+      _ioPerSecond.update(
+        (ItemData(result.item)),
+        (amount) => amount += result.amount,
+        ifAbsent: () => result.amount,
+      );
+    }
   }
 
-  void _verifyRecipeAndMachine({
-    QualityRecipe? newRecipe,
-    CraftingMachine? newMachine,
-  }) {
-    QualityRecipe recipe = newRecipe ?? _recipe;
-    CraftingMachine machine = newMachine ?? _moduledMachine.craftingMachine;
-    // TODO
-  }
-
-  @override
-  bool get awaitingUpdate => _recipeOrMachineUpdate || super.awaitingUpdate;
-
-  @override
-  void update() {
-    if(this.awaitingUpdate) {
-      // TODO
-      super.update();
+  void _verifyMachineCompatibility(CraftingMachine newMachine) {
+    if (!newMachine.recipes.contains(qRecipe.recipe)) {
+      throw FactorioException(
+        'Machine "${newMachine.name}" cannot craft recipe "${qRecipe.recipe.name}"',
+      );
     }
   }
 
   @override
-  Map<ItemData, double> get ioPerSecond => throw UnimplementedError();
-}
-
-class _ModuledMachineWrapper implements ModuledMachine {
-  final ModuledMachine _moduledMachine;
-  late final SingleRecipeLine _parentLine;
-
-  _ModuledMachineWrapper(this._moduledMachine);
-
-  @override
-  CraftingMachine get craftingMachine => _moduledMachine.craftingMachine;
-  @override
-  set craftingMachine(CraftingMachine newMachine) {
-    _parentLine._verifyRecipeAndMachine(newMachine: newMachine);
-    _moduledMachine.craftingMachine = newMachine;
+  void update(Map<ItemData, double> requirements) {
+    // TODO: implement calculate
   }
+
+  @override
+  String get name => 'Recipe: ${qRecipe.recipe.name}';
 }
