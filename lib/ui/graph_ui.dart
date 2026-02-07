@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:factorio_ratios/factorio/json.dart';
 import 'package:factorio_ratios/factorio/models.dart';
 import 'package:factorio_ratios/factorio/production_line.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +22,7 @@ class _GraphUiState extends State<GraphUi> {
 
     _dbFuture = File('test_resources/data-raw-dump.json')
         .readAsString()
-        .then((rawJson) => decodeRawDataDumpJson(rawJson))
+        .then((rawJson) => FactorioDatabase.fromJson(rawJson))
         .then((db) {
           _db = db;
         });

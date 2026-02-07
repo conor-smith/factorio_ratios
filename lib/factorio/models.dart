@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:logging/logging.dart';
@@ -30,7 +31,6 @@ final Map<String, double> _multipliers = {
 class FactorioDatabase {
   /*
    * TODO
-   * Move JSON logic into here
    * Better logging
    * Index for spoiled results
    * Index for burnt results
@@ -59,6 +59,88 @@ class FactorioDatabase {
 
   static final Logger _logger = Logger('FactorioDb');
 
+  FactorioDatabase.fromJson(String rawJson) {
+    _logger.info('Decoding raw data dump');
+    Map factorioRawData = jsonDecode(rawJson);
+
+    Map<String, Item> items = {};
+    Map<String, Recipe> recipes = {};
+    Map<String, CraftingMachine> craftingMachines = {};
+
+    // TODO - clean up
+    _logger.info('decoding items');
+
+    List<String> itemSections = [
+      'item',
+      'module',
+      'gun',
+      'ammo',
+      'armor',
+      'repair-tool',
+      'tool',
+      'item-with-entity-data',
+      'capsule',
+      'rail-planner',
+      'item-with-entity-data',
+      'space-platform-starter-pack',
+      'blueprint',
+      'blueprint-book',
+      'deconstruction-item',
+      'upgrade-item',
+      'selection-tool',
+    ];
+    List<String> machineSections = [
+      'assembling-machine',
+      'rocket-silo',
+      'furnace',
+    ];
+
+    Map<String, Map> rawItems = {};
+    for (var section in itemSections) {
+      rawItems.addAll((factorioRawData[section] as Map).cast());
+    }
+
+    rawItems.forEach((name, itemJson) {
+      if (itemJson['parameter'] != true) {
+        _logger.info('decoding item $name');
+
+        items[name] = SolidItem.fromJson(this, itemJson);
+      }
+    });
+
+    Map<String, Map> rawFluids = (factorioRawData['fluid'] as Map).cast();
+    rawFluids.forEach((name, fluidJson) {
+      if (fluidJson['parameter'] != true) {
+        _logger.info('decoding fluid $name');
+
+        items[name] = FluidItem.fromJson(this, fluidJson);
+      }
+    });
+
+    _logger.info('decoding recipes');
+    Map<String, Map> rawRecipes = (factorioRawData['recipe'] as Map).cast();
+    rawRecipes.forEach((name, recipeJson) {
+      if (recipeJson['parameter'] != true) {
+        _logger.info('decoding recipe $name');
+
+        recipes[name] = Recipe.fromJson(this, recipeJson);
+      }
+    });
+
+    _logger.info('decoding machines');
+    Map<String, Map> rawCraftingMachines = {};
+    for (var machineSection in machineSections) {
+      rawCraftingMachines.addAll(
+        (factorioRawData[machineSection] as Map).cast(),
+      );
+    }
+    rawCraftingMachines.forEach((name, machineJson) {
+      _logger.info('decoding crafting machine $name');
+
+      craftingMachines[name] = CraftingMachine.fromJson(this, machineJson);
+    });
+  }
+
   void initialise(
     Map<String, Item> itemMap,
     Map<String, Recipe> recipeMap,
@@ -73,7 +155,7 @@ class FactorioDatabase {
 
   void _buildNonLazyRelationships() {
     _logger.info('Building non-lazy relationships');
-    
+
     _recipeMap.forEach((name, recipe) {
       _logger.info('Building relationships for recipe $name');
       for (var category in recipe.categories) {
@@ -110,14 +192,14 @@ class FactorioDatabase {
     });
 
     _craftingCategoriesAndRecipes.updateAll(
-      (category, recipeList) => List.unmodifiable(recipeList)
+      (category, recipeList) => List.unmodifiable(recipeList),
     );
     _craftingCategoriesAndRecipes = Map.unmodifiable(
       _craftingCategoriesAndRecipes,
     );
 
     _craftingCategoriesAndMachines.updateAll(
-      (category, machineList) => List.unmodifiable(machineList)
+      (category, machineList) => List.unmodifiable(machineList),
     );
     _craftingCategoriesAndMachines = Map.unmodifiable(
       _craftingCategoriesAndMachines,
@@ -133,7 +215,6 @@ class FactorioDatabase {
   Map<String, Recipe> get recipeMap => _recipeMap;
   Map<String, CraftingMachine> get craftingMachineMap => _craftingMachineMap;
 }
-
 
 double? _convertStringToEnergy(String? energyUsage) {
   if (energyUsage == null) {
