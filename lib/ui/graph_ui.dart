@@ -13,10 +13,21 @@ class GraphUi extends StatefulWidget {
 }
 
 class _GraphUiState extends State<GraphUi> {
-  Future<FactorioDatabase> _dbFuture = File(
-    'test_resources/data-raw-dump.json',
-  ).readAsString().then((rawJson) => decodeRawDataDumpJson(rawJson));
+  late Future<Null> _dbFuture;
+  late FactorioDatabase _db;
   PlanetaryBase _base = PlanetaryBase();
+
+  @override
+  void initState() {
+    super.initState();
+
+    _dbFuture = File('test_resources/data-raw-dump.json')
+        .readAsString()
+        .then((rawJson) => decodeRawDataDumpJson(rawJson))
+        .then((db) {
+          _db = db;
+        });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,10 +38,47 @@ class _GraphUiState extends State<GraphUi> {
           if (dbSnapshot.connectionState == ConnectionState.waiting) {
             return CircularProgressIndicator();
           } else {
-            return const Text('Hello!');
+            return GestureDetector(
+              child: Stack(children: [const Text('Placeholder')]),
+              onTap: () => setState(() {}),
+            );
           }
         },
       ),
     );
+  }
+}
+
+class BaseNodeWidget extends StatefulWidget {
+  final ProdLineNode prodLineNode;
+  final double initialX;
+  final double initialY;
+
+  const BaseNodeWidget({
+    super.key,
+    required this.prodLineNode,
+    required this.initialX,
+    required this.initialY,
+  });
+
+  @override
+  State<BaseNodeWidget> createState() => _BaseNodeWidgetState();
+}
+
+class _BaseNodeWidgetState extends State<BaseNodeWidget> {
+  double x = 0;
+  double y = 0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    x = widget.initialX;
+    y = widget.initialY;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Placeholder();
   }
 }
