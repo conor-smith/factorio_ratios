@@ -49,9 +49,9 @@ class FactorioDatabase {
    * Crafting machine defualt productivity
    */
 
-  late final Map<String, Item> _itemMap;
-  late final Map<String, Recipe> _recipeMap;
-  late final Map<String, CraftingMachine> _craftingMachineMap;
+  late final Map<String, Item> itemMap;
+  late final Map<String, Recipe> recipeMap;
+  late final Map<String, CraftingMachine> craftingMachineMap;
 
   // Each of these fields acts as an index when querying the db
   Map<String, List<Recipe>> _craftingCategoriesAndRecipes = {};
@@ -101,29 +101,38 @@ class FactorioDatabase {
     }
 
     rawItems.forEach((name, itemJson) {
-      if (itemJson['parameter'] != true) {
-        _logger.info('decoding item $name');
-
-        items[name] = SolidItem.fromJson(this, itemJson);
+      try {
+        if (itemJson['parameter'] != true) {
+          items[name] = SolidItem.fromJson(this, itemJson);
+        }
+      } on Exception catch (e) {
+        _logger.info('Encountered error when decoding item "$name"', e);
+        rethrow;
       }
     });
 
     Map<String, Map> rawFluids = (factorioRawData['fluid'] as Map).cast();
     rawFluids.forEach((name, fluidJson) {
-      if (fluidJson['parameter'] != true) {
-        _logger.info('decoding fluid $name');
-
-        items[name] = FluidItem.fromJson(this, fluidJson);
+      try {
+        if (fluidJson['parameter'] != true) {
+          items[name] = FluidItem.fromJson(this, fluidJson);
+        }
+      } on Exception catch (e) {
+        _logger.info('Encountered error when decoding item "$name"', e);
+        rethrow;
       }
     });
 
     _logger.info('decoding recipes');
     Map<String, Map> rawRecipes = (factorioRawData['recipe'] as Map).cast();
     rawRecipes.forEach((name, recipeJson) {
-      if (recipeJson['parameter'] != true) {
-        _logger.info('decoding recipe $name');
-
-        recipes[name] = Recipe.fromJson(this, recipeJson);
+      try {
+        if (recipeJson['parameter'] != true) {
+          recipes[name] = Recipe.fromJson(this, recipeJson);
+        }
+      } on Exception catch (e) {
+        _logger.info('Encountered error when decoding recipe "$name"', e);
+        rethrow;
       }
     });
 
@@ -135,20 +144,20 @@ class FactorioDatabase {
       );
     }
     rawCraftingMachines.forEach((name, machineJson) {
-      _logger.info('decoding crafting machine $name');
-
-      craftingMachines[name] = CraftingMachine.fromJson(this, machineJson);
+      try {
+        craftingMachines[name] = CraftingMachine.fromJson(this, machineJson);
+      } on Exception catch (e) {
+        _logger.info(
+          'Encountered error when decoding crafting machine "$name"',
+          e,
+        );
+        rethrow;
+      }
     });
-  }
 
-  void initialise(
-    Map<String, Item> itemMap,
-    Map<String, Recipe> recipeMap,
-    Map<String, CraftingMachine> craftingMachineMap,
-  ) {
-    _itemMap = Map.unmodifiable(itemMap);
-    _recipeMap = Map.unmodifiable(recipeMap);
-    _craftingMachineMap = Map.unmodifiable(craftingMachineMap);
+    itemMap = Map.unmodifiable(items);
+    recipeMap = Map.unmodifiable(recipes);
+    craftingMachineMap = Map.unmodifiable(craftingMachines);
 
     _buildNonLazyRelationships();
   }
@@ -156,7 +165,7 @@ class FactorioDatabase {
   void _buildNonLazyRelationships() {
     _logger.info('Building non-lazy relationships');
 
-    _recipeMap.forEach((name, recipe) {
+    recipeMap.forEach((name, recipe) {
       _logger.info('Building relationships for recipe $name');
       for (var category in recipe.categories) {
         _craftingCategoriesAndRecipes.update(
@@ -167,21 +176,21 @@ class FactorioDatabase {
       }
 
       for (var ingredient in recipe.ingredients) {
-        Item item = _itemMap[ingredient._name]!;
+        Item item = itemMap[ingredient._name]!;
 
-        ingredient.item = _itemMap[ingredient._name]!;
+        ingredient.item = itemMap[ingredient._name]!;
         item._consumedBy.add(recipe);
       }
 
       for (var result in recipe.results) {
-        Item item = _itemMap[result._name]!;
+        Item item = itemMap[result._name]!;
 
         result.item = item;
         item._producedBy.add(recipe);
       }
     });
 
-    _craftingMachineMap.forEach((name, craftingMachine) {
+    craftingMachineMap.forEach((name, craftingMachine) {
       for (var category in craftingMachine.craftingCategories) {
         _craftingCategoriesAndMachines.update(
           category,
@@ -205,15 +214,11 @@ class FactorioDatabase {
       _craftingCategoriesAndMachines,
     );
 
-    _itemMap.forEach((name, item) {
+    itemMap.forEach((name, item) {
       item._consumedBy = List.unmodifiable(item._consumedBy);
       item._producedBy = List.unmodifiable(item._producedBy);
     });
   }
-
-  Map<String, Item> get itemMap => _itemMap;
-  Map<String, Recipe> get recipeMap => _recipeMap;
-  Map<String, CraftingMachine> get craftingMachineMap => _craftingMachineMap;
 }
 
 double? _convertStringToEnergy(String? energyUsage) {

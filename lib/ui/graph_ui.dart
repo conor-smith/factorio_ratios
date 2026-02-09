@@ -14,7 +14,9 @@ class GraphUi extends StatefulWidget {
 class _GraphUiState extends State<GraphUi> {
   late Future<Null> _dbFuture;
   late FactorioDatabase _db;
-  PlanetaryBase _base = PlanetaryBase();
+  late PlanetaryBase _base = PlanetaryBase();
+
+  final List<BaseNodeWidget> baseNodes = [];
 
   @override
   void initState() {
@@ -25,37 +27,40 @@ class _GraphUiState extends State<GraphUi> {
         .then((rawJson) => FactorioDatabase.fromJson(rawJson))
         .then((db) {
           _db = db;
+          _base = PlanetaryBase();
+          
+          _base.getOrCreateOutputNode(
+            ItemData(_db.itemMap['automation-science-pack']!),
+          );
+          double y = 50;
+          for (var node in _base.nodes) {
+            baseNodes.add(BaseNodeWidget(initialX: 50, initialY: y));
+            y += 120;
+          }
         });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: FutureBuilder(
-        future: _dbFuture,
-        builder: (context, dbSnapshot) {
-          if (dbSnapshot.connectionState == ConnectionState.waiting) {
-            return CircularProgressIndicator();
-          } else {
-            return GestureDetector(
-              child: Stack(children: [const Text('Placeholder')]),
-              onTap: () => setState(() {}),
-            );
-          }
-        },
-      ),
+    return FutureBuilder(
+      future: _dbFuture,
+      builder: (context, snapShot) {
+        if (snapShot.connectionState == ConnectionState.waiting) {
+          return CircularProgressIndicator();
+        } else {
+          return GestureDetector(child: Stack(children: baseNodes));
+        }
+      },
     );
   }
 }
 
 class BaseNodeWidget extends StatefulWidget {
-  final ProdLineNode prodLineNode;
   final double initialX;
   final double initialY;
 
   const BaseNodeWidget({
     super.key,
-    required this.prodLineNode,
     required this.initialX,
     required this.initialY,
   });
@@ -68,6 +73,16 @@ class _BaseNodeWidgetState extends State<BaseNodeWidget> {
   double x = 0;
   double y = 0;
 
+  Widget thisWidget = Container(
+    width: 100,
+    height: 100,
+    decoration: BoxDecoration(
+      color: Colors.blueGrey,
+      border: Border.all(width: 2),
+    ),
+    child: Center(child: const Text('Test')),
+  );
+
   @override
   void initState() {
     super.initState();
@@ -78,6 +93,19 @@ class _BaseNodeWidgetState extends State<BaseNodeWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Positioned(
+      left: x,
+      top: y,
+      child: Draggable(
+        feedback: thisWidget,
+        onDragEnd: (details) {
+          setState(() {
+            x += details.offset.dx;
+            y += details.offset.dy;
+          });
+        },
+        child: thisWidget,
+      ),
+    );
   }
 }

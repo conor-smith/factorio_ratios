@@ -15,6 +15,9 @@ class PlanetaryBase extends ProductionLine {
   // Handle recipes with multiple outputs
   // Figure out a better way to represent edges / item flows
   // Only update nodes that need to be updated
+  
+  static final Logger _logger = Logger('PlanetaryBase');
+
   final Map<ItemData, double> _ioPerSecond = {};
   @override
   late final Map<ItemData, double> ioPerSecond = UnmodifiableMapView(
@@ -33,7 +36,13 @@ class PlanetaryBase extends ProductionLine {
   final Map<ItemData, ProdLineNode> _itemProducers = {};
   final Map<ItemData, ProdLineNode> _outputNodes = {};
 
+  PlanetaryBase() {
+    _logger.info('Creating planetary base');
+  }
+
   ProdLineNode getOrCreateOutputNode(ItemData itemToOutput) {
+    _logger.info('Adding item to base - ${itemToOutput.item.name}');
+
     late ProdLineNode node;
     if (_outputNodes.containsKey(itemToOutput)) {
       node = _outputNodes[itemToOutput]!;
