@@ -3,7 +3,7 @@ part of '../models.dart';
 enum ItemType { item, fluid }
 
 abstract class Item {
-  final FactorioDatabase _factorioDb;
+  final FactorioDatabase factorioDb;
 
   final ItemType type;
   final String name;
@@ -14,12 +14,18 @@ abstract class Item {
   List<Recipe> _consumedBy = [];
   List<Recipe> _producedBy = [];
 
-  Item._internal(this._factorioDb, this.type, Map json)
-    : name = json['name'],
-      fuelValue = _convertStringToEnergy(json['fuel_value']);
+  Item._({
+    required this.factorioDb,
+    required this.type,
+    required this.name,
+    this.fuelValue,
+  });
 
   List<Recipe> get consumedBy => _consumedBy;
   List<Recipe> get producedBy => _producedBy;
+
+  @override
+  String toString() => name;
 }
 
 class SolidItem extends Item {
@@ -30,19 +36,37 @@ class SolidItem extends Item {
   final double? fuelEmissionsMultiplier;
 
   final String? _spoilResultString;
-  late final Item? spoiledResult = _factorioDb.itemMap[_spoilResultString];
+  late final Item? spoiledResult = factorioDb.itemMap[_spoilResultString];
 
   final String? _burnResultString;
-  late final Item? burntResult = _factorioDb.itemMap[_burnResultString];
+  late final Item? burntResult = factorioDb.itemMap[_burnResultString];
 
-  SolidItem.fromJson(FactorioDatabase factorioDb, Map json)
-    : stackSize = json['stack_size'],
-      spoilTicks = json['spoil_ticks'],
-      _spoilResultString = json['spoil_result'],
-      fuelCategory = json['fuel_category'],
-      _burnResultString = json['burnt_result'],
-      fuelEmissionsMultiplier = json['fuel_emissions_multiplier']?.toDouble(),
-      super._internal(factorioDb, ItemType.item, json);
+  SolidItem._({
+    required super.factorioDb,
+    required super.name,
+    super.fuelValue,
+    required this.stackSize,
+    this.spoilTicks,
+    this.fuelCategory,
+    this.fuelEmissionsMultiplier,
+    String? spoilResultString,
+    String? burntResultString,
+  }) : _spoilResultString = spoilResultString,
+       _burnResultString = burntResultString,
+       super._(type: ItemType.item);
+
+  factory SolidItem.fromJson(FactorioDatabase factorioDb, Map json) =>
+      SolidItem._(
+        factorioDb: factorioDb,
+        name: json['name'],
+        fuelValue: _convertStringToEnergy(json['fuel_value']),
+        stackSize: json['stack_size'],
+        spoilTicks: json['spoil_ticks'],
+        fuelCategory: json['fuel_category'],
+        fuelEmissionsMultiplier: json['fuel_emissions_multiplier']?.toDouble(),
+        spoilResultString: json['spoil_result'],
+        burntResultString: json['burnt_result'],
+      );
 }
 
 class FluidItem extends Item {
@@ -51,12 +75,24 @@ class FluidItem extends Item {
   final double maxTemperature;
   final double emissionsMultipler;
 
-  FluidItem.fromJson(FactorioDatabase factorioDb, Map json)
-    : defaultTemperature = json['default_temperature'].toDouble(),
-      heatCapacity = _convertStringToEnergy(json['heat_capacity']) ?? 1000,
-      maxTemperature =
-          json['max_temperature']?.toDouble() ??
-          json['default_temperature'].toDouble(),
-      emissionsMultipler = json['emissions_multiplier']?.toDouble() ?? 1,
-      super._internal(factorioDb, ItemType.fluid, json);
+  FluidItem._({
+    required super.factorioDb,
+    required super.name,
+    required this.defaultTemperature,
+    required this.heatCapacity,
+    required this.maxTemperature,
+    required this.emissionsMultipler,
+  }) : super._(type: ItemType.fluid);
+
+  factory FluidItem.fromJson(FactorioDatabase factorioDb, Map json) =>
+      FluidItem._(
+        factorioDb: factorioDb,
+        name: json['name'],
+        defaultTemperature: json['default_temperature'].toDouble(),
+        heatCapacity: _convertStringToEnergy(json['heat_capacity']) ?? 1000,
+        maxTemperature:
+            json['max_temperature']?.toDouble() ??
+            json['default_temperature'].toDouble(),
+        emissionsMultipler: json['emissions_multiplier']?.toDouble() ?? 1,
+      );
 }

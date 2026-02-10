@@ -19,7 +19,7 @@ void main() async {
   test('Test PlanetaryBase for adding one item', () {
     PlanetaryBase base = PlanetaryBase();
 
-    base.getOrCreateOutputNode(ItemData(db.itemMap['automation-science-pack']!));
+    base.createOutputNode(ItemData(db.itemMap['automation-science-pack']!));
 
     expect(base.nodes.length, 2);
   });

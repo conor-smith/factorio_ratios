@@ -1,7 +1,7 @@
 part of '../models.dart';
 
 class Recipe {
-  final FactorioDatabase _factorioDb;
+  final FactorioDatabase factorioDb;
 
   final String name;
   final List<String> categories;
@@ -20,25 +20,28 @@ class Recipe {
   final List<RecipeItem> results;
   final List<SurfaceCondition> surfaceConditions;
 
-  late final List<CraftingMachine> craftingMachines = _getCraftingMachines();
+  late final List<CraftingMachine> craftingMachines = List.unmodifiable(
+    categories.map((category) => factorioDb._craftingCategoriesAndMachines[category] ?? const [])
+    .reduce((cat1List, cat2List) => [...cat1List, ...cat2List])
+    .toSet());
 
-  Recipe._internal(
-    this._factorioDb,
-    this.name,
-    this.categories,
-    this.energyRequired,
-    this.maximumProductivity,
-    this.emissionsMultiplier,
-    this.enabled,
-    this.allowConsumption,
-    this.allowSpeed,
-    this.allowProductivity,
-    this.allowPollution,
-    this.allowQuality,
-    this.ingredients,
-    this.results,
-    this.surfaceConditions,
-  );
+  Recipe._({
+    required this.factorioDb,
+    required this.name,
+    required this.categories,
+    required this.energyRequired,
+    required this.maximumProductivity,
+    required this.emissionsMultiplier,
+    required this.enabled,
+    required this.allowConsumption,
+    required this.allowSpeed,
+    required this.allowProductivity,
+    required this.allowPollution,
+    required this.allowQuality,
+    required this.ingredients,
+    required this.results,
+    required this.surfaceConditions,
+  });
 
   factory Recipe.fromJson(FactorioDatabase factorioDb, Map json) {
     late List<String> categories;
@@ -89,40 +92,27 @@ class Recipe {
       ),
     );
 
-    return Recipe._internal(
-      factorioDb,
-      json['name'],
-      categories,
-      json['energy_required']?.toDouble() ?? 0.5,
-      json['maximum_productivity']?.toDouble() ?? 3,
-      json['emissions_multiplier']?.toDouble() ?? 1,
-      json['enabled'] ?? true,
-      json['allow_consumption'] ?? true,
-      json['allow_speed'] ?? true,
-      json['allow_productivity'] ?? false,
-      json['allow_pollution'] ?? true,
-      json['allow_quality'] ?? true,
-      ingredients,
-      results,
-      surfaceConditions,
+    return Recipe._(
+      factorioDb: factorioDb,
+      name: json['name'],
+      categories: categories,
+      energyRequired: json['energy_required']?.toDouble() ?? 0.5,
+      maximumProductivity: json['maximum_productivity']?.toDouble() ?? 3,
+      emissionsMultiplier: json['emissions_multiplier']?.toDouble() ?? 1,
+      enabled: json['enabled'] ?? true,
+      allowConsumption: json['allow_consumption'] ?? true,
+      allowSpeed: json['allow_speed'] ?? true,
+      allowProductivity: json['allow_productivity'] ?? false,
+      allowPollution: json['allow_pollution'] ?? true,
+      allowQuality: json['allow_quality'] ?? true,
+      ingredients: ingredients,
+      results: results,
+      surfaceConditions: surfaceConditions,
     );
   }
 
-  List<CraftingMachine> _getCraftingMachines() {
-    Set<CraftingMachine> machines = {};
-    for (var category in categories) {
-      machines.addAll(
-        _factorioDb._craftingCategoriesAndMachines[category] ?? const [],
-      );
-    }
-
-    return List.unmodifiable(
-      machines.toList()..sort(
-        (machine1, machine2) =>
-            machine1.craftingSpeed.compareTo(machine2.craftingSpeed),
-      ),
-    );
-  }
+  @override
+  String toString() => name;
 }
 
 class RecipeItem {
@@ -132,11 +122,19 @@ class RecipeItem {
   final double amount;
   final double probability;
 
-  RecipeItem.fromJson(Map json)
-    : _name = json['name'],
-      type = json['type'],
-      amount = json['amount'].toDouble(),
-      probability = json['probability']?.toDouble() ?? 1;
+  RecipeItem._({
+    required String name,
+    required this.type,
+    required this.amount,
+    required this.probability,
+  }) : _name = name;
+
+  factory RecipeItem.fromJson(Map json) => RecipeItem._(
+    name: json['name'],
+    type: json['type'],
+    amount: json['amount'].toDouble(),
+    probability: json['probability']?.toDouble() ?? 1,
+  );
 }
 
 class SurfaceCondition {
@@ -144,8 +142,15 @@ class SurfaceCondition {
   final double min;
   final double max;
 
-  SurfaceCondition.fromJson(Map json)
-    : property = json['property'],
-      min = json['min']?.toDouble() ?? double.negativeInfinity,
-      max = json['max']?.toDouble() ?? double.infinity;
+  SurfaceCondition._({
+    required this.property,
+    required this.min,
+    required this.max,
+  });
+
+  factory SurfaceCondition.fromJson(Map json) => SurfaceCondition._(
+    property: json['property'],
+    min: json['min']?.toDouble() ?? double.negativeInfinity,
+    max: json['max']?.toDouble() ?? double.infinity,
+  );
 }

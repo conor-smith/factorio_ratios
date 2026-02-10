@@ -29,7 +29,7 @@ class _GraphUiState extends State<GraphUi> {
           _db = db;
           _base = PlanetaryBase();
           
-          _base.getOrCreateOutputNode(
+          _base.createOutputNode(
             ItemData(_db.itemMap['automation-science-pack']!),
           );
           double y = 50;
