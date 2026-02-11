@@ -7,7 +7,6 @@ Map<String, double> _parseEmissionsPerMinute(Map energySourceJson) =>
 
 class CraftingMachine {
   // TODO - Quality effects on module and energy usage
-  // TODO - EffectReceiver
 
   final FactorioDatabase factorioDb;
 
@@ -26,7 +25,7 @@ class CraftingMachine {
     craftingCategories
         .map(
           (category) =>
-              factorioDb._craftingCategoriesAndRecipes[category] ?? const [],
+              factorioDb._craftingCategoryToRecipes[category] ?? const [],
         )
         .reduce((catList1, catList2) => [...catList1, ...catList2])
         .toSet(),
@@ -61,8 +60,14 @@ class CraftingMachine {
       craftingSpeed: json['crafting_speed'].toDouble(),
       energyUsage: energyUsage,
       moduleSlots: json['module_slots'] ?? 0,
-      energySource: CraftingMachineEnergySource.fromJson(json, energyUsage),
-      effectReceiver: EffectReceiver.fromJson(json['effect_receiver'] ?? const {}),
+      energySource: CraftingMachineEnergySource.fromJson(
+        factorioDb,
+        json,
+        energyUsage,
+      ),
+      effectReceiver: EffectReceiver.fromJson(
+        json['effect_receiver'] ?? const {},
+      ),
       craftingCategories: List.unmodifiable(
         json['crafting_categories'] as List,
       ).cast(),
@@ -120,23 +125,37 @@ class BaseEffect {
 }
 
 class CraftingMachineEnergySource {
+  final FactorioDatabase factorioDb;
   final EnergySourceType type;
   final Map<String, double> emissionsPerMinute;
 
   CraftingMachineEnergySource._({
+    required this.factorioDb,
     required this.type,
     required this.emissionsPerMinute,
   });
 
-  factory CraftingMachineEnergySource.fromJson(Map json, double energyUsage) {
+  factory CraftingMachineEnergySource.fromJson(
+    FactorioDatabase factorioDb,
+    Map json,
+    double energyUsage,
+  ) {
     return switch (json['type'] as String) {
-      'electric' => ElectricEnergySource.fromJson(json, energyUsage),
-      'burner' => BurnerEnergySource.fromJson(json),
-      'fluid' => FluidEnergySource.fromJson(json),
-      'heat' => HeatEnergySource.fromJson(json),
-      _ => CraftingMachineEnergySource._(
+      'electric' => ElectricEnergySource.fromJson(
+        factorioDb,
+        json,
+        energyUsage,
+      ),
+      'burner' => BurnerEnergySource.fromJson(factorioDb, json),
+      // 'fluid' => FluidEnergySource.fromJson(factorioDb, json), TODO
+      'heat' => HeatEnergySource.fromJson(factorioDb, json),
+      'void' => CraftingMachineEnergySource._(
+        factorioDb: factorioDb,
         type: EnergySourceType.fVoid,
         emissionsPerMinute: _parseEmissionsPerMinute(json),
+      ),
+      _ => throw FactorioException(
+        'Unrecognised energy source type - "${json['type']}',
       ),
     };
   }
@@ -149,58 +168,91 @@ class ElectricEnergySource extends CraftingMachineEnergySource {
   final double drain;
 
   ElectricEnergySource._({
+    required super.factorioDb,
     required this.drain,
     required super.emissionsPerMinute,
   }) : super._(type: EnergySourceType.electric);
 
-  factory ElectricEnergySource.fromJson(Map json, double energyUsage) =>
-      ElectricEnergySource._(
-        drain: _convertStringToEnergy(json['drain']) ?? (energyUsage / 30),
-        emissionsPerMinute: _parseEmissionsPerMinute(json),
-      );
+  factory ElectricEnergySource.fromJson(
+    FactorioDatabase factorioDb,
+    Map json,
+    double energyUsage,
+  ) => ElectricEnergySource._(
+    factorioDb: factorioDb,
+    drain: _convertStringToEnergy(json['drain']) ?? (energyUsage / 30),
+    emissionsPerMinute: _parseEmissionsPerMinute(json),
+  );
 }
 
 class BurnerEnergySource extends CraftingMachineEnergySource {
   final double effectivity;
   final String burnerUsage;
   final List<String> fuelCategories;
+  late final List<SolidItem> fuelItems = List.unmodifiable(
+    fuelCategories
+        .map(
+          (category) =>
+              factorioDb._fuelCategoryToItems[category] ?? const [],
+        )
+        .reduce((cat1, cat2) => [...cat1, ...cat2])
+        .toSet(),
+  );
 
   BurnerEnergySource._({
+    required super.factorioDb,
     required this.effectivity,
     required this.burnerUsage,
     required this.fuelCategories,
     required super.emissionsPerMinute,
   }) : super._(type: EnergySourceType.burner);
 
-  factory BurnerEnergySource.fromJson(Map json) => BurnerEnergySource._(
-    effectivity: json['effectivity'] ?? 1,
-    burnerUsage: json['burner_usage'] ?? 'fuel',
-    fuelCategories: List.unmodifiable(
-      json['fuel_categories'] as List? ?? const ['chemical'],
-    ).cast(),
-    emissionsPerMinute: _parseEmissionsPerMinute(json),
-  );
+  factory BurnerEnergySource.fromJson(FactorioDatabase factorioDb, Map json) =>
+      BurnerEnergySource._(
+        factorioDb: factorioDb,
+        effectivity: json['effectivity'] ?? 1,
+        burnerUsage: json['burner_usage'] ?? 'fuel',
+        fuelCategories: List.unmodifiable(
+          json['fuel_categories'] as List? ?? const ['chemical'],
+        ).cast(),
+        emissionsPerMinute: _parseEmissionsPerMinute(json),
+      );
 }
 
-class FluidEnergySource extends CraftingMachineEnergySource {
-  final double effectivity;
-  final bool burnsFluid;
-  final double fluidUsagePerTick;
+// class FluidEnergySource extends CraftingMachineEnergySource {
+//   final double effectivity;
+//   final bool burnsFluid;
+//   final double fluidUsagePerTick;
+//   final String? filter;
+//   final double? minimumTemperature;
+//   final double? maximumTemperature;
 
-  FluidEnergySource._({
-    required this.effectivity,
-    required this.burnsFluid,
-    required this.fluidUsagePerTick,
-    required super.emissionsPerMinute,
-  }) : super._(type: EnergySourceType.fluid);
+//   late final List<FluidItem> fuelFluids = filter == null
+//       ? factorioDatabase._fluidFuels
+//       : List.unmodifiable([factorioDatabase.itemMap[filter]!]);
 
-  factory FluidEnergySource.fromJson(Map json) => FluidEnergySource._(
-    effectivity: json['effectivity']?.toDouble() ?? 1,
-    burnsFluid: json['burns_fluid'] ?? false,
-    fluidUsagePerTick: json['fluid_usage_per_tick']?.toDouble() ?? 0,
-    emissionsPerMinute: _parseEmissionsPerMinute(json),
-  );
-}
+//   FluidEnergySource._({
+//     required super.factorioDatabase,
+//     required this.effectivity,
+//     required this.burnsFluid,
+//     required this.fluidUsagePerTick,
+//     required this.filter,
+//     required this.minimumTemperature,
+//     required this.maximumTemperature,
+//     required super.emissionsPerMinute,
+//   }) : super._(type: EnergySourceType.fluid);
+
+//   factory FluidEnergySource.fromJson(FactorioDatabase factorioDb, Map json) =>
+//       FluidEnergySource._(
+//         factorioDatabase: factorioDb,
+//         effectivity: json['effectivity']?.toDouble() ?? 1,
+//         burnsFluid: json['burns_fluid'] ?? false,
+//         fluidUsagePerTick: json['fluid_usage_per_tick']?.toDouble() ?? 0,
+//         filter: json['fluid_box']['filter'],
+//         minimumTemperature: json['fluid_box']['minimum_temperature'],
+//         maximumTemperature: json['fluid_box']['maximum_temperature'],
+//         emissionsPerMinute: _parseEmissionsPerMinute(json),
+//       );
+// }
 
 class HeatEnergySource extends CraftingMachineEnergySource {
   final double defaultTemperature;
@@ -209,6 +261,7 @@ class HeatEnergySource extends CraftingMachineEnergySource {
   final double specificHeat;
 
   HeatEnergySource._({
+    required super.factorioDb,
     required this.defaultTemperature,
     required this.maxTemperature,
     required this.minWorkingTemperature,
@@ -216,11 +269,13 @@ class HeatEnergySource extends CraftingMachineEnergySource {
     required super.emissionsPerMinute,
   }) : super._(type: EnergySourceType.heat);
 
-  factory HeatEnergySource.fromJson(Map json) => HeatEnergySource._(
-    defaultTemperature: json['default_temperature']?.toDouble() ?? 15,
-    maxTemperature: json['max_temperature'].toDouble(),
-    minWorkingTemperature: json['min_working_temperature'].toDouble() ?? 15,
-    specificHeat: _convertStringToEnergy(json['specific_heat'])!,
-    emissionsPerMinute: _parseEmissionsPerMinute(json),
-  );
+  factory HeatEnergySource.fromJson(FactorioDatabase factorioDb, Map json) =>
+      HeatEnergySource._(
+        factorioDb: factorioDb,
+        defaultTemperature: json['default_temperature']?.toDouble() ?? 15,
+        maxTemperature: json['max_temperature'].toDouble(),
+        minWorkingTemperature: json['min_working_temperature'].toDouble() ?? 15,
+        specificHeat: _convertStringToEnergy(json['specific_heat'])!,
+        emissionsPerMinute: _parseEmissionsPerMinute(json),
+      );
 }

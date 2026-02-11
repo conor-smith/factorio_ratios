@@ -1,61 +1,102 @@
 part of '../production_line.dart';
 
 class SingleRecipeLine extends ProductionLine {
-  final QualityRecipe qRecipe;
-  ModuledMachine _moduledMachine;
-  double _machineAmount = 1;
-  bool _machineChange = false;
-
-  final Map<ItemData, double> _ingredientsPerSecond;
-  final Map<ItemData, double> _productsPerSecond;
+  final ImmutableModuledMachineAndRecipe production;
+  double _machineAmount;
 
   @override
-  late final Map<ItemData, double> ingredientsPerSecond = UnmodifiableMapView(
-    _ingredientsPerSecond,
-  );
+  final Set<ItemData> allInputs;
   @override
-  late final Map<ItemData, double> productsPerSecond = UnmodifiableMapView(
-    _productsPerSecond,
+  final Set<ItemData> allOutputs;
+  final Map<ItemData, double> machineTotalIoPerSecond;
+
+  final Map<ItemData, double> _totalIoPerSecond = {};
+  @override
+  late final Map<ItemData, double> totalIoPerSecond = UnmodifiableMapView(
+    _totalIoPerSecond,
   );
 
-  SingleRecipeLine(this.qRecipe, this._moduledMachine)
-    : _ingredientsPerSecond = Map.fromEntries(
-        qRecipe.recipe.ingredients.map(
-          (rItem) => MapEntry(ItemData(rItem.item), rItem.amount),
-        ),
-      ),
-      _productsPerSecond = Map.fromEntries(
-        qRecipe.recipe.results.map(
-          (rItem) => MapEntry(ItemData(rItem.item), rItem.amount),
-        ),
-      ) {
-    _verifyMachineCompatibility(_moduledMachine);
+  double get machineAmount => _machineAmount;
 
-    for(var product in _productsPerSecond.keys) {
-      if(_ingredientsPerSecond.containsKey(product)) {
-        throw FactorioException('Cyclical recipes not permitted');
+  factory SingleRecipeLine(
+    ImmutableModuledMachineAndRecipe production, [
+    Map<ItemData, double>? initialRequirements,
+  ]) {
+    Set<ItemData> inputs = {};
+    Set<ItemData> outputs = {};
+    Map<ItemData, double> machineTotalIoPerSecond = {};
+
+    double cyclesPerSecond =
+        production.recipe!.energyRequired / production.totalCraftingSpeed;
+
+    for (var ingredient in production.recipe!.ingredients) {
+      machineTotalIoPerSecond[ItemData(ingredient.item)] =
+          -ingredient.amount * cyclesPerSecond;
+    }
+
+    for (var product in production.recipe!.results) {
+      ItemData itemD = ItemData(product.item);
+      double netOutput =
+          product.amount * product.probability * cyclesPerSecond +
+          (machineTotalIoPerSecond[itemD] ?? 0);
+      netOutput = netOutput > 0
+          ? netOutput * production.totalProductivity
+          : netOutput;
+      machineTotalIoPerSecond[itemD] = netOutput;
+    }
+
+    if (production.fuel != null) {
+      ItemData fuel = production.fuel!;
+      double fuelPerSecond =
+          production.totalEnergyUsage / (fuel.item as SolidItem).fuelValue!;
+
+      machineTotalIoPerSecond.update(
+        fuel,
+        (amount) => amount - fuelPerSecond,
+        ifAbsent: () => -fuelPerSecond,
+      );
+
+      if (fuel.item is SolidItem &&
+          (fuel.item as SolidItem).burntResult != null) {
+        ItemData burntFuel = ItemData((fuel.item as SolidItem).burntResult!);
+        machineTotalIoPerSecond.update(
+          burntFuel,
+          (amount) => amount + fuelPerSecond,
+          ifAbsent: () => fuelPerSecond,
+        );
       }
+    }
+
+    machineTotalIoPerSecond.forEach((itemD, amount) {
+      if(amount < 0) {
+        inputs.add(itemD);
+      } else {
+        outputs.add(itemD);
+      }
+    });
+
+    return SingleRecipeLine._(
+      production: production,
+      allInputs: Set.unmodifiable(inputs),
+      allOutputs: Set.unmodifiable(outputs), 
+      machineTotalIoPerSecond: Map.unmodifiable(machineTotalIoPerSecond),
+      initialRequirements: initialRequirements);
+  }
+
+  SingleRecipeLine._({
+    required this.production,
+    required this.allInputs,
+    required this.allOutputs,
+    required this.machineTotalIoPerSecond,
+    required Map<ItemData, double>? initialRequirements,
+  }) : _machineAmount = 1 {
+    if(initialRequirements != null) {
+      update(initialRequirements);
     }
   }
 
   @override
   void update(Map<ItemData, double> requirements) {
-    // TODO
-  }
-
-  @override
-  Map<ItemData, double> get totalIoPerSecond {
-    Map<ItemData, double> io = Map.from(_productsPerSecond);
-    _ingredientsPerSecond.forEach((item, amount) => io[item] = -amount);
-
-    return Map.unmodifiable(io);
-  }
-
-  void _verifyMachineCompatibility(ModuledMachine newMachine) {
-    if (!newMachine.craftingMachine.recipes.contains(qRecipe.recipe)) {
-      throw FactorioException(
-        'Machine "${newMachine.craftingMachine}" cannot craft recipe "${qRecipe.recipe}"',
-      );
-    }
+    // TODO: implement update
   }
 }

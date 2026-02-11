@@ -25,7 +25,7 @@ void main() {
           'Item $name has burn result ${item.burntResult?.name ?? 'empty'}',
         );
         _logger.info(
-          'Item $name has spoil result ${item.spoiledResult?.name ?? 'empty'}',
+          'Item $name has spoil result ${item.spoilResult?.name ?? 'empty'}',
         );
       }
     });

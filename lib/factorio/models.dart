@@ -1,6 +1,8 @@
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:logging/logging.dart';
 
 part 'models/crafting_machines.dart';
@@ -54,12 +56,22 @@ class FactorioDatabase {
   late final Map<String, CraftingMachine> craftingMachineMap;
 
   // Each of these fields acts as an index when querying the db
-  Map<String, List<Recipe>> _craftingCategoriesAndRecipes = {};
-  Map<String, List<CraftingMachine>> _craftingCategoriesAndMachines = {};
+  late final Map<String, List<Recipe>> _craftingCategoryToRecipes;
+  late final Map<String, List<CraftingMachine>> _craftingCategoryToMachines;
+  late final Map<String, List<SolidItem>> _fuelCategoryToItems;
+  late final Map<Item, List<SolidItem>> _spoilResults;
+  late final Map<Item, List<SolidItem>> _burnResults;
+  late final Map<Item, List<Recipe>> _producedBy;
+  late final Map<Item, List<Recipe>> _consumedBy;
 
   static final Logger _logger = Logger('FactorioDb');
 
   FactorioDatabase.fromJson(String rawJson) {
+    _parseJson(rawJson);
+    _buildNonLazyRelationships();
+  }
+
+  void _parseJson(String rawJson) {
     _logger.info('Decoding raw data dump');
     Map factorioRawData = jsonDecode(rawJson);
 
@@ -88,6 +100,7 @@ class FactorioDatabase {
       'deconstruction-item',
       'upgrade-item',
       'selection-tool',
+      'fluid',
     ];
     List<String> machineSections = [
       'assembling-machine',
@@ -104,18 +117,6 @@ class FactorioDatabase {
       try {
         if (itemJson['parameter'] != true) {
           items[name] = SolidItem.fromJson(this, itemJson);
-        }
-      } on Exception catch (e) {
-        _logger.info('Encountered error when decoding item "$name"', e);
-        rethrow;
-      }
-    });
-
-    Map<String, Map> rawFluids = (factorioRawData['fluid'] as Map).cast();
-    rawFluids.forEach((name, fluidJson) {
-      try {
-        if (fluidJson['parameter'] != true) {
-          items[name] = FluidItem.fromJson(this, fluidJson);
         }
       } on Exception catch (e) {
         _logger.info('Encountered error when decoding item "$name"', e);
@@ -158,66 +159,105 @@ class FactorioDatabase {
     itemMap = Map.unmodifiable(items);
     recipeMap = Map.unmodifiable(recipes);
     craftingMachineMap = Map.unmodifiable(craftingMachines);
-
-    _buildNonLazyRelationships();
   }
 
   void _buildNonLazyRelationships() {
     _logger.info('Building non-lazy relationships');
 
+    Map<String, List<Recipe>> craftingCategoryToRecipes = {};
+    Map<String, List<CraftingMachine>> craftingCategoryToMachines = {};
+    Map<String, List<SolidItem>> fuelCategoryToItems = {};
+    Map<Item, List<SolidItem>> spoilResults = {};
+    Map<Item, List<SolidItem>> burntResults = {};
+    Map<Item, List<Recipe>> consumedBy = {};
+    Map<Item, List<Recipe>> producedBy = {};
+
     recipeMap.forEach((name, recipe) {
       _logger.info('Building relationships for recipe $name');
       for (var category in recipe.categories) {
-        _craftingCategoriesAndRecipes.update(
+        craftingCategoryToRecipes.update(
           category,
           (recipeList) => recipeList..add(recipe),
-          ifAbsent: () => [],
+          ifAbsent: () => [recipe],
         );
       }
 
       for (var ingredient in recipe.ingredients) {
         Item item = itemMap[ingredient._name]!;
 
-        ingredient.item = itemMap[ingredient._name]!;
-        item._consumedBy.add(recipe);
+        ingredient.item = item;
+        consumedBy.update(
+          item,
+          (recipes) => recipes..add(recipe),
+          ifAbsent: () => [recipe],
+        );
       }
 
       for (var result in recipe.results) {
         Item item = itemMap[result._name]!;
 
         result.item = item;
-        item._producedBy.add(recipe);
+        producedBy.update(
+          item,
+          (recipes) => recipes..add(recipe),
+          ifAbsent: () => [recipe],
+        );
       }
     });
 
     craftingMachineMap.forEach((name, craftingMachine) {
       for (var category in craftingMachine.craftingCategories) {
-        _craftingCategoriesAndMachines.update(
+        craftingCategoryToMachines.update(
           category,
           (machineList) => machineList..add(craftingMachine),
-          ifAbsent: () => [],
+          ifAbsent: () => [craftingMachine],
         );
       }
     });
 
-    _craftingCategoriesAndRecipes.updateAll(
-      (category, recipeList) => List.unmodifiable(recipeList),
-    );
-    _craftingCategoriesAndRecipes = Map.unmodifiable(
-      _craftingCategoriesAndRecipes,
-    );
-
-    _craftingCategoriesAndMachines.updateAll(
-      (category, machineList) => List.unmodifiable(machineList),
-    );
-    _craftingCategoriesAndMachines = Map.unmodifiable(
-      _craftingCategoriesAndMachines,
-    );
-
     itemMap.forEach((name, item) {
-      item._consumedBy = List.unmodifiable(item._consumedBy);
-      item._producedBy = List.unmodifiable(item._producedBy);
+      if (item is SolidItem) {
+        SolidItem solidItem = item;
+
+        if (solidItem._burnResultString != null) {
+          Item burntResult = itemMap[solidItem._burnResultString]!;
+          solidItem.burntResult = burntResult;
+          burntResults.update(
+            burntResult,
+            (items) => items..add(solidItem),
+            ifAbsent: () => [solidItem],
+          );
+        }
+
+        if (solidItem._spoilResultString != null) {
+          Item spoilResult = itemMap[solidItem._spoilResultString]!;
+          solidItem.spoilResult = spoilResult;
+          spoilResults.update(
+            spoilResult,
+            (items) => items..add(solidItem),
+            ifAbsent: () => [solidItem],
+          );
+        }
+
+        if (solidItem.fuelCategory != null) {
+          String category = solidItem.fuelCategory!;
+
+          fuelCategoryToItems.update(
+            category,
+            (items) => items..add(solidItem),
+            ifAbsent: () => [solidItem],
+          );
+        }
+      }
     });
+
+    _craftingCategoryToRecipes = craftingCategoryToRecipes;
+    _craftingCategoryToMachines = craftingCategoryToMachines;
+    _fuelCategoryToItems = fuelCategoryToItems;
+    _spoilResults = spoilResults;
+    _burnResults = burntResults;
+    _consumedBy = consumedBy;
+    _producedBy = producedBy;
   }
 }
 

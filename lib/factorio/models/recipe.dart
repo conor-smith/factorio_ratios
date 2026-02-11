@@ -21,7 +21,7 @@ class Recipe {
   final List<SurfaceCondition> surfaceConditions;
 
   late final List<CraftingMachine> craftingMachines = List.unmodifiable(
-    categories.map((category) => factorioDb._craftingCategoriesAndMachines[category] ?? const [])
+    categories.map((category) => factorioDb._craftingCategoryToMachines[category] ?? const [])
     .reduce((cat1List, cat2List) => [...cat1List, ...cat2List])
     .toSet());
 

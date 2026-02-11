@@ -10,7 +10,9 @@ part 'production_lines/single_recipe.dart';
 abstract class ProductionLine {
   void update(Map<ItemData, double> requirements);
 
-  Map<ItemData, double> get ingredientsPerSecond;
-  Map<ItemData, double> get productsPerSecond;
+  // Used for determining connections in graphs
+  Set<ItemData> get allOutputs;
+  Set<ItemData> get allInputs;
+
   Map<ItemData, double> get totalIoPerSecond;
 }
