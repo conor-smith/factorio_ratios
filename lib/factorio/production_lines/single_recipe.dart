@@ -68,7 +68,7 @@ class SingleRecipeLine extends ProductionLine {
     }
 
     machineTotalIoPerSecond.forEach((itemD, amount) {
-      if(amount < 0) {
+      if (amount < 0) {
         inputs.add(itemD);
       } else {
         outputs.add(itemD);
@@ -78,9 +78,10 @@ class SingleRecipeLine extends ProductionLine {
     return SingleRecipeLine._(
       production: production,
       allInputs: Set.unmodifiable(inputs),
-      allOutputs: Set.unmodifiable(outputs), 
+      allOutputs: Set.unmodifiable(outputs),
       machineTotalIoPerSecond: Map.unmodifiable(machineTotalIoPerSecond),
-      initialRequirements: initialRequirements);
+      initialRequirements: initialRequirements,
+    );
   }
 
   SingleRecipeLine._({
@@ -90,13 +91,32 @@ class SingleRecipeLine extends ProductionLine {
     required this.machineTotalIoPerSecond,
     required Map<ItemData, double>? initialRequirements,
   }) : _machineAmount = 1 {
-    if(initialRequirements != null) {
+    if (initialRequirements != null) {
       update(initialRequirements);
     }
   }
 
   @override
   void update(Map<ItemData, double> requirements) {
-    // TODO: implement update
+    double machinesRequired = 0;
+    requirements.forEach((itemD, requiredAmount) {
+      if (requiredAmount > 0 && !allOutputs.contains(itemD)) {
+        throw FactorioException('Cannot produce item "$itemD"');
+      } else if (requiredAmount < 0 && !allInputs.contains(itemD)) {
+        throw FactorioException('Cannot consume item "$itemD"');
+      }
+
+      double itemMachinesRequired =
+          requiredAmount / machineTotalIoPerSecond[itemD]!;
+      machinesRequired = machinesRequired > itemMachinesRequired
+          ? machinesRequired
+          : itemMachinesRequired;
+    });
+
+    _machineAmount = machinesRequired;
+
+    machineTotalIoPerSecond.forEach((itemD, amount) {
+      _totalIoPerSecond[itemD] = amount * _machineAmount;
+    });
   }
 }
