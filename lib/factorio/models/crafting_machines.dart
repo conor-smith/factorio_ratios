@@ -62,7 +62,7 @@ class CraftingMachine {
       moduleSlots: json['module_slots'] ?? 0,
       energySource: CraftingMachineEnergySource.fromJson(
         factorioDb,
-        json,
+        json['energy_source'],
         energyUsage,
       ),
       effectReceiver: EffectReceiver.fromJson(
@@ -209,7 +209,7 @@ class BurnerEnergySource extends CraftingMachineEnergySource {
   factory BurnerEnergySource.fromJson(FactorioDatabase factorioDb, Map json) =>
       BurnerEnergySource._(
         factorioDb: factorioDb,
-        effectivity: json['effectivity'] ?? 1,
+        effectivity: json['effectivity'].toDouble() ?? 1,
         burnerUsage: json['burner_usage'] ?? 'fuel',
         fuelCategories: List.unmodifiable(
           json['fuel_categories'] as List? ?? const ['chemical'],

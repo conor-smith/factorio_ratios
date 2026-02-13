@@ -116,9 +116,9 @@ class FactorioDatabase {
     rawItems.forEach((name, itemJson) {
       try {
         if (itemJson['parameter'] != true) {
-          items[name] = SolidItem.fromJson(this, itemJson);
+          items[name] = Item.fromJson(this, itemJson);
         }
-      } on Exception catch (e) {
+      } catch (e) {
         _logger.info('Encountered error when decoding item "$name"', e);
         rethrow;
       }
@@ -131,7 +131,7 @@ class FactorioDatabase {
         if (recipeJson['parameter'] != true) {
           recipes[name] = Recipe.fromJson(this, recipeJson);
         }
-      } on Exception catch (e) {
+      } catch (e) {
         _logger.info('Encountered error when decoding recipe "$name"', e);
         rethrow;
       }
@@ -147,7 +147,7 @@ class FactorioDatabase {
     rawCraftingMachines.forEach((name, machineJson) {
       try {
         craftingMachines[name] = CraftingMachine.fromJson(this, machineJson);
-      } on Exception catch (e) {
+      } catch (e) {
         _logger.info(
           'Encountered error when decoding crafting machine "$name"',
           e,
@@ -227,6 +227,8 @@ class FactorioDatabase {
             (items) => items..add(solidItem),
             ifAbsent: () => [solidItem],
           );
+        } else {
+          solidItem.burntResult = null;
         }
 
         if (solidItem._spoilResultString != null) {
@@ -237,6 +239,8 @@ class FactorioDatabase {
             (items) => items..add(solidItem),
             ifAbsent: () => [solidItem],
           );
+        } else {
+          solidItem.spoilResult = null;
         }
 
         if (solidItem.fuelCategory != null) {
@@ -251,13 +255,13 @@ class FactorioDatabase {
       }
     });
 
-    _craftingCategoryToRecipes = craftingCategoryToRecipes;
-    _craftingCategoryToMachines = craftingCategoryToMachines;
-    _fuelCategoryToItems = fuelCategoryToItems;
-    _spoilResults = spoilResults;
-    _burnResults = burntResults;
-    _consumedBy = consumedBy;
-    _producedBy = producedBy;
+    _craftingCategoryToRecipes = Map.unmodifiable(craftingCategoryToRecipes);
+    _craftingCategoryToMachines = Map.unmodifiable(craftingCategoryToMachines);
+    _fuelCategoryToItems = Map.unmodifiable(fuelCategoryToItems);
+    _spoilResults = Map.unmodifiable(spoilResults);
+    _burnResults = Map.unmodifiable(burntResults);
+    _consumedBy = Map.unmodifiable(consumedBy);
+    _producedBy = Map.unmodifiable(producedBy);
   }
 }
 
