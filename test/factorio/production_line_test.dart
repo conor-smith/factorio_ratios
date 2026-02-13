@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:factorio_ratios/factorio/graph.dart';
 import 'package:factorio_ratios/factorio/models.dart';
 import 'package:factorio_ratios/factorio/production_line.dart';
 import 'package:flutter_test/flutter_test.dart';

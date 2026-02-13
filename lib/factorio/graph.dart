@@ -1,4 +1,8 @@
-part of '../production_line.dart';
+
+import 'dart:collection';
+
+import 'package:factorio_ratios/factorio/factorio.dart';
+import 'package:factorio_ratios/factorio/production_line.dart';
 
 enum NodeType { resource, disposal, input, output, productionLine }
 
@@ -17,13 +21,16 @@ class PlanetaryBase extends ProductionLine {
   final Set<ProdLineNode> _nodes = {};
   final Set<DirectedEdge> _edges = {};
   final Map<ItemData, double> _totalIoPerSecond = {};
+  final Set<ItemData> _allInputs = {};
+  final Set<ItemData> _allOutputs = {};
 
   // Results in some duplication, but makes lookups much quicker
   final Map<ProdLineNode, Set<DirectedEdge>> _parents = {};
   final Map<ProdLineNode, Set<DirectedEdge>> _children = {};
 
   // Lookup for output and disposal nodes
-  final Map<ItemData, ProdLineNode> _consumerNodes = {};
+  final Map<ItemData, ProdLineNode> _outputNodes = {};
+  final Map<ItemData, ProdLineNode> _disposalNodes = {};
   // Lookup for input, resource, and productionLine nodes
   final Map<ItemData, ProdLineNode> _producerNodes = {};
 
@@ -36,25 +43,16 @@ class PlanetaryBase extends ProductionLine {
   late final Map<ItemData, double> totalIoPerSecond = UnmodifiableMapView(
     _totalIoPerSecond,
   );
+  @override
+  late final Set<ItemData> allInputs = UnmodifiableSetView(_allInputs);
+  @override
+  late final Set<ItemData> allOutputs = UnmodifiableSetView(_allOutputs);
 
   GraphUpdates get updates {
     GraphUpdates toReturn = _graphUpdates;
     _graphUpdates = GraphUpdates._();
     return toReturn;
   }
-
-  @override
-  Set<ItemData> get allInputs => Set.unmodifiable(
-    _producerNodes.entries
-        .where((entry) => entry.value._type == NodeType.input)
-        .map((entry) => entry.key),
-  );
-  @override
-  Set<ItemData> get allOutputs => Set.unmodifiable(
-    _consumerNodes.entries
-        .where((entry) => entry.value._type == NodeType.output)
-        .map((entry) => entry.key),
-  );
 
   @override
   void update(Map<ItemData, double> requirements) {
@@ -67,22 +65,20 @@ class PlanetaryBase extends ProductionLine {
     }
 
     requirements.forEach((itemD, amount) {
-      _consumerNodes[itemD]!._requirements[itemD] = -amount;
+      _outputNodes[itemD]!._requirements[itemD] = -amount;
     });
 
     _updateNodeAndChildrenOutputs(
-      _consumerNodes.values
+      _outputNodes.values
           .where((node) => node._type == NodeType.output)
           .toList(),
     );
   }
 
   void addOutputNode(ItemData itemD) {
-    if (_consumerNodes.containsKey(itemD)) {
-      if (_consumerNodes[itemD]!._type == NodeType.disposal) {
-        _convertDisposalToOutput(_consumerNodes[itemD]!);
-      }
-    } else {
+    if (_disposalNodes.containsKey(itemD)) {
+      _convertDisposalToOutput(_disposalNodes[itemD]!);
+    } else if (!_outputNodes.containsKey(itemD)) {
       ProdLineNode newOutputNode = ProdLineNode._addToGraph(
         parentGraph: this,
         type: NodeType.output,
@@ -158,7 +154,7 @@ class PlanetaryBase extends ProductionLine {
     Map<ProdLineNode, int> orderOfUpdate = {};
 
     for (var node in nodes) {
-      _traverseGraph(node, 0, orderOfUpdate);
+      _determineOrder(node, 0, orderOfUpdate);
     }
 
     var entries = orderOfUpdate.entries.toList();
@@ -199,7 +195,7 @@ class PlanetaryBase extends ProductionLine {
     }
   }
 
-  void _traverseGraph(
+  void _determineOrder(
     ProdLineNode currentNode,
     int currentOrder,
     Map<ProdLineNode, int> orderOfUpdate,
@@ -209,7 +205,7 @@ class PlanetaryBase extends ProductionLine {
       orderOfUpdate[currentNode] = currentOrder;
 
       for (var childEdge in currentNode.children) {
-        _traverseGraph(childEdge.child, currentOrder + 1, orderOfUpdate);
+        _determineOrder(childEdge.child, currentOrder + 1, orderOfUpdate);
       }
     }
   }
@@ -287,7 +283,7 @@ class ProdLineNode {
       case NodeType.disposal:
       case NodeType.output:
         for (var itemD in _requirements.keys) {
-          parentGraph._consumerNodes.remove(itemD);
+          parentGraph._outputNodes.remove(itemD);
         }
       case NodeType.input:
       case NodeType.resource:
