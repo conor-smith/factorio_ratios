@@ -173,85 +173,108 @@ class FactorioDatabase {
     Map<Item, List<Recipe>> producedBy = {};
 
     recipeMap.forEach((name, recipe) {
-      _logger.info('Building relationships for recipe $name');
-      for (var category in recipe.categories) {
-        craftingCategoryToRecipes.update(
-          category,
-          (recipeList) => recipeList..add(recipe),
-          ifAbsent: () => [recipe],
+      try {
+        for (var category in recipe.categories) {
+          craftingCategoryToRecipes.update(
+            category,
+            (recipeList) => recipeList..add(recipe),
+            ifAbsent: () => [recipe],
+          );
+        }
+
+        for (var ingredient in recipe.ingredients) {
+          Item item = itemMap[ingredient._name]!;
+
+          ingredient.item = item;
+          consumedBy.update(
+            item,
+            (recipes) => recipes..add(recipe),
+            ifAbsent: () => [recipe],
+          );
+        }
+
+        for (var result in recipe.results) {
+          Item item = itemMap[result._name]!;
+
+          result.item = item;
+          producedBy.update(
+            item,
+            (recipes) => recipes..add(recipe),
+            ifAbsent: () => [recipe],
+          );
+        }
+      } catch (e) {
+        _logger.info(
+          'Encountered error when building relationships for recipe $name',
+          e,
         );
-      }
-
-      for (var ingredient in recipe.ingredients) {
-        Item item = itemMap[ingredient._name]!;
-
-        ingredient.item = item;
-        consumedBy.update(
-          item,
-          (recipes) => recipes..add(recipe),
-          ifAbsent: () => [recipe],
-        );
-      }
-
-      for (var result in recipe.results) {
-        Item item = itemMap[result._name]!;
-
-        result.item = item;
-        producedBy.update(
-          item,
-          (recipes) => recipes..add(recipe),
-          ifAbsent: () => [recipe],
-        );
+        rethrow;
       }
     });
 
     craftingMachineMap.forEach((name, craftingMachine) {
-      for (var category in craftingMachine.craftingCategories) {
-        craftingCategoryToMachines.update(
-          category,
-          (machineList) => machineList..add(craftingMachine),
-          ifAbsent: () => [craftingMachine],
+      try {
+        for (var category in craftingMachine.craftingCategories) {
+          craftingCategoryToMachines.update(
+            category,
+            (machineList) => machineList..add(craftingMachine),
+            ifAbsent: () => [craftingMachine],
+          );
+        }
+      } catch (e) {
+        _logger.info(
+          'Encountered error when building relationships for crafting machine $name',
+          e,
         );
+        rethrow;
       }
     });
 
     itemMap.forEach((name, item) {
-      if (item is SolidItem) {
-        SolidItem solidItem = item;
+      try {
+        if (item is SolidItem) {
+          SolidItem solidItem = item;
 
-        if (solidItem._burnResultString != null) {
-          Item burntResult = itemMap[solidItem._burnResultString]!;
-          solidItem.burntResult = burntResult;
-          burntResults.update(
-            burntResult,
-            (items) => items..add(solidItem),
-            ifAbsent: () => [solidItem],
-          );
-        } else {
-          solidItem.burntResult = null;
+          if (solidItem._burnResultString != null) {
+            Item burntResult = itemMap[solidItem._burnResultString]!;
+            solidItem.burntResult = burntResult;
+            burntResults.update(
+              burntResult,
+              (items) => items..add(solidItem),
+              ifAbsent: () => [solidItem],
+            );
+          } else {
+            solidItem.burntResult = null;
+          }
+
+          if (solidItem._spoilResultString != null) {
+            Item spoilResult = itemMap[solidItem._spoilResultString]!;
+            solidItem.spoilResult = spoilResult;
+            spoilResults.update(
+              spoilResult,
+              (items) => items..add(solidItem),
+              ifAbsent: () => [solidItem],
+            );
+          } else {
+            solidItem.spoilResult = null;
+          }
+
+          if (solidItem.fuelCategory != null) {
+            String category = solidItem.fuelCategory!;
+
+            fuelCategoryToItems.update(
+              category,
+              (items) => items..add(solidItem),
+              ifAbsent: () => [solidItem],
+            );
+          }
         }
-
-        if (solidItem._spoilResultString != null) {
-          Item spoilResult = itemMap[solidItem._spoilResultString]!;
-          solidItem.spoilResult = spoilResult;
-          spoilResults.update(
-            spoilResult,
-            (items) => items..add(solidItem),
-            ifAbsent: () => [solidItem],
-          );
-        } else {
-          solidItem.spoilResult = null;
-        }
-
-        if (solidItem.fuelCategory != null) {
-          String category = solidItem.fuelCategory!;
-
-          fuelCategoryToItems.update(
-            category,
-            (items) => items..add(solidItem),
-            ifAbsent: () => [solidItem],
-          );
-        }
+      } catch (e) {
+        _logger.info(
+          'Encountered error when building relationships for item $name',
+          e,
+        );
+        rethrow;
       }
     });
 

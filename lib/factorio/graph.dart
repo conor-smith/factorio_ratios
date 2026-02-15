@@ -1,10 +1,10 @@
-
 import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/production_line.dart';
+import 'package:logging/logging.dart';
 
-enum NodeType { resource, disposal, input, output, productionLine }
+enum NodeType { freeInput, disposal, input, output, productionLine }
 
 enum ItemFlowDirection { parentToChild, childToParent }
 
@@ -13,11 +13,12 @@ enum EdgeType { requestItems, acceptExcess }
 class PlanetaryBase extends ProductionLine {
   /*
    * TODO
-   * Handle scenarios with both a disposal and output node for an item
    * Handle excess items and disposal nodes
    * Handle multiple nodes with the same output
    * Handle output nodes requiring rocket launches
    */
+  static final Logger _logger = Logger('Planetary base');
+
   final Set<ProdLineNode> _nodes = {};
   final Set<DirectedEdge> _edges = {};
   final Map<ItemData, double> _totalIoPerSecond = {};
@@ -48,6 +49,10 @@ class PlanetaryBase extends ProductionLine {
   @override
   late final Set<ItemData> allOutputs = UnmodifiableSetView(_allOutputs);
 
+  PlanetaryBase() {
+    _logger.info('Creating planetary base');
+  }
+
   GraphUpdates get updates {
     GraphUpdates toReturn = _graphUpdates;
     _graphUpdates = GraphUpdates._();
@@ -76,12 +81,16 @@ class PlanetaryBase extends ProductionLine {
   }
 
   void addOutputNode(ItemData itemD) {
+    _logger.info('Adding output node for item $itemD');
+
     if (_disposalNodes.containsKey(itemD)) {
       _convertDisposalToOutput(_disposalNodes[itemD]!);
     } else if (!_outputNodes.containsKey(itemD)) {
+      Map<ItemData, double> initialRequirements = {itemD: -1};
       ProdLineNode newOutputNode = ProdLineNode._addToGraph(
         parentGraph: this,
         type: NodeType.output,
+        line: MagicLine(initialIo: initialRequirements),
         initialRequirements: {itemD: -1},
       );
       _updateEdgesForNode(newOutputNode, false);
@@ -96,7 +105,7 @@ class PlanetaryBase extends ProductionLine {
   void _updateEdgesForNode(ProdLineNode updatedNode, bool nodeIsNew) {
     // TODO - Handle nodes that lose children, not just gain
     // TODO - Handle excess output and disposal nodes
-    for (var itemD in updatedNode.inputs) {
+    for (var itemD in updatedNode.allInputs) {
       if (updatedNode.children
           .where(
             (edge) =>
@@ -110,9 +119,11 @@ class PlanetaryBase extends ProductionLine {
           childNodeForItem = _producerNodes[itemD]!;
           childNodeIsNew = true;
         } else {
+          Map<ItemData, double> initialRequirements = {itemD: 1};
           childNodeForItem = ProdLineNode._addToGraph(
             parentGraph: this,
-            type: NodeType.resource,
+            type: NodeType.freeInput,
+            line: MagicLine(initialIo: initialRequirements),
             initialRequirements: {itemD: 1},
           );
           childNodeIsNew = false;
@@ -183,7 +194,7 @@ class PlanetaryBase extends ProductionLine {
 
           node._requirements.clear();
           node._requirements.addAll(newRequirements);
-          node._updateLine();
+          node.update(node._requirements);
         }
       }
 
@@ -214,7 +225,7 @@ class PlanetaryBase extends ProductionLine {
 class ProdLineNode {
   final PlanetaryBase parentGraph;
   NodeType _type;
-  ProductionLine? _line;
+  ProductionLine _line;
   final Map<ItemData, double> _requirements;
 
   late final Map<ItemData, double> requirements = UnmodifiableMapView(
@@ -232,7 +243,7 @@ class ProdLineNode {
     required this.parentGraph,
     required NodeType type,
     required Map<ItemData, double>? initialRequirements,
-    ProductionLine? line,
+    required ProductionLine line,
   }) : _type = type,
        _line = line,
        _requirements = initialRequirements ?? {} {
@@ -241,33 +252,86 @@ class ProdLineNode {
     parentGraph._children[this] = {};
 
     parentGraph._graphUpdates.newNodes.add(this);
+
+    _addToRelevantMap();
   }
 
   NodeType get type => _type;
   ProductionLine? get productionLine => _line;
 
-  Set<ItemData> get outputs =>
-      _line?.allOutputs ??
-      Set.unmodifiable(
-        _requirements.entries
-            .where((entry) => entry.value > 0)
-            .map((entry) => entry.key),
-      );
-  Set<ItemData> get inputs =>
-      _line?.allInputs ??
-      Set.unmodifiable(
-        _requirements.entries
-            .where((entry) => entry.value < 0)
-            .map((entry) => entry.key),
-      );
-  Map<ItemData, double> get totalIoPerSecond =>
-      _line?.totalIoPerSecond ?? requirements;
+  Set<ItemData> get allOutputs => _line.allOutputs;
+  Set<ItemData> get allInputs => _line.allInputs;
+  Map<ItemData, double> get totalIoPerSecond => _line.totalIoPerSecond;
+  void update(Map<ItemData, double> requirements) => _line.update(requirements);
 
-  void makeSingleRecipe(ImmutableModuledMachineAndRecipe mmr) {
-    // TODO
+  void updateInternals({ProductionLine? newLine, NodeType? newType}) {
+    if (newLine == null && newType == null) {
+      throw FactorioException('No update took place');
+    }
+
+    _updateInternals(newLine ?? _line, newType ?? _type, true);
   }
 
-  void _updateLine() => _line?.update(_requirements);
+  void _updateInternals(
+    ProductionLine newLine,
+    NodeType newType,
+    bool isConstructor,
+  ) {
+    // TODO - This will require work in future
+    switch (_type) {
+      case NodeType.output:
+      case NodeType.disposal:
+        if (newLine is! MagicLine || newLine.allOutputs.isNotEmpty) {
+          throw FactorioException(
+            'Output node line must be MagicLine with no outputs',
+          );
+        } else if (parents.any(
+          (edge) => edge.flowDirection == ItemFlowDirection.childToParent,
+        )) {
+          throw FactorioException(
+            "Cannot convert this node to output / disposal",
+          );
+        }
+      case NodeType.freeInput:
+      case NodeType.input:
+        if (newLine is! MagicLine || newLine.allInputs.isNotEmpty) {
+          throw FactorioException(
+            'Input node line must be MagicLine with no outputs',
+          );
+        } else if (children.any(
+          (edge) => edge.flowDirection == ItemFlowDirection.childToParent,
+        )) {
+          throw FactorioException(
+            "Cannot convert this node to output / disposal",
+          );
+        }
+      case NodeType.productionLine:
+        if (!newLine.allOutputs.containsAll(_requirements.keys)) {
+          throw FactorioException(
+            'New production line does not output all required items',
+          );
+        }
+    }
+  }
+
+  void _addToRelevantMap() {
+    switch (_type) {
+      case NodeType.output:
+        for (var input in allInputs) {
+          parentGraph._outputNodes[input] = this;
+        }
+      case NodeType.disposal:
+        for (var input in allInputs) {
+          parentGraph._disposalNodes[input] = this;
+        }
+      case NodeType.input:
+      case NodeType.freeInput:
+      case NodeType.productionLine:
+        for (var output in allOutputs) {
+          parentGraph._producerNodes[output] = this;
+        }
+    }
+  }
 
   void _removeFromGraph() {
     // TODO Remove orphans
@@ -286,7 +350,7 @@ class ProdLineNode {
           parentGraph._outputNodes.remove(itemD);
         }
       case NodeType.input:
-      case NodeType.resource:
+      case NodeType.freeInput:
       case NodeType.productionLine:
         for (var itemD in _requirements.keys) {
           parentGraph._producerNodes.remove(itemD);

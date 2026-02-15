@@ -33,14 +33,14 @@ void main() {
     db.recipeMap.forEach((name, recipe) {
       _logger.info('Testing lazy relationships on recipe $name');
       _logger.info(
-        'Recipe $name is craftable on the following machines - ${recipe.craftingMachines.map((machine) => machine.name)}',
+        'Recipe $name is craftable on the following machines - ${recipe.craftingMachines.map((machine) => machine.name).reduce((name1, name2) => '$name1, $name2')}',
       );
     });
 
     db.craftingMachineMap.forEach((name, machine) {
       _logger.info('Testing lazy relationships on machine $name');
       _logger.info(
-        'Machine can craft the following recipes - ${machine.recipes.map((recipe) => recipe.name)}',
+        'Machine can craft the following recipes - ${machine.recipes.map((recipe) => recipe.name).reduce((name1, name2) => '$name1, $name2')}',
       );
     });
 
