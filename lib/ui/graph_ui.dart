@@ -33,19 +33,14 @@ class _GraphUiState extends State<GraphUi> {
           );
         });
       },
-      child: Stack(
-        children: nodeWidgets.values.toList(),
-      ),
+      child: Stack(children: nodeWidgets.values.toList()),
     );
   }
 
-  void addGraphUpdates(GraphUpdates updates, {double x = 0, double y = 0}) {
+  void addGraphUpdates(GraphUpdateEvent updates, {double x = 0, double y = 0}) {
     for (var newNode in updates.newNodes) {
-      var newNodeWidget = NodeWidget(
-        node: newNode, 
-        initialX: x,
-        initialY: y);
-      
+      var newNodeWidget = NodeWidget(node: newNode, initialX: x, initialY: y);
+
       nodeWidgets[newNode] = newNodeWidget;
       y += 120;
     }
@@ -80,9 +75,8 @@ class _NodeWidgetState extends State<NodeWidget> {
       child: SizedBox(
         width: 100,
         height: 100,
-        child: Center(
-          child: const Text('Test'),
-        ),
-      ));
+        child: Center(child: const Text('Test')),
+      ),
+    );
   }
 }

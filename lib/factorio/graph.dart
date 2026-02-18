@@ -4,11 +4,19 @@ import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/production_line.dart';
 import 'package:logging/logging.dart';
 
-enum NodeType { freeInput, disposal, input, output, productionLine }
+part 'graph/node_and_edge.dart';
+
+enum NodeType { resource, input, output, productionLine }
 
 enum ItemFlowDirection { parentToChild, childToParent }
 
 enum EdgeType { requestItems, acceptExcess }
+
+const Set<NodeType> producerTypes = const {
+  NodeType.input,
+  NodeType.resource,
+  NodeType.productionLine,
+};
 
 class PlanetaryBase extends ProductionLine {
   /*
@@ -21,128 +29,137 @@ class PlanetaryBase extends ProductionLine {
 
   final Set<ProdLineNode> _nodes = {};
   final Set<DirectedEdge> _edges = {};
-  final Map<ItemData, double> _totalIoPerSecond = {};
   final Set<ItemData> _allInputs = {};
   final Set<ItemData> _allOutputs = {};
+  Map<ItemData, double> _totalIoPerSecond = const {};
 
-  // Results in some duplication, but makes lookups much quicker
   final Map<ProdLineNode, Set<DirectedEdge>> _parents = {};
   final Map<ProdLineNode, Set<DirectedEdge>> _children = {};
-
-  // Lookup for output and disposal nodes
-  final Map<ItemData, ProdLineNode> _outputNodes = {};
-  final Map<ItemData, ProdLineNode> _disposalNodes = {};
-  // Lookup for input, resource, and productionLine nodes
-  final Map<ItemData, ProdLineNode> _producerNodes = {};
-
-  GraphUpdates _graphUpdates = GraphUpdates._();
 
   late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
   late final List<DirectedEdge> edges = UnmodifiableListView(_edges);
 
   @override
-  late final Map<ItemData, double> totalIoPerSecond = UnmodifiableMapView(
-    _totalIoPerSecond,
-  );
+  Map<ItemData, double> get totalIoPerSecond => _totalIoPerSecond;
   @override
   late final Set<ItemData> allInputs = UnmodifiableSetView(_allInputs);
   @override
   late final Set<ItemData> allOutputs = UnmodifiableSetView(_allOutputs);
 
-  PlanetaryBase() {
-    _logger.info('Creating planetary base');
-  }
-
-  GraphUpdates get updates {
-    GraphUpdates toReturn = _graphUpdates;
-    _graphUpdates = GraphUpdates._();
-    return toReturn;
-  }
-
   @override
   void update(Map<ItemData, double> requirements) {
-    Set<ItemData> outputs = allOutputs;
-
-    for (var itemD in requirements.keys) {
-      if (!outputs.contains(itemD)) {
-        throw FactorioException('Item "$itemD" is not produced by this base');
-      }
-    }
+    // TODO - Account for required inputs
+    var outputNodes = nodes
+        .where((node) => node.type == NodeType.output)
+        .toSet();
+    var inputNodes = nodes.where((node) => node.type == NodeType.input).toSet();
 
     requirements.forEach((itemD, amount) {
-      _outputNodes[itemD]!._requirements[itemD] = -amount;
+      if (amount <= 0) {
+        throw const FactorioException('Cannot handle minimum input');
+      } else if (!allOutputs.contains(itemD)) {
+        throw FactorioException('Item "$itemD" is not an output of this base');
+      }
     });
 
-    _updateNodeAndChildrenOutputs(
-      _outputNodes.values
-          .where((node) => node._type == NodeType.output)
-          .toList(),
-    );
-  }
+    requirements.forEach((itemD, amount) {
+      if (amount > 0) {
+        outputNodes
+                .firstWhere((node) => node._requirements.containsKey(itemD))
+                ._requirements[itemD] =
+            -amount;
+      }
+    });
 
-  void addOutputNode(ItemData itemD) {
-    _logger.info('Adding output node for item $itemD');
+    _updateNodeAndChildrenOutputs(outputNodes);
 
-    if (_disposalNodes.containsKey(itemD)) {
-      _convertDisposalToOutput(_disposalNodes[itemD]!);
-    } else if (!_outputNodes.containsKey(itemD)) {
-      Map<ItemData, double> initialRequirements = {itemD: -1};
-      ProdLineNode newOutputNode = ProdLineNode._addToGraph(
-        parentGraph: this,
-        type: NodeType.output,
-        line: MagicLine(initialIo: initialRequirements),
-        initialRequirements: {itemD: -1},
-      );
-      _updateEdgesForNode(newOutputNode, false);
+    Map<ItemData, double> totalIo = {};
+
+    for (var node in [...outputNodes, ...inputNodes]) {
+      node.requirements.forEach((itemD, amount) {
+        totalIo.update(
+          itemD,
+          (oldAmount) => oldAmount - amount,
+          ifAbsent: () => -amount,
+        );
+      });
     }
+
+    _totalIoPerSecond = Map.unmodifiable(totalIo);
   }
 
-  void _convertDisposalToOutput(ProdLineNode node) {
-    // TODO
-    throw UnimplementedError();
-  }
-
-  void _updateEdgesForNode(ProdLineNode updatedNode, bool nodeIsNew) {
-    // TODO - Handle nodes that lose children, not just gain
-    // TODO - Handle excess output and disposal nodes
-    for (var itemD in updatedNode.allInputs) {
-      if (updatedNode.children
-          .where(
-            (edge) =>
-                edge._flowDirection == ItemFlowDirection.childToParent &&
-                edge.item == itemD,
-          )
-          .isEmpty) {
-        ProdLineNode childNodeForItem;
-        bool childNodeIsNew;
-        if (_producerNodes.containsKey(itemD)) {
-          childNodeForItem = _producerNodes[itemD]!;
-          childNodeIsNew = true;
-        } else {
-          Map<ItemData, double> initialRequirements = {itemD: 1};
-          childNodeForItem = ProdLineNode._addToGraph(
-            parentGraph: this,
-            type: NodeType.freeInput,
-            line: MagicLine(initialIo: initialRequirements),
-            initialRequirements: {itemD: 1},
-          );
-          childNodeIsNew = false;
-        }
-
-        DirectedEdge._addToGraph(
+  GraphUpdates addOutputNode(Set<ItemData> itemsToOutput) {
+    var updates = GraphUpdates();
+    for (var itemD in itemsToOutput) {
+      if (!allOutputs.contains(itemD)) {
+        var newNode = ProdLineNode._addToGraph(
           parentGraph: this,
-          item: itemD,
-          parent: updatedNode,
-          child: childNodeForItem,
-          flowDirection: ItemFlowDirection.childToParent,
-          edgeType: EdgeType.requestItems,
+          type: NodeType.output,
+          initialRequirements: {itemD: -1},
+          line: MagicLine(initialIo: {itemD: -1}),
         );
 
-        if (!nodeIsNew && !childNodeIsNew) {
-          _checkForCycle(updatedNode, {});
-        }
+        allOutputs.add(itemD);
+
+        var otherUpdates = _updateEdgesForNode(newNode);
+
+        updates.newNodes.add(newNode);
+        updates.newNodes.addAll(otherUpdates.newNodes);
+        updates.newEdges.addAll(otherUpdates.newEdges);
       }
     }
+
+    return updates;
+  }
+
+  GraphUpdates _updateEdgesForNode(ProdLineNode updatedNode) {
+    // TODO - Handle nodes that lose children, not just gain
+    // TODO - Handle excess output and disposal nodes
+    var updates = GraphUpdates();
+
+    for (var itemD in updatedNode.allInputs) {
+      if (!_children[updatedNode]!.any(
+        (edge) =>
+            edge._flowDirection == ItemFlowDirection.childToParent &&
+            edge.item == itemD,
+      )) {
+        ProdLineNode childNode;
+        var existingNode = _nodes
+            .where(
+              (node) =>
+                  producerTypes.contains(node.type) &&
+                  node.allOutputs.contains(itemD),
+            )
+            .firstOrNull;
+        if (existingNode != null) {
+          childNode = existingNode;
+        } else {
+          childNode = ProdLineNode._addToGraph(
+            parentGraph: this,
+            type: NodeType.resource,
+            initialRequirements: {itemD: 1},
+            line: MagicLine(initialIo: {itemD: 1}),
+          );
+
+          updates.newNodes.add(childNode);
+        }
+
+        var newEdge = DirectedEdge._addToGraph(
+          parentGraph: this,
+          parent: updatedNode,
+          child: childNode,
+          edgeType: EdgeType.requestItems,
+          flowDirection: ItemFlowDirection.childToParent,
+          item: itemD,
+        );
+
+        updates.newEdges.add(newEdge);
+
+        _checkForCycle(childNode, {updatedNode});
+      }
+    }
+
+    return updates;
   }
 
   void _checkForCycle(
@@ -160,7 +177,7 @@ class PlanetaryBase extends ProductionLine {
     previousNodes.remove(currentNode);
   }
 
-  void _updateNodeAndChildrenOutputs(List<ProdLineNode> nodes) {
+  void _updateNodeAndChildrenOutputs(Set<ProdLineNode> nodes) {
     // TODO - account for excess output
     Map<ProdLineNode, int> orderOfUpdate = {};
 
@@ -222,194 +239,7 @@ class PlanetaryBase extends ProductionLine {
   }
 }
 
-class ProdLineNode {
-  final PlanetaryBase parentGraph;
-  NodeType _type;
-  ProductionLine _line;
-  final Map<ItemData, double> _requirements;
-
-  late final Map<ItemData, double> requirements = UnmodifiableMapView(
-    _requirements,
-  );
-
-  late final Set<DirectedEdge> parents = UnmodifiableSetView(
-    parentGraph._parents[this]!,
-  );
-  late final Set<DirectedEdge> children = UnmodifiableSetView(
-    parentGraph._children[this]!,
-  );
-
-  ProdLineNode._addToGraph({
-    required this.parentGraph,
-    required NodeType type,
-    required Map<ItemData, double>? initialRequirements,
-    required ProductionLine line,
-  }) : _type = type,
-       _line = line,
-       _requirements = initialRequirements ?? {} {
-    parentGraph._nodes.add(this);
-    parentGraph._parents[this] = {};
-    parentGraph._children[this] = {};
-
-    parentGraph._graphUpdates.newNodes.add(this);
-
-    _addToRelevantMap();
-  }
-
-  NodeType get type => _type;
-  ProductionLine? get productionLine => _line;
-
-  Set<ItemData> get allOutputs => _line.allOutputs;
-  Set<ItemData> get allInputs => _line.allInputs;
-  Map<ItemData, double> get totalIoPerSecond => _line.totalIoPerSecond;
-  void update(Map<ItemData, double> requirements) => _line.update(requirements);
-
-  void updateInternals({ProductionLine? newLine, NodeType? newType}) {
-    if (newLine == null && newType == null) {
-      throw FactorioException('No update took place');
-    }
-
-    _updateInternals(newLine ?? _line, newType ?? _type, true);
-  }
-
-  void _updateInternals(
-    ProductionLine newLine,
-    NodeType newType,
-    bool isConstructor,
-  ) {
-    // TODO - This will require work in future
-    switch (_type) {
-      case NodeType.output:
-      case NodeType.disposal:
-        if (newLine is! MagicLine || newLine.allOutputs.isNotEmpty) {
-          throw FactorioException(
-            'Output node line must be MagicLine with no outputs',
-          );
-        } else if (parents.any(
-          (edge) => edge.flowDirection == ItemFlowDirection.childToParent,
-        )) {
-          throw FactorioException(
-            "Cannot convert this node to output / disposal",
-          );
-        }
-      case NodeType.freeInput:
-      case NodeType.input:
-        if (newLine is! MagicLine || newLine.allInputs.isNotEmpty) {
-          throw FactorioException(
-            'Input node line must be MagicLine with no outputs',
-          );
-        } else if (children.any(
-          (edge) => edge.flowDirection == ItemFlowDirection.childToParent,
-        )) {
-          throw FactorioException(
-            "Cannot convert this node to output / disposal",
-          );
-        }
-      case NodeType.productionLine:
-        if (!newLine.allOutputs.containsAll(_requirements.keys)) {
-          throw FactorioException(
-            'New production line does not output all required items',
-          );
-        }
-    }
-  }
-
-  void _addToRelevantMap() {
-    switch (_type) {
-      case NodeType.output:
-        for (var input in allInputs) {
-          parentGraph._outputNodes[input] = this;
-        }
-      case NodeType.disposal:
-        for (var input in allInputs) {
-          parentGraph._disposalNodes[input] = this;
-        }
-      case NodeType.input:
-      case NodeType.freeInput:
-      case NodeType.productionLine:
-        for (var output in allOutputs) {
-          parentGraph._producerNodes[output] = this;
-        }
-    }
-  }
-
-  void _removeFromGraph() {
-    // TODO Remove orphans
-    parentGraph._nodes.remove(this);
-
-    for (var child in {...children, ...parents}) {
-      child._removeFromGraph();
-    }
-    parentGraph._parents.remove(this);
-    parentGraph._children.remove(this);
-
-    switch (_type) {
-      case NodeType.disposal:
-      case NodeType.output:
-        for (var itemD in _requirements.keys) {
-          parentGraph._outputNodes.remove(itemD);
-        }
-      case NodeType.input:
-      case NodeType.freeInput:
-      case NodeType.productionLine:
-        for (var itemD in _requirements.keys) {
-          parentGraph._producerNodes.remove(itemD);
-        }
-    }
-
-    if (!parentGraph._graphUpdates.newNodes.remove(this)) {
-      parentGraph._graphUpdates.removedNodes.add(this);
-    }
-  }
-}
-
-class DirectedEdge {
-  final PlanetaryBase parentGraph;
-  final ItemData item;
-  final ProdLineNode parent;
-  final ProdLineNode child;
-  double _amount;
-  ItemFlowDirection _flowDirection;
-  EdgeType _edgeType;
-
-  double get amount => _amount;
-  ItemFlowDirection get flowDirection => _flowDirection;
-  EdgeType get edgeType => _edgeType;
-
-  DirectedEdge._addToGraph({
-    required this.parentGraph,
-    required this.item,
-    required this.parent,
-    required this.child,
-    double initialAmount = 0,
-    required ItemFlowDirection flowDirection,
-    required EdgeType edgeType,
-  }) : _amount = initialAmount,
-       _flowDirection = flowDirection,
-       _edgeType = edgeType {
-    parentGraph._edges.add(this);
-    parentGraph._parents[child]!.add(this);
-    parentGraph._children[parent]!.add(this);
-
-    parentGraph._graphUpdates.newEdges.add(this);
-  }
-
-  void _removeFromGraph() {
-    parentGraph._edges.remove(this);
-    parentGraph._parents[child]!.remove(this);
-    parentGraph._children[parent]!.remove(this);
-
-    if (!parentGraph._graphUpdates.newEdges.remove(this)) {
-      parentGraph._graphUpdates.removedEdges.add(this);
-    }
-  }
-}
-
 class GraphUpdates {
-  final Set<ProdLineNode> newNodes = {};
-  final Set<ProdLineNode> removedNodes = {};
-  final Set<DirectedEdge> newEdges = {};
-  final Set<DirectedEdge> removedEdges = {};
-
-  GraphUpdates._();
+  Set<ProdLineNode> newNodes = {};
+  Set<DirectedEdge> newEdges = {};
 }

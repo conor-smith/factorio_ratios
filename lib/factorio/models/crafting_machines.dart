@@ -27,7 +27,7 @@ class CraftingMachine {
           (category) =>
               factorioDb._craftingCategoryToRecipes[category] ?? const [],
         )
-        .reduce((catList1, catList2) => [...catList1, ...catList2])
+        .expand((i) => i)
         .toSet(),
   );
 
@@ -191,10 +191,9 @@ class BurnerEnergySource extends CraftingMachineEnergySource {
   late final List<SolidItem> fuelItems = List.unmodifiable(
     fuelCategories
         .map(
-          (category) =>
-              factorioDb._fuelCategoryToItems[category] ?? const [],
+          (category) => factorioDb._fuelCategoryToItems[category] ?? const [],
         )
-        .reduce((cat1, cat2) => [...cat1, ...cat2])
+        .expand((i) => i)
         .toSet(),
   );
 
