@@ -91,7 +91,7 @@ class PlanetaryBase extends ProductionLine {
   GraphUpdates addOutputNode(Set<ItemData> itemsToOutput) {
     var updates = GraphUpdates();
     for (var itemD in itemsToOutput) {
-      if (!allOutputs.contains(itemD)) {
+      if (!_allOutputs.contains(itemD)) {
         var newNode = ProdLineNode._addToGraph(
           parentGraph: this,
           type: NodeType.output,
@@ -99,7 +99,7 @@ class PlanetaryBase extends ProductionLine {
           line: MagicLine(initialIo: {itemD: -1}),
         );
 
-        allOutputs.add(itemD);
+        _allOutputs.add(itemD);
 
         var otherUpdates = _updateEdgesForNode(newNode);
 

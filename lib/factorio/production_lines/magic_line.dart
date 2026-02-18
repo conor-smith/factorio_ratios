@@ -32,4 +32,26 @@ class MagicLine implements ProductionLine {
     _totalIoPerSecond.clear();
     _totalIoPerSecond.addAll(requirements);
   }
+
+  @override
+  String toString() {
+    var inputs = allInputs;
+    var outputs = allOutputs;
+
+    if (inputs.isEmpty && outputs.isNotEmpty) {
+      return _convertItemSetToString(outputs);
+    } else if (inputs.isNotEmpty && outputs.isEmpty) {
+      return _convertItemSetToString(inputs);
+    } else if (inputs.isNotEmpty && outputs.isNotEmpty) {
+      var inputsString = _convertItemSetToString(inputs);
+      var outputsString = _convertItemSetToString(outputs);
+      return 'Inputs: $inputsString\nOutputs: $outputsString';
+    } else {
+      return '';
+    }
+  }
+
+  String _convertItemSetToString(Set<ItemData> items) {
+    return items.map((item) => item.toString()).reduce((s1, s2) => '$s1, $s2');
+  }
 }

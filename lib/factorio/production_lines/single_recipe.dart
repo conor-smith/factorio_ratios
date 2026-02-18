@@ -119,4 +119,9 @@ class SingleRecipeLine extends ProductionLine {
       _totalIoPerSecond[itemD] = amount * _machineAmount;
     });
   }
+
+  @override
+  String toString() {
+    return production.recipe!.toString();
+  }
 }

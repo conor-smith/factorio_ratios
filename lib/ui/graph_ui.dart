@@ -23,11 +23,11 @@ class _GraphUiState extends State<GraphUi> {
       onTapUp: (tapUpDetails) {
         Item sciencePack = widget.db.itemMap['automation-science-pack']!;
 
-        widget.base.addOutputNode(ItemData(sciencePack));
+        var updates = widget.base.addOutputNode({ItemData(sciencePack)});
 
         setState(() {
           addGraphUpdates(
-            widget.base.updates,
+            updates,
             x: tapUpDetails.localPosition.dx,
             y: tapUpDetails.localPosition.dy,
           );
@@ -37,7 +37,7 @@ class _GraphUiState extends State<GraphUi> {
     );
   }
 
-  void addGraphUpdates(GraphUpdateEvent updates, {double x = 0, double y = 0}) {
+  void addGraphUpdates(GraphUpdates updates, {double x = 0, double y = 0}) {
     for (var newNode in updates.newNodes) {
       var newNodeWidget = NodeWidget(node: newNode, initialX: x, initialY: y);
 
@@ -72,10 +72,15 @@ class _NodeWidgetState extends State<NodeWidget> {
     return Positioned(
       left: x,
       top: y,
-      child: SizedBox(
-        width: 100,
-        height: 100,
-        child: Center(child: const Text('Test')),
+      width: 200,
+      height: 100,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.lightBlueAccent,
+          border: BoxBorder.all(color: Colors.black, width: 1),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Center(child: Text('${widget.node.productionLine}')),
       ),
     );
   }
