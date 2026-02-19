@@ -305,3 +305,10 @@ double? _convertStringToEnergy(String? energyUsage) {
     return double.parse(energyUsage.substring(0, energyUsage.length - 1));
   }
 }
+
+// TODO - get working properly
+String _getLocalisedName(Map json) {
+  String name = json['name'];
+
+  return '${name[0].toUpperCase()}${name.substring(1)}'.replaceAll('-', ' ');
+}

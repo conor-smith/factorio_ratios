@@ -7,6 +7,7 @@ abstract class Item {
 
   final ItemType type;
   final String name;
+  final String localisedName;
 
   final double? fuelValue;
 
@@ -22,6 +23,7 @@ abstract class Item {
     required this.factorioDb,
     required this.type,
     required this.name,
+    required this.localisedName,
     required this.fuelValue,
   });
 
@@ -59,6 +61,7 @@ class SolidItem extends Item {
     required super.factorioDb,
     required super.name,
     required super.fuelValue,
+    required super.localisedName,
     required this.stackSize,
     required this.spoilTicks,
     required this.fuelCategory,
@@ -74,6 +77,7 @@ class SolidItem extends Item {
         factorioDb: factorioDb,
         name: json['name'],
         fuelValue: _convertStringToEnergy(json['fuel_value']),
+        localisedName: _getLocalisedName(json),
         stackSize: json['stack_size'],
         spoilTicks: json['spoil_ticks'],
         fuelCategory: json['fuel_category'],
@@ -94,6 +98,7 @@ class FluidItem extends Item {
     required super.factorioDb,
     required super.name,
     required super.fuelValue,
+    required super.localisedName,
     required this.defaultTemperature,
     required this.heatCapacity,
     required this.maxTemperature,
@@ -105,6 +110,7 @@ class FluidItem extends Item {
         factorioDb: factorioDb,
         name: json['name'],
         fuelValue: _convertStringToEnergy(json['fuel_value']),
+        localisedName: _getLocalisedName(json),
         defaultTemperature: json['default_temperature'].toDouble(),
         heatCapacity: _convertStringToEnergy(json['heat_capacity']) ?? 1000,
         maxTemperature:

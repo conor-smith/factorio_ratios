@@ -11,6 +11,7 @@ class CraftingMachine {
   final FactorioDatabase factorioDb;
 
   final String name;
+  final String localisedName;
   final double craftingSpeed;
   final double energyUsage;
   final int moduleSlots;
@@ -34,6 +35,7 @@ class CraftingMachine {
   CraftingMachine._({
     required this.factorioDb,
     required this.name,
+    required this.localisedName,
     required this.craftingSpeed,
     required this.energyUsage,
     required this.moduleSlots,
@@ -57,6 +59,7 @@ class CraftingMachine {
     return CraftingMachine._(
       factorioDb: factorioDb,
       name: json['name'],
+      localisedName: _getLocalisedName(json),
       craftingSpeed: json['crafting_speed'].toDouble(),
       energyUsage: energyUsage,
       moduleSlots: json['module_slots'] ?? 0,

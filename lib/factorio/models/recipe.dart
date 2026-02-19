@@ -4,6 +4,7 @@ class Recipe {
   final FactorioDatabase factorioDb;
 
   final String name;
+  final String localisedName;
   final List<String> categories;
   final double energyRequired;
   final double maximumProductivity;
@@ -33,6 +34,7 @@ class Recipe {
   Recipe._({
     required this.factorioDb,
     required this.name,
+    required this.localisedName,
     required this.categories,
     required this.energyRequired,
     required this.maximumProductivity,
@@ -100,6 +102,7 @@ class Recipe {
     return Recipe._(
       factorioDb: factorioDb,
       name: json['name'],
+      localisedName: _getLocalisedName(json),
       categories: categories,
       energyRequired: json['energy_required']?.toDouble() ?? 0.5,
       maximumProductivity: json['maximum_productivity']?.toDouble() ?? 3,
