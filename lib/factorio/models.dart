@@ -6,8 +6,10 @@ import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:logging/logging.dart';
 
 part 'models/crafting_machines.dart';
+part 'models/group.dart';
 part 'models/item.dart';
 part 'models/recipe.dart';
+part 'models/subgroup.dart';
 
 final Map<String, double> _multipliers = {
   "k": pow(10, 3).toDouble(),
@@ -54,6 +56,8 @@ class FactorioDatabase {
   late final Map<String, Item> itemMap;
   late final Map<String, Recipe> recipeMap;
   late final Map<String, CraftingMachine> craftingMachineMap;
+  late final Map<String, ItemGroup> itemGroupMap;
+  late final Map<String, ItemSubgroup> itemSubgroupMap;
 
   // Each of these fields acts as an index when querying the db
   late final Map<String, List<Recipe>> _craftingCategoryToRecipes;
@@ -63,12 +67,15 @@ class FactorioDatabase {
   late final Map<Item, List<SolidItem>> _burnResults;
   late final Map<Item, List<Recipe>> _producedBy;
   late final Map<Item, List<Recipe>> _consumedBy;
+  late final Map<ItemGroup, List<ItemSubgroup>> _groupToSubGroup;
+  late final Map<ItemSubgroup, List<Item>> _subgroupToItems;
+  late final Map<ItemSubgroup, List<Recipe>> _subgroupToRecipes;
 
   static final Logger _logger = Logger('FactorioDb');
 
   FactorioDatabase.fromJson(String rawJson) {
     _parseJson(rawJson);
-    _buildNonLazyRelationships();
+    _buildIndices();
   }
 
   void _parseJson(String rawJson) {
@@ -78,6 +85,8 @@ class FactorioDatabase {
     Map<String, Item> items = {};
     Map<String, Recipe> recipes = {};
     Map<String, CraftingMachine> craftingMachines = {};
+    Map<String, ItemGroup> itemGroups = {};
+    Map<String, ItemSubgroup> itemSubgroups = {};
 
     // TODO - clean up
     _logger.info('decoding items');
@@ -156,12 +165,41 @@ class FactorioDatabase {
       }
     });
 
+    _logger.info('decoding item groups');
+    Map<String, Map> rawItemGroups = (factorioRawData['item-group'] as Map)
+        .cast();
+    rawItemGroups.forEach((name, groupJson) {
+      try {
+        itemGroups[name] = ItemGroup.fromJson(this, groupJson);
+      } catch (e) {
+        _logger.info('Encountered error when decoding item group "$name"', e);
+        rethrow;
+      }
+    });
+
+    _logger.info('decoding item subgroups');
+    Map<String, Map> rawItemSubgroups =
+        (factorioRawData['item-subgroup'] as Map).cast();
+    rawItemSubgroups.forEach((name, subgroupJson) {
+      try {
+        itemSubgroups[name] = ItemSubgroup.fromJson(this, subgroupJson);
+      } catch (e) {
+        _logger.info(
+          'Encountered error when decoding item subgroup "$name"',
+          e,
+        );
+        rethrow;
+      }
+    });
+
     itemMap = Map.unmodifiable(items);
     recipeMap = Map.unmodifiable(recipes);
     craftingMachineMap = Map.unmodifiable(craftingMachines);
+    itemGroupMap = Map.unmodifiable(itemGroups);
+    itemSubgroupMap = Map.unmodifiable(itemSubgroups);
   }
 
-  void _buildNonLazyRelationships() {
+  void _buildIndices() {
     _logger.info('Building non-lazy relationships');
 
     Map<String, List<Recipe>> craftingCategoryToRecipes = {};
@@ -171,6 +209,9 @@ class FactorioDatabase {
     Map<Item, List<SolidItem>> burntResults = {};
     Map<Item, List<Recipe>> consumedBy = {};
     Map<Item, List<Recipe>> producedBy = {};
+    Map<ItemGroup, List<ItemSubgroup>> groupToSubGroup = {};
+    Map<ItemSubgroup, List<Item>> subgroupToItems = {};
+    Map<ItemSubgroup, List<Recipe>> subgroupToRecipes = {};
 
     recipeMap.forEach((name, recipe) {
       try {
@@ -185,7 +226,6 @@ class FactorioDatabase {
         for (var ingredient in recipe.ingredients) {
           Item item = itemMap[ingredient._name]!;
 
-          ingredient.item = item;
           consumedBy.update(
             item,
             (recipes) => recipes..add(recipe),
@@ -196,10 +236,18 @@ class FactorioDatabase {
         for (var result in recipe.results) {
           Item item = itemMap[result._name]!;
 
-          result.item = item;
           producedBy.update(
             item,
             (recipes) => recipes..add(recipe),
+            ifAbsent: () => [recipe],
+          );
+        }
+
+        ItemSubgroup? subgroup = recipe.subgroup;
+        if (subgroup != null) {
+          subgroupToRecipes.update(
+            subgroup,
+            (items) => items..add(recipe),
             ifAbsent: () => [recipe],
           );
         }
@@ -224,6 +272,24 @@ class FactorioDatabase {
       } catch (e) {
         _logger.info(
           'Encountered error when building relationships for crafting machine $name',
+          e,
+        );
+        rethrow;
+      }
+    });
+
+    itemSubgroupMap.forEach((name, subgroup) {
+      try {
+        ItemGroup group = itemGroupMap[subgroup._groupString]!;
+
+        groupToSubGroup.update(
+          group,
+          (subgroups) => subgroups..add(subgroup),
+          ifAbsent: () => [subgroup],
+        );
+      } catch (e) {
+        _logger.info(
+          'Encountered error when building relationships for subgroup $name',
           e,
         );
         rethrow;
@@ -269,6 +335,16 @@ class FactorioDatabase {
             );
           }
         }
+
+        ItemSubgroup? subgroup = item.subgroup;
+
+        if (subgroup != null) {
+          subgroupToItems.update(
+            subgroup,
+            (items) => items..add(item),
+            ifAbsent: () => [item],
+          );
+        }
       } catch (e) {
         _logger.info(
           'Encountered error when building relationships for item $name',
@@ -285,6 +361,9 @@ class FactorioDatabase {
     _burnResults = Map.unmodifiable(burntResults);
     _consumedBy = Map.unmodifiable(consumedBy);
     _producedBy = Map.unmodifiable(producedBy);
+    _groupToSubGroup = Map.unmodifiable(groupToSubGroup);
+    _subgroupToItems = Map.unmodifiable(subgroupToItems);
+    _subgroupToRecipes = Map.unmodifiable(subgroupToRecipes);
   }
 }
 
@@ -304,11 +383,4 @@ double? _convertStringToEnergy(String? energyUsage) {
   } else {
     return double.parse(energyUsage.substring(0, energyUsage.length - 1));
   }
-}
-
-// TODO - get working properly
-String _getLocalisedName(Map json) {
-  String name = json['name'];
-
-  return '${name[0].toUpperCase()}${name.substring(1)}'.replaceAll('-', ' ');
 }

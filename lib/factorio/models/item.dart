@@ -1,37 +1,52 @@
 part of '../models.dart';
 
-enum ItemType { item, fluid }
-
 abstract class Item {
   final FactorioDatabase factorioDb;
 
-  final ItemType type;
   final String name;
+  final String type;
   final String localisedName;
+  final String? icon;
 
   final double? fuelValue;
+  final String order;
+  final String? _subgroupString;
 
-  // Populated when recipe relationships are built
+  final bool hidden;
+
   late final List<Recipe> consumedBy = UnmodifiableListView(
     factorioDb._consumedBy[this] ?? const [],
   );
   late final List<Recipe> producedBy = UnmodifiableListView(
     factorioDb._producedBy[this] ?? const [],
   );
+  late final ItemSubgroup? subgroup =
+      factorioDb.itemSubgroupMap[_subgroupString];
 
   Item._({
     required this.factorioDb,
-    required this.type,
     required this.name,
+    required this.type,
     required this.localisedName,
+    required this.icon,
     required this.fuelValue,
-  });
+    required this.order,
+    required String? subgroup,
+    required this.hidden,
+  }) : _subgroupString = subgroup;
 
   factory Item.fromJson(FactorioDatabase factorioDb, Map json) {
     return switch (json['type']) {
       'fluid' => FluidItem.fromJson(factorioDb, json),
       _ => SolidItem.fromJson(factorioDb, json),
     };
+  }
+
+  // TODO - Actual localisation
+  static String _getLocalisedName(Map json) {
+    String name = json['name']!;
+
+    return '${name[0].toUpperCase()}${name.substring(1).replaceAll('-', ' ')}';
   }
 
   @override
@@ -60,8 +75,13 @@ class SolidItem extends Item {
   SolidItem._({
     required super.factorioDb,
     required super.name,
+    required super.type,
     required super.fuelValue,
     required super.localisedName,
+    required super.icon,
+    required super.subgroup,
+    required super.order,
+    required super.hidden,
     required this.stackSize,
     required this.spoilTicks,
     required this.fuelCategory,
@@ -70,14 +90,19 @@ class SolidItem extends Item {
     required String? burntResultString,
   }) : _spoilResultString = spoilResultString,
        _burnResultString = burntResultString,
-       super._(type: ItemType.item);
+       super._();
 
   factory SolidItem.fromJson(FactorioDatabase factorioDb, Map json) =>
       SolidItem._(
         factorioDb: factorioDb,
         name: json['name'],
+        type: json['type'],
+        localisedName: Item._getLocalisedName(json),
         fuelValue: _convertStringToEnergy(json['fuel_value']),
-        localisedName: _getLocalisedName(json),
+        subgroup: json['subgroup'],
+        order: json['order'] ?? '',
+        icon: json['icon'],
+        hidden: json['hidden'] ?? false,
         stackSize: json['stack_size'],
         spoilTicks: json['spoil_ticks'],
         fuelCategory: json['fuel_category'],
@@ -97,20 +122,30 @@ class FluidItem extends Item {
   FluidItem._({
     required super.factorioDb,
     required super.name,
-    required super.fuelValue,
+    required super.type,
     required super.localisedName,
+    required super.fuelValue,
+    required super.subgroup,
+    required super.order,
+    required super.icon,
+    required super.hidden,
     required this.defaultTemperature,
     required this.heatCapacity,
     required this.maxTemperature,
     required this.emissionsMultipler,
-  }) : super._(type: ItemType.fluid);
+  }) : super._();
 
   factory FluidItem.fromJson(FactorioDatabase factorioDb, Map json) =>
       FluidItem._(
         factorioDb: factorioDb,
         name: json['name'],
+        type: json['type'],
         fuelValue: _convertStringToEnergy(json['fuel_value']),
-        localisedName: _getLocalisedName(json),
+        localisedName: Item._getLocalisedName(json),
+        order: json['order'] ?? '',
+        subgroup: json['subgroup'],
+        icon: json['icon'],
+        hidden: json['hidden'] ?? false,
         defaultTemperature: json['default_temperature'].toDouble(),
         heatCapacity: _convertStringToEnergy(json['heat_capacity']) ?? 1000,
         maxTemperature:

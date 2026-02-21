@@ -8,24 +8,22 @@ class ItemData {
   ItemData._(this.item, this.quality, this.temperature);
 
   factory ItemData(Item item, {int? quality, double? temperature}) {
-    switch (item.type) {
-      case ItemType.item:
-        if (temperature != null) {
-          throw FactorioException(
-            'Temperature not applicable to item "${item.name}"',
-          );
-        }
+    if (item.type == 'fluid') {
+      if (quality != null) {
+        throw FactorioException(
+          'Quality not applicable to fluid "${item.name}"',
+        );
+      }
 
-        quality ??= 1;
-        break;
-      case ItemType.fluid:
-        if (quality != null) {
-          throw FactorioException(
-            'Quality not applicable to fluid "${item.name}"',
-          );
-        }
+      temperature ??= (item as FluidItem).defaultTemperature;
+    } else {
+      if (temperature != null) {
+        throw FactorioException(
+          'Temperature not applicable to item "${item.name}"',
+        );
+      }
 
-        temperature ??= (item as FluidItem).defaultTemperature;
+      quality ??= 1;
     }
 
     return ItemData._(item, quality, temperature);
@@ -138,7 +136,7 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
           throw FactorioException(
             'Crafting machine "$newMachine" requires fuel',
           );
-        } else if (newFuel.item.type != ItemType.item ||
+        } else if (newFuel.item.type == 'fluid' ||
             !energySource.fuelItems.contains(newFuel.item)) {
           throw FactorioException(
             'Crafting machine "$newMachine" cannot use item "$newFuel" as fuel',

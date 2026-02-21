@@ -4,11 +4,15 @@ class Recipe {
   final FactorioDatabase factorioDb;
 
   final String name;
-  final String localisedName;
   final List<String> categories;
+  final String order;
   final double energyRequired;
   final double maximumProductivity;
   final double emissionsMultiplier;
+
+  final String? _mainProductString;
+  final String? _subgroupString;
+  final String? _iconString;
 
   final bool enabled;
   final bool allowConsumption;
@@ -20,6 +24,11 @@ class Recipe {
   final List<RecipeItem> ingredients;
   final List<RecipeItem> results;
   final List<SurfaceCondition> surfaceConditions;
+
+  late final Item? mainProduct = _determineMainProduct();
+  late final ItemSubgroup? subgroup = _determineSubGroup();
+  late final String? icon = _iconString ?? mainProduct?.icon;
+  late final String localisedName = _getLocalisedName();
 
   late final List<CraftingMachine> craftingMachines = List.unmodifiable(
     categories
@@ -34,7 +43,10 @@ class Recipe {
   Recipe._({
     required this.factorioDb,
     required this.name,
-    required this.localisedName,
+    required this.order,
+    required String? mainProduct,
+    required String? subgroup,
+    required String? icon,
     required this.categories,
     required this.energyRequired,
     required this.maximumProductivity,
@@ -48,7 +60,9 @@ class Recipe {
     required this.ingredients,
     required this.results,
     required this.surfaceConditions,
-  });
+  }) : _mainProductString = mainProduct,
+       _subgroupString = subgroup,
+       _iconString = icon;
 
   factory Recipe.fromJson(FactorioDatabase factorioDb, Map json) {
     late List<String> categories;
@@ -74,7 +88,7 @@ class Recipe {
     if (rawIngredients is List) {
       ingredients = List.unmodifiable(
         rawIngredients.map(
-          (ingredientJson) => RecipeItem.fromJson(ingredientJson),
+          (ingredientJson) => RecipeItem.fromJson(factorioDb, ingredientJson),
         ),
       );
     } else {
@@ -85,7 +99,9 @@ class Recipe {
     var rawResults = json['results'] ?? const [];
     if (rawResults is List) {
       results = List.unmodifiable(
-        rawResults.map((ingredientJson) => RecipeItem.fromJson(ingredientJson)),
+        rawResults.map(
+          (resultJson) => RecipeItem.fromJson(factorioDb, resultJson),
+        ),
       );
     } else {
       results = const [];
@@ -102,8 +118,11 @@ class Recipe {
     return Recipe._(
       factorioDb: factorioDb,
       name: json['name'],
-      localisedName: _getLocalisedName(json),
       categories: categories,
+      order: json['order'] ?? '',
+      mainProduct: json['main_product'],
+      subgroup: json['subgroup'],
+      icon: json['icon'],
       energyRequired: json['energy_required']?.toDouble() ?? 0.5,
       maximumProductivity: json['maximum_productivity']?.toDouble() ?? 3,
       emissionsMultiplier: json['emissions_multiplier']?.toDouble() ?? 1,
@@ -119,30 +138,58 @@ class Recipe {
     );
   }
 
+  Item? _determineMainProduct() {
+    if (_mainProductString != null) {
+      return factorioDb.itemMap[_mainProductString];
+    } else if (results.length == 1) {
+      return results[0].item;
+    }
+  }
+
+  ItemSubgroup? _determineSubGroup() {
+    if (_subgroupString != null) {
+      return factorioDb.itemSubgroupMap[_subgroupString]!;
+    } else {
+      return mainProduct?.subgroup;
+    }
+  }
+
+  // TODO - Actually parse locale data
+  String _getLocalisedName() {
+    return mainProduct?.localisedName ??
+        '${name[0].toUpperCase()}${name.substring(1).replaceAll('-', ' ')}';
+  }
+
   @override
   String toString() => name;
 }
 
 class RecipeItem {
+  final FactorioDatabase factorioDb;
+
   final String _name;
-  late final Item item;
   final String type;
   final double amount;
   final double probability;
 
+  late final Item item = factorioDb.itemMap[_name]!;
+
   RecipeItem._({
+    required this.factorioDb,
     required String name,
     required this.type,
     required this.amount,
     required this.probability,
   }) : _name = name;
 
-  factory RecipeItem.fromJson(Map json) => RecipeItem._(
-    name: json['name'],
-    type: json['type'],
-    amount: json['amount'].toDouble(),
-    probability: json['probability']?.toDouble() ?? 1,
-  );
+  factory RecipeItem.fromJson(FactorioDatabase factorioDb, Map json) =>
+      RecipeItem._(
+        factorioDb: factorioDb,
+        name: json['name'],
+        type: json['type'],
+        amount: json['amount'].toDouble(),
+        probability: json['probability']?.toDouble() ?? 1,
+      );
 }
 
 class SurfaceCondition {

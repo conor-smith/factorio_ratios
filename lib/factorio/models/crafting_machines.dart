@@ -59,7 +59,7 @@ class CraftingMachine {
     return CraftingMachine._(
       factorioDb: factorioDb,
       name: json['name'],
-      localisedName: _getLocalisedName(json),
+      localisedName: Item._getLocalisedName(json), // TODO - proper localisation
       craftingSpeed: json['crafting_speed'].toDouble(),
       energyUsage: energyUsage,
       moduleSlots: json['module_slots'] ?? 0,
@@ -191,6 +191,7 @@ class BurnerEnergySource extends CraftingMachineEnergySource {
   final double effectivity;
   final String burnerUsage;
   final List<String> fuelCategories;
+
   late final List<SolidItem> fuelItems = List.unmodifiable(
     fuelCategories
         .map(
