@@ -1,44 +1,132 @@
+import 'dart:collection';
+
 import 'package:factorio_ratios/factorio/models.dart';
 import 'package:flutter/material.dart';
 
-class FactorioMenuWidget extends StatefulWidget {
+class FactorioItemMenuWidget extends StatefulWidget {
   final FactorioDatabase db;
 
-  const FactorioMenuWidget({super.key, required this.db});
+  const FactorioItemMenuWidget({super.key, required this.db});
 
   @override
-  State<FactorioMenuWidget> createState() => _FactorioMenuWidgetState();
+  State<FactorioItemMenuWidget> createState() => _FactorioItemMenuWidgetState();
 }
 
-class _FactorioMenuWidgetState extends State<FactorioMenuWidget> {
+class _FactorioItemMenuWidgetState extends State<FactorioItemMenuWidget> {
+  late final LinkedHashMap<ItemGroup, ItemGroupWidget> itemGroups;
+
+  late ItemGroup selectedGroup;
+
+  @override
+  void initState() {
+    super.initState();
+
+    var itemGroupList = widget.db.itemGroupMap.values.toList();
+    itemGroupList.sort((group1, group2) {
+      var order = group1.order.compareTo(group2.order);
+      return order != 0 ? order : group1.name.compareTo(group2.name);
+    });
+
+    selectedGroup = itemGroupList.first;
+
+    LinkedHashMap<ItemGroup, ItemGroupWidget> itemGroups = LinkedHashMap();
+    for (var itemGroup in itemGroupList) {
+      List<ItemSubgroup> subgroupList = List.from(itemGroup.subgroups);
+      subgroupList.sort((subgroup1, subgroup2) {
+        var order = subgroup1.order.compareTo(subgroup2.order);
+        return order != 0 ? order : subgroup1.name.compareTo(subgroup2.name);
+      });
+
+      List<ItemSubgroupWidget> subgroupWidgets = subgroupList
+          .map((subgroup) => ItemSubgroupWidget(subgroup))
+          .toList();
+
+      itemGroups[itemGroup] = ItemGroupWidget(itemGroup);
+    }
+
+    this.itemGroups = itemGroups;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Column(
+      children: [
+        Row(
+          children: itemGroups.keys
+              .map(
+                (itemGroup) => TextButton(
+                  onPressed: () => setState(() {
+                    selectedGroup = itemGroup;
+                  }),
+                  child: Container(
+                    height: 128,
+                    decoration: BoxDecoration(border: Border.all()),
+                    child: Center(child: Text(itemGroup.name)),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+        itemGroups[selectedGroup]!,
+      ],
+    );
   }
 }
 
-class ItemGroup {
-  final String group;
-  final String icon;
-  final List<ItemSubGroup> subgroups;
+class ItemGroupWidget extends StatelessWidget {
+  final List<ItemSubgroupWidget> itemSubGroups;
 
-  ItemGroup(this.group, this.icon, this.subgroups);
-}
+  const ItemGroupWidget._(this.itemSubGroups);
 
-class ItemSubGroup {
-  final String subgroup;
-  final List<ItemButton> items;
+  factory ItemGroupWidget(ItemGroup itemGroup) {
+    List<ItemSubgroup> subgroups = List.from(itemGroup.subgroups);
+    subgroups.sort((subgroup1, subgroup2) {
+      var order = subgroup1.order.compareTo(subgroup2.order);
+      return order != 0 ? order : subgroup1.name.compareTo(subgroup2.name);
+    });
 
-  ItemSubGroup(this.subgroup, this.items);
-}
-
-class ItemButton extends StatelessWidget {
-  final Item item;
-
-  const ItemButton({super.key, required this.item});
+    return ItemGroupWidget._(
+      subgroups.map((subgroup) => ItemSubgroupWidget(subgroup)).toList(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Column(children: itemSubGroups);
+  }
+}
+
+class ItemSubgroupWidget extends StatelessWidget {
+  final List<Widget> itemWidgets;
+
+  const ItemSubgroupWidget._(this.itemWidgets);
+
+  factory ItemSubgroupWidget(ItemSubgroup itemSubgroup) {
+    List<Item> items = List.from(itemSubgroup.items);
+    items.sort((item1, item2) {
+      var order = item1.order.compareTo(item2.order);
+      return order != 0 ? order : item1.name.compareTo(item2.name);
+    });
+
+    return ItemSubgroupWidget._(
+      items
+          .map(
+            (item) => Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black),
+              ),
+              width: 68,
+              height: 68,
+              padding: EdgeInsets.all(2),
+              child: Tooltip(message: item.localisedName, child: Container()),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: itemWidgets);
   }
 }

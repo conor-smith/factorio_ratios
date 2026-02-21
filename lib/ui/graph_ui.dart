@@ -1,7 +1,5 @@
 import 'package:factorio_ratios/factorio/graph.dart';
 import 'package:factorio_ratios/factorio/models.dart';
-import 'package:factorio_ratios/factorio/production_line.dart';
-import 'package:factorio_ratios/ui/item_dropdown.dart';
 import 'package:flutter/material.dart';
 
 class GraphUi extends StatefulWidget {
@@ -16,7 +14,6 @@ class GraphUi extends StatefulWidget {
 
 class _GraphUiState extends State<GraphUi> {
   final List<Widget> children = [];
-  late final SearchableDropDown itemDropdown;
 
   double currentX = 0;
   double currentY = 0;
@@ -30,53 +27,12 @@ class _GraphUiState extends State<GraphUi> {
     widget.db.itemMap.forEach((name, item) {
       nameToDisplayName[name] = item.localisedName;
     });
-
-    itemDropdown = SearchableDropDown(
-      nameToDisplayName: nameToDisplayName,
-      onPressed: (name) => setState(() {
-        dropDownActive = false;
-        children.removeLast();
-
-        var updates = widget.base.addOutputNode({
-          ItemData(widget.db.itemMap[name]!),
-        });
-
-        addGraphUpdates(updates, x: currentX, y: currentY);
-      }),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapUp: (tapUpDetails) {
-        setState(() {
-          currentX = tapUpDetails.localPosition.dx;
-          currentY = tapUpDetails.localPosition.dy;
-
-          if (dropDownActive) {
-            dropDownActive = false;
-            children.removeLast();
-          } else {
-            dropDownActive = true;
-            children.add(
-              Positioned(
-                left: currentX,
-                top: currentY,
-                width: 200,
-                height: 500,
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: BoxBorder.all(color: Colors.black, width: 1),
-                  ),
-                  child: itemDropdown,
-                ),
-              ),
-            );
-          }
-        });
-      },
       child: Stack(children: children),
     );
   }
