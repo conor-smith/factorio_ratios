@@ -224,7 +224,7 @@ class FactorioDatabase {
         }
 
         for (var ingredient in recipe.ingredients) {
-          Item item = itemMap[ingredient._name]!;
+          Item item = ingredient.item;
 
           consumedBy.update(
             item,
@@ -234,7 +234,7 @@ class FactorioDatabase {
         }
 
         for (var result in recipe.results) {
-          Item item = itemMap[result._name]!;
+          Item item = result.item;
 
           producedBy.update(
             item,

@@ -9,10 +9,10 @@ class ItemSubgroup {
 
   late final ItemGroup group = factorioDb.itemGroupMap[_groupString]!;
   late final List<Item> items = UnmodifiableListView(
-    factorioDb._subgroupToItems[this]!,
+    factorioDb._subgroupToItems[this] ?? const [],
   );
   late final List<Recipe> recipes = UnmodifiableListView(
-    factorioDb._subgroupToRecipes[this]!,
+    factorioDb._subgroupToRecipes[this] ?? const [],
   );
 
   ItemSubgroup._({

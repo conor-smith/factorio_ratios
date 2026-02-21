@@ -21,7 +21,12 @@ class _FactorioItemMenuWidgetState extends State<FactorioItemMenuWidget> {
   void initState() {
     super.initState();
 
-    var itemGroupList = widget.db.itemGroupMap.values.toList();
+    var itemGroupList = widget.db.itemGroupMap.values
+        .where(
+          (itemGroup) =>
+              itemGroup.subgroups.any((subgroup) => subgroup.items.isNotEmpty),
+        )
+        .toList();
     itemGroupList.sort((group1, group2) {
       var order = group1.order.compareTo(group2.order);
       return order != 0 ? order : group1.name.compareTo(group2.name);
@@ -36,10 +41,6 @@ class _FactorioItemMenuWidgetState extends State<FactorioItemMenuWidget> {
         var order = subgroup1.order.compareTo(subgroup2.order);
         return order != 0 ? order : subgroup1.name.compareTo(subgroup2.name);
       });
-
-      List<ItemSubgroupWidget> subgroupWidgets = subgroupList
-          .map((subgroup) => ItemSubgroupWidget(subgroup))
-          .toList();
 
       itemGroups[itemGroup] = ItemGroupWidget(itemGroup);
     }
@@ -79,7 +80,9 @@ class ItemGroupWidget extends StatelessWidget {
   const ItemGroupWidget._(this.itemSubGroups);
 
   factory ItemGroupWidget(ItemGroup itemGroup) {
-    List<ItemSubgroup> subgroups = List.from(itemGroup.subgroups);
+    List<ItemSubgroup> subgroups = itemGroup.subgroups
+        .where((subgroup) => subgroup.items.isNotEmpty)
+        .toList();
     subgroups.sort((subgroup1, subgroup2) {
       var order = subgroup1.order.compareTo(subgroup2.order);
       return order != 0 ? order : subgroup1.name.compareTo(subgroup2.name);

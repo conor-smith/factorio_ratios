@@ -40,13 +40,7 @@ class FactorioRatiosApp extends StatelessWidget {
           builder: (context, snapShot) => switch (snapShot.connectionState) {
             ConnectionState.waiting => CircularProgressIndicator(),
             // _ => GraphUi(db: snapShot.data!),
-            _ => Center(
-              child: SizedBox(
-                width: 1024,
-                height: 1024,
-                child: FactorioItemMenuWidget(db: snapShot.data!),
-              ),
-            ),
+            _ => Center(child: FactorioItemMenuWidget(db: snapShot.data!)),
           },
         ),
       ),

@@ -143,6 +143,8 @@ class Recipe {
       return factorioDb.itemMap[_mainProductString];
     } else if (results.length == 1) {
       return results[0].item;
+    } else {
+      return null;
     }
   }
 
