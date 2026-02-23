@@ -1,11 +1,18 @@
 part of '../models.dart';
 
-class Recipe {
+class Recipe extends OrderedWithSubgroup {
   final FactorioDatabase factorioDb;
 
+  @override
   final String name;
-  final List<String> categories;
+  @override
   final String order;
+  @override
+  late final ItemSubgroup? subgroup = _determineSubGroup();
+  @override
+  late final String? icon = _iconString ?? mainProduct?.icon;
+
+  final List<String> categories;
   final double energyRequired;
   final double maximumProductivity;
   final double emissionsMultiplier;
@@ -26,8 +33,6 @@ class Recipe {
   final List<SurfaceCondition> surfaceConditions;
 
   late final Item? mainProduct = _determineMainProduct();
-  late final ItemSubgroup? subgroup = _determineSubGroup();
-  late final String? icon = _iconString ?? mainProduct?.icon;
   late final String localisedName = _getLocalisedName();
 
   late final List<CraftingMachine> craftingMachines = List.unmodifiable(

@@ -1,15 +1,22 @@
 part of '../models.dart';
 
-abstract class Item {
+abstract class Item extends OrderedWithSubgroup {
   final FactorioDatabase factorioDb;
 
+  @override
   final String name;
+  @override
+  final String? icon;
+  @override
+  final String order;
+  @override
+  late final ItemSubgroup? subgroup =
+      factorioDb.itemSubgroupMap[_subgroupString];
+
   final String type;
   final String localisedName;
-  final String? icon;
 
   final double? fuelValue;
-  final String order;
   final String? _subgroupString;
 
   final bool hidden;
@@ -20,8 +27,6 @@ abstract class Item {
   late final List<Recipe> producedBy = UnmodifiableListView(
     factorioDb._producedBy[this] ?? const [],
   );
-  late final ItemSubgroup? subgroup =
-      factorioDb.itemSubgroupMap[_subgroupString];
 
   Item._({
     required this.factorioDb,

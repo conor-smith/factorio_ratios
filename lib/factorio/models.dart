@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 part 'models/crafting_machines.dart';
 part 'models/group.dart';
 part 'models/item.dart';
+part 'models/other_interfaces.dart';
 part 'models/recipe.dart';
 part 'models/subgroup.dart';
 
@@ -67,9 +68,6 @@ class FactorioDatabase {
   late final Map<Item, List<SolidItem>> _burnResults;
   late final Map<Item, List<Recipe>> _producedBy;
   late final Map<Item, List<Recipe>> _consumedBy;
-  late final Map<ItemGroup, List<ItemSubgroup>> _groupToSubGroup;
-  late final Map<ItemSubgroup, List<Item>> _subgroupToItems;
-  late final Map<ItemSubgroup, List<Recipe>> _subgroupToRecipes;
 
   static final Logger _logger = Logger('FactorioDb');
 
@@ -209,9 +207,6 @@ class FactorioDatabase {
     Map<Item, List<SolidItem>> burntResults = {};
     Map<Item, List<Recipe>> consumedBy = {};
     Map<Item, List<Recipe>> producedBy = {};
-    Map<ItemGroup, List<ItemSubgroup>> groupToSubGroup = {};
-    Map<ItemSubgroup, List<Item>> subgroupToItems = {};
-    Map<ItemSubgroup, List<Recipe>> subgroupToRecipes = {};
 
     recipeMap.forEach((name, recipe) {
       try {
@@ -242,15 +237,6 @@ class FactorioDatabase {
             ifAbsent: () => [recipe],
           );
         }
-
-        ItemSubgroup? subgroup = recipe.subgroup;
-        if (subgroup != null) {
-          subgroupToRecipes.update(
-            subgroup,
-            (items) => items..add(recipe),
-            ifAbsent: () => [recipe],
-          );
-        }
       } catch (e) {
         _logger.info(
           'Encountered error when building relationships for recipe $name',
@@ -272,24 +258,6 @@ class FactorioDatabase {
       } catch (e) {
         _logger.info(
           'Encountered error when building relationships for crafting machine $name',
-          e,
-        );
-        rethrow;
-      }
-    });
-
-    itemSubgroupMap.forEach((name, subgroup) {
-      try {
-        ItemGroup group = itemGroupMap[subgroup._groupString]!;
-
-        groupToSubGroup.update(
-          group,
-          (subgroups) => subgroups..add(subgroup),
-          ifAbsent: () => [subgroup],
-        );
-      } catch (e) {
-        _logger.info(
-          'Encountered error when building relationships for subgroup $name',
           e,
         );
         rethrow;
@@ -335,16 +303,6 @@ class FactorioDatabase {
             );
           }
         }
-
-        ItemSubgroup? subgroup = item.subgroup;
-
-        if (subgroup != null) {
-          subgroupToItems.update(
-            subgroup,
-            (items) => items..add(item),
-            ifAbsent: () => [item],
-          );
-        }
       } catch (e) {
         _logger.info(
           'Encountered error when building relationships for item $name',
@@ -361,9 +319,6 @@ class FactorioDatabase {
     _burnResults = Map.unmodifiable(burntResults);
     _consumedBy = Map.unmodifiable(consumedBy);
     _producedBy = Map.unmodifiable(producedBy);
-    _groupToSubGroup = Map.unmodifiable(groupToSubGroup);
-    _subgroupToItems = Map.unmodifiable(subgroupToItems);
-    _subgroupToRecipes = Map.unmodifiable(subgroupToRecipes);
   }
 }
 

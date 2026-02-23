@@ -1,19 +1,16 @@
 part of '../models.dart';
 
-class ItemSubgroup {
+class ItemSubgroup extends Ordered {
   final FactorioDatabase factorioDb;
 
+  @override
   final String name;
-  final String _groupString;
+  @override
   final String order;
 
+  final String _groupString;
+
   late final ItemGroup group = factorioDb.itemGroupMap[_groupString]!;
-  late final List<Item> items = UnmodifiableListView(
-    factorioDb._subgroupToItems[this] ?? const [],
-  );
-  late final List<Recipe> recipes = UnmodifiableListView(
-    factorioDb._subgroupToRecipes[this] ?? const [],
-  );
 
   ItemSubgroup._({
     required this.factorioDb,

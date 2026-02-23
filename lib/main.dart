@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:factorio_ratios/factorio/models.dart';
+import 'package:factorio_ratios/ui/db_widget_map.dart';
 import 'package:factorio_ratios/ui/factorio_menu.dart';
-import 'package:factorio_ratios/ui/graph_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
@@ -13,11 +13,11 @@ void main() {
     ),
   );
 
-  runApp(FactorioRatiosApp());
+  runApp(MainApp());
 }
 
-class FactorioRatiosApp extends StatelessWidget {
-  FactorioRatiosApp({super.key});
+class MainApp extends StatelessWidget {
+  MainApp({super.key});
 
   final Future<FactorioDatabase> _db = File(
     'test_resources/data-raw-dump.json',
@@ -40,8 +40,31 @@ class FactorioRatiosApp extends StatelessWidget {
           builder: (context, snapShot) => switch (snapShot.connectionState) {
             ConnectionState.waiting => CircularProgressIndicator(),
             // _ => GraphUi(db: snapShot.data!),
-            _ => Center(child: FactorioItemMenuWidget(db: snapShot.data!)),
+            _ => FactorioRatiosApp(factorioDb: snapShot.data!),
           },
+        ),
+      ),
+    );
+  }
+}
+
+class FactorioRatiosApp extends StatelessWidget {
+  final FactorioDatabase factorioDb;
+  final FactorioWidgetMap widgetMap;
+
+  FactorioRatiosApp({super.key, required this.factorioDb})
+    : widgetMap = FactorioWidgetMap(factorioDb);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SizedBox(
+        width: 1024,
+        height: 1024,
+        child: FactorioGroupMenuWidget<Item>(
+          items: factorioDb.itemMap.values.toList(),
+          widgetMap: widgetMap,
+          onSelected: (item) => print(item),
         ),
       ),
     );

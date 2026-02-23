@@ -1,135 +1,148 @@
 import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/models.dart';
+import 'package:factorio_ratios/ui/db_widget_map.dart';
 import 'package:flutter/material.dart';
 
-class FactorioItemMenuWidget extends StatefulWidget {
-  final FactorioDatabase db;
+class FactorioGroupMenuWidget<T extends OrderedWithSubgroup>
+    extends StatefulWidget {
+  final List<T> items;
+  final FactorioWidgetMap widgetMap;
+  final Function(T item) onSelected;
 
-  const FactorioItemMenuWidget({super.key, required this.db});
+  const FactorioGroupMenuWidget({
+    super.key,
+    required this.items,
+    required this.widgetMap,
+    required this.onSelected,
+  });
 
   @override
-  State<FactorioItemMenuWidget> createState() => _FactorioItemMenuWidgetState();
+  State<FactorioGroupMenuWidget> createState() =>
+      _FactorioGroupMenuWidgetState<T>();
 }
 
-class _FactorioItemMenuWidgetState extends State<FactorioItemMenuWidget> {
-  late final LinkedHashMap<ItemGroup, ItemGroupWidget> itemGroups;
+class _FactorioGroupMenuWidgetState<T extends OrderedWithSubgroup>
+    extends State<FactorioGroupMenuWidget<T>> {
+  final Map<ItemGroup?, Widget> itemGroupWidgets = {};
+  final List<Widget> itemGroupButtons = [];
 
-  late ItemGroup selectedGroup;
+  ItemGroup? selectedGroup;
 
   @override
   void initState() {
     super.initState();
 
-    var itemGroupList = widget.db.itemGroupMap.values
-        .where(
-          (itemGroup) =>
-              itemGroup.subgroups.any((subgroup) => subgroup.items.isNotEmpty),
-        )
-        .toList();
-    itemGroupList.sort((group1, group2) {
-      var order = group1.order.compareTo(group2.order);
-      return order != 0 ? order : group1.name.compareTo(group2.name);
+    var sortedGroupMap = _groupAndSortItems(widget.items);
+
+    selectedGroup = sortedGroupMap.keys.first;
+
+    sortedGroupMap.forEach((group, subgroups) {
+      itemGroupButtons.add(
+        Container(
+          decoration: BoxDecoration(border: Border.all()),
+          constraints: BoxConstraints(
+            minWidth: 128,
+            minHeight: 128,
+            maxHeight: 128,
+          ),
+          child: TextButton(
+            onPressed: () => setState(() {
+              selectedGroup = group;
+            }),
+            child: Center(child: Text(group?.name ?? 'null')),
+          ),
+        ),
+      );
+
+      itemGroupWidgets[group] = Column(
+        children: subgroups.values
+            .map(
+              (items) => Row(
+                children: items
+                    .map(
+                      (item) => SizedBox(
+                        width: 64,
+                        height: 64,
+                        child: TextButton(
+                          onPressed: () => widget.onSelected(item),
+                          child: Container(
+                            decoration: BoxDecoration(border: Border.all()),
+                            child: widget.widgetMap[item],
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            )
+            .toList(),
+      );
     });
-
-    selectedGroup = itemGroupList.first;
-
-    LinkedHashMap<ItemGroup, ItemGroupWidget> itemGroups = LinkedHashMap();
-    for (var itemGroup in itemGroupList) {
-      List<ItemSubgroup> subgroupList = List.from(itemGroup.subgroups);
-      subgroupList.sort((subgroup1, subgroup2) {
-        var order = subgroup1.order.compareTo(subgroup2.order);
-        return order != 0 ? order : subgroup1.name.compareTo(subgroup2.name);
-      });
-
-      itemGroups[itemGroup] = ItemGroupWidget(itemGroup);
-    }
-
-    this.itemGroups = itemGroups;
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Row(
-          children: itemGroups.keys
-              .map(
-                (itemGroup) => TextButton(
-                  onPressed: () => setState(() {
-                    selectedGroup = itemGroup;
-                  }),
-                  child: Container(
-                    height: 128,
-                    decoration: BoxDecoration(border: Border.all()),
-                    child: Center(child: Text(itemGroup.name)),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-        itemGroups[selectedGroup]!,
+        Row(children: itemGroupButtons),
+        itemGroupWidgets[selectedGroup]!,
       ],
     );
   }
-}
 
-class ItemGroupWidget extends StatelessWidget {
-  final List<ItemSubgroupWidget> itemSubGroups;
+  Map<ItemGroup?, Map<ItemSubgroup?, List<T>>> _groupAndSortItems(
+    List<T> items,
+  ) {
+    Map<ItemGroup?, Map<ItemSubgroup?, List<T>>> groupMap = {};
 
-  const ItemGroupWidget._(this.itemSubGroups);
+    for (var item in widget.items) {
+      groupMap.update(
+        item.subgroup?.group,
+        (subgroupMap) => subgroupMap
+          ..update(
+            item.subgroup,
+            (itemList) => itemList..add(item),
+            ifAbsent: () => [item],
+          ),
+        ifAbsent: () => {
+          item.subgroup: [item],
+        },
+      );
+    }
 
-  factory ItemGroupWidget(ItemGroup itemGroup) {
-    List<ItemSubgroup> subgroups = itemGroup.subgroups
-        .where((subgroup) => subgroup.items.isNotEmpty)
-        .toList();
-    subgroups.sort((subgroup1, subgroup2) {
-      var order = subgroup1.order.compareTo(subgroup2.order);
-      return order != 0 ? order : subgroup1.name.compareTo(subgroup2.name);
+    var groupSortedEntries = groupMap.entries.toList();
+    groupSortedEntries.sort((entry1, entry2) {
+      if (entry1.key == null) {
+        return 1;
+      } else if (entry2.key == null) {
+        return -1;
+      } else {
+        return entry1.key!.compareTo(entry2.key!);
+      }
     });
 
-    return ItemGroupWidget._(
-      subgroups.map((subgroup) => ItemSubgroupWidget(subgroup)).toList(),
-    );
-  }
+    var sortedGroupMap = LinkedHashMap.fromEntries(groupSortedEntries);
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(children: itemSubGroups);
-  }
-}
+    sortedGroupMap.updateAll((group, subgroupMap) {
+      var subgroupSortedEntries = subgroupMap.entries.toList();
+      subgroupSortedEntries.sort((entry1, entry2) {
+        if (entry1.key == null) {
+          return 1;
+        } else if (entry2.key == null) {
+          return -1;
+        } else {
+          return entry1.key!.compareTo(entry2.key!);
+        }
+      });
 
-class ItemSubgroupWidget extends StatelessWidget {
-  final List<Widget> itemWidgets;
+      LinkedHashMap<ItemSubgroup?, List<T>> sortedMap =
+          LinkedHashMap.fromEntries(subgroupSortedEntries);
+      sortedMap.updateAll((subgroup, items) => items..sort());
 
-  const ItemSubgroupWidget._(this.itemWidgets);
-
-  factory ItemSubgroupWidget(ItemSubgroup itemSubgroup) {
-    List<Item> items = List.from(itemSubgroup.items);
-    items.sort((item1, item2) {
-      var order = item1.order.compareTo(item2.order);
-      return order != 0 ? order : item1.name.compareTo(item2.name);
+      return sortedMap;
     });
 
-    return ItemSubgroupWidget._(
-      items
-          .map(
-            (item) => Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black),
-              ),
-              width: 68,
-              height: 68,
-              padding: EdgeInsets.all(2),
-              child: Tooltip(message: item.localisedName, child: Container()),
-            ),
-          )
-          .toList(),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: itemWidgets);
+    return sortedGroupMap;
   }
 }
