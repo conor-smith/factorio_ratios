@@ -10,7 +10,7 @@ class Recipe extends OrderedWithSubgroup {
   @override
   late final ItemSubgroup? subgroup = _determineSubGroup();
   @override
-  late final String? icon = _iconString ?? mainProduct?.icon;
+  late final List<IconData>? icons = _icons ?? mainProduct?.icons;
 
   final List<String> categories;
   final double energyRequired;
@@ -19,7 +19,7 @@ class Recipe extends OrderedWithSubgroup {
 
   final String? _mainProductString;
   final String? _subgroupString;
-  final String? _iconString;
+  final List<IconData>? _icons;
 
   final bool enabled;
   final bool allowConsumption;
@@ -51,7 +51,7 @@ class Recipe extends OrderedWithSubgroup {
     required this.order,
     required String? mainProduct,
     required String? subgroup,
-    required String? icon,
+    required List<IconData>? icons,
     required this.categories,
     required this.energyRequired,
     required this.maximumProductivity,
@@ -67,7 +67,7 @@ class Recipe extends OrderedWithSubgroup {
     required this.surfaceConditions,
   }) : _mainProductString = mainProduct,
        _subgroupString = subgroup,
-       _iconString = icon;
+       _icons = icons;
 
   factory Recipe.fromJson(FactorioDatabase factorioDb, Map json) {
     late List<String> categories;
@@ -127,7 +127,7 @@ class Recipe extends OrderedWithSubgroup {
       order: json['order'] ?? '',
       mainProduct: json['main_product'],
       subgroup: json['subgroup'],
-      icon: json['icon'],
+      icons: IconData.fromTopLevelJson(json),
       energyRequired: json['energy_required']?.toDouble() ?? 0.5,
       maximumProductivity: json['maximum_productivity']?.toDouble() ?? 3,
       emissionsMultiplier: json['emissions_multiplier']?.toDouble() ?? 1,

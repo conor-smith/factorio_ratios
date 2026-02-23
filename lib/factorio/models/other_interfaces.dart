@@ -12,7 +12,10 @@ abstract class Ordered implements Comparable<Ordered> {
   }
 }
 
-abstract class OrderedWithSubgroup extends Ordered {
+abstract class OrderedWithSubgroup extends Ordered implements HasIcon {
   ItemSubgroup? get subgroup;
-  String? get icon;
+}
+
+abstract class HasIcon {
+  List<IconData>? get icons;
 }

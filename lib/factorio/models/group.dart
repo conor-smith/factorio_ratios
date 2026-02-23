@@ -1,20 +1,20 @@
 part of '../models.dart';
 
-class ItemGroup extends Ordered {
+class ItemGroup extends Ordered implements HasIcon {
   final FactorioDatabase factorioDb;
 
   @override
   final String name;
   @override
   final String order;
-
-  final String icon;
+  @override
+  final List<IconData>? icons;
 
   ItemGroup._({
     required this.factorioDb,
     required this.name,
     required this.order,
-    required this.icon,
+    required this.icons,
   });
 
   factory ItemGroup.fromJson(FactorioDatabase factorioDb, Map json) =>
@@ -22,6 +22,6 @@ class ItemGroup extends Ordered {
         factorioDb: factorioDb,
         name: json['name'],
         order: json['order'],
-        icon: json['icon'],
+        icons: IconData.fromTopLevelJson(json),
       );
 }

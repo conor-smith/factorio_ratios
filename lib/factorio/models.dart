@@ -7,6 +7,7 @@ import 'package:logging/logging.dart';
 
 part 'models/crafting_machines.dart';
 part 'models/group.dart';
+part 'models/icon_data.dart';
 part 'models/item.dart';
 part 'models/other_interfaces.dart';
 part 'models/recipe.dart';

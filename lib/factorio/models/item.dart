@@ -6,9 +6,9 @@ abstract class Item extends OrderedWithSubgroup {
   @override
   final String name;
   @override
-  final String? icon;
-  @override
   final String order;
+  @override
+  final List<IconData>? icons;
   @override
   late final ItemSubgroup? subgroup =
       factorioDb.itemSubgroupMap[_subgroupString];
@@ -33,7 +33,7 @@ abstract class Item extends OrderedWithSubgroup {
     required this.name,
     required this.type,
     required this.localisedName,
-    required this.icon,
+    required this.icons,
     required this.fuelValue,
     required this.order,
     required String? subgroup,
@@ -83,7 +83,7 @@ class SolidItem extends Item {
     required super.type,
     required super.fuelValue,
     required super.localisedName,
-    required super.icon,
+    required super.icons,
     required super.subgroup,
     required super.order,
     required super.hidden,
@@ -106,7 +106,7 @@ class SolidItem extends Item {
         fuelValue: _convertStringToEnergy(json['fuel_value']),
         subgroup: json['subgroup'],
         order: json['order'] ?? '',
-        icon: json['icon'],
+        icons: IconData.fromTopLevelJson(json),
         hidden: json['hidden'] ?? false,
         stackSize: json['stack_size'],
         spoilTicks: json['spoil_ticks'],
@@ -132,7 +132,7 @@ class FluidItem extends Item {
     required super.fuelValue,
     required super.subgroup,
     required super.order,
-    required super.icon,
+    required super.icons,
     required super.hidden,
     required this.defaultTemperature,
     required this.heatCapacity,
@@ -149,7 +149,7 @@ class FluidItem extends Item {
         localisedName: Item._getLocalisedName(json),
         order: json['order'] ?? '',
         subgroup: json['subgroup'],
-        icon: json['icon'],
+        icons: IconData.fromTopLevelJson(json),
         hidden: json['hidden'] ?? false,
         defaultTemperature: json['default_temperature'].toDouble(),
         heatCapacity: _convertStringToEnergy(json['heat_capacity']) ?? 1000,
