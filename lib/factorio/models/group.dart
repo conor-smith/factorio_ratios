@@ -22,6 +22,6 @@ class ItemGroup extends Ordered implements HasIcon {
         factorioDb: factorioDb,
         name: json['name'],
         order: json['order'],
-        icons: IconData.fromTopLevelJson(json),
+        icons: IconData.fromTopLevelJson(json, 128),
       );
 }

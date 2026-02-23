@@ -127,7 +127,7 @@ class Recipe extends OrderedWithSubgroup {
       order: json['order'] ?? '',
       mainProduct: json['main_product'],
       subgroup: json['subgroup'],
-      icons: IconData.fromTopLevelJson(json),
+      icons: IconData.fromTopLevelJson(json, 64),
       energyRequired: json['energy_required']?.toDouble() ?? 0.5,
       maximumProductivity: json['maximum_productivity']?.toDouble() ?? 3,
       emissionsMultiplier: json['emissions_multiplier']?.toDouble() ?? 1,

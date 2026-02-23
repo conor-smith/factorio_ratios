@@ -5,7 +5,7 @@ class IconData {
   final double iconSize;
   final IconTint tint;
   final Vector shift;
-  final double scale; // TODO - factor in expected icon size
+  final double scale;
   final bool drawBackground;
   final bool floating;
 
@@ -19,37 +19,41 @@ class IconData {
     required this.floating,
   });
 
-  factory IconData.fromJson(Map json, bool isFirst) {
+  factory IconData.fromJson(Map json, double expectedIconSize, bool isFirst) {
     double iconSize = json['icon_size']?.toDouble() ?? 64;
+    double scale = (expectedIconSize / 2) / iconSize;
 
     return IconData._(
       icon: json['icon'],
       iconSize: iconSize,
       tint: IconTint.fromJson(json['tint'] ?? const {}),
       shift: Vector.fromJson(json['shift'] ?? const {}),
-      scale: json['scale']?.toDouble() ?? 1,
+      scale: scale,
       drawBackground: json['draw_background'] ?? isFirst,
       floating: json['floating'] ?? false,
     );
   }
 
-  static List<IconData>? fromTopLevelJson(Map json) {
+  static List<IconData>? fromTopLevelJson(Map json, double expectedIconSize) {
     String? icon = json['icon'];
     List<Map>? iconsJson = (json['icons'] as List?)?.cast();
 
     if (icon != null) {
       return List.unmodifiable([
-        IconData.fromJson({
-          'icon': icon,
-          'icon_size': json['icon_size'] ?? 64,
-        }, true),
+        IconData.fromJson(
+          {'icon': icon, 'icon_size': json['icon_size'] ?? 64},
+          expectedIconSize,
+          true,
+        ),
       ]);
     } else if (iconsJson != null) {
       bool isFirst = true;
       List<IconData> iconDataList = [];
 
       for (var iconDataJson in iconsJson) {
-        iconDataList.add(IconData.fromJson(iconDataJson, isFirst));
+        iconDataList.add(
+          IconData.fromJson(iconDataJson, expectedIconSize, isFirst),
+        );
         isFirst = false;
       }
 
