@@ -60,7 +60,9 @@ class FactorioRatiosApp extends StatelessWidget {
         width: 1024,
         height: 1024,
         child: FactorioGroupMenuWidget<Item>(
-          items: factorioDb.itemMap.values.toList(),
+          items: factorioDb.itemMap.values
+              .where((item) => !item.hidden)
+              .toList(),
           onSelected: (item) => print(item),
         ),
       ),

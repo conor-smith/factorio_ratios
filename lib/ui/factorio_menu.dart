@@ -8,11 +8,16 @@ class FactorioGroupMenuWidget<T extends OrderedWithSubgroup>
     extends StatefulWidget {
   final List<T> items;
   final Function(T item) onSelected;
+  // TODO - Set bounds on these values
+  final double width;
+  final double height;
 
   const FactorioGroupMenuWidget({
     super.key,
     required this.items,
     required this.onSelected,
+    this.height = 1000,
+    this.width = 1000,
   });
 
   @override
@@ -54,20 +59,20 @@ class _FactorioGroupMenuWidgetState<T extends OrderedWithSubgroup>
       );
 
       itemGroupWidgets[group] = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: subgroups.values
             .map(
               (items) => Row(
                 children: items
                     .map(
-                      (item) => SizedBox(
-                        width: 64,
-                        height: 64,
-                        child: TextButton(
-                          onPressed: () => widget.onSelected(item),
-                          child: Container(
-                            decoration: BoxDecoration(border: Border.all()),
-                            width: 64,
-                            height: 64,
+                      (item) => TextButton(
+                        onPressed: () => widget.onSelected(item),
+                        child: Container(
+                          decoration: BoxDecoration(border: Border.all()),
+                          width: 64,
+                          height: 64,
+                          child: Tooltip(
+                            message: item.name,
                             child: getIconWidget(item.icon, 64),
                           ),
                         ),
@@ -84,9 +89,19 @@ class _FactorioGroupMenuWidgetState<T extends OrderedWithSubgroup>
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(children: itemGroupButtons),
-        itemGroupWidgets[selectedGroup]!,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: itemGroupButtons),
+        ),
+        SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: itemGroupWidgets[selectedGroup]!,
+          ),
+        ),
       ],
     );
   }
