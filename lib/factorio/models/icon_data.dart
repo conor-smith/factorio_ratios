@@ -1,7 +1,7 @@
 part of '../models.dart';
 
 class IconData {
-  final String? icon;
+  final String icon;
   final double iconSize;
   final IconTint tint;
   final Vector shift;
@@ -23,14 +23,37 @@ class IconData {
     double iconSize = json['icon_size']?.toDouble() ?? 64;
     double scale = (expectedIconSize / 2) / iconSize;
 
+    IconTint tint = json['tint'] != null
+        ? IconTint.fromJson(json['tint'])
+        : IconTint.defaultIconTint;
+    Vector shift = json['shift'] != null
+        ? Vector.fromJson(json['shift'])
+        : Vector.defaultVector;
+
     return IconData._(
       icon: json['icon'],
       iconSize: iconSize,
-      tint: IconTint.fromJson(json['tint'] ?? const {}),
-      shift: Vector.fromJson(json['shift'] ?? const {}),
+      tint: tint,
+      shift: shift,
       scale: scale,
       drawBackground: json['draw_background'] ?? isFirst,
       floating: json['floating'] ?? false,
+    );
+  }
+
+  factory IconData._fromSingleIcon(
+    String path,
+    double expectedIconSize,
+    double iconSize,
+  ) {
+    return IconData._(
+      icon: path,
+      iconSize: iconSize,
+      tint: IconTint.defaultIconTint,
+      shift: Vector.defaultVector,
+      scale: (expectedIconSize / 2) / iconSize,
+      drawBackground: true,
+      floating: false,
     );
   }
 
@@ -40,10 +63,10 @@ class IconData {
 
     if (icon != null) {
       return List.unmodifiable([
-        IconData.fromJson(
-          {'icon': icon, 'icon_size': json['icon_size'] ?? 64},
+        IconData._fromSingleIcon(
+          icon,
           expectedIconSize,
-          true,
+          json['icon_size']?.toDouble() ?? 64,
         ),
       ]);
     } else if (iconsJson != null) {
@@ -70,20 +93,35 @@ class IconTint {
   final double b;
   final double a;
 
-  IconTint._({
+  static const IconTint defaultIconTint = IconTint._(r: 0, g: 0, b: 0, a: 1);
+
+  const IconTint._({
     required this.r,
     required this.g,
     required this.b,
     required this.a,
   });
 
-  factory IconTint.fromJson(Map json) {
-    return IconTint._(
-      r: json['r']?.toDouble() ?? 0,
-      g: json['g']?.toDouble() ?? 0,
-      b: json['b']?.toDouble() ?? 0,
-      a: json['a']?.toDouble() ?? 1,
-    );
+  factory IconTint.fromJson(dynamic json) {
+    if (json is Map) {
+      return IconTint._(
+        r: json['r']?.toDouble() ?? 0,
+        g: json['g']?.toDouble() ?? 0,
+        b: json['b']?.toDouble() ?? 0,
+        a: json['a']?.toDouble() ?? 1,
+      );
+    } else {
+      List jsonList = json as List;
+
+      double alpha = jsonList.length == 4 ? jsonList[3].toDouble() : 1;
+
+      return IconTint._(
+        r: jsonList[0].toDouble(),
+        g: jsonList[1].toDouble(),
+        b: jsonList[2].toDouble(),
+        a: alpha,
+      );
+    }
   }
 }
 
@@ -91,12 +129,20 @@ class Vector {
   final double x;
   final double y;
 
-  Vector._({required this.x, required this.y});
+  static const defaultVector = Vector._(x: 0, y: 0);
 
-  factory Vector.fromJson(Map json) {
-    return Vector._(
-      x: json['x']?.toDouble() ?? 0,
-      y: json['y']?.toDouble() ?? 0,
-    );
+  const Vector._({required this.x, required this.y});
+
+  factory Vector.fromJson(dynamic json) {
+    if (json is Map) {
+      return Vector._(
+        x: json['x']?.toDouble() ?? 0,
+        y: json['y']?.toDouble() ?? 0,
+      );
+    } else {
+      List jsonList = json as List;
+
+      return Vector._(x: jsonList[0].toDouble(), y: jsonList[1].toDouble());
+    }
   }
 }

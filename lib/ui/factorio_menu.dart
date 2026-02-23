@@ -73,7 +73,7 @@ class _FactorioGroupMenuWidgetState<T extends OrderedWithSubgroup>
                           height: 64,
                           child: Tooltip(
                             message: item.name,
-                            child: getIconWidget(item.icon, 64),
+                            child: getIcon(item, 64),
                           ),
                         ),
                       ),

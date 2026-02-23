@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:factorio_ratios/factorio/models.dart';
 import 'package:flutter/material.dart';
 
 // TODO - Get working with MacOS and Windows
@@ -8,48 +9,54 @@ final String _homeDir = Platform.environment['HOME']!;
 // TODO - Account for path to mods
 const String _factorioFilesPath =
     '/.local/share/Steam/steamapps/common/Factorio/data/';
+const String _unknownImage = '__core__/graphics/icons/unknown.png';
 
-final Map<_PathAndSize, Widget> _pathToImage = {};
+Widget getIcon(HasIcon hasIcon, double sizeToDisplay) {
+  List<Widget> imageWidgets;
 
-Widget getIconWidget(String? path, double size) {
-  path ??= '__core__/graphics/icons/unknown.png';
-
-  return _pathToImage.putIfAbsent(_PathAndSize(path, size), () {
-    int firstSlash = path!.indexOf('/');
-    String iconPath =
-        _homeDir +
-        _factorioFilesPath +
-        path.substring(0, firstSlash).replaceAll('__', '') +
-        path.substring(firstSlash);
-
-    // TODO - Account for larger images
-    return ClipRRect(
-      child: Image.file(
-        File(iconPath),
-        height: size,
-        width: size,
-        fit: BoxFit.none,
-        alignment: Alignment.topLeft,
+  // TODO - account for 'shift'
+  // TODO - account for 'renderBackground'
+  // TODO - account for 'floating'
+  if (hasIcon.icons == null) {
+    imageWidgets = [
+      Image.file(
+        File(_buildFullFilePath(_unknownImage)),
+        scale: sizeToDisplay / 64,
       ),
-    );
-  });
-}
+    ];
+  } else {
+    imageWidgets = hasIcon.icons!.map((iconData) {
+      double widgetScale = iconData.scale * (sizeToDisplay / iconData.iconSize);
 
-class _PathAndSize {
-  final String path;
-  final double size;
-
-  _PathAndSize(this.path, this.size);
-
-  @override
-  bool operator ==(Object other) {
-    if (other is _PathAndSize) {
-      return other.path == path && other.size == size;
-    } else {
-      return false;
-    }
+      return Image.file(
+        File(_buildFullFilePath(iconData.icon)),
+        scale: widgetScale,
+        // color: Color.from(
+        //   alpha: iconData.tint.a,
+        //   red: iconData.tint.r,
+        //   green: iconData.tint.g,
+        //   blue: iconData.tint.b,
+        // ),
+        fit: BoxFit.none,
+        alignment: AlignmentGeometry.topLeft,
+      );
+    }).toList();
   }
 
-  @override
-  int get hashCode => path.hashCode + size.ceil();
+  Widget fullImageWidget;
+  if (imageWidgets.length == 1) {
+    fullImageWidget = imageWidgets.first;
+  } else {
+    fullImageWidget = Stack(fit: StackFit.passthrough, children: imageWidgets);
+  }
+
+  return fullImageWidget;
+}
+
+String _buildFullFilePath(String partialPath) {
+  int firstSlash = partialPath.indexOf('/');
+  return _homeDir +
+      _factorioFilesPath +
+      partialPath.substring(0, firstSlash).replaceAll('__', '') +
+      partialPath.substring(firstSlash);
 }
