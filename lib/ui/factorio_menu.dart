@@ -1,19 +1,17 @@
 import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/models.dart';
-import 'package:factorio_ratios/ui/db_widget_map.dart';
+import 'package:factorio_ratios/ui/icon_widgets.dart';
 import 'package:flutter/material.dart';
 
 class FactorioGroupMenuWidget<T extends OrderedWithSubgroup>
     extends StatefulWidget {
   final List<T> items;
-  final FactorioWidgetMap widgetMap;
   final Function(T item) onSelected;
 
   const FactorioGroupMenuWidget({
     super.key,
     required this.items,
-    required this.widgetMap,
     required this.onSelected,
   });
 
@@ -68,7 +66,9 @@ class _FactorioGroupMenuWidgetState<T extends OrderedWithSubgroup>
                           onPressed: () => widget.onSelected(item),
                           child: Container(
                             decoration: BoxDecoration(border: Border.all()),
-                            child: widget.widgetMap[item],
+                            width: 64,
+                            height: 64,
+                            child: getIconWidget(item.icon, 64),
                           ),
                         ),
                       ),

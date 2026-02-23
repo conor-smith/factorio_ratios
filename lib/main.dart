@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:factorio_ratios/factorio/models.dart';
-import 'package:factorio_ratios/ui/db_widget_map.dart';
+import 'package:factorio_ratios/ui/icon_widgets.dart';
 import 'package:factorio_ratios/ui/factorio_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
@@ -50,10 +50,8 @@ class MainApp extends StatelessWidget {
 
 class FactorioRatiosApp extends StatelessWidget {
   final FactorioDatabase factorioDb;
-  final FactorioWidgetMap widgetMap;
 
-  FactorioRatiosApp({super.key, required this.factorioDb})
-    : widgetMap = FactorioWidgetMap(factorioDb);
+  const FactorioRatiosApp({super.key, required this.factorioDb});
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +61,6 @@ class FactorioRatiosApp extends StatelessWidget {
         height: 1024,
         child: FactorioGroupMenuWidget<Item>(
           items: factorioDb.itemMap.values.toList(),
-          widgetMap: widgetMap,
           onSelected: (item) => print(item),
         ),
       ),
