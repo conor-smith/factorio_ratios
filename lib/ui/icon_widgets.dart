@@ -10,52 +10,43 @@ final String _homeDir = Platform.environment['HOME']!;
 const String _factorioFilesPath =
     '/.local/share/Steam/steamapps/common/Factorio/data/';
 
-final Map<_IconAndSize, FactorioIconWidget> _iconWidgetMap = {};
-
 class FactorioIconWidget extends StatelessWidget {
   final HasIcon icon;
   final double size;
-  final Widget _widget;
+  final BoxDecoration? decoration;
 
-  factory FactorioIconWidget({required HasIcon hasIcon, required double size}) {
-    return _iconWidgetMap.putIfAbsent(_IconAndSize(hasIcon, size), () {
-      double scaleMultiplier =
-          size / (hasIcon.expectedIconSize * hasIcon.defaultScale);
-
-      List<IconData> icons =
-          hasIcon.icons ?? [IconData.unknownIcon(hasIcon.expectedIconSize)];
-
-      Widget finalWidget = Container(
-        width: size,
-        height: size,
-        clipBehavior: Clip.none,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: icons
-              .map(
-                (iconData) =>
-                    _createWidgetFromIconData(iconData, scaleMultiplier, size),
-              )
-              .toList(),
-        ),
-      );
-
-      return FactorioIconWidget._(
-        icon: hasIcon,
-        size: size,
-        widget: finalWidget,
-      );
-    });
-  }
-
-  const FactorioIconWidget._({
+  const FactorioIconWidget({
+    super.key,
     required this.icon,
     required this.size,
-    required Widget widget,
-  }) : _widget = widget;
+    this.decoration,
+  });
 
   @override
-  Widget build(BuildContext context) => _widget;
+  Widget build(BuildContext context) {
+    double scaleMultiplier = size / (icon.expectedIconSize * icon.defaultScale);
+
+    List<IconData> icons =
+        icon.icons ?? [IconData.unknownIcon(icon.expectedIconSize)];
+
+    List<Widget> iconWidgets = [];
+    if (decoration != null) {
+      iconWidgets.add(Container(decoration: decoration));
+    }
+
+    for (var iconData in icons) {
+      iconWidgets.add(
+        _createWidgetFromIconData(iconData, scaleMultiplier, size),
+      );
+    }
+
+    return Container(
+      width: size,
+      height: size,
+      clipBehavior: Clip.none,
+      child: Stack(clipBehavior: Clip.none, children: iconWidgets),
+    );
+  }
 }
 
 String _buildFullFilePath(String partialPath) {
@@ -102,20 +93,6 @@ Widget _createWidgetFromIconData(
       child: imageWidget,
     ),
   );
-}
-
-class _IconAndSize {
-  final HasIcon hasIcon;
-  final double size;
-
-  _IconAndSize(this.hasIcon, this.size);
-
-  @override
-  bool operator ==(Object other) =>
-      other is _IconAndSize && other.hasIcon == hasIcon && other.size == size;
-
-  @override
-  int get hashCode => hasIcon.hashCode + size.ceil();
 }
 
 class _CustomRectClipper extends CustomClipper<Rect> {
