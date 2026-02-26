@@ -76,15 +76,11 @@ class IconData {
         ),
       ]);
     } else if (iconsJson != null) {
-      bool isFirst = true;
-      List<IconData> iconDataList = [];
-
-      for (var iconDataJson in iconsJson) {
-        iconDataList.add(IconData.fromJson(iconDataJson, expectedIconSize));
-        isFirst = false;
-      }
-
-      return List.unmodifiable(iconDataList);
+      return List.unmodifiable(
+        iconsJson.map(
+          (iconDataJson) => IconData.fromJson(iconDataJson, expectedIconSize),
+        ),
+      );
     } else {
       return null;
     }
