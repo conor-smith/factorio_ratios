@@ -1,6 +1,9 @@
 part of '../models.dart';
 
 abstract class Item extends OrderedWithSubgroup {
+  static const double _expectedIconSize = 64;
+  static const double _defaultScale = _expectedIconSize / 2;
+
   final FactorioDatabase factorioDb;
 
   @override
@@ -8,10 +11,15 @@ abstract class Item extends OrderedWithSubgroup {
   @override
   final String order;
   @override
-  final List<IconData>? icons;
-  @override
   late final ItemSubgroup? subgroup =
       factorioDb.itemSubgroupMap[_subgroupString];
+
+  @override
+  final List<IconData>? icons;
+  @override
+  double get expectedIconSize => _expectedIconSize;
+  @override
+  double get defaultScale => _defaultScale;
 
   final String type;
   final String localisedName;
@@ -106,7 +114,7 @@ class SolidItem extends Item {
         fuelValue: _convertStringToEnergy(json['fuel_value']),
         subgroup: json['subgroup'],
         order: json['order'] ?? '',
-        icons: IconData.fromTopLevelJson(json, 64),
+        icons: IconData.fromTopLevelJson(json, Item._expectedIconSize),
         hidden: json['hidden'] ?? false,
         stackSize: json['stack_size'],
         spoilTicks: json['spoil_ticks'],
@@ -149,7 +157,7 @@ class FluidItem extends Item {
         localisedName: Item._getLocalisedName(json),
         order: json['order'] ?? '',
         subgroup: json['subgroup'],
-        icons: IconData.fromTopLevelJson(json, 64),
+        icons: IconData.fromTopLevelJson(json, Item._expectedIconSize),
         hidden: json['hidden'] ?? false,
         defaultTemperature: json['default_temperature'].toDouble(),
         heatCapacity: _convertStringToEnergy(json['heat_capacity']) ?? 1000,

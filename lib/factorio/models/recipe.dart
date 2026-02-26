@@ -1,6 +1,9 @@
 part of '../models.dart';
 
 class Recipe extends OrderedWithSubgroup {
+  static const double _expectedIconSize = 64;
+  static const double _defaultScale = _expectedIconSize / 2;
+
   final FactorioDatabase factorioDb;
 
   @override
@@ -11,6 +14,10 @@ class Recipe extends OrderedWithSubgroup {
   late final ItemSubgroup? subgroup = _determineSubGroup();
   @override
   late final List<IconData>? icons = _icons ?? mainProduct?.icons;
+  @override
+  double get expectedIconSize => _expectedIconSize;
+  @override
+  double get defaultScale => _defaultScale;
 
   final List<String> categories;
   final double energyRequired;
@@ -127,7 +134,7 @@ class Recipe extends OrderedWithSubgroup {
       order: json['order'] ?? '',
       mainProduct: json['main_product'],
       subgroup: json['subgroup'],
-      icons: IconData.fromTopLevelJson(json, 64),
+      icons: IconData.fromTopLevelJson(json, Recipe._expectedIconSize),
       energyRequired: json['energy_required']?.toDouble() ?? 0.5,
       maximumProductivity: json['maximum_productivity']?.toDouble() ?? 3,
       emissionsMultiplier: json['emissions_multiplier']?.toDouble() ?? 1,

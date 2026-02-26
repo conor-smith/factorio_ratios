@@ -6,22 +6,21 @@ class IconData {
   final IconTint tint;
   final Vector shift;
   final double scale;
-  final bool drawBackground;
   final bool floating;
 
-  IconData._({
+  const IconData._({
     required this.icon,
     required this.iconSize,
     required this.tint,
     required this.shift,
     required this.scale,
-    required this.drawBackground,
     required this.floating,
   });
 
-  factory IconData.fromJson(Map json, double expectedIconSize, bool isFirst) {
+  factory IconData.fromJson(Map json, double expectedIconSize) {
     double iconSize = json['icon_size']?.toDouble() ?? 64;
-    double scale = (expectedIconSize / 2) / iconSize;
+    // default scale is 0.5 for icons
+    double scale = json['scale'] ?? (expectedIconSize / 2) / iconSize;
 
     IconTint tint = json['tint'] != null
         ? IconTint.fromJson(json['tint'])
@@ -36,7 +35,6 @@ class IconData {
       tint: tint,
       shift: shift,
       scale: scale,
-      drawBackground: json['draw_background'] ?? isFirst,
       floating: json['floating'] ?? false,
     );
   }
@@ -45,17 +43,23 @@ class IconData {
     String path,
     double expectedIconSize,
     double iconSize,
-  ) {
-    return IconData._(
-      icon: path,
-      iconSize: iconSize,
-      tint: IconTint.defaultIconTint,
-      shift: Vector.defaultVector,
-      scale: (expectedIconSize / 2) / iconSize,
-      drawBackground: true,
-      floating: false,
-    );
-  }
+  ) => IconData._(
+    icon: path,
+    iconSize: iconSize,
+    tint: IconTint.defaultIconTint,
+    shift: Vector.defaultVector,
+    scale: (expectedIconSize / 2) / iconSize,
+    floating: false,
+  );
+
+  factory IconData.unknownIcon(double expectedIconSize) => IconData._(
+    icon: '__core__/graphics/icons/unknown.png',
+    iconSize: 64,
+    tint: IconTint.defaultIconTint,
+    shift: Vector.defaultVector,
+    scale: (expectedIconSize / 2) / 64,
+    floating: false,
+  );
 
   static List<IconData>? fromTopLevelJson(Map json, double expectedIconSize) {
     String? icon = json['icon'];
@@ -74,9 +78,7 @@ class IconData {
       List<IconData> iconDataList = [];
 
       for (var iconDataJson in iconsJson) {
-        iconDataList.add(
-          IconData.fromJson(iconDataJson, expectedIconSize, isFirst),
-        );
+        iconDataList.add(IconData.fromJson(iconDataJson, expectedIconSize));
         isFirst = false;
       }
 
@@ -144,5 +146,10 @@ class Vector {
 
       return Vector._(x: jsonList[0].toDouble(), y: jsonList[1].toDouble());
     }
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is Vector && other.x == x && other.y == y;
   }
 }

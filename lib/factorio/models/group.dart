@@ -1,6 +1,9 @@
 part of '../models.dart';
 
 class ItemGroup extends Ordered implements HasIcon {
+  static const double _expectedIconSize = 128;
+  static const double _defaultScale = _expectedIconSize / 2;
+
   final FactorioDatabase factorioDb;
 
   @override
@@ -9,6 +12,10 @@ class ItemGroup extends Ordered implements HasIcon {
   final String order;
   @override
   final List<IconData>? icons;
+  @override
+  double get expectedIconSize => _expectedIconSize;
+  @override
+  double get defaultScale => _defaultScale / 2;
 
   ItemGroup._({
     required this.factorioDb,
@@ -22,6 +29,6 @@ class ItemGroup extends Ordered implements HasIcon {
         factorioDb: factorioDb,
         name: json['name'],
         order: json['order'],
-        icons: IconData.fromTopLevelJson(json, 128),
+        icons: IconData.fromTopLevelJson(json, ItemGroup._expectedIconSize),
       );
 }

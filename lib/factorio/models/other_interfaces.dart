@@ -18,4 +18,6 @@ abstract class OrderedWithSubgroup extends Ordered implements HasIcon {
 
 abstract class HasIcon {
   List<IconData>? get icons;
+  double get expectedIconSize;
+  double get defaultScale;
 }
