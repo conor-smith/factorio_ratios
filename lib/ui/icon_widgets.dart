@@ -70,9 +70,14 @@ Widget _createWidgetFromIconData(
     File(_buildFullFilePath(iconData.icon)),
     scale: finalScale,
     fit: BoxFit.none,
-    opacity: iconData.tint.a == 1
-        ? null
-        : AlwaysStoppedAnimation(iconData.tint.a),
+    color: Color.from(
+      alpha: 1,
+      red: iconData.tint.r,
+      green: iconData.tint.g,
+      blue: iconData.tint.b,
+    ),
+    opacity: AlwaysStoppedAnimation(iconData.tint.a),
+    colorBlendMode: BlendMode.modulate,
   );
 
   double offsetX = (finalSize - size + iconData.shift.x) * finalScale;
@@ -81,8 +86,6 @@ Widget _createWidgetFromIconData(
   return Positioned(
     top: -offsetX,
     left: -offsetY,
-    height: finalSize,
-    width: finalSize,
     child: ClipRect(
       clipper: _CustomRectClipper(
         Rect.fromPoints(
@@ -106,7 +109,5 @@ class _CustomRectClipper extends CustomClipper<Rect> {
   }
 
   @override
-  bool shouldReclip(covariant _CustomRectClipper oldClipper) {
-    return true;
-  }
+  bool shouldReclip(covariant _CustomRectClipper oldClipper) => false;
 }

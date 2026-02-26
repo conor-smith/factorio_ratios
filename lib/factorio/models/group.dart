@@ -2,7 +2,8 @@ part of '../models.dart';
 
 class ItemGroup extends Ordered implements HasIcon {
   static const double _expectedIconSize = 128;
-  static const double _defaultScale = _expectedIconSize / 2;
+  static const double _defaultScale =
+      (_expectedIconSize / 2) / _expectedIconSize;
 
   final FactorioDatabase factorioDb;
 

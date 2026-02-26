@@ -8,6 +8,8 @@ class IconData {
   final double scale;
   final bool floating;
 
+  static const IconTint defaultIconTint = IconTint._(r: 1, g: 1, b: 1, a: 1);
+
   const IconData._({
     required this.icon,
     required this.iconSize,
@@ -24,7 +26,7 @@ class IconData {
 
     IconTint tint = json['tint'] != null
         ? IconTint.fromJson(json['tint'])
-        : IconTint.defaultIconTint;
+        : IconData.defaultIconTint;
     Vector shift = json['shift'] != null
         ? Vector.fromJson(json['shift'])
         : Vector.defaultVector;
@@ -46,7 +48,7 @@ class IconData {
   ) => IconData._(
     icon: path,
     iconSize: iconSize,
-    tint: IconTint.defaultIconTint,
+    tint: IconData.defaultIconTint,
     shift: Vector.defaultVector,
     scale: (expectedIconSize / 2) / iconSize,
     floating: false,
@@ -55,7 +57,7 @@ class IconData {
   factory IconData.unknownIcon(double expectedIconSize) => IconData._(
     icon: '__core__/graphics/icons/unknown.png',
     iconSize: 64,
-    tint: IconTint.defaultIconTint,
+    tint: IconData.defaultIconTint,
     shift: Vector.defaultVector,
     scale: (expectedIconSize / 2) / 64,
     floating: false,
@@ -94,8 +96,6 @@ class IconTint {
   final double g;
   final double b;
   final double a;
-
-  static const IconTint defaultIconTint = IconTint._(r: 0, g: 0, b: 0, a: 1);
 
   const IconTint._({
     required this.r,
@@ -146,10 +146,5 @@ class Vector {
 
       return Vector._(x: jsonList[0].toDouble(), y: jsonList[1].toDouble());
     }
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is Vector && other.x == x && other.y == y;
   }
 }
