@@ -3,34 +3,78 @@ part of '../production_line.dart';
 // Acts as a "magic" line, consuming / producing all requirements with no buildings
 // Used to represent natural resources or disposal
 class MagicLine implements ProductionLine {
-  final Map<ItemData, double> _totalIoPerSecond;
+  final Map<ItemData, double> _totalIoPerSecond = {};
+  final Set<ItemData> _allInputs;
+  final Set<ItemData> _allOutputs;
 
+  @override
+  late final Set<ItemData> allInputs = UnmodifiableSetView(_allInputs);
+  @override
+  late final Set<ItemData> allOutputs = UnmodifiableSetView(_allOutputs);
   @override
   late final Map<ItemData, double> totalIoPerSecond = UnmodifiableMapView(
     _totalIoPerSecond,
   );
 
-  MagicLine({Map<ItemData, double> initialIo = const {}})
-    : _totalIoPerSecond = Map.from(initialIo);
-
-  @override
-  Set<ItemData> get allInputs => Set.unmodifiable(
-    _totalIoPerSecond.entries
-        .where((entry) => entry.value < 0)
-        .map((entry) => entry.key),
-  );
-
-  @override
-  Set<ItemData> get allOutputs => Set.unmodifiable(
-    _totalIoPerSecond.entries
-        .where((entry) => entry.value > 0)
-        .map((entry) => entry.key),
-  );
+  MagicLine({required Set<ItemData> inputs, required Set<ItemData> outputs})
+    : _allInputs = Set.from(inputs),
+      _allOutputs = Set.from(outputs);
 
   @override
   void update(Map<ItemData, double> requirements) {
+    requirements.forEach((itemData, amount) {
+      if (amount > 0 && !_allOutputs.contains(itemData)) {
+        throw FactorioException(
+          '"$itemData" is not an output of this production line',
+        );
+      } else if (amount < 0 && !_allInputs.contains(itemData)) {
+        throw FactorioException(
+          '"$itemData" is not an input of this production line',
+        );
+      }
+    });
+
+    var allIo = {..._allInputs, ..._allOutputs};
+    for (var io in allIo) {
+      if (!requirements.containsKey(io)) {
+        throw FactorioException('Input/output amount for "$io" not specified');
+      }
+    }
+
     _totalIoPerSecond.clear();
     _totalIoPerSecond.addAll(requirements);
+  }
+
+  void addOutputs(Set<ItemData> items) {
+    for (var output in items) {
+      if (_allInputs.contains(output)) {
+        throw FactorioException(
+          '"$output" is an input and cannot be added to outputs',
+        );
+      }
+    }
+
+    _allOutputs.addAll(items);
+  }
+
+  void removeOutputs(Set<ItemData> items) {
+    _allOutputs.removeAll(items);
+  }
+
+  void addInputs(Set<ItemData> items) {
+    for (var input in items) {
+      if (_allOutputs.contains(input)) {
+        throw FactorioException(
+          '"$input" is an output and cannot be added to inputs',
+        );
+      }
+    }
+
+    _allInputs.addAll(items);
+  }
+
+  void removeInputs(Set<ItemData> items) {
+    _allInputs.removeAll(items);
   }
 
   @override
