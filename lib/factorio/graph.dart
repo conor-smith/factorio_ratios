@@ -96,7 +96,7 @@ class PlanetaryBase extends ProductionLine {
           parentGraph: this,
           type: NodeType.output,
           initialRequirements: {itemD: -1},
-          line: MagicLine(initialIo: {itemD: -1}),
+          line: MagicLine(inputs: {itemD}),
         );
 
         _allOutputs.add(itemD);
@@ -138,7 +138,7 @@ class PlanetaryBase extends ProductionLine {
             parentGraph: this,
             type: NodeType.resource,
             initialRequirements: {itemD: 1},
-            line: MagicLine(initialIo: {itemD: 1}),
+            line: MagicLine(outputs: {itemD}),
           );
 
           updates.newNodes.add(childNode);

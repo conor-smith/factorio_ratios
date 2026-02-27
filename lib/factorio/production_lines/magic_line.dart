@@ -16,7 +16,7 @@ class MagicLine implements ProductionLine {
     _totalIoPerSecond,
   );
 
-  MagicLine({required Set<ItemData> inputs, required Set<ItemData> outputs})
+  MagicLine({Set<ItemData> inputs = const {}, Set<ItemData> outputs = const {}})
     : _allInputs = Set.from(inputs),
       _allOutputs = Set.from(outputs);
 
