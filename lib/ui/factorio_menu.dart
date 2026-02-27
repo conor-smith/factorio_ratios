@@ -61,11 +61,7 @@ class _FactorioGroupMenuWidgetState<T extends OrderedWithSubgroup>
                     onPressed: () => widget.onSelected(item),
                     child: Tooltip(
                       message: item.name,
-                      child: FactorioIconWidget(
-                        icon: item,
-                        size: 64,
-                        decoration: BoxDecoration(border: Border.all()),
-                      ),
+                      child: FactorioIconWidget(icon: item, size: 64),
                     ),
                   ),
                 )

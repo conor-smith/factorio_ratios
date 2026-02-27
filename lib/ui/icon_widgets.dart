@@ -13,14 +13,8 @@ const String _factorioFilesPath =
 class FactorioIconWidget extends StatelessWidget {
   final HasIcon icon;
   final double size;
-  final BoxDecoration? decoration;
 
-  const FactorioIconWidget({
-    super.key,
-    required this.icon,
-    required this.size,
-    this.decoration,
-  });
+  const FactorioIconWidget({super.key, required this.icon, required this.size});
 
   @override
   Widget build(BuildContext context) {
@@ -29,16 +23,12 @@ class FactorioIconWidget extends StatelessWidget {
     List<IconData> icons =
         icon.icons ?? [IconData.unknownIcon(icon.expectedIconSize)];
 
-    List<Widget> iconWidgets = [];
-    if (decoration != null) {
-      iconWidgets.add(Container(decoration: decoration));
-    }
-
-    for (var iconData in icons) {
-      iconWidgets.add(
-        _createWidgetFromIconData(iconData, scaleMultiplier, size),
-      );
-    }
+    List<Widget> iconWidgets = icons
+        .map(
+          (iconData) =>
+              _createWidgetFromIconData(iconData, scaleMultiplier, size),
+        )
+        .toList();
 
     return Container(
       width: size,
