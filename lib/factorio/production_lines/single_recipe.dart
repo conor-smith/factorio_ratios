@@ -98,6 +98,8 @@ class SingleRecipeLine extends ProductionLine {
 
   @override
   void update(Map<ItemData, double> requirements) {
+    super.update(requirements);
+
     double machinesRequired = 0;
     requirements.forEach((itemD, requiredAmount) {
       if (requiredAmount > 0 && !allOutputs.contains(itemD)) {
