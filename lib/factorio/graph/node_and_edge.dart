@@ -1,7 +1,7 @@
 part of '../graph.dart';
 
 class ProdLineNode {
-  final PlanetaryBase parentGraph;
+  final BaseGraph parentGraph;
   NodeType _type;
   ProductionLine _line;
   final Map<ItemData, double> _requirements;
@@ -39,50 +39,6 @@ class ProdLineNode {
   Map<ItemData, double> get totalIoPerSecond => _line.totalIoPerSecond;
   void update(Map<ItemData, double> requirements) => _line.update(requirements);
 
-  GraphUpdates updateInternals({NodeType? newType, ProductionLine? newLine}) {
-    newType ??= _type;
-    newLine ??= _line;
-
-    // Validate update
-    if (newType != _type) {
-      switch (_type) {
-        case NodeType.output:
-          if (newType != NodeType.output) {
-            throw const FactorioException(
-              'Cannot convert output node to other node type',
-            );
-          }
-        case NodeType.resource:
-        case NodeType.input:
-        case NodeType.productionLine:
-          if (newType == NodeType.output) {
-            throw const FactorioException(
-              'Cannot convert non output node to to output node',
-            );
-          }
-      }
-    }
-
-    if (newLine != _line) {
-      var requiredOutputs = parents
-          .where(
-            (edge) => edge.flowDirection == ItemFlowDirection.childToParent,
-          )
-          .map((edge) => edge.item);
-
-      if (!newLine.allOutputs.containsAll(requiredOutputs)) {
-        throw const FactorioException(
-          'New production line does not output all required items',
-        );
-      }
-    }
-
-    _line = newLine;
-    _type = newType;
-
-    return parentGraph._updateEdgesForNode(this);
-  }
-
   void _removeFromGraph() {
     parentGraph._nodes.remove(this);
 
@@ -103,7 +59,7 @@ class ProdLineNode {
 }
 
 class DirectedEdge {
-  final PlanetaryBase parentGraph;
+  final BaseGraph parentGraph;
   final ItemData item;
   final ProdLineNode parent;
   final ProdLineNode child;

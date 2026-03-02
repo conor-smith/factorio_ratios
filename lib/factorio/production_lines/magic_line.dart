@@ -2,7 +2,7 @@ part of '../production_line.dart';
 
 // Acts as a "magic" line, consuming / producing all requirements with no buildings
 // Used to represent natural resources or disposal
-class MagicLine implements ProductionLine {
+class MagicLine extends ProductionLine {
   final Map<ItemData, double> _totalIoPerSecond = {};
   final Set<ItemData> _allInputs;
   final Set<ItemData> _allOutputs;
@@ -22,24 +22,7 @@ class MagicLine implements ProductionLine {
 
   @override
   void update(Map<ItemData, double> requirements) {
-    requirements.forEach((itemData, amount) {
-      if (amount > 0 && !_allOutputs.contains(itemData)) {
-        throw FactorioException(
-          '"$itemData" is not an output of this production line',
-        );
-      } else if (amount < 0 && !_allInputs.contains(itemData)) {
-        throw FactorioException(
-          '"$itemData" is not an input of this production line',
-        );
-      }
-    });
-
-    var allIo = {..._allInputs, ..._allOutputs};
-    for (var io in allIo) {
-      if (!requirements.containsKey(io)) {
-        throw FactorioException('Input/output amount for "$io" not specified');
-      }
-    }
+    super.update(requirements);
 
     _totalIoPerSecond.clear();
     _totalIoPerSecond.addAll(requirements);

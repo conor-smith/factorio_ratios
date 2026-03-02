@@ -3,7 +3,7 @@ import 'package:factorio_ratios/factorio/models.dart';
 import 'package:flutter/material.dart';
 
 class GraphUi extends StatefulWidget {
-  final PlanetaryBase base = PlanetaryBase();
+  final BaseGraph base = BaseGraph();
   final FactorioDatabase db;
 
   GraphUi({super.key, required this.db});
@@ -35,15 +35,6 @@ class _GraphUiState extends State<GraphUi> {
       behavior: HitTestBehavior.opaque,
       child: Stack(children: children),
     );
-  }
-
-  void addGraphUpdates(GraphUpdates updates, {double x = 0, double y = 0}) {
-    for (var newNode in updates.newNodes) {
-      var newNodeWidget = NodeWidget(node: newNode, initialX: x, initialY: y);
-
-      children.add(newNodeWidget);
-      y += 120;
-    }
   }
 }
 
