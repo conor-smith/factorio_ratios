@@ -29,14 +29,9 @@ abstract class ProductionLine {
         );
       }
     });
-
-    var allIo = {...inputs, ...outputs};
-    for (var io in allIo) {
-      if (!requirements.containsKey(io)) {
-        throw FactorioException('Input/output amount for "$io" not specified');
-      }
-    }
   }
+
+  void reset();
 
   // Used for determining connections in graphs
   Set<ItemData> get allOutputs;

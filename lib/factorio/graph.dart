@@ -33,5 +33,16 @@ class BaseGraph extends ProductionLine {
   late final Set<ItemData> allOutputs = UnmodifiableSetView(_allOutputs);
 
   @override
-  void update(Map<ItemData, double> requirements) {}
+  void update(Map<ItemData, double> requirements) {
+    super.update(requirements);
+  }
+
+  @override
+  void reset() {
+    for (var node in _nodes) {
+      node.reset();
+    }
+
+    _totalIoPerSecond.clear();
+  }
 }

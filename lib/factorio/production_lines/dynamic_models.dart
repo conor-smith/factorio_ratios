@@ -49,6 +49,7 @@ abstract class ModuledMachineAndRecipe {
   double get totalProductivity;
   double get totalEnergyUsage;
   Map<String, double> get totalEmissionsPerMinute;
+  Map<ItemData, double> get totalIoPerSecond;
 }
 
 class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
@@ -66,9 +67,13 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
   double _totalProductivity;
   double _totalEnergyUsage;
   final Map<String, double> _totalEmissionsPerMinute;
+  final Map<ItemData, double> _totalIoPerSecond;
 
+  // Initially false. Only set to true during first call of .update(...)
   bool _initialised;
 
+  // Immutable instance is cached as there's no need to generate
+  // a new instance if this object is unchanged
   ImmutableModuledMachineAndRecipe? _cachedImmutable;
 
   @override
@@ -87,6 +92,10 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
   late final Map<String, double> totalEmissionsPerMinute = UnmodifiableMapView(
     _totalEmissionsPerMinute,
   );
+  @override
+  late final Map<ItemData, double> totalIoPerSecond = UnmodifiableMapView(
+    _totalIoPerSecond,
+  );
 
   MutableModuledMachineAndRecipe({
     required CraftingMachine craftingMachine,
@@ -97,6 +106,7 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
        _totalProductivity = 0,
        _totalEnergyUsage = 0,
        _totalEmissionsPerMinute = {},
+       _totalIoPerSecond = {},
        _initialised = false {
     update(newRecipe: recipe, newMachine: craftingMachine, newFuel: fuel);
   }
@@ -109,6 +119,7 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
       _totalProductivity = other.totalProductivity,
       _totalEnergyUsage = other.totalEnergyUsage,
       _totalEmissionsPerMinute = Map.from(other.totalEmissionsPerMinute),
+      _totalIoPerSecond = Map.from(other.totalIoPerSecond),
       _initialised = true;
 
   void update({
@@ -116,17 +127,22 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
     CraftingMachine? newMachine,
     ItemData? newFuel,
   }) {
-    bool recipeUpdate = _initialised || newRecipe != _recipe;
-    bool machineUpdate = _initialised || newMachine != _craftingMachine;
-    bool fuelUpdate = _initialised || newFuel != _fuel;
+    // Determine if an update has occurred for each field
+    // If _initialised == false, all fields are considered updated
+    bool recipeUpdate = newRecipe != _recipe || !_initialised;
+    bool machineUpdate = newMachine != _craftingMachine || !_initialised;
+    bool fuelUpdate = newFuel != _fuel || !_initialised;
 
     newRecipe ??= _recipe;
     newMachine ??= _craftingMachine;
 
     _initialised = true;
 
+    // If either fuel or machine has been updated
+    // Check if fuel or lack thereof is compatible
     if (machineUpdate || fuelUpdate) {
       if (newMachine.energySource.type == EnergySourceType.burner) {
+        // Machine requries fuel. Check if fuel is compatible
         newFuel ??= _fuel;
 
         BurnerEnergySource energySource =
@@ -136,19 +152,22 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
           throw FactorioException(
             'Crafting machine "$newMachine" requires fuel',
           );
-        } else if (newFuel.item.type == 'fluid' ||
-            !energySource.fuelItems.contains(newFuel.item)) {
+        } else if (!energySource.fuelItems.contains(newFuel.item)) {
           throw FactorioException(
             'Crafting machine "$newMachine" cannot use item "$newFuel" as fuel',
           );
         }
       } else if (newFuel != null) {
+        // Will only get here if machine does not require fuel
+        // In which case, no fuel should be provided
         throw FactorioException(
           'Crafting machine "$newMachine" does not require fuel',
         );
       }
     }
 
+    // If recipe or fuel have been updated
+    // Check if recipe is compatible with machine
     if ((recipeUpdate || machineUpdate) &&
         newRecipe != null &&
         !newRecipe.craftingMachines.contains(newMachine)) {
@@ -187,8 +206,10 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
   }
 
   void _internalUpdate() {
+    // Clear cached immutable
     _cachedImmutable = null;
 
+    // Do the math
     double fuelEmissionsMultiplier =
         (_fuel as SolidItem?)?.fuelEmissionsMultiplier ?? 1;
     double recipeEmissionsMultiplier = _recipe?.emissionsMultiplier ?? 1;
@@ -206,6 +227,7 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
     double energyMultiplier =
         1 + craftingMachine.effectReceiver.baseEffect.consumption;
 
+    // Multipliers have minimum values. Reset to minimum if lower
     speedMultiplier = speedMultiplier >= 0.2 ? speedMultiplier : 0.2;
     productivityMultiplier = productivityMultiplier >= 1
         ? productivityMultiplier
@@ -225,6 +247,39 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
       (emission, amount) =>
           _totalEmissionsPerMinute[emission] = amount * pollutionMultiplier,
     );
+
+    _totalIoPerSecond.clear();
+
+    if (_recipe != null) {
+      double recipesPerSecond = _recipe!.energyRequired / _totalCraftingSpeed;
+
+      // TODO - Account for quality outputs
+      for (var ingredient in _recipe!.ingredients) {
+        _totalIoPerSecond[ItemData(ingredient.item)] =
+            -ingredient.amount * recipesPerSecond;
+      }
+
+      for (var result in _recipe!.results) {
+        var itemData = ItemData(result.item);
+        var netOutput =
+            result.amount * result.probability * recipesPerSecond -
+            (_totalIoPerSecond[itemData] ?? 0);
+        netOutput = _recipe!.allowProductivity
+            ? netOutput * _totalProductivity
+            : netOutput;
+
+        _totalIoPerSecond[itemData] = netOutput;
+      }
+
+      if (_fuel != null) {
+        double fuelPerSecond = totalEnergyUsage / _fuel!.item.fuelValue!;
+        _totalIoPerSecond.update(
+          _fuel!,
+          (amount) => amount - fuelPerSecond,
+          ifAbsent: () => -fuelPerSecond,
+        );
+      }
+    }
   }
 }
 
@@ -244,6 +299,8 @@ class ImmutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
   final double totalEnergyUsage;
   @override
   final Map<String, double> totalEmissionsPerMinute;
+  @override
+  final Map<ItemData, double> totalIoPerSecond;
 
   ImmutableModuledMachineAndRecipe._from(MutableModuledMachineAndRecipe mutable)
     : craftingMachine = mutable._craftingMachine,
@@ -254,7 +311,8 @@ class ImmutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
       totalEnergyUsage = mutable._totalEnergyUsage,
       totalEmissionsPerMinute = Map.unmodifiable(
         mutable._totalEmissionsPerMinute,
-      );
+      ),
+      totalIoPerSecond = Map.unmodifiable(mutable._totalIoPerSecond);
 
   MutableModuledMachineAndRecipe getMutable() =>
       MutableModuledMachineAndRecipe._from(this);

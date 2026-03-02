@@ -24,6 +24,14 @@ class MagicLine extends ProductionLine {
   void update(Map<ItemData, double> requirements) {
     super.update(requirements);
 
+    // For magic line specifically, all io must be given a requirement
+    var allIo = {..._allInputs, ..._allOutputs};
+    for (var io in allIo) {
+      if (!requirements.containsKey(io)) {
+        throw FactorioException('Input/output amount for "$io" not specified');
+      }
+    }
+
     _totalIoPerSecond.clear();
     _totalIoPerSecond.addAll(requirements);
   }
@@ -80,5 +88,10 @@ class MagicLine extends ProductionLine {
 
   String _convertItemSetToString(Set<ItemData> items) {
     return items.map((item) => item.toString()).reduce((s1, s2) => '$s1, $s2');
+  }
+
+  @override
+  void reset() {
+    _totalIoPerSecond.clear();
   }
 }
