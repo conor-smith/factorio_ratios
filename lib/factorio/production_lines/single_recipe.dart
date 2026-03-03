@@ -9,7 +9,13 @@ class SingleRecipeLine extends ProductionLine {
   @override
   final Set<ItemData> allOutputs;
 
+  final Map<ItemData, double> _requirements;
   final Map<ItemData, double> _totalIoPerSecond;
+
+  @override
+  late final Map<ItemData, double> requirements = UnmodifiableMapView(
+    _requirements,
+  );
   @override
   late final Map<ItemData, double> totalIoPerSecond = UnmodifiableMapView(
     _totalIoPerSecond,
@@ -29,15 +35,16 @@ class SingleRecipeLine extends ProductionLine {
             .map((entry) => entry.key),
       ),
       _totalIoPerSecond = {},
+      _requirements = {},
       _machineAmount = 0;
 
   @override
-  void update(Map<ItemData, double> requirements) {
-    super.update(requirements);
+  void update(Map<ItemData, double> newRequirements) {
+    super.update(newRequirements);
 
     double machineAmount = 0;
 
-    requirements.forEach((itemData, amount) {
+    newRequirements.forEach((itemData, amount) {
       double newMachineAmount = amount / production.totalIoPerSecond[itemData]!;
 
       if (newMachineAmount > machineAmount) {
@@ -49,6 +56,8 @@ class SingleRecipeLine extends ProductionLine {
       (itemData, amount) =>
           _totalIoPerSecond[itemData] = amount * machineAmount,
     );
+    _requirements.clear();
+    _requirements.addAll(newRequirements);
 
     _machineAmount = machineAmount;
   }

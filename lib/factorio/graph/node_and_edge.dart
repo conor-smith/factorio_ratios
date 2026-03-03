@@ -1,7 +1,40 @@
 part of '../graph.dart';
 
+enum NodeType {
+  consumer(allowsInput: true, allowsOutput: false),
+  producer(allowsInput: false, allowsOutput: true),
+  input(allowsInput: false, allowsOutput: true),
+  output(allowsInput: true, allowsOutput: false),
+  productionLine(allowsInput: true, allowsOutput: true);
+
+  final bool allowsInput;
+  final bool allowsOutput;
+
+  const NodeType({required this.allowsInput, required this.allowsOutput});
+
+  bool canChangeTo(NodeType changeTo) => switch (this) {
+    consumer => const {output, productionLine}.contains(changeTo),
+    producer => const {input, productionLine}.contains(changeTo),
+    input => changeTo == producer,
+    output => changeTo == consumer,
+    productionLine => const {producer, consumer}.contains(changeTo),
+  };
+}
+
+enum ItemFlowDirection { parentToChild, childToParent }
+
+enum EdgeType {
+  requestItems(ItemFlowDirection.childToParent),
+  acceptExcess(ItemFlowDirection.childToParent);
+
+  final ItemFlowDirection flowDirection;
+
+  const EdgeType(this.flowDirection);
+}
+
 class ProdLineNode implements ProductionLine {
   final BaseGraph parentGraph;
+
   NodeType _type;
   ProductionLine _line;
 
@@ -15,7 +48,6 @@ class ProdLineNode implements ProductionLine {
   ProdLineNode.addToGraph({
     required this.parentGraph,
     required NodeType type,
-    required Map<ItemData, double>? initialRequirements,
     required ProductionLine line,
   }) : _type = type,
        _line = line {
@@ -28,17 +60,10 @@ class ProdLineNode implements ProductionLine {
   void removeFromGraph() {
     parentGraph._nodes.remove(this);
 
-    for (var childEdge in parentGraph._children[this]!) {
-      var childNode = childEdge.child;
-      childEdge.removeFromGraph();
+    for (var edge in [...parents, ...children]) {
+      edge.removeFromGraph();
+    }
 
-      if (parentGraph._parents[childNode]!.isEmpty) {
-        childNode.removeFromGraph();
-      }
-    }
-    for (var parentEdge in parentGraph._parents[this]!) {
-      parentEdge.removeFromGraph();
-    }
     parentGraph._parents.remove(this);
     parentGraph._children.remove(this);
   }
@@ -53,7 +78,11 @@ class ProdLineNode implements ProductionLine {
   @override
   Map<ItemData, double> get totalIoPerSecond => _line.totalIoPerSecond;
   @override
-  void update(Map<ItemData, double> requirements) => _line.update(requirements);
+  Map<ItemData, double> get requirements => _line.requirements;
+  @override
+  void update(Map<ItemData, double> newRequirements) =>
+      _line.update(newRequirements);
+
   @override
   void reset() {
     _line.reset();
@@ -70,11 +99,10 @@ class DirectedEdge {
   final ProdLineNode parent;
   final ProdLineNode child;
   double? _amount;
-  ItemFlowDirection _flowDirection;
   EdgeType _edgeType;
 
   double? get amount => _amount;
-  ItemFlowDirection get flowDirection => _flowDirection;
+  ItemFlowDirection get flowDirection => _edgeType.flowDirection;
   EdgeType get edgeType => _edgeType;
 
   DirectedEdge.addToGraph({
@@ -82,12 +110,33 @@ class DirectedEdge {
     required this.item,
     required this.parent,
     required this.child,
-    double initialAmount = 0,
+    double? initialAmount,
     required ItemFlowDirection flowDirection,
     required EdgeType edgeType,
   }) : _amount = initialAmount,
-       _flowDirection = flowDirection,
        _edgeType = edgeType {
+    // Confirm both parent and child are valid
+    if (parentGraph != parent.parentGraph || parentGraph != child.parentGraph) {
+      throw const FactorioException(
+        'Cannot connect two nodes from different graphs',
+      );
+    }
+
+    // Ensure no loops are created
+    Set<ProdLineNode> visitedNodes = {};
+    List<ProdLineNode> nodesToVisit = List.from(
+      child.children.map((childEdge) => childEdge.child),
+    );
+    while (nodesToVisit.isNotEmpty) {
+      ProdLineNode node = nodesToVisit.removeLast();
+      if (node == parent) {
+        throw const FactorioException('Cannot create loop');
+      } else if (!visitedNodes.contains(node)) {
+        visitedNodes.add(node);
+        nodesToVisit.addAll(node.children.map((childEdge) => childEdge.child));
+      }
+    }
+
     parentGraph._edges.add(this);
 
     parentGraph._parents[child]!.add(this);

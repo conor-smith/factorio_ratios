@@ -2,70 +2,47 @@ part of '../production_line.dart';
 
 // Acts as a "magic" line, consuming / producing all requirements with no buildings
 // Used to represent natural resources or disposal
-class MagicLine extends ProductionLine {
-  final Map<ItemData, double> _totalIoPerSecond = {};
-  final Set<ItemData> _allInputs;
-  final Set<ItemData> _allOutputs;
+class IoLine extends ProductionLine {
+  final Map<ItemData, double> _requirements = {};
+  @override
+  final Set<ItemData> allInputs;
+  @override
+  final Set<ItemData> allOutputs;
 
+  // requirements and totalIOPerSecond point are all the same values
   @override
-  late final Set<ItemData> allInputs = UnmodifiableSetView(_allInputs);
-  @override
-  late final Set<ItemData> allOutputs = UnmodifiableSetView(_allOutputs);
-  @override
-  late final Map<ItemData, double> totalIoPerSecond = UnmodifiableMapView(
-    _totalIoPerSecond,
+  late final Map<ItemData, double> requirements = UnmodifiableMapView(
+    _requirements,
   );
+  @override
+  late final Map<ItemData, double> totalIoPerSecond = requirements;
 
-  MagicLine({Set<ItemData> inputs = const {}, Set<ItemData> outputs = const {}})
-    : _allInputs = Set.from(inputs),
-      _allOutputs = Set.from(outputs);
+  IoLine({Set<ItemData> inputs = const {}, Set<ItemData> outputs = const {}})
+    : allInputs = Set.unmodifiable(inputs),
+      allOutputs = Set.unmodifiable(outputs) {
+    if (allInputs.isEmpty && allOutputs.isEmpty) {
+      throw const FactorioException('Cannot create a IO line with no IO');
+    }
+  }
 
   @override
-  void update(Map<ItemData, double> requirements) {
-    super.update(requirements);
+  void update(Map<ItemData, double> newRequirements) {
+    super.update(newRequirements);
 
-    // For magic line specifically, all io must be given a requirement
-    var allIo = {..._allInputs, ..._allOutputs};
+    // For IO line specifically, all io must be given a requirement
+    var allIo = {...allInputs, ...allOutputs};
     for (var io in allIo) {
-      if (!requirements.containsKey(io)) {
+      if (!newRequirements.containsKey(io)) {
         throw FactorioException('Input/output amount for "$io" not specified');
       }
     }
 
-    _totalIoPerSecond.clear();
-    _totalIoPerSecond.addAll(requirements);
+    _requirements.addAll(newRequirements);
   }
 
-  void addOutputs(Set<ItemData> items) {
-    for (var output in items) {
-      if (_allInputs.contains(output)) {
-        throw FactorioException(
-          '"$output" is an input and cannot be added to outputs',
-        );
-      }
-    }
-
-    _allOutputs.addAll(items);
-  }
-
-  void removeOutputs(Set<ItemData> items) {
-    _allOutputs.removeAll(items);
-  }
-
-  void addInputs(Set<ItemData> items) {
-    for (var input in items) {
-      if (_allOutputs.contains(input)) {
-        throw FactorioException(
-          '"$input" is an output and cannot be added to inputs',
-        );
-      }
-    }
-
-    _allInputs.addAll(items);
-  }
-
-  void removeInputs(Set<ItemData> items) {
-    _allInputs.removeAll(items);
+  @override
+  void reset() {
+    _requirements.clear();
   }
 
   @override
@@ -88,10 +65,5 @@ class MagicLine extends ProductionLine {
 
   String _convertItemSetToString(Set<ItemData> items) {
     return items.map((item) => item.toString()).reduce((s1, s2) => '$s1, $s2');
-  }
-
-  @override
-  void reset() {
-    _totalIoPerSecond.clear();
   }
 }

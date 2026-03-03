@@ -8,13 +8,22 @@ part 'production_lines/dynamic_models.dart';
 part 'production_lines/magic_line.dart';
 part 'production_lines/single_recipe.dart';
 
+/*
+ * Once a production line is created, it's inputs and outputs are immutable
+ * The Graph is the only exception to this
+ * Inputs and outputs must be known before IO is calcualted
+ * 
+ * Initially requirements and IO will be empty maps
+ * These two maps will only be populated upon a call to .update()
+ * IO and requirements can be reset back to an empty map by calling .reset()
+ */
 abstract class ProductionLine {
   @mustCallSuper
-  void update(Map<ItemData, double> requirements) {
+  void update(Map<ItemData, double> newRequirements) {
     Set<ItemData> inputs = allInputs;
     Set<ItemData> outputs = allOutputs;
 
-    requirements.forEach((itemData, amount) {
+    newRequirements.forEach((itemData, amount) {
       if (amount > 0 && !outputs.contains(itemData)) {
         throw FactorioException(
           '"$itemData" is not an output for this production line',
@@ -37,5 +46,6 @@ abstract class ProductionLine {
   Set<ItemData> get allOutputs;
   Set<ItemData> get allInputs;
 
+  Map<ItemData, double> get requirements;
   Map<ItemData, double> get totalIoPerSecond;
 }

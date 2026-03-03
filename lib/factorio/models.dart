@@ -52,7 +52,6 @@ class FactorioDatabase {
    * Mod support
    * Heating energy (for Aquilo)
    * Crafting machine fixed recipes
-   * Crafting machine defualt productivity
    */
 
   late final Map<String, Item> itemMap;
