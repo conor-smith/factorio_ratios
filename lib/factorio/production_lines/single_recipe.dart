@@ -8,6 +8,8 @@ class SingleRecipeLine extends ProductionLine {
   final Set<ItemData> allInputs;
   @override
   final Set<ItemData> allOutputs;
+  @override
+  bool get immutableIo => true;
 
   final Map<ItemData, double> _requirements;
   final Map<ItemData, double> _totalIoPerSecond;

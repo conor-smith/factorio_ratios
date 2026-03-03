@@ -8,6 +8,8 @@ class IoLine extends ProductionLine {
   final Set<ItemData> allInputs;
   @override
   final Set<ItemData> allOutputs;
+  @override
+  bool get immutableIo => true;
 
   // requirements and totalIOPerSecond point are all the same values
   @override

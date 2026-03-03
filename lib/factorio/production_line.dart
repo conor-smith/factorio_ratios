@@ -8,10 +8,10 @@ part 'production_lines/dynamic_models.dart';
 part 'production_lines/magic_line.dart';
 part 'production_lines/single_recipe.dart';
 
+// TODO - Use Typedef for Map<ItemData, double>
+
 /*
- * Once a production line is created, it's inputs and outputs are immutable
- * The Graph is the only exception to this
- * Inputs and outputs must be known before IO is calcualted
+ * Inputs and outputs must be known before IO is calculated
  * 
  * Initially requirements and IO will be empty maps
  * These two maps will only be populated upon a call to .update()
@@ -45,6 +45,9 @@ abstract class ProductionLine {
   // Used for determining connections in graphs
   Set<ItemData> get allOutputs;
   Set<ItemData> get allInputs;
+
+  // If false, allInputs and allOutputs are immutable
+  bool get immutableIo;
 
   Map<ItemData, double> get requirements;
   Map<ItemData, double> get totalIoPerSecond;

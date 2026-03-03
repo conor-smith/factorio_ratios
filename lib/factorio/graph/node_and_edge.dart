@@ -1,16 +1,21 @@
 part of '../graph.dart';
 
 enum NodeType {
-  consumer(allowsInput: true, allowsOutput: false),
-  producer(allowsInput: false, allowsOutput: true),
-  input(allowsInput: false, allowsOutput: true),
-  output(allowsInput: true, allowsOutput: false),
-  productionLine(allowsInput: true, allowsOutput: true);
+  consumer(allowsInput: true, allowsOutput: false, isIo: false),
+  producer(allowsInput: false, allowsOutput: true, isIo: false),
+  input(allowsInput: false, allowsOutput: true, isIo: true),
+  output(allowsInput: true, allowsOutput: false, isIo: true),
+  productionLine(allowsInput: true, allowsOutput: true, isIo: false);
 
   final bool allowsInput;
   final bool allowsOutput;
+  final bool isIo;
 
-  const NodeType({required this.allowsInput, required this.allowsOutput});
+  const NodeType({
+    required this.allowsInput,
+    required this.allowsOutput,
+    required this.isIo,
+  });
 
   bool canChangeTo(NodeType changeTo) => switch (this) {
     consumer => const {output, productionLine}.contains(changeTo),
@@ -33,6 +38,8 @@ enum EdgeType {
 }
 
 class ProdLineNode implements ProductionLine {
+  // Implementing ProductionLine is arguably unnecessary
+  // Primarily for convenenience
   final BaseGraph parentGraph;
 
   NodeType _type;
@@ -51,6 +58,16 @@ class ProdLineNode implements ProductionLine {
     required ProductionLine line,
   }) : _type = type,
        _line = line {
+    if (!_verifyNodeTypeAndLine(type, line)) {
+      throw FactorioException(
+        'Nodetype $type is incompatible with production line $line',
+      );
+    }
+
+    if (type.isIo && !_verifyAndAddIo(type, line)) {
+      throw const FactorioException('Could not add IO');
+    }
+
     parentGraph._nodes.add(this);
 
     parentGraph._parents[this] = {};
@@ -58,6 +75,10 @@ class ProdLineNode implements ProductionLine {
   }
 
   void removeFromGraph() {
+    if (_type.isIo) {
+      _removeIo(_type, _line);
+    }
+
     parentGraph._nodes.remove(this);
 
     for (var edge in [...parents, ...children]) {
@@ -76,6 +97,8 @@ class ProdLineNode implements ProductionLine {
   @override
   Set<ItemData> get allInputs => _line.allInputs;
   @override
+  bool get immutableIo => _line.immutableIo;
+  @override
   Map<ItemData, double> get totalIoPerSecond => _line.totalIoPerSecond;
   @override
   Map<ItemData, double> get requirements => _line.requirements;
@@ -89,6 +112,53 @@ class ProdLineNode implements ProductionLine {
 
     for (var child in children) {
       child._amount = null;
+    }
+  }
+
+  void updateSelfAndChildren(Map<ItemData, double> newRequirements) {
+    parentGraph._updateNodesAndChildren({this: newRequirements});
+  }
+
+  bool _verifyNodeTypeAndLine(
+    NodeType nodeType,
+    ProductionLine line,
+  ) => switch (nodeType) {
+    NodeType.consumer || NodeType.output =>
+      line.immutableIo && line.allOutputs.isEmpty && line.allInputs.isNotEmpty,
+    NodeType.producer || NodeType.input =>
+      line.immutableIo && line.allOutputs.isNotEmpty && line.allInputs.isEmpty,
+    NodeType.productionLine => true,
+  };
+
+  bool _verifyAndAddIo(NodeType type, ProductionLine line) {
+    bool canAddIo = false;
+    // Cannot add output/input if already exists
+    if (type == NodeType.output) {
+      canAddIo = line.allInputs.every(
+        (lineInput) => !parentGraph._allOutputs.contains(lineInput),
+      );
+
+      if (canAddIo) {
+        parentGraph._allOutputs.addAll(line.allInputs);
+      }
+    } else if (type == NodeType.input) {
+      canAddIo = line.allOutputs.every(
+        (lineOutput) => !parentGraph._allInputs.contains(lineOutput),
+      );
+
+      if (canAddIo) {
+        parentGraph._allInputs.addAll(line.allOutputs);
+      }
+    }
+
+    return canAddIo;
+  }
+
+  void _removeIo(NodeType type, ProductionLine line) {
+    if (type == NodeType.output) {
+      parentGraph._allOutputs.removeAll(line.allInputs);
+    } else if (type == NodeType.input) {
+      parentGraph._allInputs.removeAll(line.allOutputs);
     }
   }
 }
@@ -111,7 +181,6 @@ class DirectedEdge {
     required this.parent,
     required this.child,
     double? initialAmount,
-    required ItemFlowDirection flowDirection,
     required EdgeType edgeType,
   }) : _amount = initialAmount,
        _edgeType = edgeType {
