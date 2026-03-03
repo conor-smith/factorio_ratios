@@ -13,9 +13,9 @@ part 'production_lines/single_recipe.dart';
 /*
  * Inputs and outputs must be known before IO is calculated
  * 
- * Initially requirements and IO will be empty maps
+ * Initially requirements and IO will be null
  * These two maps will only be populated upon a call to .update()
- * IO and requirements can be reset back to an empty map by calling .reset()
+ * IO and requirements can be reset back to null by calling .reset()
  */
 abstract class ProductionLine {
   @mustCallSuper
@@ -49,6 +49,6 @@ abstract class ProductionLine {
   // If false, allInputs and allOutputs are immutable
   bool get immutableIo;
 
-  Map<ItemData, double> get requirements;
-  Map<ItemData, double> get totalIoPerSecond;
+  Map<ItemData, double>? get requirements;
+  Map<ItemData, double>? get totalIoPerSecond;
 }

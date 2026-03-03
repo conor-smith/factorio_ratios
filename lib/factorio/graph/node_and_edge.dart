@@ -99,9 +99,9 @@ class ProdLineNode implements ProductionLine {
   @override
   bool get immutableIo => _line.immutableIo;
   @override
-  Map<ItemData, double> get totalIoPerSecond => _line.totalIoPerSecond;
+  Map<ItemData, double>? get totalIoPerSecond => _line.totalIoPerSecond;
   @override
-  Map<ItemData, double> get requirements => _line.requirements;
+  Map<ItemData, double>? get requirements => _line.requirements;
   @override
   void update(Map<ItemData, double> newRequirements) =>
       _line.update(newRequirements);

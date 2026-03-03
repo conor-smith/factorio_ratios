@@ -11,17 +11,13 @@ class SingleRecipeLine extends ProductionLine {
   @override
   bool get immutableIo => true;
 
-  final Map<ItemData, double> _requirements;
-  final Map<ItemData, double> _totalIoPerSecond;
+  Map<ItemData, double>? _requirements;
+  Map<ItemData, double>? _totalIoPerSecond;
 
   @override
-  late final Map<ItemData, double> requirements = UnmodifiableMapView(
-    _requirements,
-  );
+  Map<ItemData, double>? get requirements => _requirements;
   @override
-  late final Map<ItemData, double> totalIoPerSecond = UnmodifiableMapView(
-    _totalIoPerSecond,
-  );
+  Map<ItemData, double>? get totalIoPerSecond => _totalIoPerSecond;
 
   double get machineAmount => _machineAmount;
 
@@ -54,12 +50,13 @@ class SingleRecipeLine extends ProductionLine {
       }
     });
 
+    Map<ItemData, double> io = {};
+
     production.totalIoPerSecond.forEach(
-      (itemData, amount) =>
-          _totalIoPerSecond[itemData] = amount * machineAmount,
+      (itemData, amount) => io[itemData] = amount * machineAmount,
     );
-    _requirements.clear();
-    _requirements.addAll(newRequirements);
+    _requirements = Map.unmodifiable(newRequirements);
+    _totalIoPerSecond = Map.unmodifiable(io);
 
     _machineAmount = machineAmount;
   }
@@ -67,7 +64,8 @@ class SingleRecipeLine extends ProductionLine {
   @override
   void reset() {
     _machineAmount = 0;
-    _totalIoPerSecond.clear();
+    _requirements = null;
+    _totalIoPerSecond = null;
   }
 
   @override

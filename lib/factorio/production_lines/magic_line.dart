@@ -3,7 +3,7 @@ part of '../production_line.dart';
 // Acts as a "magic" line, consuming / producing all requirements with no buildings
 // Used to represent natural resources or disposal
 class IoLine extends ProductionLine {
-  final Map<ItemData, double> _requirements = {};
+  Map<ItemData, double>? _requirements;
   @override
   final Set<ItemData> allInputs;
   @override
@@ -13,11 +13,9 @@ class IoLine extends ProductionLine {
 
   // requirements and totalIOPerSecond point are all the same values
   @override
-  late final Map<ItemData, double> requirements = UnmodifiableMapView(
-    _requirements,
-  );
+  Map<ItemData, double>? get requirements => _requirements;
   @override
-  late final Map<ItemData, double> totalIoPerSecond = requirements;
+  Map<ItemData, double>? get totalIoPerSecond => _requirements;
 
   IoLine({Set<ItemData> inputs = const {}, Set<ItemData> outputs = const {}})
     : allInputs = Set.unmodifiable(inputs),
@@ -39,12 +37,12 @@ class IoLine extends ProductionLine {
       }
     }
 
-    _requirements.addAll(newRequirements);
+    _requirements = Map.unmodifiable(newRequirements);
   }
 
   @override
   void reset() {
-    _requirements.clear();
+    _requirements = null;
   }
 
   @override
