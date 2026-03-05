@@ -50,32 +50,35 @@ class BaseGraph extends ProductionLine {
   // Nodes are assigned a value of 0 or higher
   // Lowest values are updated first
   // Nodes with the same value can be updated in any order
-  Map<ProdLineNode, int> getNodeOrderOfUpdate(Set<ProdLineNode> nodes) {
+  List<List<ProdLineNode>> getNodeOrderOfUpdate(Iterable<ProdLineNode> nodes) {
     Map<ProdLineNode, int> order = {};
 
     for (var node in nodes) {
       _findOrder(node, order, 0);
     }
 
-    return order;
+    Map<int, List<ProdLineNode>> flippedMap = {};
+
+    order.forEach(
+      (node, order) => flippedMap.update(
+        order,
+        (nodeList) => nodeList..add(node),
+        ifAbsent: () => [node],
+      ),
+    );
+
+    var sortedEntries = flippedMap.entries.toList();
+    sortedEntries.sort((entry1, entry2) => entry1.key.compareTo(entry2.key));
+
+    return sortedEntries.map((entry) => entry.value).toList();
   }
 
   void _updateNodesAndChildren(
     Map<ProdLineNode, Map<ItemData, double>> nodesAndRequirements,
   ) {
-    Map<ProdLineNode, int> orderOfUpdate = {};
+    var orderOfUpdate = getNodeOrderOfUpdate(nodesAndRequirements.keys);
 
-    for (var node in nodes) {
-      _findOrder(node, orderOfUpdate, 0);
-    }
-
-    var orderedNodeEntries = orderOfUpdate.entries.toList();
-    orderedNodeEntries.sort(
-      (entry1, entry2) => entry1.value.compareTo(entry2.value),
-    );
-    List<ProdLineNode> nodeQueue = orderedNodeEntries
-        .map((entry) => entry.key)
-        .toList();
+    var allOrderedNodes = orderOfUpdate.expand((entry) => entry);
 
     // Exists so changes can be rolled back if exception occurs
     Map<ProdLineNode, Map<ItemData, double>?> oldRequirementsMap = {};
@@ -83,7 +86,7 @@ class BaseGraph extends ProductionLine {
     List<ProdLineNode> newNodes = [];
 
     try {
-      for (var node in nodeQueue) {
+      for (var node in allOrderedNodes) {
         _updateNodeAndChildEdges(
           node,
           nodesAndRequirements[node],

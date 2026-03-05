@@ -1,40 +1,65 @@
 import 'package:factorio_ratios/factorio/graph.dart';
 import 'package:factorio_ratios/factorio/models.dart';
+import 'package:factorio_ratios/ui/factorio_menu.dart';
 import 'package:flutter/material.dart';
 
-class GraphUi extends StatefulWidget {
-  final BaseGraph base = BaseGraph();
+class TopLevelGraphWidget extends StatefulWidget {
   final FactorioDatabase db;
+  final BaseGraph topLevelGraph = BaseGraph();
 
-  GraphUi({super.key, required this.db});
+  TopLevelGraphWidget({super.key, required this.db});
 
   @override
-  State<GraphUi> createState() => _GraphUiState();
+  State<TopLevelGraphWidget> createState() => _TopLevelGraphWidgetState();
 }
 
-class _GraphUiState extends State<GraphUi> {
-  final List<Widget> children = [];
+class _TopLevelGraphWidgetState extends State<TopLevelGraphWidget> {
+  FactorioGroupMenuWidget? selectionMenu;
 
-  double currentX = 0;
-  double currentY = 0;
-  bool dropDownActive = false;
+  @override
+  Widget build(BuildContext context) {
+    return Placeholder();
+  }
+}
+
+class GraphWidget extends StatefulWidget {
+  final BaseGraph graph;
+
+  const GraphWidget({super.key, required this.graph});
+
+  @override
+  State<GraphWidget> createState() => _GraphWidgetState();
+}
+
+class _GraphWidgetState extends State<GraphWidget> {
+  final Map<ProdLineNode, NodeWidget> nodeWidgets = {};
+  final Map<DirectedEdge, EdgeWidget> edgeWidgets = {};
 
   @override
   void initState() {
     super.initState();
 
-    Map<String, String> nameToDisplayName = {};
-    widget.db.itemMap.forEach((name, item) {
-      nameToDisplayName[name] = item.localisedName;
-    });
+    var orderedNodes = widget.graph.getNodeOrderOfUpdate(widget.graph.nodes);
+
+    for (var y = 0; y < orderedNodes.length; y++) {
+      for (var x = 0; x < orderedNodes[y].length; x++) {
+        var node = orderedNodes[y][x];
+        nodeWidgets[node] = NodeWidget(
+          node: node,
+          initialX: 120.0 * x,
+          initialY: 120.0 * y,
+        );
+      }
+    }
+
+    for (var edge in widget.graph.edges) {
+      edgeWidgets[edge] = EdgeWidget(edge: edge);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      child: Stack(children: children),
-    );
+    return const Placeholder();
   }
 }
 
@@ -60,19 +85,22 @@ class _NodeWidgetState extends State<NodeWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      left: x,
-      top: y,
-      width: 200,
-      height: 100,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.lightBlueAccent,
-          border: BoxBorder.all(color: Colors.black, width: 1),
-          borderRadius: BorderRadius.circular(5),
-        ),
-        child: Center(child: Text('${widget.node.productionLine}')),
-      ),
-    );
+    return Placeholder();
+  }
+}
+
+class EdgeWidget extends StatefulWidget {
+  final DirectedEdge edge;
+
+  const EdgeWidget({super.key, required this.edge});
+
+  @override
+  State<EdgeWidget> createState() => _EdgeWidgetState();
+}
+
+class _EdgeWidgetState extends State<EdgeWidget> {
+  @override
+  Widget build(BuildContext context) {
+    return const Placeholder();
   }
 }
