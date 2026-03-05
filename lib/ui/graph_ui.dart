@@ -3,6 +3,10 @@ import 'package:factorio_ratios/factorio/models.dart';
 import 'package:factorio_ratios/ui/factorio_menu.dart';
 import 'package:flutter/material.dart';
 
+// TODO - Tweak this. Maybe make dynamic
+const double initNodeWidth = 120;
+const double initNodeHeight = 120;
+
 class TopLevelGraphWidget extends StatefulWidget {
   final FactorioDatabase db;
   final BaseGraph topLevelGraph = BaseGraph();
@@ -46,8 +50,8 @@ class _GraphWidgetState extends State<GraphWidget> {
         var node = orderedNodes[y][x];
         nodeWidgets[node] = NodeWidget(
           node: node,
-          initialX: 120.0 * x,
-          initialY: 120.0 * y,
+          initialX: initNodeWidth * x,
+          initialY: initNodeHeight * y,
         );
       }
     }
