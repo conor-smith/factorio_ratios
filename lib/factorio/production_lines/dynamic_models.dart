@@ -1,5 +1,7 @@
 part of '../production_line.dart';
 
+typedef ItemIo = Map<ItemData, double>;
+
 class ItemData {
   final Item item;
   final int? quality;
@@ -49,7 +51,7 @@ abstract class ModuledMachineAndRecipe {
   double get totalProductivity;
   double get totalEnergyUsage;
   Map<String, double> get totalEmissionsPerMinute;
-  Map<ItemData, double> get totalIoPerSecond;
+  ItemIo get totalIoPerSecond;
 }
 
 class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
@@ -66,8 +68,8 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
   double _totalCraftingSpeed;
   double _totalProductivity;
   double _totalEnergyUsage;
-  final Map<String, double> _totalEmissionsPerMinute;
-  final Map<ItemData, double> _totalIoPerSecond;
+  Map<String, double> _totalEmissionsPerMinute;
+  ItemIo _totalIoPerSecond;
 
   // Initially false. Only set to true during first call of .update(...)
   bool _initialised;
@@ -89,13 +91,9 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
   @override
   double get totalEnergyUsage => _totalEnergyUsage;
   @override
-  late final Map<String, double> totalEmissionsPerMinute = UnmodifiableMapView(
-    _totalEmissionsPerMinute,
-  );
+  Map<String, double> get totalEmissionsPerMinute => _totalEmissionsPerMinute;
   @override
-  late final Map<ItemData, double> totalIoPerSecond = UnmodifiableMapView(
-    _totalIoPerSecond,
-  );
+  ItemIo get totalIoPerSecond => _totalIoPerSecond;
 
   MutableModuledMachineAndRecipe({
     required CraftingMachine craftingMachine,
@@ -106,7 +104,7 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
        _totalProductivity = 0,
        _totalEnergyUsage = 0,
        _totalEmissionsPerMinute = {},
-       _totalIoPerSecond = {},
+       _totalIoPerSecond = const {},
        _initialised = false {
     update(newRecipe: recipe, newMachine: craftingMachine, newFuel: fuel);
   }
@@ -118,8 +116,8 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
       _totalCraftingSpeed = other.totalCraftingSpeed,
       _totalProductivity = other.totalProductivity,
       _totalEnergyUsage = other.totalEnergyUsage,
-      _totalEmissionsPerMinute = Map.from(other.totalEmissionsPerMinute),
-      _totalIoPerSecond = Map.from(other.totalIoPerSecond),
+      _totalEmissionsPerMinute = other.totalEmissionsPerMinute,
+      _totalIoPerSecond = other.totalIoPerSecond,
       _initialised = true;
 
   void update({
@@ -240,22 +238,24 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
         : 0.2;
     energyMultiplier = energyMultiplier >= 0.2 ? energyMultiplier : 0.2;
 
+    Map<String, double> emissionsPerMinute = {};
+
     _totalCraftingSpeed = craftingMachine.craftingSpeed * speedMultiplier;
     _totalProductivity = productivityMultiplier;
     _totalEnergyUsage = craftingMachine.energyUsage * energyMultiplier;
     craftingMachine.energySource.emissionsPerMinute.forEach(
       (emission, amount) =>
-          _totalEmissionsPerMinute[emission] = amount * pollutionMultiplier,
+          emissionsPerMinute[emission] = amount * pollutionMultiplier,
     );
+    _totalEmissionsPerMinute = Map.unmodifiable(emissionsPerMinute);
 
-    _totalIoPerSecond.clear();
-
-    if (_recipe != null) {
+    if (_recipe != null || _fuel != null) {
       double recipesPerSecond = _recipe!.energyRequired / _totalCraftingSpeed;
+      ItemIo ioPerSecond = {};
 
       // TODO - Account for quality outputs
       for (var ingredient in _recipe!.ingredients) {
-        _totalIoPerSecond[ItemData(ingredient.item)] =
+        ioPerSecond[ItemData(ingredient.item)] =
             -ingredient.amount * recipesPerSecond;
       }
 
@@ -263,22 +263,24 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
         var itemData = ItemData(result.item);
         var netOutput =
             result.amount * result.probability * recipesPerSecond -
-            (_totalIoPerSecond[itemData] ?? 0);
+            (ioPerSecond[itemData] ?? 0);
         netOutput = _recipe!.allowProductivity
             ? netOutput * _totalProductivity
             : netOutput;
 
-        _totalIoPerSecond[itemData] = netOutput;
+        ioPerSecond[itemData] = netOutput;
       }
 
       if (_fuel != null) {
         double fuelPerSecond = totalEnergyUsage / _fuel!.item.fuelValue!;
-        _totalIoPerSecond.update(
+        ioPerSecond.update(
           _fuel!,
           (amount) => amount - fuelPerSecond,
           ifAbsent: () => -fuelPerSecond,
         );
       }
+
+      _totalIoPerSecond = Map.unmodifiable(ioPerSecond);
     }
   }
 }
@@ -300,7 +302,7 @@ class ImmutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
   @override
   final Map<String, double> totalEmissionsPerMinute;
   @override
-  final Map<ItemData, double> totalIoPerSecond;
+  final ItemIo totalIoPerSecond;
 
   ImmutableModuledMachineAndRecipe._from(MutableModuledMachineAndRecipe mutable)
     : craftingMachine = mutable._craftingMachine,
@@ -309,10 +311,8 @@ class ImmutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
       totalCraftingSpeed = mutable._totalCraftingSpeed,
       totalProductivity = mutable._totalCraftingSpeed,
       totalEnergyUsage = mutable._totalEnergyUsage,
-      totalEmissionsPerMinute = Map.unmodifiable(
-        mutable._totalEmissionsPerMinute,
-      ),
-      totalIoPerSecond = Map.unmodifiable(mutable._totalIoPerSecond);
+      totalEmissionsPerMinute = mutable._totalEmissionsPerMinute,
+      totalIoPerSecond = mutable._totalIoPerSecond;
 
   MutableModuledMachineAndRecipe getMutable() =>
       MutableModuledMachineAndRecipe._from(this);

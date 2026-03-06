@@ -16,23 +16,23 @@ class BaseGraph extends ProductionLine {
 
   final Set<ItemData> _allInputs = {};
   final Set<ItemData> _allOutputs = {};
-  Map<ItemData, double>? _requirements;
-  Map<ItemData, double>? _totalIoPerSecond;
+  ItemIo? _requirements;
+  ItemIo? _totalIoPerSecond;
 
   @override
   late final Set<ItemData> allInputs = UnmodifiableSetView(_allInputs);
   @override
   late final Set<ItemData> allOutputs = UnmodifiableSetView(_allOutputs);
   @override
-  Map<ItemData, double>? get requirements => _requirements;
+  ItemIo? get requirements => _requirements;
   @override
-  Map<ItemData, double>? get totalIoPerSecond => _totalIoPerSecond;
+  ItemIo? get totalIoPerSecond => _totalIoPerSecond;
 
   @override
   bool get immutableIo => false;
 
   @override
-  void update(Map<ItemData, double> newRequirements) {
+  void update(ItemIo newRequirements) {
     super.update(newRequirements);
   }
 
@@ -69,15 +69,13 @@ class BaseGraph extends ProductionLine {
     return flippedMap;
   }
 
-  void _updateNodesAndChildren(
-    Map<ProdLineNode, Map<ItemData, double>> nodesAndRequirements,
-  ) {
+  void _updateNodesAndChildren(Map<ProdLineNode, ItemIo> nodesAndRequirements) {
     var orderOfUpdate = getNodeHeights(nodesAndRequirements.keys);
 
     var allOrderedNodes = orderOfUpdate.expand((entry) => entry);
 
     // Exists so changes can be rolled back if exception occurs
-    Map<ProdLineNode, Map<ItemData, double>?> oldRequirementsMap = {};
+    Map<ProdLineNode, ItemIo?> oldRequirementsMap = {};
     Map<DirectedEdge, double?> oldAmountMap = {};
     List<ProdLineNode> newNodes = [];
 
@@ -114,8 +112,8 @@ class BaseGraph extends ProductionLine {
 
   void _updateNodeAndChildEdges(
     ProdLineNode node,
-    Map<ItemData, double>? newRequirements,
-    Map<ProdLineNode, Map<ItemData, double>?> oldRequirementsMap,
+    ItemIo? newRequirements,
+    Map<ProdLineNode, ItemIo?> oldRequirementsMap,
     Map<DirectedEdge, double?> oldAmountMap,
     List<ProdLineNode> newNodes,
   ) {
@@ -123,7 +121,7 @@ class BaseGraph extends ProductionLine {
 
     // Requirements either comes from parents, or from nodeAndRequirements map
     // In the event that both are populated, an exception is thrown
-    Map<ItemData, double> parentRequirements = {};
+    ItemIo parentRequirements = {};
     for (var parent in node.parents) {
       if (parent.amount != null) {
         double amount = parent.flowDirection == ItemFlowDirection.childToParent
@@ -152,7 +150,7 @@ class BaseGraph extends ProductionLine {
       throw const FactorioException('Conflicting requirements');
     }
 
-    Map<ItemData, double> io = node.totalIoPerSecond!;
+    ItemIo io = node.totalIoPerSecond!;
     List<DirectedEdge> allEdges = [...node.parents, ...node.children];
 
     io.forEach((itemData, amount) {

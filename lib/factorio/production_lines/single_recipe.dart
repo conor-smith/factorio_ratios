@@ -11,13 +11,13 @@ class SingleRecipeLine extends ProductionLine {
   @override
   bool get immutableIo => true;
 
-  Map<ItemData, double>? _requirements;
-  Map<ItemData, double>? _totalIoPerSecond;
+  ItemIo? _requirements;
+  ItemIo? _totalIoPerSecond;
 
   @override
-  Map<ItemData, double>? get requirements => _requirements;
+  ItemIo? get requirements => _requirements;
   @override
-  Map<ItemData, double>? get totalIoPerSecond => _totalIoPerSecond;
+  ItemIo? get totalIoPerSecond => _totalIoPerSecond;
 
   double get machineAmount => _machineAmount;
 
@@ -37,7 +37,7 @@ class SingleRecipeLine extends ProductionLine {
       _machineAmount = 0;
 
   @override
-  void update(Map<ItemData, double> newRequirements) {
+  void update(ItemIo newRequirements) {
     super.update(newRequirements);
 
     double machineAmount = 0;
@@ -50,7 +50,7 @@ class SingleRecipeLine extends ProductionLine {
       }
     });
 
-    Map<ItemData, double> io = {};
+    ItemIo io = {};
 
     production.totalIoPerSecond.forEach(
       (itemData, amount) => io[itemData] = amount * machineAmount,

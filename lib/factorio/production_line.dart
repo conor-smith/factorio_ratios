@@ -8,7 +8,7 @@ part 'production_lines/dynamic_models.dart';
 part 'production_lines/magic_line.dart';
 part 'production_lines/single_recipe.dart';
 
-// TODO - Use Typedef for Map<ItemData, double>
+// TODO - Use Typedef for ItemIo
 
 /*
  * Inputs and outputs must be known before IO is calculated
@@ -19,7 +19,7 @@ part 'production_lines/single_recipe.dart';
  */
 abstract class ProductionLine {
   @mustCallSuper
-  void update(Map<ItemData, double> newRequirements) {
+  void update(ItemIo newRequirements) {
     Set<ItemData> inputs = allInputs;
     Set<ItemData> outputs = allOutputs;
 
@@ -49,6 +49,6 @@ abstract class ProductionLine {
   // If false, allInputs and allOutputs are immutable
   bool get immutableIo;
 
-  Map<ItemData, double>? get requirements;
-  Map<ItemData, double>? get totalIoPerSecond;
+  ItemIo? get requirements;
+  ItemIo? get totalIoPerSecond;
 }

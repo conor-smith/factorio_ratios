@@ -99,12 +99,11 @@ class ProdLineNode implements ProductionLine {
   @override
   bool get immutableIo => _line.immutableIo;
   @override
-  Map<ItemData, double>? get totalIoPerSecond => _line.totalIoPerSecond;
+  ItemIo? get totalIoPerSecond => _line.totalIoPerSecond;
   @override
-  Map<ItemData, double>? get requirements => _line.requirements;
+  ItemIo? get requirements => _line.requirements;
   @override
-  void update(Map<ItemData, double> newRequirements) =>
-      _line.update(newRequirements);
+  void update(ItemIo newRequirements) => _line.update(newRequirements);
 
   @override
   void reset() {
@@ -115,7 +114,7 @@ class ProdLineNode implements ProductionLine {
     }
   }
 
-  void updateSelfAndChildren(Map<ItemData, double> newRequirements) {
+  void updateSelfAndChildren(ItemIo newRequirements) {
     parentGraph._updateNodesAndChildren({this: newRequirements});
   }
 

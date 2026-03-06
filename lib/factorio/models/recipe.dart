@@ -42,6 +42,7 @@ class Recipe extends OrderedWithSubgroup {
 
   late final Item? mainProduct = _determineMainProduct();
   late final String localisedName = _getLocalisedName();
+  late final Map<Item, double> itemIo = _determineItemIo();
 
   late final List<CraftingMachine> craftingMachines = List.unmodifiable(
     categories
@@ -151,6 +152,9 @@ class Recipe extends OrderedWithSubgroup {
     );
   }
 
+  @override
+  String toString() => name;
+
   Item? _determineMainProduct() {
     if (_mainProductString != null) {
       return factorioDb.itemMap[_mainProductString];
@@ -175,8 +179,24 @@ class Recipe extends OrderedWithSubgroup {
         '${name[0].toUpperCase()}${name.substring(1).replaceAll('-', ' ')}';
   }
 
-  @override
-  String toString() => name;
+  Map<Item, double> _determineItemIo() {
+    Map<Item, double> io = {};
+
+    for (var ingredient in ingredients) {
+      io[ingredient.item] = -ingredient.amount;
+    }
+
+    for (var result in results) {
+      double amount = result.amount * result.probability;
+      io.update(
+        result.item,
+        (existingAmount) => existingAmount + amount,
+        ifAbsent: () => amount,
+      );
+    }
+
+    return Map.unmodifiable(io);
+  }
 }
 
 class RecipeItem {
