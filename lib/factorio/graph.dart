@@ -46,37 +46,33 @@ class BaseGraph extends ProductionLine {
     _requirements = null;
   }
 
-  // Method is public to allow UI to use it when ordering nodes
-  // Nodes are assigned a value of 0 or higher
-  // Lowest values are updated first
+  // Method is public to allow UI to use when displaying tree
+  // 'Height' of a node is the length of the longest path
   // Nodes with the same value can be updated in any order
-  List<List<ProdLineNode>> getNodeOrderOfUpdate(Iterable<ProdLineNode> nodes) {
-    Map<ProdLineNode, int> order = {};
+  List<List<ProdLineNode>> getNodeHeights(Iterable<ProdLineNode> nodes) {
+    Map<ProdLineNode, int> heightMap = {};
 
+    int maxHeight = 0;
     for (var node in nodes) {
-      _findOrder(node, order, 0);
+      int newMax = _getDescendantsHeight(node, heightMap, 0);
+
+      maxHeight = newMax > maxHeight ? newMax : maxHeight;
     }
 
-    Map<int, List<ProdLineNode>> flippedMap = {};
-
-    order.forEach(
-      (node, order) => flippedMap.update(
-        order,
-        (nodeList) => nodeList..add(node),
-        ifAbsent: () => [node],
-      ),
+    List<List<ProdLineNode>> flippedMap = List.generate(
+      maxHeight + 1,
+      (_) => [],
     );
 
-    var sortedEntries = flippedMap.entries.toList();
-    sortedEntries.sort((entry1, entry2) => entry1.key.compareTo(entry2.key));
+    heightMap.forEach((node, height) => flippedMap[height].add(node));
 
-    return sortedEntries.map((entry) => entry.value).toList();
+    return flippedMap;
   }
 
   void _updateNodesAndChildren(
     Map<ProdLineNode, Map<ItemData, double>> nodesAndRequirements,
   ) {
-    var orderOfUpdate = getNodeOrderOfUpdate(nodesAndRequirements.keys);
+    var orderOfUpdate = getNodeHeights(nodesAndRequirements.keys);
 
     var allOrderedNodes = orderOfUpdate.expand((entry) => entry);
 
@@ -221,18 +217,30 @@ class BaseGraph extends ProductionLine {
     });
   }
 
-  void _findOrder(
+  // Returns the depth
+  int _getDescendantsHeight(
     ProdLineNode node,
-    Map<ProdLineNode, int> order,
-    int currentOrder,
+    Map<ProdLineNode, int> heightMap,
+    int currentHeight,
   ) {
-    int existingOrder = order[node] ?? -1;
-    if (currentOrder > existingOrder) {
-      order[node] = currentOrder;
+    int existingHeight = heightMap[node] ?? -1;
+    if (currentHeight > existingHeight) {
+      heightMap[node] = currentHeight;
+      int maxHeight = currentHeight;
 
-      for (var childNode in node.children.map((edge) => edge.child)) {
-        _findOrder(childNode, order, currentOrder + 1);
+      for (var childEdge in node.children) {
+        int newMax = _getDescendantsHeight(
+          childEdge.child,
+          heightMap,
+          currentHeight + 1,
+        );
+
+        maxHeight = newMax > maxHeight ? newMax : maxHeight;
       }
+
+      return maxHeight;
+    } else {
+      return existingHeight;
     }
   }
 }

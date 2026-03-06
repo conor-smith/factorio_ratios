@@ -43,7 +43,7 @@ class _GraphWidgetState extends State<GraphWidget> {
   void initState() {
     super.initState();
 
-    var orderedNodes = widget.graph.getNodeOrderOfUpdate(widget.graph.nodes);
+    var orderedNodes = widget.graph.getNodeHeights(widget.graph.nodes);
 
     for (var y = 0; y < orderedNodes.length; y++) {
       for (var x = 0; x < orderedNodes[y].length; x++) {
