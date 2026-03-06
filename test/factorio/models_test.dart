@@ -32,11 +32,14 @@ void main() {
 
     db.recipeMap.forEach((name, recipe) {
       _logger.info('Testing lazy relationships on recipe $name');
-      String machineList = recipe.craftingMachines.isEmpty
+      List<String> machineNameList = recipe.craftingMachines
+          .map((recipe) => recipe.name)
+          .toList();
+      machineNameList.sort();
+
+      String machineList = machineNameList.isEmpty
           ? 'None'
-          : recipe.craftingMachines
-                .map((machine) => machine.name)
-                .fold('', (name1, name2) => '$name1, $name2');
+          : machineNameList.reduce((name1, name2) => '$name1, $name2');
       _logger.info(
         'Recipe $name is craftable on the following machines - $machineList',
       );
@@ -44,12 +47,31 @@ void main() {
 
     db.craftingMachineMap.forEach((name, machine) {
       _logger.info('Testing lazy relationships on machine $name');
-      String recipeList = machine.recipes.isEmpty
+      List<String> recipeNameList = machine.recipes
+          .map((recipe) => recipe.name)
+          .toList();
+      recipeNameList.sort();
+
+      String recipeList = recipeNameList.isEmpty
           ? 'None'
-          : machine.recipes
-                .map((recipe) => recipe.name)
-                .fold('', (name1, name2) => '$name1, $name2');
+          : recipeNameList.reduce((name1, name2) => '$name1, $name2');
       _logger.info('Machine can craft the following recipes - $recipeList');
+    });
+
+    db.surfaceMap.forEach((name, surface) {
+      _logger.info('Testing lazy relationships on surface $name');
+
+      List<String> recipeNameList = surface.recipes
+          .map((recipe) => recipe.name)
+          .toList();
+      recipeNameList.sort();
+
+      String recipeList = recipeNameList.isEmpty
+          ? 'None'
+          : recipeNameList.reduce((name1, name2) => '$name1, $name2');
+      _logger.info(
+        'The following recipes are craftable on this surface - $recipeList',
+      );
     });
 
     expect(db, anything);

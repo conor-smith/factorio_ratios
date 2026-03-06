@@ -54,6 +54,21 @@ class Recipe extends OrderedWithSubgroup {
         .toSet(),
   );
 
+  late final List<Surface> surfaces = List.unmodifiable(
+    factorioDb.surfaceMap.values.where(
+      (surface) => surfaceConditions.every((condition) {
+        double? surfaceProperty = surface.surfaceProperties[condition.property];
+        if (surfaceProperty == null) {
+          return false;
+        } else {
+          double min = condition.min ?? double.negativeInfinity;
+          double max = condition.max ?? double.infinity;
+          return surfaceProperty >= min && surfaceProperty <= max;
+        }
+      }),
+    ),
+  );
+
   Recipe._({
     required this.factorioDb,
     required this.name,
@@ -229,8 +244,8 @@ class RecipeItem {
 
 class SurfaceCondition {
   final String property;
-  final double min;
-  final double max;
+  final double? min;
+  final double? max;
 
   SurfaceCondition._({
     required this.property,
@@ -240,7 +255,7 @@ class SurfaceCondition {
 
   factory SurfaceCondition.fromJson(Map json) => SurfaceCondition._(
     property: json['property'],
-    min: json['min']?.toDouble() ?? double.negativeInfinity,
-    max: json['max']?.toDouble() ?? double.infinity,
+    min: json['min']?.toDouble(),
+    max: json['max']?.toDouble(),
   );
 }

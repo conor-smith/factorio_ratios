@@ -1,10 +1,5 @@
 part of '../models.dart';
 
-Map<String, double> _parseEmissionsPerMinute(Map energySourceJson) =>
-    Map.unmodifiable(
-      energySourceJson["emissions_per_minute"] as Map? ?? const {},
-    ).cast();
-
 class CraftingMachine {
   // TODO - Quality effects on module and energy usage
 
@@ -155,7 +150,7 @@ class CraftingMachineEnergySource {
       'void' => CraftingMachineEnergySource._(
         factorioDb: factorioDb,
         type: EnergySourceType.fVoid,
-        emissionsPerMinute: _parseEmissionsPerMinute(json),
+        emissionsPerMinute: _parseStringDoubleMap(json['emissions_per_minute']),
       ),
       _ => throw FactorioException(
         'Unrecognised energy source type - "${json['type']}',
@@ -183,7 +178,7 @@ class ElectricEnergySource extends CraftingMachineEnergySource {
   ) => ElectricEnergySource._(
     factorioDb: factorioDb,
     drain: _convertStringToEnergy(json['drain']) ?? (energyUsage / 30),
-    emissionsPerMinute: _parseEmissionsPerMinute(json),
+    emissionsPerMinute: _parseStringDoubleMap(json['emissions_per_minute']),
   );
 }
 
@@ -217,7 +212,7 @@ class BurnerEnergySource extends CraftingMachineEnergySource {
         fuelCategories: List.unmodifiable(
           json['fuel_categories'] as List? ?? const ['chemical'],
         ).cast(),
-        emissionsPerMinute: _parseEmissionsPerMinute(json),
+        emissionsPerMinute: _parseStringDoubleMap(json['emissions_per_minute']),
       );
 }
 
@@ -279,6 +274,6 @@ class HeatEnergySource extends CraftingMachineEnergySource {
         maxTemperature: json['max_temperature'].toDouble(),
         minWorkingTemperature: json['min_working_temperature'].toDouble() ?? 15,
         specificHeat: _convertStringToEnergy(json['specific_heat'])!,
-        emissionsPerMinute: _parseEmissionsPerMinute(json),
+        emissionsPerMinute: _parseStringDoubleMap(json['emissions_per_minute']),
       );
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:factorio_ratios/factorio/factorio.dart';
+import 'package:factorio_ratios/factorio/production_line.dart';
 import 'package:logging/logging.dart';
 
 part 'models/crafting_machines.dart';
@@ -10,6 +11,7 @@ part 'models/group.dart';
 part 'models/icon_data.dart';
 part 'models/item.dart';
 part 'models/other_interfaces.dart';
+part 'models/surface.dart';
 part 'models/recipe.dart';
 part 'models/subgroup.dart';
 
@@ -59,6 +61,7 @@ class FactorioDatabase {
   late final Map<String, CraftingMachine> craftingMachineMap;
   late final Map<String, ItemGroup> itemGroupMap;
   late final Map<String, ItemSubgroup> itemSubgroupMap;
+  late final Map<String, Surface> surfaceMap;
 
   // Each of these fields acts as an index when querying the db
   late final Map<String, List<Recipe>> _craftingCategoryToRecipes;
@@ -85,6 +88,7 @@ class FactorioDatabase {
     Map<String, CraftingMachine> craftingMachines = {};
     Map<String, ItemGroup> itemGroups = {};
     Map<String, ItemSubgroup> itemSubgroups = {};
+    Map<String, Surface> surfaces = {};
 
     // TODO - clean up
     _logger.info('decoding items');
@@ -114,6 +118,7 @@ class FactorioDatabase {
       'rocket-silo',
       'furnace',
     ];
+    List<String> surfaceSections = ['planet', 'surface'];
 
     Map<String, Map> rawItems = {};
     for (var section in itemSections) {
@@ -190,11 +195,26 @@ class FactorioDatabase {
       }
     });
 
+    _logger.info('decoding surfaces');
+    Map<String, Map> rawSurfaces = {};
+    for (var surfaceSection in surfaceSections) {
+      rawSurfaces.addAll((factorioRawData[surfaceSection] as Map).cast());
+    }
+    rawSurfaces.forEach((name, planetJson) {
+      try {
+        surfaces[name] = Surface.fromJson(this, planetJson);
+      } catch (e) {
+        _logger.info('Encountered errror when decoding planet "$name"', e);
+        rethrow;
+      }
+    });
+
     itemMap = Map.unmodifiable(items);
     recipeMap = Map.unmodifiable(recipes);
     craftingMachineMap = Map.unmodifiable(craftingMachines);
     itemGroupMap = Map.unmodifiable(itemGroups);
     itemSubgroupMap = Map.unmodifiable(itemSubgroups);
+    surfaceMap = Map.unmodifiable(surfaces);
   }
 
   void _buildIndices() {
@@ -338,4 +358,15 @@ double? _convertStringToEnergy(String? energyUsage) {
   } else {
     return double.parse(energyUsage.substring(0, energyUsage.length - 1));
   }
+}
+
+Map<String, double> _parseStringDoubleMap(Map? json) {
+  json ??= const {};
+
+  // JSON interpreter sometimes returns ints rather than doubles
+  // So this is the easiest solution
+  Map<String, double> toReturn = {};
+  json.forEach((key, value) => toReturn[key] = value.toDouble());
+
+  return Map.unmodifiable(toReturn);
 }
