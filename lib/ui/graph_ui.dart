@@ -1,11 +1,13 @@
 import 'package:factorio_ratios/factorio/graph.dart';
 import 'package:factorio_ratios/factorio/models.dart';
+import 'package:factorio_ratios/factorio/production_line.dart';
 import 'package:factorio_ratios/ui/factorio_menu.dart';
 import 'package:flutter/material.dart';
 
 // TODO - Tweak this. Maybe make dynamic
-const double initNodeWidth = 120;
-const double initNodeHeight = 120;
+const double initNodeWidth = 100;
+const double initNodeHeight = 100;
+const double initOffset = 20;
 
 class TopLevelGraphWidget extends StatefulWidget {
   final FactorioDatabase db;
@@ -20,16 +22,36 @@ class TopLevelGraphWidget extends StatefulWidget {
 class _TopLevelGraphWidgetState extends State<TopLevelGraphWidget> {
   FactorioGroupMenuWidget? selectionMenu;
 
+  late GraphWidget currentGraph = GraphWidget(
+    graph: widget.topLevelGraph,
+    db: widget.db,
+  );
+
   @override
   Widget build(BuildContext context) {
-    return Placeholder();
+    return Stack(
+      children: [
+        currentGraph,
+        Center(child: selectionMenu),
+      ],
+    );
   }
 }
 
 class GraphWidget extends StatefulWidget {
   final BaseGraph graph;
+  final FactorioDatabase db;
+  final BaseGraph? parentGraph;
+  // TODO - Account for different planets
+  final Surface? surface;
 
-  const GraphWidget({super.key, required this.graph});
+  const GraphWidget({
+    super.key,
+    required this.graph,
+    required this.db,
+    this.surface,
+    this.parentGraph,
+  });
 
   @override
   State<GraphWidget> createState() => _GraphWidgetState();
@@ -43,21 +65,133 @@ class _GraphWidgetState extends State<GraphWidget> {
   void initState() {
     super.initState();
 
-    var orderedNodes = widget.graph.getNodeHeights(widget.graph.nodes);
+    var nodeTree = widget.graph.getNodeHeights(widget.graph.nodes);
 
-    for (var y = 0; y < orderedNodes.length; y++) {
-      for (var x = 0; x < orderedNodes[y].length; x++) {
-        var node = orderedNodes[y][x];
-        nodeWidgets[node] = NodeWidget(
-          node: node,
-          initialX: initNodeWidth * x,
-          initialY: initNodeHeight * y,
-        );
-      }
-    }
+    _createNodeWidgets(nodeTree);
 
     for (var edge in widget.graph.edges) {
       edgeWidgets[edge] = EdgeWidget(edge: edge);
+    }
+  }
+
+  void addConsumerNode(ItemData item) {
+    var newNode = ProdLineNode.addToGraph(
+      parentGraph: widget.graph,
+      type: NodeType.consumer,
+      line: IoLine(inputs: {item}),
+    );
+
+    List<ProdLineNode> connectedNodes = [newNode];
+    List<DirectedEdge> newEdges = [];
+
+    // TODO - Account for more than one recipe tree being positioned
+    _createRecipeTree(newNode, {}, connectedNodes, newEdges);
+
+    var nodeHeights = widget.graph.getNodeHeights(connectedNodes);
+
+    _createNodeWidgets(nodeHeights);
+
+    for (var newEdge in newEdges) {
+      edgeWidgets.putIfAbsent(newEdge, () => EdgeWidget(edge: newEdge));
+    }
+  }
+
+  void _createRecipeTree(
+    ProdLineNode parentNode,
+    Set<ProdLineNode> visitedNodes,
+    List<ProdLineNode> connectedNodes,
+    List<DirectedEdge> newEdges,
+  ) {
+    visitedNodes.add(parentNode);
+
+    List<ProdLineNode> childNodes = [];
+    for (var input in parentNode.allInputs) {
+      // Check for existing node
+      var childNode = parentNode.parentGraph.nodes
+          .where((node) => node.allOutputs.contains(input))
+          .firstOrNull;
+
+      if (childNode != null) {
+        visitedNodes.add(childNode);
+        childNodes.add(childNode);
+      } else {
+        var producerRecipe = input.item.producedBy
+            .where(
+              (recipe) =>
+                  recipe.surfaces.contains(widget.surface) &&
+                  recipe.results.length == 1 &&
+                  recipe.itemIo[input.item]! > 0,
+            )
+            .firstOrNull;
+
+        if (producerRecipe != null) {
+          // TODO - Cache a list of sorted machines somewhere
+          List<CraftingMachine> sortedMachines = List.from(
+            producerRecipe.craftingMachines,
+          );
+          sortedMachines.sort(
+            (machine1, machine2) =>
+                machine1.craftingSpeed.compareTo(machine2.craftingSpeed),
+          );
+
+          var fastestMachine = sortedMachines.first;
+
+          ItemData? fuel;
+          if (fastestMachine.energySource.type == EnergySourceType.burner) {
+            var energySource =
+                fastestMachine.energySource as BurnerEnergySource;
+
+            fuel = ItemData(energySource.fuelItems.first);
+          }
+
+          childNode = ProdLineNode.addToGraph(
+            parentGraph: widget.graph,
+            type: NodeType.productionLine,
+            line: SingleRecipeLine(
+              MutableModuledMachineAndRecipe(
+                craftingMachine: fastestMachine,
+                recipe: producerRecipe,
+                fuel: fuel,
+              ).makeImmutable(),
+            ),
+          );
+        } else {
+          childNode = ProdLineNode.addToGraph(
+            parentGraph: widget.graph,
+            type: NodeType.producer,
+            line: IoLine(outputs: {input}),
+          );
+        }
+
+        _createRecipeTree(childNode, visitedNodes, connectedNodes, newEdges);
+      }
+
+      var newEdge = DirectedEdge.addToGraph(
+        parentGraph: widget.graph,
+        item: input,
+        parent: parentNode,
+        child: childNode,
+        edgeType: EdgeType.requestItems,
+      );
+
+      connectedNodes.add(childNode);
+      newEdges.add(newEdge);
+    }
+  }
+
+  void _createNodeWidgets(List<List<ProdLineNode>> nodesAndHeights) {
+    for (var y = 0; y < nodesAndHeights.length; y++) {
+      for (var x = 0; x < nodesAndHeights[y].length; x++) {
+        var node = nodesAndHeights[y][x];
+        nodeWidgets.putIfAbsent(
+          node,
+          () => NodeWidget(
+            node: node,
+            initialX: (initNodeWidth + initOffset) * x,
+            initialY: (initNodeHeight + initOffset) * y,
+          ),
+        );
+      }
     }
   }
 
