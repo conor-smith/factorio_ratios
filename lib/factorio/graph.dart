@@ -5,11 +5,19 @@ import 'package:factorio_ratios/factorio/production_line.dart';
 
 part 'graph/node_and_edge.dart';
 
+/*
+ * Maintains a full graph
+ * Will throw an exception if a node doesn't have all required inputs
+ * Will generate new nodes to accept excess output of a node
+ */
 class BaseGraph extends ProductionLine {
   final Set<ProdLineNode> _nodes = {};
   final Set<DirectedEdge> _edges = {};
   final Map<ProdLineNode, Set<DirectedEdge>> _parents = {};
   final Map<ProdLineNode, Set<DirectedEdge>> _children = {};
+
+  Function(List<ProdLineNode> newNodes, List<DirectedEdge> newEdges)?
+  disposalNodeCreationListener;
 
   late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
   late final List<DirectedEdge> edges = UnmodifiableListView(_edges);
@@ -34,6 +42,8 @@ class BaseGraph extends ProductionLine {
   @override
   void update(ItemIo newRequirements) {
     super.update(newRequirements);
+
+    // TODO
   }
 
   @override
@@ -47,7 +57,7 @@ class BaseGraph extends ProductionLine {
   }
 
   // Method is public to allow UI to use when displaying tree
-  // 'Height' of a node is the length of the longest path
+  // 'Height' of a node is the length of the longest path from the input nodes
   // Nodes with the same value can be updated in any order
   List<List<ProdLineNode>> getNodeHeights(Iterable<ProdLineNode> nodes) {
     Map<ProdLineNode, int> heightMap = {};
@@ -69,25 +79,71 @@ class BaseGraph extends ProductionLine {
     return flippedMap;
   }
 
+  /*
+   * Calculates required IO of all descendant nodes in order to meet
+   * the required inputs of the specified parent nodes
+   * 
+   * Will throw an exception if a specified parent node is a child of another
+   * specified parent node
+   * 
+   * Will create disposal nodes and edges to handle any excess outputs
+   * Will then call listener if any new nodes and edges are created
+   * 
+   * If an exception is encountered, graph is reset to previous state before
+   * exception is rethrown
+   */
   void _updateNodesAndChildren(Map<ProdLineNode, ItemIo> nodesAndRequirements) {
-    var orderOfUpdate = getNodeHeights(nodesAndRequirements.keys);
+    var nodeHeights = getNodeHeights(nodesAndRequirements.keys);
 
-    var allOrderedNodes = orderOfUpdate.expand((entry) => entry);
+    // Only possible if one node is a descendant of another
+    if (nodeHeights[0].length != nodesAndRequirements.length) {
+      throw const FactorioException(
+        'Cannot give requirements to child and parent node',
+      );
+    }
+
+    var allOrderedNodes = nodeHeights.expand((entry) => entry);
+
+    Map<ItemData, ProdLineNode> disposalNodes = {};
+    for (var disposalNode in _nodes.where(
+      (node) => node._type == NodeType.disposal,
+    )) {
+      for (var input in disposalNode.allInputs) {
+        disposalNodes[input] = disposalNode;
+      }
+    }
 
     // Exists so changes can be rolled back if exception occurs
     Map<ProdLineNode, ItemIo?> oldRequirementsMap = {};
     Map<DirectedEdge, double?> oldAmountMap = {};
-    List<ProdLineNode> newNodes = [];
+    List<ProdLineNode> newDisposalNodes = [];
+    List<DirectedEdge> newEdges = [];
 
     try {
       for (var node in allOrderedNodes) {
+        ItemIo requirements;
+        if (nodesAndRequirements.containsKey(node)) {
+          requirements = nodesAndRequirements[node]!;
+        } else {
+          requirements = _determineRequirementsFromParents(node);
+        }
+
+        oldRequirementsMap[node] = node.requirements;
+        for (var child in node.children) {
+          oldAmountMap[child] = child.amount;
+        }
+
         _updateNodeAndChildEdges(
           node,
-          nodesAndRequirements[node],
-          oldRequirementsMap,
-          oldAmountMap,
-          newNodes,
+          requirements,
+          disposalNodes,
+          newDisposalNodes,
+          newEdges,
         );
+      }
+
+      for (var node in newDisposalNodes) {
+        node.update(_determineRequirementsFromParents(node));
       }
     } catch (e) {
       oldRequirementsMap.forEach((node, oldRequirements) {
@@ -102,117 +158,127 @@ class BaseGraph extends ProductionLine {
         edge._amount = oldAmount;
       });
 
-      for (var newNode in newNodes) {
+      for (var newNode in newDisposalNodes) {
         newNode.removeFromGraph();
       }
 
       rethrow;
     }
+
+    if (newDisposalNodes.isNotEmpty ||
+        newEdges.isNotEmpty && disposalNodeCreationListener != null) {
+      disposalNodeCreationListener!(newDisposalNodes, newEdges);
+    }
+  }
+
+  ItemIo _determineRequirementsFromParents(ProdLineNode node) {
+    ItemIo requirements = {};
+    for (var parent in node.parents) {
+      if (parent.amount == null) {
+        throw const FactorioException('Parent is not initialised');
+      }
+
+      double parentAmount =
+          parent.flowDirection == ItemFlowDirection.childToParent
+          ? parent.amount!
+          : -parent.amount!;
+
+      requirements.update(
+        parent.item,
+        (existingAmount) => existingAmount + parentAmount,
+        ifAbsent: () => parentAmount,
+      );
+    }
+
+    return requirements;
   }
 
   void _updateNodeAndChildEdges(
     ProdLineNode node,
-    ItemIo? newRequirements,
-    Map<ProdLineNode, ItemIo?> oldRequirementsMap,
-    Map<DirectedEdge, double?> oldAmountMap,
-    List<ProdLineNode> newNodes,
+    ItemIo newRequirements,
+    Map<ItemData, ProdLineNode> disposalNodes,
+    List<ProdLineNode> newDisposalNodes,
+    List<DirectedEdge> newEdges,
   ) {
-    oldRequirementsMap[node] = node.requirements;
-
-    // Requirements either comes from parents, or from nodeAndRequirements map
-    // In the event that both are populated, an exception is thrown
-    ItemIo parentRequirements = {};
-    for (var parent in node.parents) {
-      if (parent.amount != null) {
-        double amount = parent.flowDirection == ItemFlowDirection.childToParent
-            ? parent._amount!
-            : -parent._amount!;
-
-        parentRequirements.update(
-          parent.item,
-          (currentAmount) => currentAmount + amount,
-          ifAbsent: () => amount,
-        );
-      } else {
-        throw FactorioException('Parent node has not been initialised');
-      }
-    }
-
-    if (parentRequirements.isEmpty && newRequirements != null) {
-      node.update(newRequirements);
-    } else if (parentRequirements.isNotEmpty && newRequirements == null) {
-      node.update(parentRequirements);
-    } else if (parentRequirements.isEmpty && newRequirements == null) {
-      // Theoretically should never get here
-      throw const FactorioException('No requirements specified');
-    } else if (parentRequirements.isNotEmpty && newRequirements != null) {
-      // TODO - Is it possible to resolve conficts?
-      throw const FactorioException('Conflicting requirements');
-    }
+    node.update(newRequirements);
 
     ItemIo io = node.totalIoPerSecond!;
     List<DirectedEdge> allEdges = [...node.parents, ...node.children];
 
-    io.forEach((itemData, amount) {
-      if (amount > 0) {
-        double totalRequested = node.parents
-            .where((edge) => edge.item == itemData)
-            .map((edge) => edge._amount!)
-            .reduce((amount1, amount2) => amount1 + amount2);
+    for (var output in node.allOutputs) {
+      double amount = io[output]!;
 
-        double difference = totalRequested - amount;
-        // Account for floating point issues
-        bool withinBounds = difference.abs() < totalRequested * 0.001;
+      double totalRequested = node.parents
+          .where((edge) => edge.item == output)
+          .map((edge) => edge._amount!)
+          .reduce((amount1, amount2) => amount1 + amount2);
 
-        // Create or use existing disposal node if excess production
-        if (!withinBounds && difference > 0) {
-          DirectedEdge? acceptExcessEdge = node.children
-              .where(
-                (edge) =>
-                    edge.item == itemData &&
-                    edge._edgeType == EdgeType.acceptExcess,
-              )
-              .firstOrNull;
-          if (acceptExcessEdge == null) {
-            var excessDisposalNode = ProdLineNode.addToGraph(
-              parentGraph: this,
-              type: NodeType.consumer,
-              line: IoLine(inputs: {itemData}),
-            );
-            acceptExcessEdge = DirectedEdge.addToGraph(
-              parentGraph: this,
-              item: itemData,
-              parent: node,
-              child: excessDisposalNode,
-              edgeType: EdgeType.acceptExcess,
-            );
+      double difference = totalRequested - amount;
+      // Account for floating point issues
+      bool withinBounds = difference.abs() < totalRequested * 0.01;
 
-            newNodes.add(excessDisposalNode);
-
-            excessDisposalNode.update({itemData: -difference});
-          }
-
-          acceptExcessEdge._amount = difference;
-        } else if (!withinBounds && difference < 0) {
-          throw FactorioException(
-            'Could not produce required amount of "$itemData"',
-          );
-        }
-      } else {
-        // TODO - Account for multiple producers of single item
-        DirectedEdge? inputEdge = allEdges
-            .where((edge) => edge.item == itemData)
+      // Create or use existing disposal node if excess production
+      if (!withinBounds && difference < 0) {
+        throw FactorioException(
+          'Could not produce required amount of "$output"',
+        );
+      } else if (!withinBounds) {
+        /*
+         * In order
+         * Find existing acceptExcess edge
+         * If not available, find existing disposal node and create edge
+         * If not available, create disposal node and edge
+         */
+        DirectedEdge? acceptExcessEdge = node.children
+            .where(
+              (edge) =>
+                  edge.item == output &&
+                  edge._edgeType == EdgeType.acceptExcess,
+            )
             .firstOrNull;
 
-        if (inputEdge == null) {
-          throw FactorioException('No input provided for item "$itemData"');
-        } else if (inputEdge._edgeType == EdgeType.requestItems) {
-          oldAmountMap[inputEdge] = inputEdge._amount;
+        if (acceptExcessEdge != null) {
+          acceptExcessEdge._amount = difference;
+        } else {
+          var disposalNode = disposalNodes[output];
 
-          inputEdge._amount = amount;
+          if (disposalNode == null) {
+            disposalNode = ProdLineNode.addToGraph(
+              parentGraph: this,
+              type: NodeType.disposal,
+              line: IoLine(inputs: {output}),
+            );
+
+            newDisposalNodes.add(disposalNode);
+            disposalNodes[output] = disposalNode;
+          }
+
+          acceptExcessEdge = DirectedEdge.addToGraph(
+            parentGraph: this,
+            item: output,
+            parent: node,
+            child: disposalNode,
+            initialAmount: difference,
+            edgeType: EdgeType.acceptExcess,
+          );
+
+          newEdges.add(acceptExcessEdge);
         }
       }
-    });
+    }
+
+    for (var input in node.allInputs) {
+      // TODO - Account for multiple producers of single item
+      DirectedEdge? inputEdge = allEdges
+          .where((edge) => edge.item == input)
+          .firstOrNull;
+
+      if (inputEdge == null) {
+        throw FactorioException('No input provided for item "$input"');
+      } else if (inputEdge._edgeType == EdgeType.requestItems) {
+        inputEdge._amount = io[input]!;
+      }
+    }
   }
 
   // Returns the depth

@@ -2,6 +2,7 @@ part of '../graph.dart';
 
 enum NodeType {
   consumer(allowsInput: true, allowsOutput: false, isIo: false),
+  disposal(allowsInput: true, allowsOutput: false, isIo: false),
   producer(allowsInput: false, allowsOutput: true, isIo: false),
   input(allowsInput: false, allowsOutput: true, isIo: true),
   output(allowsInput: true, allowsOutput: false, isIo: true),
@@ -17,13 +18,16 @@ enum NodeType {
     required this.isIo,
   });
 
-  bool canChangeTo(NodeType changeTo) => switch (this) {
-    consumer => const {output, productionLine}.contains(changeTo),
-    producer => const {input, productionLine}.contains(changeTo),
-    input => changeTo == producer,
-    output => changeTo == consumer,
-    productionLine => const {producer, consumer}.contains(changeTo),
-  };
+  bool canChangeTo(NodeType changeTo) =>
+      this == changeTo ||
+      switch (this) {
+        consumer => const {output, productionLine, disposal}.contains(changeTo),
+        disposal => const {output, productionLine, producer}.contains(changeTo),
+        producer => const {input, productionLine}.contains(changeTo),
+        input => false,
+        output => false,
+        productionLine => false,
+      };
 }
 
 enum ItemFlowDirection { parentToChild, childToParent }
@@ -122,7 +126,7 @@ class ProdLineNode implements ProductionLine {
     NodeType nodeType,
     ProductionLine line,
   ) => switch (nodeType) {
-    NodeType.consumer || NodeType.output =>
+    NodeType.consumer || NodeType.disposal || NodeType.output =>
       line.immutableIo && line.allOutputs.isEmpty && line.allInputs.isNotEmpty,
     NodeType.producer || NodeType.input =>
       line.immutableIo && line.allOutputs.isNotEmpty && line.allInputs.isEmpty,
