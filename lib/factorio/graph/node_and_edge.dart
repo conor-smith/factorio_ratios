@@ -118,6 +118,9 @@ class ProdLineNode implements ProductionLine {
     }
   }
 
+  @override
+  String toString() => _line.toString();
+
   void updateSelfAndChildren(ItemIo newRequirements) {
     parentGraph._updateNodesAndChildren({this: newRequirements});
   }

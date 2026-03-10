@@ -12,6 +12,11 @@ const double initOffset = 20;
 class TopLevelGraphWidget extends StatefulWidget {
   final FactorioDatabase db;
   final BaseGraph topLevelGraph = BaseGraph();
+  late final List<CraftingMachine> sortedMachines =
+      db.craftingMachineMap.values.toList()..sort(
+        (machine1, machine2) =>
+            machine1.craftingSpeed.compareTo(machine2.craftingSpeed),
+      );
 
   TopLevelGraphWidget({super.key, required this.db});
 
@@ -20,121 +25,51 @@ class TopLevelGraphWidget extends StatefulWidget {
 }
 
 class _TopLevelGraphWidgetState extends State<TopLevelGraphWidget> {
-  FactorioGroupMenuWidget? selectionMenu;
+  bool selectionMenuActive = false;
+  late BaseGraph currentGraph = widget.topLevelGraph;
+  // TODO - Account for multiple surfaces
+  late Map<BaseGraph, Surface?> graphToSurface = {
+    widget.topLevelGraph: widget.db.surfaceMap['nauvis'],
+  };
 
-  late GraphWidget currentGraph = GraphWidget(
-    graph: widget.topLevelGraph,
-    db: widget.db,
-  );
+  void addConsumerNode(Item item) {
+    setState(() {
+      selectionMenuActive = false;
 
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        currentGraph,
-        Center(child: selectionMenu),
-      ],
-    );
-  }
-}
+      var newNode = ProdLineNode.addToGraph(
+        parentGraph: currentGraph,
+        type: NodeType.consumer,
+        line: IoLine(inputs: {ItemData(item)}),
+      );
 
-class GraphWidget extends StatefulWidget {
-  final BaseGraph graph;
-  final FactorioDatabase db;
-  final BaseGraph? parentGraph;
-  // TODO - Account for different planets
-  final Surface? surface;
-
-  const GraphWidget({
-    super.key,
-    required this.graph,
-    required this.db,
-    this.surface,
-    this.parentGraph,
-  });
-
-  @override
-  State<GraphWidget> createState() => _GraphWidgetState();
-}
-
-class _GraphWidgetState extends State<GraphWidget> {
-  final Map<ProdLineNode, NodeWidget> nodeWidgets = {};
-  final Map<DirectedEdge, EdgeWidget> edgeWidgets = {};
-
-  @override
-  void initState() {
-    super.initState();
-
-    var nodeTree = widget.graph.getNodeHeights(widget.graph.nodes);
-
-    _createNodeWidgets(nodeTree);
-
-    for (var edge in widget.graph.edges) {
-      edgeWidgets[edge] = EdgeWidget(edge: edge);
-    }
+      _createRecipeTree(newNode);
+    });
   }
 
-  void addConsumerNode(ItemData item) {
-    var newNode = ProdLineNode.addToGraph(
-      parentGraph: widget.graph,
-      type: NodeType.consumer,
-      line: IoLine(inputs: {item}),
-    );
-
-    List<ProdLineNode> connectedNodes = [newNode];
-    List<DirectedEdge> newEdges = [];
-
-    // TODO - Account for more than one recipe tree being positioned
-    _createRecipeTree(newNode, {}, connectedNodes, newEdges);
-
-    var nodeHeights = widget.graph.getNodeHeights(connectedNodes);
-
-    _createNodeWidgets(nodeHeights);
-
-    for (var newEdge in newEdges) {
-      edgeWidgets.putIfAbsent(newEdge, () => EdgeWidget(edge: newEdge));
-    }
-  }
-
-  void _createRecipeTree(
-    ProdLineNode parentNode,
-    Set<ProdLineNode> visitedNodes,
-    List<ProdLineNode> connectedNodes,
-    List<DirectedEdge> newEdges,
-  ) {
-    visitedNodes.add(parentNode);
-
-    List<ProdLineNode> childNodes = [];
+  void _createRecipeTree(ProdLineNode parentNode) {
     for (var input in parentNode.allInputs) {
       // Check for existing node
-      var childNode = parentNode.parentGraph.nodes
+      var childNode = currentGraph.nodes
           .where((node) => node.allOutputs.contains(input))
           .firstOrNull;
 
-      if (childNode != null) {
-        visitedNodes.add(childNode);
-        childNodes.add(childNode);
-      } else {
+      if (childNode == null) {
+        // If no existing node exists, find appropriate recipe
         var producerRecipe = input.item.producedBy
             .where(
               (recipe) =>
-                  recipe.surfaces.contains(widget.surface) &&
+                  !recipe.categories.contains('recycling') &&
+                  recipe.surfaces.contains(graphToSurface[currentGraph]) &&
                   recipe.results.length == 1 &&
                   recipe.itemIo[input.item]! > 0,
             )
             .firstOrNull;
 
         if (producerRecipe != null) {
-          // TODO - Cache a list of sorted machines somewhere
-          List<CraftingMachine> sortedMachines = List.from(
-            producerRecipe.craftingMachines,
+          // If recipe exists, create production line node
+          var fastestMachine = widget.sortedMachines.firstWhere(
+            (machine) => machine.recipes.contains(producerRecipe),
           );
-          sortedMachines.sort(
-            (machine1, machine2) =>
-                machine1.craftingSpeed.compareTo(machine2.craftingSpeed),
-          );
-
-          var fastestMachine = sortedMachines.first;
 
           ItemData? fuel;
           if (fastestMachine.energySource.type == EnergySourceType.burner) {
@@ -145,7 +80,7 @@ class _GraphWidgetState extends State<GraphWidget> {
           }
 
           childNode = ProdLineNode.addToGraph(
-            parentGraph: widget.graph,
+            parentGraph: currentGraph,
             type: NodeType.productionLine,
             line: SingleRecipeLine(
               MutableModuledMachineAndRecipe(
@@ -156,89 +91,317 @@ class _GraphWidgetState extends State<GraphWidget> {
             ),
           );
         } else {
+          // If no recipe exists, create producer node
           childNode = ProdLineNode.addToGraph(
-            parentGraph: widget.graph,
+            parentGraph: currentGraph,
             type: NodeType.producer,
             line: IoLine(outputs: {input}),
           );
         }
 
-        _createRecipeTree(childNode, visitedNodes, connectedNodes, newEdges);
+        _createRecipeTree(childNode);
       }
 
-      var newEdge = DirectedEdge.addToGraph(
-        parentGraph: widget.graph,
+      DirectedEdge.addToGraph(
+        parentGraph: currentGraph,
         item: input,
         parent: parentNode,
         child: childNode,
         edgeType: EdgeType.requestItems,
       );
-
-      connectedNodes.add(childNode);
-      newEdges.add(newEdge);
     }
   }
 
-  void _createNodeWidgets(List<List<ProdLineNode>> nodesAndHeights) {
-    for (var y = 0; y < nodesAndHeights.length; y++) {
-      for (var x = 0; x < nodesAndHeights[y].length; x++) {
-        var node = nodesAndHeights[y][x];
-        nodeWidgets.putIfAbsent(
-          node,
-          () => NodeWidget(
-            node: node,
-            initialX: (initNodeWidth + initOffset) * x,
-            initialY: (initNodeHeight + initOffset) * y,
+  @override
+  Widget build(BuildContext context) {
+    var graphWidget = GraphWidget(graph: currentGraph);
+
+    List<Widget> children;
+    if (selectionMenuActive) {
+      children = [
+        graphWidget,
+        Center(
+          child: FactorioGroupMenuWidget<Item>(
+            items: widget.db.itemMap.values
+                .where((item) => !item.hidden && item.producedBy.isNotEmpty)
+                .toList(),
+            onSelected: addConsumerNode,
+          ),
+        ),
+      ];
+    } else {
+      children = [
+        GestureDetector(
+          onTap: () => setState(() {
+            selectionMenuActive = true;
+          }),
+          child: graphWidget,
+        ),
+      ];
+    }
+
+    return Stack(children: children);
+  }
+}
+
+class GraphWidget extends StatelessWidget {
+  final BaseGraph graph;
+
+  const GraphWidget({super.key, required this.graph});
+
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> nodeWidgets = [];
+
+    var graphTreeHeights = graph.getNodeHeights(graph.nodes);
+    for (var y = 0; y < graphTreeHeights.length; y++) {
+      for (var x = 0; x < graphTreeHeights[y].length; x++) {
+        nodeWidgets.add(
+          NodeWidget(
+            node: graphTreeHeights[y][x],
+            x: x * (initNodeWidth + initOffset),
+            y: y * (initNodeHeight + initOffset),
           ),
         );
       }
     }
-  }
 
-  @override
-  Widget build(BuildContext context) {
-    return const Placeholder();
+    return InteractiveViewer(child: Stack(children: nodeWidgets));
   }
 }
 
-class NodeWidget extends StatefulWidget {
+class NodeWidget extends StatelessWidget {
   final ProdLineNode node;
-  final double initialX;
-  final double initialY;
+
+  final double x;
+  final double y;
 
   const NodeWidget({
     super.key,
     required this.node,
-    required this.initialX,
-    required this.initialY,
+    required this.x,
+    required this.y,
   });
 
   @override
-  State<NodeWidget> createState() => _NodeWidgetState();
-}
-
-class _NodeWidgetState extends State<NodeWidget> {
-  late double x = widget.initialX;
-  late double y = widget.initialY;
-
-  @override
   Widget build(BuildContext context) {
-    return Placeholder();
+    return Positioned(
+      left: x,
+      top: y,
+      child: Container(
+        width: initNodeWidth,
+        height: initNodeHeight,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.black),
+          borderRadius: BorderRadius.circular(5),
+        ),
+        child: Center(child: Text(node.toString())),
+      ),
+    );
   }
 }
 
-class EdgeWidget extends StatefulWidget {
-  final DirectedEdge edge;
+// class GraphWidget extends StatefulWidget {
+//   final BaseGraph graph;
+//   final FactorioDatabase db;
+//   final BaseGraph? parentGraph;
+//   // TODO - Account for different planets
+//   final Surface? surface;
 
-  const EdgeWidget({super.key, required this.edge});
+//   const GraphWidget({
+//     super.key,
+//     required this.graph,
+//     required this.db,
+//     this.surface,
+//     this.parentGraph,
+//   });
 
-  @override
-  State<EdgeWidget> createState() => _EdgeWidgetState();
-}
+//   @override
+//   State<GraphWidget> createState() => _GraphWidgetState();
+// }
 
-class _EdgeWidgetState extends State<EdgeWidget> {
-  @override
-  Widget build(BuildContext context) {
-    return const Placeholder();
-  }
-}
+// class _GraphWidgetState extends State<GraphWidget> {
+//   final Map<ProdLineNode, NodeWidget> nodeWidgets = {};
+//   final Map<DirectedEdge, EdgeWidget> edgeWidgets = {};
+
+//   @override
+//   void initState() {
+//     super.initState();
+
+//     var nodeTree = widget.graph.getNodeHeights(widget.graph.nodes);
+
+//     _createNodeWidgets(nodeTree);
+
+//     for (var edge in widget.graph.edges) {
+//       edgeWidgets[edge] = EdgeWidget(edge: edge);
+//     }
+//   }
+
+//   void addConsumerNode(ItemData item) {
+//     var newNode = ProdLineNode.addToGraph(
+//       parentGraph: widget.graph,
+//       type: NodeType.consumer,
+//       line: IoLine(inputs: {item}),
+//     );
+
+//     List<ProdLineNode> connectedNodes = [newNode];
+//     List<DirectedEdge> newEdges = [];
+
+//     // TODO - Account for more than one recipe tree being positioned
+//     _createRecipeTree(newNode, {}, connectedNodes, newEdges);
+
+//     var nodeHeights = widget.graph.getNodeHeights(connectedNodes);
+
+//     _createNodeWidgets(nodeHeights);
+
+//     for (var newEdge in newEdges) {
+//       edgeWidgets.putIfAbsent(newEdge, () => EdgeWidget(edge: newEdge));
+//     }
+//   }
+
+//   void _createRecipeTree(
+//     ProdLineNode parentNode,
+//     Set<ProdLineNode> visitedNodes,
+//     List<ProdLineNode> connectedNodes,
+//     List<DirectedEdge> newEdges,
+//   ) {
+//     visitedNodes.add(parentNode);
+
+//     List<ProdLineNode> childNodes = [];
+//     for (var input in parentNode.allInputs) {
+//       // Check for existing node
+//       var childNode = parentNode.parentGraph.nodes
+//           .where((node) => node.allOutputs.contains(input))
+//           .firstOrNull;
+
+//       if (childNode != null) {
+//         visitedNodes.add(childNode);
+//         childNodes.add(childNode);
+//       } else {
+//         var producerRecipe = input.item.producedBy
+//             .where(
+//               (recipe) =>
+//                   recipe.surfaces.contains(widget.surface) &&
+//                   recipe.results.length == 1 &&
+//                   recipe.itemIo[input.item]! > 0,
+//             )
+//             .firstOrNull;
+
+//         if (producerRecipe != null) {
+//           // TODO - Cache a list of sorted machines somewhere
+//           List<CraftingMachine> sortedMachines = List.from(
+//             producerRecipe.craftingMachines,
+//           );
+//           sortedMachines.sort(
+//             (machine1, machine2) =>
+//                 machine1.craftingSpeed.compareTo(machine2.craftingSpeed),
+//           );
+
+//           var fastestMachine = sortedMachines.first;
+
+//           ItemData? fuel;
+//           if (fastestMachine.energySource.type == EnergySourceType.burner) {
+//             var energySource =
+//                 fastestMachine.energySource as BurnerEnergySource;
+
+//             fuel = ItemData(energySource.fuelItems.first);
+//           }
+
+//           childNode = ProdLineNode.addToGraph(
+//             parentGraph: widget.graph,
+//             type: NodeType.productionLine,
+//             line: SingleRecipeLine(
+//               MutableModuledMachineAndRecipe(
+//                 craftingMachine: fastestMachine,
+//                 recipe: producerRecipe,
+//                 fuel: fuel,
+//               ).makeImmutable(),
+//             ),
+//           );
+//         } else {
+//           childNode = ProdLineNode.addToGraph(
+//             parentGraph: widget.graph,
+//             type: NodeType.producer,
+//             line: IoLine(outputs: {input}),
+//           );
+//         }
+
+//         _createRecipeTree(childNode, visitedNodes, connectedNodes, newEdges);
+//       }
+
+//       var newEdge = DirectedEdge.addToGraph(
+//         parentGraph: widget.graph,
+//         item: input,
+//         parent: parentNode,
+//         child: childNode,
+//         edgeType: EdgeType.requestItems,
+//       );
+
+//       connectedNodes.add(childNode);
+//       newEdges.add(newEdge);
+//     }
+//   }
+
+//   void _createNodeWidgets(List<List<ProdLineNode>> nodesAndHeights) {
+//     for (var y = 0; y < nodesAndHeights.length; y++) {
+//       for (var x = 0; x < nodesAndHeights[y].length; x++) {
+//         var node = nodesAndHeights[y][x];
+//         nodeWidgets.putIfAbsent(
+//           node,
+//           () => NodeWidget(
+//             node: node,
+//             initialX: (initNodeWidth + initOffset) * x,
+//             initialY: (initNodeHeight + initOffset) * y,
+//           ),
+//         );
+//       }
+//     }
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return const Placeholder();
+//   }
+// }
+
+// class NodeWidget extends StatefulWidget {
+//   final ProdLineNode node;
+//   final double initialX;
+//   final double initialY;
+
+//   const NodeWidget({
+//     super.key,
+//     required this.node,
+//     required this.initialX,
+//     required this.initialY,
+//   });
+
+//   @override
+//   State<NodeWidget> createState() => _NodeWidgetState();
+// }
+
+// class _NodeWidgetState extends State<NodeWidget> {
+//   late double x = widget.initialX;
+//   late double y = widget.initialY;
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Placeholder();
+//   }
+// }
+
+// class EdgeWidget extends StatefulWidget {
+//   final DirectedEdge edge;
+
+//   const EdgeWidget({super.key, required this.edge});
+
+//   @override
+//   State<EdgeWidget> createState() => _EdgeWidgetState();
+// }
+
+// class _EdgeWidgetState extends State<EdgeWidget> {
+//   @override
+//   Widget build(BuildContext context) {
+//     return const Placeholder();
+//   }
+// }

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:factorio_ratios/factorio/models.dart';
 import 'package:factorio_ratios/ui/factorio_menu.dart';
+import 'package:factorio_ratios/ui/graph_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
@@ -58,12 +59,7 @@ class FactorioRatiosApp extends StatelessWidget {
       child: SizedBox(
         width: 1024,
         height: 1024,
-        child: FactorioGroupMenuWidget<Item>(
-          items: factorioDb.itemMap.values
-              .where((item) => !item.hidden)
-              .toList(),
-          onSelected: (item) => print(item),
-        ),
+        child: TopLevelGraphWidget(db: factorioDb),
       ),
     );
   }

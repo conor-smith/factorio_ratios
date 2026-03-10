@@ -209,7 +209,7 @@ class MutableModuledMachineAndRecipe implements ModuledMachineAndRecipe {
 
     // Do the math
     double fuelEmissionsMultiplier =
-        (_fuel as SolidItem?)?.fuelEmissionsMultiplier ?? 1;
+        (_fuel?.item as SolidItem?)?.fuelEmissionsMultiplier ?? 1;
     double recipeEmissionsMultiplier = _recipe?.emissionsMultiplier ?? 1;
     double recipeMaxProductivity =
         _recipe?.maximumProductivity ?? double.infinity;
