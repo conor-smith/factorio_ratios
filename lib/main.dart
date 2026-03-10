@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:factorio_ratios/factorio/models.dart';
-import 'package:factorio_ratios/ui/factorio_menu.dart';
 import 'package:factorio_ratios/ui/graph_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
@@ -55,12 +54,6 @@ class FactorioRatiosApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox(
-        width: 1024,
-        height: 1024,
-        child: TopLevelGraphWidget(db: factorioDb),
-      ),
-    );
+    return TopLevelGraphWidget(db: factorioDb);
   }
 }
