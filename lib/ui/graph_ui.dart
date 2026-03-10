@@ -12,11 +12,6 @@ const double initOffset = 20;
 class TopLevelGraphWidget extends StatefulWidget {
   final FactorioDatabase db;
   final BaseGraph topLevelGraph = BaseGraph();
-  late final List<CraftingMachine> sortedMachines =
-      db.craftingMachineMap.values.toList()..sort(
-        (machine1, machine2) =>
-            machine1.craftingSpeed.compareTo(machine2.craftingSpeed),
-      );
 
   TopLevelGraphWidget({super.key, required this.db});
 
@@ -25,12 +20,50 @@ class TopLevelGraphWidget extends StatefulWidget {
 }
 
 class _TopLevelGraphWidgetState extends State<TopLevelGraphWidget> {
+  final List<CraftingMachine> sortedMachines = [];
+  final Map<Surface, List<Recipe>> defaultSurfaceRecipes = {};
+  final Map<Surface, List<Item>> surfaceFuels = {};
+
   bool selectionMenuActive = false;
   late BaseGraph currentGraph = widget.topLevelGraph;
   // TODO - Account for multiple surfaces
   late Map<BaseGraph, Surface?> graphToSurface = {
     widget.topLevelGraph: widget.db.surfaceMap['nauvis'],
   };
+
+  @override
+  void initState() {
+    super.initState();
+
+    sortedMachines.addAll(widget.db.craftingMachineMap.values);
+    sortedMachines.sort(
+      (machine1, machine2) =>
+          machine1.craftingSpeed.compareTo(machine2.craftingSpeed),
+    );
+
+    for (var surface in widget.db.surfaceMap.values) {
+      defaultSurfaceRecipes[surface] = surface.recipes
+          .where(
+            (recipe) =>
+                !recipe.categories.contains('recycling') &&
+                recipe.itemIo.entries
+                        .where((entry) => entry.value > 0)
+                        .length ==
+                    1,
+          )
+          .toList();
+
+      List<SolidItem> surfaceResourceFuels = surface.resourceItems
+          .whereType<SolidItem>()
+          .where((item) => item.fuelValue != null)
+          .toList();
+      surfaceResourceFuels.sort(
+        (fuel1, fuel2) => fuel1.fuelValue!.compareTo(fuel2.fuelValue!),
+      );
+
+      surfaceFuels[surface] = surfaceResourceFuels;
+    }
+  }
 
   void addConsumerNode(Item item) {
     setState(() {
@@ -48,68 +81,100 @@ class _TopLevelGraphWidgetState extends State<TopLevelGraphWidget> {
 
   void _createRecipeTree(ProdLineNode parentNode) {
     for (var input in parentNode.allInputs) {
-      // Check for existing node
-      var childNode = currentGraph.nodes
-          .where((node) => node.allOutputs.contains(input))
-          .firstOrNull;
+      var childNode = findExistingNode(input);
 
       if (childNode == null) {
-        // If no existing node exists, find appropriate recipe
-        var producerRecipe = input.item.producedBy
-            .where(
-              (recipe) =>
-                  !recipe.categories.contains('recycling') &&
-                  recipe.surfaces.contains(graphToSurface[currentGraph]) &&
-                  recipe.results.length == 1 &&
-                  recipe.itemIo[input.item]! > 0,
-            )
-            .firstOrNull;
+        var surface = graphToSurface[currentGraph]!;
 
-        if (producerRecipe != null) {
-          // If recipe exists, create production line node
-          var fastestMachine = widget.sortedMachines.firstWhere(
-            (machine) => machine.recipes.contains(producerRecipe),
-          );
-
-          ItemData? fuel;
-          if (fastestMachine.energySource.type == EnergySourceType.burner) {
-            var energySource =
-                fastestMachine.energySource as BurnerEnergySource;
-
-            fuel = ItemData(energySource.fuelItems.first);
-          }
-
-          childNode = ProdLineNode.addToGraph(
-            parentGraph: currentGraph,
-            type: NodeType.productionLine,
-            line: SingleRecipeLine(
-              MutableModuledMachineAndRecipe(
-                craftingMachine: fastestMachine,
-                recipe: producerRecipe,
-                fuel: fuel,
-              ).makeImmutable(),
-            ),
-          );
-        } else {
-          // If no recipe exists, create producer node
-          childNode = ProdLineNode.addToGraph(
-            parentGraph: currentGraph,
-            type: NodeType.producer,
-            line: IoLine(outputs: {input}),
-          );
-        }
+        childNode =
+            createResourceNode(input, surface) ??
+            createRecipeNode(input, surface) ??
+            createProducerNode(input);
 
         _createRecipeTree(childNode);
       }
 
-      DirectedEdge.addToGraph(
-        parentGraph: currentGraph,
-        item: input,
-        parent: parentNode,
-        child: childNode,
-        edgeType: EdgeType.requestItems,
-      );
+      if (!childNode.children.any((edge) => edge.child == childNode)) {
+        DirectedEdge.addToGraph(
+          parentGraph: currentGraph,
+          item: input,
+          parent: parentNode,
+          child: childNode,
+          edgeType: EdgeType.requestItems,
+        );
+      }
     }
+  }
+
+  ProdLineNode? findExistingNode(ItemData itemData) {
+    return currentGraph.nodes
+        .where((node) => node.allOutputs.contains(itemData))
+        .firstOrNull;
+  }
+
+  ProdLineNode? createResourceNode(ItemData itemData, Surface surface) {
+    if (surface.resourceItems.contains(itemData.item)) {
+      return ProdLineNode.addToGraph(
+        parentGraph: currentGraph,
+        type: NodeType.producer,
+        line: IoLine(outputs: {itemData}),
+      );
+    } else {
+      return null;
+    }
+  }
+
+  ProdLineNode? createRecipeNode(ItemData itemData, Surface surface) {
+    // TODO - account for null surface
+    var producerRecipe = defaultSurfaceRecipes[surface]!
+        .where(
+          (recipe) =>
+              itemData.item.producedBy.contains(recipe) &&
+              (recipe.itemIo[itemData.item] ?? -1) > 0,
+        )
+        .firstOrNull;
+
+    if (producerRecipe != null) {
+      // If recipe exists, create production line node
+      var fastestMachine = sortedMachines.firstWhere(
+        (machine) => machine.recipes.contains(producerRecipe),
+      );
+
+      ItemData? fuel;
+      if (fastestMachine.energySource.type == EnergySourceType.burner) {
+        BurnerEnergySource energySource =
+            fastestMachine.energySource as BurnerEnergySource;
+
+        // TODO - Account for surfaces without available fuel
+        fuel = ItemData(
+          surfaceFuels[surface]!.firstWhere(
+            (fuel) => energySource.fuelItems.contains(fuel),
+          ),
+        );
+      }
+
+      return ProdLineNode.addToGraph(
+        parentGraph: currentGraph,
+        type: NodeType.productionLine,
+        line: SingleRecipeLine(
+          MutableModuledMachineAndRecipe(
+            craftingMachine: fastestMachine,
+            recipe: producerRecipe,
+            fuel: fuel,
+          ).makeImmutable(),
+        ),
+      );
+    } else {
+      return null;
+    }
+  }
+
+  ProdLineNode createProducerNode(ItemData itemData) {
+    return ProdLineNode.addToGraph(
+      parentGraph: currentGraph,
+      type: NodeType.producer,
+      line: IoLine(outputs: {itemData}),
+    );
   }
 
   @override
