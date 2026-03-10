@@ -26,11 +26,21 @@ class Surface extends OrderedWithSubgroup {
   final Map<String, double> surfaceProperties;
 
   final String? _subgroupString;
+  final List<String> _resources;
 
   late final List<Recipe> recipes = List.unmodifiable(
     factorioDb.recipeMap.values.where(
       (recipe) => recipe.surfaces.contains(this),
     ),
+  );
+  late final List<Resource> resources = List.unmodifiable(
+    _resources.map((resource) => factorioDb.resourceMap[resource]).nonNulls,
+  );
+  late final List<Item> resourceItems = List.unmodifiable(
+    resources
+        .map((resource) => resource.results)
+        .expand((results) => results)
+        .toSet(),
   );
 
   Surface._({
@@ -41,9 +51,17 @@ class Surface extends OrderedWithSubgroup {
     required this.order,
     required String? subgroup,
     required this.surfaceProperties,
-  }) : _subgroupString = subgroup;
+    required List<String> resources,
+  }) : _subgroupString = subgroup,
+       _resources = resources;
 
   factory Surface.fromJson(FactorioDatabase factorioDb, Map json) {
+    List<String> resources = List.unmodifiable(
+      json['map_gen_settings']?['autoplace_settings']?['entity']?['settings']
+              ?.keys ??
+          const [],
+    );
+
     return Surface._(
       factorioDb: factorioDb,
       name: json['name'],
@@ -52,6 +70,7 @@ class Surface extends OrderedWithSubgroup {
       order: json['order'],
       subgroup: json['subgroup'],
       surfaceProperties: _parseStringDoubleMap(json['surface_properties']),
+      resources: resources,
     );
   }
 

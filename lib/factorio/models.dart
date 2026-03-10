@@ -10,9 +10,10 @@ part 'models/group.dart';
 part 'models/icon_data.dart';
 part 'models/item.dart';
 part 'models/other_interfaces.dart';
-part 'models/surface.dart';
 part 'models/recipe.dart';
+part 'models/resource.dart';
 part 'models/subgroup.dart';
+part 'models/surface.dart';
 
 final Map<String, double> _multipliers = {
   "k": pow(10, 3).toDouble(),
@@ -61,6 +62,7 @@ class FactorioDatabase {
   late final Map<String, ItemGroup> itemGroupMap;
   late final Map<String, ItemSubgroup> itemSubgroupMap;
   late final Map<String, Surface> surfaceMap;
+  late final Map<String, Resource> resourceMap;
 
   // Each of these fields acts as an index when querying the db
   late final Map<String, List<Recipe>> _craftingCategoryToRecipes;
@@ -88,6 +90,7 @@ class FactorioDatabase {
     Map<String, ItemGroup> itemGroups = {};
     Map<String, ItemSubgroup> itemSubgroups = {};
     Map<String, Surface> surfaces = {};
+    Map<String, Resource> resources = {};
 
     // TODO - clean up
     _logger.info('decoding items');
@@ -208,12 +211,24 @@ class FactorioDatabase {
       }
     });
 
+    _logger.info('decoding resources');
+    Map<String, Map> rawResources = (factorioRawData['resource'] as Map).cast();
+    rawResources.forEach((name, resourceJson) {
+      try {
+        resources[name] = Resource.fromJson(this, resourceJson);
+      } catch (e) {
+        _logger.info('Encountered errror when decoding resource "$name"', e);
+        rethrow;
+      }
+    });
+
     itemMap = Map.unmodifiable(items);
     recipeMap = Map.unmodifiable(recipes);
     craftingMachineMap = Map.unmodifiable(craftingMachines);
     itemGroupMap = Map.unmodifiable(itemGroups);
     itemSubgroupMap = Map.unmodifiable(itemSubgroups);
     surfaceMap = Map.unmodifiable(surfaces);
+    resourceMap = Map.unmodifiable(resources);
   }
 
   void _buildIndices() {

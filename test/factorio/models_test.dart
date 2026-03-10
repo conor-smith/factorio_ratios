@@ -72,6 +72,18 @@ void main() {
       _logger.info(
         'The following recipes are craftable on this surface - $recipeList',
       );
+
+      List<String> resourceItemNameList = surface.resourceItems
+          .map((recipe) => recipe.name)
+          .toList();
+      recipeNameList.sort();
+
+      String resourceItemList = resourceItemNameList.isEmpty
+          ? 'None'
+          : resourceItemNameList.reduce((name1, name2) => '$name1, $name2');
+      _logger.info(
+        'The following resources are available on this surface - $resourceItemList',
+      );
     });
 
     expect(db, anything);
