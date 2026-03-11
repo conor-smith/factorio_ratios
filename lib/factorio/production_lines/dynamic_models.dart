@@ -33,7 +33,7 @@ class ItemData {
 
   // + 20 is ensures that a fluid item of temperature 0 returns a different hashcode
   @override
-  int get hashCode => item.hashCode + 20 + (quality ?? temperature!.toInt());
+  int get hashCode => item.hashCode + (quality ?? temperature!.toInt());
 
   @override
   bool operator ==(Object other) =>

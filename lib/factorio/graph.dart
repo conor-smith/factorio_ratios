@@ -3,14 +3,32 @@ import 'dart:collection';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/production_line.dart';
 
+part 'graph/listenable_state.dart';
 part 'graph/node_and_edge.dart';
 
 /*
  * Maintains a full graph
  * Will throw an exception if a node doesn't have all required inputs
- * Will generate new nodes to accept excess output of a node
+ * Will generate new disposal nodes to accept excess output of a node
+ * 
+ * However, this graph will NOT generate new nodes for required inputs
+ * It is the responsibility of the owner of this instance to ensure that 
+ * every input on every node has something to supply it
+ * If not, an exception will be thrown
+ * 
+ * Graphs, Nodes and Edges essentially act as the "state" for the Flutter widgets
+ * As such, they must all have callback functions for when their state is updated
+ * These callbacks are only intended to be used if an update occurs
+ * that was not specifically requested by Flutter
+ * 
+ * There are only 3 methods where this may occur
+ * .update(...)
+ * .reset(...)
+ * ._updateNodesAndDescendants(...)
+ * So whenever one of these three methods are called, we can trust the graph
+ * itself to do a callback and do not need to update widget state ourselves
  */
-class BaseGraph extends ProductionLine {
+class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
   final Set<ProdLineNode> _nodes = {};
   final Set<DirectedEdge> _edges = {};
   final Map<ProdLineNode, Set<DirectedEdge>> _parents = {};
@@ -44,6 +62,9 @@ class BaseGraph extends ProductionLine {
     super.update(newRequirements);
 
     // TODO
+    if (callbackOnChange != null) {
+      callbackOnChange!(this);
+    }
   }
 
   @override
@@ -54,6 +75,10 @@ class BaseGraph extends ProductionLine {
 
     _totalIoPerSecond = null;
     _requirements = null;
+
+    if (callbackOnChange != null) {
+      callbackOnChange!(this);
+    }
   }
 
   // Method is public to allow UI to use when displaying tree
@@ -92,7 +117,9 @@ class BaseGraph extends ProductionLine {
    * If an exception is encountered, graph is reset to previous state before
    * exception is rethrown
    */
-  void _updateNodesAndChildren(Map<ProdLineNode, ItemIo> nodesAndRequirements) {
+  void _updateNodesAndDescendants(
+    Map<ProdLineNode, ItemIo> nodesAndRequirements,
+  ) {
     var nodeHeights = getNodeHeights(nodesAndRequirements.keys);
 
     // Only possible if one node is a descendant of another
@@ -102,7 +129,7 @@ class BaseGraph extends ProductionLine {
       );
     }
 
-    var allOrderedNodes = nodeHeights.expand((entry) => entry);
+    var allOrderedNodes = nodeHeights.expand((entry) => entry).toList();
 
     Map<ItemData, ProdLineNode> disposalNodes = {};
     for (var disposalNode in _nodes.where(
@@ -144,6 +171,16 @@ class BaseGraph extends ProductionLine {
 
       for (var node in newDisposalNodes) {
         node.update(_determineRequirementsFromParents(node));
+      }
+
+      if (newDisposalNodes.isNotEmpty) {
+        // This call will ensure that the parent widget is rebuilt
+        // Doing so will rebuild all children widgets anyway
+        // eliminating the need to manually update all the children
+        // TODO - Confirm this is actually the case
+        _updateListeners(this);
+      } else {
+        _updateNodeAndChildrenListeners(allOrderedNodes);
       }
     } catch (e) {
       oldRequirementsMap.forEach((node, oldRequirements) {
@@ -232,8 +269,7 @@ class BaseGraph extends ProductionLine {
         DirectedEdge? acceptExcessEdge = node.children
             .where(
               (edge) =>
-                  edge.item == output &&
-                  edge._edgeType == EdgeType.acceptExcess,
+                  edge.item == output && edge.edgeType == EdgeType.acceptExcess,
             )
             .firstOrNull;
 
@@ -275,7 +311,7 @@ class BaseGraph extends ProductionLine {
 
       if (inputEdge == null) {
         throw FactorioException('No input provided for item "$input"');
-      } else if (inputEdge._edgeType == EdgeType.requestItems) {
+      } else if (inputEdge.edgeType == EdgeType.requestItems) {
         inputEdge._amount = io[input]!;
       }
     }
@@ -305,6 +341,15 @@ class BaseGraph extends ProductionLine {
       return maxHeight;
     } else {
       return existingHeight;
+    }
+  }
+
+  void _updateNodeAndChildrenListeners(List<ProdLineNode> updatedNodes) {
+    for (var updatedNode in updatedNodes) {
+      updatedNode._updateListeners(updatedNode);
+      for (var child in updatedNode.children) {
+        child._updateListeners(child);
+      }
     }
   }
 }

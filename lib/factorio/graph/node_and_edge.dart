@@ -41,7 +41,9 @@ enum EdgeType {
   const EdgeType(this.flowDirection);
 }
 
-class ProdLineNode implements ProductionLine {
+class ProdLineNode
+    with ListenableState<ProdLineNode>
+    implements ProductionLine {
   // Implementing ProductionLine is arguably unnecessary
   // Primarily for convenenience
   final BaseGraph parentGraph;
@@ -91,6 +93,10 @@ class ProdLineNode implements ProductionLine {
 
     parentGraph._parents.remove(this);
     parentGraph._children.remove(this);
+
+    if (callbackOnDelete != null) {
+      callbackOnDelete!(this);
+    }
   }
 
   NodeType get type => _type;
@@ -122,7 +128,7 @@ class ProdLineNode implements ProductionLine {
   String toString() => _line.toString();
 
   void updateSelfAndChildren(ItemIo newRequirements) {
-    parentGraph._updateNodesAndChildren({this: newRequirements});
+    parentGraph._updateNodesAndDescendants({this: newRequirements});
   }
 
   bool _verifyNodeTypeAndLine(
@@ -169,17 +175,16 @@ class ProdLineNode implements ProductionLine {
   }
 }
 
-class DirectedEdge {
+class DirectedEdge with ListenableState<DirectedEdge> {
   final BaseGraph parentGraph;
   final ItemData item;
   final ProdLineNode parent;
   final ProdLineNode child;
   double? _amount;
-  EdgeType _edgeType;
+  final EdgeType edgeType;
 
   double? get amount => _amount;
-  ItemFlowDirection get flowDirection => _edgeType.flowDirection;
-  EdgeType get edgeType => _edgeType;
+  ItemFlowDirection get flowDirection => edgeType.flowDirection;
 
   DirectedEdge.addToGraph({
     required this.parentGraph,
@@ -187,14 +192,15 @@ class DirectedEdge {
     required this.parent,
     required this.child,
     double? initialAmount,
-    required EdgeType edgeType,
-  }) : _amount = initialAmount,
-       _edgeType = edgeType {
+    required this.edgeType,
+  }) : _amount = initialAmount {
     // Confirm both parent and child are valid
     if (parentGraph != parent.parentGraph || parentGraph != child.parentGraph) {
       throw const FactorioException(
         'Cannot connect two nodes from different graphs',
       );
+    } else if (parent.children.contains(this)) {
+      throw const FactorioException('Cannot create duplicate edge');
     }
 
     // Ensure no loops are created
@@ -223,5 +229,17 @@ class DirectedEdge {
 
     parentGraph._parents[child]!.remove(this);
     parentGraph._children[parent]!.remove(this);
+
+    if (callbackOnDelete != null) {
+      callbackOnDelete!(this);
+    }
   }
+
+  @override
+  bool operator ==(Object other) {
+    return other is DirectedEdge && other.hashCode == hashCode;
+  }
+
+  @override
+  int get hashCode => parent.hashCode + child.hashCode + item.hashCode;
 }
