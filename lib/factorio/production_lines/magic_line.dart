@@ -16,6 +16,8 @@ class IoLine extends ProductionLine {
   ItemIo? get requirements => _requirements;
   @override
   ItemIo? get totalIoPerSecond => _requirements;
+  @override
+  String get type => 'io';
 
   IoLine({Set<ItemData> inputs = const {}, Set<ItemData> outputs = const {}})
     : allInputs = Set.unmodifiable(inputs),

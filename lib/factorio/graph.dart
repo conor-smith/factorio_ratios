@@ -2,40 +2,25 @@ import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/production_line.dart';
+import 'package:flutter/painting.dart';
 
-part 'graph/listenable_state.dart';
-part 'graph/node_and_edge.dart';
+part 'graph/edge.dart';
+part 'graph/node.dart';
 
 /*
  * Maintains a full graph
- * Will throw an exception if a node doesn't have all required inputs
- * Will generate new disposal nodes to accept excess output of a node
+ * This acts as the state for the application, and the single source of truth
+ * Every graph, edge, and widget will have a listener in the form of a widget
+ * The widget will be the "owner" of it's respective element
  * 
- * However, this graph will NOT generate new nodes for required inputs
- * It is the responsibility of the owner of this instance to ensure that 
- * every input on every node has something to supply it
- * If not, an exception will be thrown
- * 
- * Graphs, Nodes and Edges essentially act as the "state" for the Flutter widgets
- * As such, they must all have callback functions for when their state is updated
- * These callbacks are only intended to be used if an update occurs
- * that was not specifically requested by Flutter
- * 
- * There are only 3 methods where this may occur
- * .update(...)
- * .reset(...)
- * ._updateNodesAndDescendants(...)
- * So whenever one of these three methods are called, we can trust the graph
- * itself to do a callback and do not need to update widget state ourselves
+ * Widgets are still largely responsible for their own state
+ * As such, they can update their own state as they need
  */
-class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
+class BaseGraph extends ProductionLine {
   final Set<ProdLineNode> _nodes = {};
   final Set<DirectedEdge> _edges = {};
   final Map<ProdLineNode, Set<DirectedEdge>> _parents = {};
   final Map<ProdLineNode, Set<DirectedEdge>> _children = {};
-
-  Function(List<ProdLineNode> newNodes, List<DirectedEdge> newEdges)?
-  disposalNodeCreationListener;
 
   late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
   late final List<DirectedEdge> edges = UnmodifiableListView(_edges);
@@ -45,6 +30,14 @@ class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
   ItemIo? _requirements;
   ItemIo? _totalIoPerSecond;
 
+  Function(
+    List<ProdLineNode> newNodes,
+    List<DirectedEdge> newEdges,
+    List<ProdLineNode> removedNodes,
+    List<DirectedEdge> removedEdges,
+  )?
+  _callBackOnChange;
+
   @override
   late final Set<ItemData> allInputs = UnmodifiableSetView(_allInputs);
   @override
@@ -53,6 +46,8 @@ class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
   ItemIo? get requirements => _requirements;
   @override
   ItemIo? get totalIoPerSecond => _totalIoPerSecond;
+  @override
+  String get type => 'graph';
 
   @override
   bool get immutableIo => false;
@@ -61,10 +56,8 @@ class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
   void update(ItemIo newRequirements) {
     super.update(newRequirements);
 
-    // TODO
-    if (callbackOnChange != null) {
-      callbackOnChange!(this);
-    }
+    // TODO - better error message
+    throw const FactorioException('Do not call this method');
   }
 
   @override
@@ -75,10 +68,24 @@ class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
 
     _totalIoPerSecond = null;
     _requirements = null;
+  }
 
-    if (callbackOnChange != null) {
-      callbackOnChange!(this);
-    }
+  void graphUpdate(ItemIo newRequirements, {bool updateListeners = false}) {
+    super.update(newRequirements);
+
+    // TODO
+  }
+
+  void setListener(
+    Function(
+      List<ProdLineNode> newNodes,
+      List<DirectedEdge> newEdges,
+      List<ProdLineNode> removedNodes,
+      List<DirectedEdge> removedEdges,
+    )
+    callback,
+  ) {
+    _callBackOnChange = callback;
   }
 
   // Method is public to allow UI to use when displaying tree
@@ -104,22 +111,10 @@ class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
     return flippedMap;
   }
 
-  /*
-   * Calculates required IO of all descendant nodes in order to meet
-   * the required inputs of the specified parent nodes
-   * 
-   * Will throw an exception if a specified parent node is a child of another
-   * specified parent node
-   * 
-   * Will create disposal nodes and edges to handle any excess outputs
-   * Will then call listener if any new nodes and edges are created
-   * 
-   * If an exception is encountered, graph is reset to previous state before
-   * exception is rethrown
-   */
-  void _updateNodesAndDescendants(
-    Map<ProdLineNode, ItemIo> nodesAndRequirements,
-  ) {
+  void updateNodesAndDescendants(
+    Map<ProdLineNode, ItemIo> nodesAndRequirements, {
+    bool updateListeners = false,
+  }) {
     var nodeHeights = getNodeHeights(nodesAndRequirements.keys);
 
     // Only possible if one node is a descendant of another
@@ -173,13 +168,13 @@ class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
         node.update(_determineRequirementsFromParents(node));
       }
 
-      if (newDisposalNodes.isNotEmpty) {
+      if (newDisposalNodes.isNotEmpty && updateListeners) {
         // This call will ensure that the parent widget is rebuilt
         // Doing so will rebuild all children widgets anyway
         // eliminating the need to manually update all the children
         // TODO - Confirm this is actually the case
-        _updateListeners(this);
-      } else {
+        _callBackOnChange!(newDisposalNodes, newEdges, const [], const []);
+      } else if (updateListeners) {
         _updateNodeAndChildrenListeners(allOrderedNodes);
       }
     } catch (e) {
@@ -200,11 +195,6 @@ class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
       }
 
       rethrow;
-    }
-
-    if (newDisposalNodes.isNotEmpty ||
-        newEdges.isNotEmpty && disposalNodeCreationListener != null) {
-      disposalNodeCreationListener!(newDisposalNodes, newEdges);
     }
   }
 
@@ -269,7 +259,8 @@ class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
         DirectedEdge? acceptExcessEdge = node.children
             .where(
               (edge) =>
-                  edge.item == output && edge.edgeType == EdgeType.acceptExcess,
+                  edge.item == output &&
+                  edge.edgeType == Relationship.acceptExcess,
             )
             .firstOrNull;
 
@@ -295,7 +286,7 @@ class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
             parent: node,
             child: disposalNode,
             initialAmount: difference,
-            edgeType: EdgeType.acceptExcess,
+            edgeType: Relationship.acceptExcess,
           );
 
           newEdges.add(acceptExcessEdge);
@@ -311,7 +302,7 @@ class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
 
       if (inputEdge == null) {
         throw FactorioException('No input provided for item "$input"');
-      } else if (inputEdge.edgeType == EdgeType.requestItems) {
+      } else if (inputEdge.edgeType == Relationship.requestItems) {
         inputEdge._amount = io[input]!;
       }
     }
@@ -346,9 +337,9 @@ class BaseGraph extends ProductionLine with ListenableState<BaseGraph> {
 
   void _updateNodeAndChildrenListeners(List<ProdLineNode> updatedNodes) {
     for (var updatedNode in updatedNodes) {
-      updatedNode._updateListeners(updatedNode);
+      updatedNode._callbackOnChange!();
       for (var child in updatedNode.children) {
-        child._updateListeners(child);
+        child._callbackOnChange!();
       }
     }
   }

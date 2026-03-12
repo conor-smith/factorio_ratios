@@ -38,6 +38,8 @@ abstract class ProductionLine {
 
   void reset();
 
+  String get type;
+
   // Used for determining connections in graphs
   Set<ItemData> get allOutputs;
   Set<ItemData> get allInputs;

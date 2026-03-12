@@ -18,6 +18,8 @@ class SingleRecipeLine extends ProductionLine {
   ItemIo? get requirements => _requirements;
   @override
   ItemIo? get totalIoPerSecond => _totalIoPerSecond;
+  @override
+  String get type => 'single-recipe';
 
   double get machineAmount => _machineAmount;
 

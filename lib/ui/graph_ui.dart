@@ -1,15 +1,8 @@
-import 'dart:math';
-
 import 'package:factorio_ratios/factorio/graph.dart';
 import 'package:factorio_ratios/factorio/models.dart';
 import 'package:factorio_ratios/factorio/production_line.dart';
 import 'package:factorio_ratios/ui/factorio_menu.dart';
 import 'package:flutter/material.dart';
-
-// TODO - Tweak this. Maybe make dynamic
-const double initNodeWidth = 100;
-const double initNodeHeight = 100;
-const double initOffset = 50;
 
 class TopLevelGraphWidget extends StatefulWidget {
   final FactorioDatabase db;
@@ -102,7 +95,7 @@ class _TopLevelGraphWidgetState extends State<TopLevelGraphWidget> {
           item: input,
           parent: parentNode,
           child: childNode,
-          edgeType: EdgeType.requestItems,
+          edgeType: Relationship.requestItems,
         );
       }
     }
@@ -236,29 +229,37 @@ class _TopLevelGraphWidgetState extends State<TopLevelGraphWidget> {
 class GraphWidget extends StatelessWidget {
   final BaseGraph graph;
 
-  const GraphWidget({super.key, required this.graph});
+  GraphWidget({super.key, required this.graph}) {
+    var nodeHeights = graph.getNodeHeights(graph.nodes);
+
+    for (var y = 0; y < nodeHeights.length; y++) {
+      for (var x = 0; x < nodeHeights[y].length; x++) {
+        Offset topLeft = Offset(
+          (ProdLineNode.defaultWidth + ProdLineNode.defaultOffset) * x +
+              ProdLineNode.defaultOffset,
+          (ProdLineNode.defaultHeight + ProdLineNode.defaultOffset) * y +
+              ProdLineNode.defaultOffset,
+        );
+        Offset bottomRight = Offset(
+          topLeft.dx + ProdLineNode.defaultWidth,
+          topLeft.dy + ProdLineNode.defaultHeight,
+        );
+        nodeHeights[y][x].updateOffsets(topLeft, bottomRight);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    Map<ProdLineNode, NodeWidget> nodeToWidget = {};
-
-    var graphTreeHeights = graph.getNodeHeights(graph.nodes);
-    for (var y = 0; y < graphTreeHeights.length; y++) {
-      for (var x = 0; x < graphTreeHeights[y].length; x++) {
-        nodeToWidget[graphTreeHeights[y][x]] = NodeWidget(
-          node: graphTreeHeights[y][x],
-          x: x * (initNodeWidth + initOffset) + initOffset,
-          y: y * (initNodeHeight + initOffset) + initOffset,
-        );
-      }
-    }
-
-    var edgeWidgets = graph.edges.map(
-      (edge) => EdgeWidget(edge: edge, nodeToWidget: nodeToWidget),
-    );
+    var edgeWidgets = graph.edges
+        .map((edge) => EdgeWidget(edge: edge))
+        .toList();
+    var nodeWidgets = graph.nodes
+        .map((node) => NodeWidget(node: node))
+        .toList();
 
     return InteractiveViewer(
-      child: Stack(children: [...edgeWidgets, ...nodeToWidget.values]),
+      child: Stack(children: [...edgeWidgets, ...nodeWidgets]),
     );
   }
 }
@@ -266,24 +267,16 @@ class GraphWidget extends StatelessWidget {
 class NodeWidget extends StatelessWidget {
   final ProdLineNode node;
 
-  final double x;
-  final double y;
-
-  const NodeWidget({
-    super.key,
-    required this.node,
-    required this.x,
-    required this.y,
-  });
+  const NodeWidget({super.key, required this.node});
 
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      left: x,
-      top: y,
+      left: node.topLeft.dx,
+      top: node.topLeft.dy,
+      width: node.bottomRight.dx - node.topLeft.dx,
+      height: node.bottomRight.dy - node.topLeft.dy,
       child: Container(
-        width: initNodeWidth,
-        height: initNodeHeight,
         decoration: BoxDecoration(
           border: Border.all(color: Colors.black),
           borderRadius: BorderRadius.circular(5),
@@ -296,24 +289,14 @@ class NodeWidget extends StatelessWidget {
 
 class EdgeWidget extends StatelessWidget {
   final DirectedEdge edge;
-  final Map<ProdLineNode, NodeWidget> nodeToWidget;
 
-  const EdgeWidget({super.key, required this.edge, required this.nodeToWidget});
+  const EdgeWidget({super.key, required this.edge});
 
   @override
   Widget build(BuildContext context) {
-    var parentWidget = nodeToWidget[edge.parent]!;
-    var childWidget = nodeToWidget[edge.child]!;
-
-    var parentOffset = Offset(
-      parentWidget.x + initNodeWidth / 2,
-      parentWidget.y + initNodeHeight,
-    );
-    var childOffset = Offset(childWidget.x + initNodeWidth / 2, childWidget.y);
-
     return CustomPaint(
       size: Size.infinite,
-      painter: LinesPainter(start: parentOffset, end: childOffset),
+      painter: LinesPainter(start: edge.lines[0], end: edge.lines[1]),
     );
   }
 }

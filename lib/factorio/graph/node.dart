@@ -30,26 +30,18 @@ enum NodeType {
       };
 }
 
-enum ItemFlowDirection { parentToChild, childToParent }
+class ProdLineNode implements ProductionLine {
+  static const double defaultWidth = 100,
+      defaultHeight = 100,
+      defaultOffset = 50;
 
-enum EdgeType {
-  requestItems(ItemFlowDirection.childToParent),
-  acceptExcess(ItemFlowDirection.childToParent);
-
-  final ItemFlowDirection flowDirection;
-
-  const EdgeType(this.flowDirection);
-}
-
-class ProdLineNode
-    with ListenableState<ProdLineNode>
-    implements ProductionLine {
-  // Implementing ProductionLine is arguably unnecessary
-  // Primarily for convenenience
   final BaseGraph parentGraph;
 
   NodeType _type;
   ProductionLine _line;
+
+  Offset _topLeft;
+  Offset _bottomRight;
 
   late final Set<DirectedEdge> parents = UnmodifiableSetView(
     parentGraph._parents[this]!,
@@ -58,11 +50,48 @@ class ProdLineNode
     parentGraph._children[this]!,
   );
 
+  Function? _callbackOnChange;
+  Function? _callbackOnDelete;
+
+  NodeType get nodeType => _type;
+
+  Offset get topLeft => _topLeft;
+  Offset get bottomRight => _bottomRight;
+
+  double get width => (bottomRight.dx - topLeft.dx);
+  double get height => (bottomRight.dy - topLeft.dy);
+
+  @override
+  Set<ItemData> get allOutputs => _line.allOutputs;
+  @override
+  Set<ItemData> get allInputs => _line.allInputs;
+  @override
+  bool get immutableIo => _line.immutableIo;
+  @override
+  ItemIo? get totalIoPerSecond => _line.totalIoPerSecond;
+  @override
+  ItemIo? get requirements => _line.requirements;
+  @override
+  String get type => _line.type;
+
+  // TODO - better error message
+  @override
+  void update(ItemIo newRequirements) =>
+      throw const FactorioException('Do not call this method');
+
+  // TODO - better error message
+  @override
+  void reset() => throw const FactorioException('Do not call this method');
+
   ProdLineNode.addToGraph({
     required this.parentGraph,
     required NodeType type,
     required ProductionLine line,
-  }) : _type = type,
+    Offset topLeft = const Offset(0, 0),
+    Offset bottomRight = const Offset(defaultWidth, defaultHeight),
+  }) : _bottomRight = bottomRight,
+       _topLeft = topLeft,
+       _type = type,
        _line = line {
     if (!_verifyNodeTypeAndLine(type, line)) {
       throw FactorioException(
@@ -78,9 +107,16 @@ class ProdLineNode
 
     parentGraph._parents[this] = {};
     parentGraph._children[this] = {};
+
+    _callbackOnDelete = () => parentGraph._callBackOnChange!(
+      const [],
+      const [],
+      [this],
+      [...parents, ...children],
+    );
   }
 
-  void removeFromGraph() {
+  void removeFromGraph({bool updateListener = false}) {
     if (_type.isIo) {
       _removeIo(_type, _line);
     }
@@ -94,41 +130,54 @@ class ProdLineNode
     parentGraph._parents.remove(this);
     parentGraph._children.remove(this);
 
-    if (callbackOnDelete != null) {
-      callbackOnDelete!(this);
+    if (updateListener) {
+      _callbackOnDelete!();
     }
   }
 
-  NodeType get type => _type;
-  ProductionLine get productionLine => _line;
+  void updateSelfAndDescendants(
+    ItemIo newRequirements, {
+    bool updateListeners = false,
+  }) {
+    parentGraph.updateNodesAndDescendants({
+      this: newRequirements,
+    }, updateListeners: updateListeners);
+  }
 
-  @override
-  Set<ItemData> get allOutputs => _line.allOutputs;
-  @override
-  Set<ItemData> get allInputs => _line.allInputs;
-  @override
-  bool get immutableIo => _line.immutableIo;
-  @override
-  ItemIo? get totalIoPerSecond => _line.totalIoPerSecond;
-  @override
-  ItemIo? get requirements => _line.requirements;
-  @override
-  void update(ItemIo newRequirements) => _line.update(newRequirements);
+  void updateSelfOnly(ItemIo newRequirements, {bool updateListeners = false}) {
+    _line.update(newRequirements);
 
-  @override
-  void reset() {
-    _line.reset();
+    if (updateListeners) {
+      _callbackOnChange!();
+    }
+  }
 
+  void updateOffsets(
+    Offset newTopLeft,
+    Offset newBottomRight, {
+    bool updateListeners = false,
+  }) {
+    _topLeft = newTopLeft;
+    _bottomRight = newBottomRight;
+
+    for (var parent in parents) {
+      parent._childUpdate(updateListeners);
+    }
     for (var child in children) {
-      child._amount = null;
+      child._parentUpdate(updateListeners);
+    }
+
+    if (updateListeners) {
+      _callbackOnChange!();
     }
   }
 
-  @override
-  String toString() => _line.toString();
+  void setChangeCallback(Function changeCallback) {
+    _callbackOnChange = changeCallback;
+  }
 
-  void updateSelfAndChildren(ItemIo newRequirements) {
-    parentGraph._updateNodesAndDescendants({this: newRequirements});
+  void addDeletionCallback(Function deletionCallback) {
+    _callbackOnDelete = deletionCallback;
   }
 
   bool _verifyNodeTypeAndLine(
@@ -173,73 +222,7 @@ class ProdLineNode
       parentGraph._allInputs.removeAll(line.allOutputs);
     }
   }
-}
-
-class DirectedEdge with ListenableState<DirectedEdge> {
-  final BaseGraph parentGraph;
-  final ItemData item;
-  final ProdLineNode parent;
-  final ProdLineNode child;
-  double? _amount;
-  final EdgeType edgeType;
-
-  double? get amount => _amount;
-  ItemFlowDirection get flowDirection => edgeType.flowDirection;
-
-  DirectedEdge.addToGraph({
-    required this.parentGraph,
-    required this.item,
-    required this.parent,
-    required this.child,
-    double? initialAmount,
-    required this.edgeType,
-  }) : _amount = initialAmount {
-    // Confirm both parent and child are valid
-    if (parentGraph != parent.parentGraph || parentGraph != child.parentGraph) {
-      throw const FactorioException(
-        'Cannot connect two nodes from different graphs',
-      );
-    } else if (parent.children.contains(this)) {
-      throw const FactorioException('Cannot create duplicate edge');
-    }
-
-    // Ensure no loops are created
-    Set<ProdLineNode> visitedNodes = {};
-    List<ProdLineNode> nodesToVisit = List.from(
-      child.children.map((childEdge) => childEdge.child),
-    );
-    while (nodesToVisit.isNotEmpty) {
-      ProdLineNode node = nodesToVisit.removeLast();
-      if (node == parent) {
-        throw const FactorioException('Cannot create loop');
-      } else if (!visitedNodes.contains(node)) {
-        visitedNodes.add(node);
-        nodesToVisit.addAll(node.children.map((childEdge) => childEdge.child));
-      }
-    }
-
-    parentGraph._edges.add(this);
-
-    parentGraph._parents[child]!.add(this);
-    parentGraph._children[parent]!.add(this);
-  }
-
-  void removeFromGraph() {
-    parentGraph._edges.remove(this);
-
-    parentGraph._parents[child]!.remove(this);
-    parentGraph._children[parent]!.remove(this);
-
-    if (callbackOnDelete != null) {
-      callbackOnDelete!(this);
-    }
-  }
 
   @override
-  bool operator ==(Object other) {
-    return other is DirectedEdge && other.hashCode == hashCode;
-  }
-
-  @override
-  int get hashCode => parent.hashCode + child.hashCode + item.hashCode;
+  String toString() => _line.toString();
 }
