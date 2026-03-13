@@ -43,15 +43,14 @@ class ProdLineNode implements ProductionLine {
   Offset _topLeft;
   Offset _bottomRight;
 
-  late final Set<DirectedEdge> parents = UnmodifiableSetView(
-    parentGraph._parents[this]!,
+  late final Set<DirectedEdge> parentOf = UnmodifiableSetView(
+    parentGraph._parentOfMap[this]!,
   );
-  late final Set<DirectedEdge> children = UnmodifiableSetView(
-    parentGraph._children[this]!,
+  late final Set<DirectedEdge> childOf = UnmodifiableSetView(
+    parentGraph._childOfMap[this]!,
   );
 
   Function? _callbackOnChange;
-  Function? _callbackOnDelete;
 
   NodeType get nodeType => _type;
 
@@ -76,12 +75,11 @@ class ProdLineNode implements ProductionLine {
 
   // TODO - better error message
   @override
-  void update(ItemIo newRequirements) =>
-      throw const FactorioException('Do not call this method');
+  void update(ItemIo newRequirements) => _line.update(newRequirements);
 
   // TODO - better error message
   @override
-  void reset() => throw const FactorioException('Do not call this method');
+  void reset() => _line.reset();
 
   ProdLineNode.addToGraph({
     required this.parentGraph,
@@ -89,6 +87,7 @@ class ProdLineNode implements ProductionLine {
     required ProductionLine line,
     Offset topLeft = const Offset(0, 0),
     Offset bottomRight = const Offset(defaultWidth, defaultHeight),
+    bool updateGraphListener = false,
   }) : _bottomRight = bottomRight,
        _topLeft = topLeft,
        _type = type,
@@ -97,42 +96,16 @@ class ProdLineNode implements ProductionLine {
       throw FactorioException(
         'Nodetype $type is incompatible with production line $line',
       );
+    } else {
+      parentGraph._addNewNodeData(this, updateGraphListener);
     }
-
-    if (type.isIo && !_verifyAndAddIo(type, line)) {
-      throw const FactorioException('Could not add IO');
-    }
-
-    parentGraph._nodes.add(this);
-
-    parentGraph._parents[this] = {};
-    parentGraph._children[this] = {};
-
-    _callbackOnDelete = () => parentGraph._callBackOnChange!(
-      const [],
-      const [],
-      [this],
-      [...parents, ...children],
-    );
   }
 
-  void removeFromGraph({bool updateListener = false}) {
-    if (_type.isIo) {
-      _removeIo(_type, _line);
-    }
-
-    parentGraph._nodes.remove(this);
-
-    for (var edge in [...parents, ...children]) {
-      edge.removeFromGraph();
-    }
-
-    parentGraph._parents.remove(this);
-    parentGraph._children.remove(this);
-
-    if (updateListener) {
-      _callbackOnDelete!();
-    }
+  void removeFromGraph({
+    bool updateIo = true,
+    bool updateGraphListener = false,
+  }) {
+    parentGraph._removeNodeData(this, updateIo, updateGraphListener);
   }
 
   void updateSelfAndDescendants(
@@ -152,7 +125,7 @@ class ProdLineNode implements ProductionLine {
     }
   }
 
-  void updateOffsets(
+  void updatePosition(
     Offset newTopLeft,
     Offset newBottomRight, {
     bool updateListeners = false,
@@ -160,11 +133,11 @@ class ProdLineNode implements ProductionLine {
     _topLeft = newTopLeft;
     _bottomRight = newBottomRight;
 
-    for (var parent in parents) {
-      parent._childUpdate(updateListeners);
+    for (var edge in parentOf) {
+      edge._updateParentPosition(updateListeners);
     }
-    for (var child in children) {
-      child._parentUpdate(updateListeners);
+    for (var edge in childOf) {
+      edge._updateChildPosition(updateListeners);
     }
 
     if (updateListeners) {
@@ -174,10 +147,6 @@ class ProdLineNode implements ProductionLine {
 
   void setChangeCallback(Function changeCallback) {
     _callbackOnChange = changeCallback;
-  }
-
-  void addDeletionCallback(Function deletionCallback) {
-    _callbackOnDelete = deletionCallback;
   }
 
   bool _verifyNodeTypeAndLine(
@@ -191,36 +160,22 @@ class ProdLineNode implements ProductionLine {
     NodeType.productionLine => true,
   };
 
-  bool _verifyAndAddIo(NodeType type, ProductionLine line) {
-    bool canAddIo = false;
-    // Cannot add output/input if already exists
-    if (type == NodeType.output) {
-      canAddIo = line.allInputs.every(
-        (lineInput) => !parentGraph._allOutputs.contains(lineInput),
-      );
+  ItemIo _determineRequirementsFromParents() {
+    ItemIo requirements = {};
+    for (var edge in childOf) {
+      double itemAmount = edge._amount ?? 0.0;
+      itemAmount = edge.flowDirection == ItemFlowDirection.childToParent
+          ? itemAmount
+          : -itemAmount;
 
-      if (canAddIo) {
-        parentGraph._allOutputs.addAll(line.allInputs);
-      }
-    } else if (type == NodeType.input) {
-      canAddIo = line.allOutputs.every(
-        (lineOutput) => !parentGraph._allInputs.contains(lineOutput),
+      requirements.update(
+        edge.item,
+        (existingAmount) => existingAmount + itemAmount,
+        ifAbsent: () => itemAmount,
       );
-
-      if (canAddIo) {
-        parentGraph._allInputs.addAll(line.allOutputs);
-      }
     }
 
-    return canAddIo;
-  }
-
-  void _removeIo(NodeType type, ProductionLine line) {
-    if (type == NodeType.output) {
-      parentGraph._allOutputs.removeAll(line.allInputs);
-    } else if (type == NodeType.input) {
-      parentGraph._allInputs.removeAll(line.allOutputs);
-    }
+    return requirements;
   }
 
   @override

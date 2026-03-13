@@ -37,7 +37,10 @@ class ItemData {
 
   @override
   bool operator ==(Object other) =>
-      other is ItemData && hashCode == other.hashCode;
+      other is ItemData &&
+      other.item == item &&
+      other.quality == quality &&
+      other.temperature == temperature;
 
   @override
   String toString() => item.toString();

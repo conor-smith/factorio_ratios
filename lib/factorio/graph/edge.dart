@@ -49,6 +49,7 @@ class DirectedEdge {
     Side parentConnectionSide = Side.bottom,
     Side childConnectionSide = Side.top,
     LineType lineType = LineType.shortestPath,
+    bool updateGraphListener = false,
   }) : _childConnectionSide = childConnectionSide,
        _parentConnectionSide = parentConnectionSide,
        _amount = initialAmount,
@@ -58,41 +59,35 @@ class DirectedEdge {
       throw const FactorioException(
         'Cannot connect two nodes from different graphs',
       );
-    } else if (parent.children.contains(this)) {
+    } else if (parent.parentOf.contains(this)) {
       throw const FactorioException('Cannot create duplicate edge');
     }
 
     // Ensure no loops are created
     Set<ProdLineNode> visitedNodes = {};
-    List<ProdLineNode> nodesToVisit = List.from(
-      child.children.map((childEdge) => childEdge.child),
-    );
+    List<ProdLineNode> nodesToVisit = child.parentOf
+        .map((edge) => edge.child)
+        .toList();
     while (nodesToVisit.isNotEmpty) {
       ProdLineNode node = nodesToVisit.removeLast();
       if (node == parent) {
         throw const FactorioException('Cannot create loop');
       } else if (!visitedNodes.contains(node)) {
         visitedNodes.add(node);
-        nodesToVisit.addAll(node.children.map((childEdge) => childEdge.child));
+        nodesToVisit.addAll(node.parentOf.map((edge) => edge.child));
       }
     }
-
-    parentGraph._edges.add(this);
-
-    parentGraph._parents[child]!.add(this);
-    parentGraph._children[parent]!.add(this);
 
     if (lineType == LineType.shortestPath) {
       _lines.add(_determineConnectionPoint(parent, parentConnectionSide));
       _lines.add(_determineConnectionPoint(child, childConnectionSide));
     }
+
+    parentGraph._addNewEdgeData(this, updateGraphListener);
   }
 
-  void removeFromGraph() {
-    parentGraph._edges.remove(this);
-
-    parentGraph._parents[child]!.remove(this);
-    parentGraph._children[parent]!.remove(this);
+  void removeFromGraph({bool updateGraphListener = false}) {
+    parentGraph._removeEdgeData(this, updateGraphListener);
   }
 
   void setChangeCallback(Function changeCallback) {
@@ -101,13 +96,16 @@ class DirectedEdge {
 
   @override
   bool operator ==(Object other) {
-    return other is DirectedEdge && other.hashCode == hashCode;
+    return other is DirectedEdge &&
+        other.item == item &&
+        other.parent == parent &&
+        other.child == child;
   }
 
   @override
   int get hashCode => parent.hashCode + child.hashCode + item.hashCode;
 
-  void _parentUpdate(bool updateListener) {
+  void _updateParentPosition(bool updateListener) {
     if (lineType == LineType.shortestPath) {
       _lines[0] = _determineConnectionPoint(parent, _parentConnectionSide);
     }
@@ -117,7 +115,7 @@ class DirectedEdge {
     }
   }
 
-  void _childUpdate(bool updateListener) {
+  void _updateChildPosition(bool updateListener) {
     if (lineType == LineType.shortestPath) {
       _lines[1] = _determineConnectionPoint(child, _childConnectionSide);
     }

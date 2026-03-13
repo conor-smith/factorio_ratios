@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 
 class TopLevelGraphWidget extends StatefulWidget {
   final FactorioDatabase db;
-  final BaseGraph topLevelGraph = BaseGraph();
+  late final BaseGraph topLevelGraph = BaseGraph(
+    surface: db.surfaceMap['nauvis']!,
+  );
 
   TopLevelGraphWidget({super.key, required this.db});
 
@@ -21,10 +23,6 @@ class _TopLevelGraphWidgetState extends State<TopLevelGraphWidget> {
 
   bool selectionMenuActive = false;
   late BaseGraph currentGraph = widget.topLevelGraph;
-  // TODO - Account for multiple surfaces
-  late Map<BaseGraph, Surface?> graphToSurface = {
-    widget.topLevelGraph: widget.db.surfaceMap['nauvis'],
-  };
 
   @override
   void initState() {
@@ -79,17 +77,15 @@ class _TopLevelGraphWidgetState extends State<TopLevelGraphWidget> {
       var childNode = findExistingNode(input);
 
       if (childNode == null) {
-        var surface = graphToSurface[currentGraph]!;
-
         childNode =
-            createResourceNode(input, surface) ??
-            createRecipeNode(input, surface) ??
+            createResourceNode(input, currentGraph.surface!) ??
+            createRecipeNode(input, currentGraph.surface!) ??
             createProducerNode(input);
 
         _createRecipeTree(childNode);
       }
 
-      if (!childNode.children.any((edge) => edge.child == childNode)) {
+      if (!childNode.parentOf.any((edge) => edge.child == childNode)) {
         DirectedEdge.addToGraph(
           parentGraph: currentGraph,
           item: input,
@@ -244,7 +240,7 @@ class GraphWidget extends StatelessWidget {
           topLeft.dx + ProdLineNode.defaultWidth,
           topLeft.dy + ProdLineNode.defaultHeight,
         );
-        nodeHeights[y][x].updateOffsets(topLeft, bottomRight);
+        nodeHeights[y][x].updatePosition(topLeft, bottomRight);
       }
     }
   }
