@@ -1,35 +1,5 @@
 part of '../graph.dart';
 
-enum NodeType {
-  consumer(allowsInput: true, allowsOutput: false, isIo: false),
-  disposal(allowsInput: true, allowsOutput: false, isIo: false),
-  producer(allowsInput: false, allowsOutput: true, isIo: false),
-  input(allowsInput: false, allowsOutput: true, isIo: true),
-  output(allowsInput: true, allowsOutput: false, isIo: true),
-  productionLine(allowsInput: true, allowsOutput: true, isIo: false);
-
-  final bool allowsInput;
-  final bool allowsOutput;
-  final bool isIo;
-
-  const NodeType({
-    required this.allowsInput,
-    required this.allowsOutput,
-    required this.isIo,
-  });
-
-  bool canChangeTo(NodeType changeTo) =>
-      this == changeTo ||
-      switch (this) {
-        consumer => const {output, productionLine, disposal}.contains(changeTo),
-        disposal => const {output, productionLine, producer}.contains(changeTo),
-        producer => const {input, productionLine}.contains(changeTo),
-        input => false,
-        output => false,
-        productionLine => false,
-      };
-}
-
 class ProdLineNode implements ProductionLine {
   static const double defaultWidth = 100,
       defaultHeight = 100,
@@ -180,4 +150,34 @@ class ProdLineNode implements ProductionLine {
 
   @override
   String toString() => _line.toString();
+}
+
+enum NodeType {
+  consumer(allowsInput: true, allowsOutput: false, isIo: false),
+  disposal(allowsInput: true, allowsOutput: false, isIo: false),
+  producer(allowsInput: false, allowsOutput: true, isIo: false),
+  input(allowsInput: false, allowsOutput: true, isIo: true),
+  output(allowsInput: true, allowsOutput: false, isIo: true),
+  productionLine(allowsInput: true, allowsOutput: true, isIo: false);
+
+  final bool allowsInput;
+  final bool allowsOutput;
+  final bool isIo;
+
+  const NodeType({
+    required this.allowsInput,
+    required this.allowsOutput,
+    required this.isIo,
+  });
+
+  bool canChangeTo(NodeType changeTo) =>
+      this == changeTo ||
+      switch (this) {
+        consumer => const {output, productionLine, disposal}.contains(changeTo),
+        disposal => const {output, productionLine, producer}.contains(changeTo),
+        producer => const {input, productionLine}.contains(changeTo),
+        input => false,
+        output => false,
+        productionLine => false,
+      };
 }

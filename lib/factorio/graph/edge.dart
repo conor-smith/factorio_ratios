@@ -1,18 +1,5 @@
 part of '../graph.dart';
 
-enum ItemFlowDirection { parentToChild, childToParent }
-
-enum Relationship {
-  requestItems(ItemFlowDirection.childToParent),
-  acceptExcess(ItemFlowDirection.childToParent);
-
-  final ItemFlowDirection flowDirection;
-
-  const Relationship(this.flowDirection);
-}
-
-enum Side { top, right, bottom, left }
-
 // TODO - Add more linetypes
 enum LineType { shortestPath }
 
@@ -142,3 +129,16 @@ class DirectedEdge {
         ),
       };
 }
+
+enum ItemFlowDirection { parentToChild, childToParent }
+
+enum Relationship {
+  requestItems(ItemFlowDirection.childToParent),
+  acceptExcess(ItemFlowDirection.childToParent);
+
+  final ItemFlowDirection flowDirection;
+
+  const Relationship(this.flowDirection);
+}
+
+enum Side { top, right, bottom, left }
