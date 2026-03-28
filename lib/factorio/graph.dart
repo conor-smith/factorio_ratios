@@ -82,7 +82,7 @@ class BaseGraph extends ProductionLine {
     _requirements = null;
   }
 
-  void setListener(
+  set callBackOnChange(
     Function({
       List<ProdLineNode>? newNodes,
       List<DirectedEdge>? newEdges,

@@ -145,8 +145,8 @@ class ProdLineNode implements ProductionLine {
     }
   }
 
-  void setChangeCallback(Function changeCallback) {
-    _callbackOnChange = changeCallback;
+  set callbackOnChange(Function callback) {
+    _callbackOnChange = callback;
   }
 
   bool _verifyNodeTypeAndLine(

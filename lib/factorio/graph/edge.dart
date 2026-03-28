@@ -90,8 +90,8 @@ class DirectedEdge {
     parentGraph._removeEdgeData(this, updateGraphListener);
   }
 
-  void setChangeCallback(Function changeCallback) {
-    _callbackOnChange = changeCallback;
+  set callbackOnChange(Function callback) {
+    _callbackOnChange = callback;
   }
 
   @override
