@@ -12,6 +12,7 @@ class ProdLineNode implements ProductionLine {
 
   Offset _topLeft;
   Offset _bottomRight;
+  bool _isBeingDragged;
 
   late final Set<DirectedEdge> parentOf = UnmodifiableSetView(
     parentGraph._parentOfMap[this]!,
@@ -20,12 +21,11 @@ class ProdLineNode implements ProductionLine {
     parentGraph._childOfMap[this]!,
   );
 
-  Function? _callbackOnChange;
-
   NodeType get nodeType => _type;
 
   Offset get topLeft => _topLeft;
   Offset get bottomRight => _bottomRight;
+  bool get isBeingDragged => _isBeingDragged;
 
   double get width => (bottomRight.dx - topLeft.dx);
   double get height => (bottomRight.dy - topLeft.dy);
@@ -43,11 +43,9 @@ class ProdLineNode implements ProductionLine {
   @override
   String get type => _line.type;
 
-  // TODO - better error message
   @override
   void update(ItemIo newRequirements) => _line.update(newRequirements);
 
-  // TODO - better error message
   @override
   void reset() => _line.reset();
 
@@ -57,9 +55,9 @@ class ProdLineNode implements ProductionLine {
     required ProductionLine line,
     Offset topLeft = const Offset(0, 0),
     Offset bottomRight = const Offset(defaultWidth, defaultHeight),
-    bool updateGraphListener = false,
-  }) : _bottomRight = bottomRight,
-       _topLeft = topLeft,
+  }) : _topLeft = topLeft,
+       _bottomRight = bottomRight,
+       _isBeingDragged = false,
        _type = type,
        _line = line {
     if (!_verifyNodeTypeAndLine(type, line)) {
@@ -67,56 +65,40 @@ class ProdLineNode implements ProductionLine {
         'Nodetype $type is incompatible with production line $line',
       );
     } else {
-      parentGraph._addNewNodeData(this, updateGraphListener);
+      parentGraph._addNewNodeData(this);
     }
   }
 
-  void removeFromGraph({
-    bool updateIo = true,
-    bool updateGraphListener = false,
-  }) {
-    parentGraph._removeNodeData(this, updateIo, updateGraphListener);
+  GraphStateUpdate removeFromGraph({bool updateIo = true}) {
+    return parentGraph._removeNodeData(this, updateIo);
   }
 
-  void updateSelfAndDescendants(
-    ItemIo newRequirements, {
-    bool updateListeners = false,
-  }) {
-    parentGraph.updateNodesAndDescendants({
-      this: newRequirements,
-    }, updateListeners: updateListeners);
+  GraphStateUpdate updateSelfAndDescendants(ItemIo newRequirements) {
+    return parentGraph.updateNodesAndDescendants({this: newRequirements});
   }
 
-  void updateSelfOnly(ItemIo newRequirements, {bool updateListeners = false}) {
+  void updateSelfOnly(ItemIo newRequirements) {
     _line.update(newRequirements);
-
-    if (updateListeners) {
-      _callbackOnChange!();
-    }
   }
 
-  void updatePosition(
-    Offset newTopLeft,
-    Offset newBottomRight, {
-    bool updateListeners = false,
-  }) {
+  void startDragging() {
+    parentGraph._setDraggableNode(this);
+  }
+
+  GraphStateUpdate endDragging() {
+    return parentGraph._clearDraggableNode(this);
+  }
+
+  void updatePosition(Offset newTopLeft, Offset newBottomRight) {
     _topLeft = newTopLeft;
     _bottomRight = newBottomRight;
 
     for (var edge in parentOf) {
-      edge._updateParentPosition(updateListeners);
+      edge._updateParentPosition();
     }
     for (var edge in childOf) {
-      edge._updateChildPosition(updateListeners);
+      edge._updateChildPosition();
     }
-
-    if (updateListeners) {
-      _callbackOnChange!();
-    }
-  }
-
-  set callbackOnChange(Function callback) {
-    _callbackOnChange = callback;
   }
 
   bool _verifyNodeTypeAndLine(

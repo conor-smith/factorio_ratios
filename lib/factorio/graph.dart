@@ -24,12 +24,19 @@ part 'graph/node.dart';
  * as a graph update means a full rebuild of all widgets
  * 
  * Only the active graph and it's nodes and edges need to worry about updating state
+ * 
+ * The graph itself must have a size in order to be appropriately displayed
+ * As such, the positions of topLeft and bottomRight create a rectangle
+ * capable of containing all nodes present in the graph
  */
 class BaseGraph extends ProductionLine {
-  final Set<ProdLineNode> _nodes = {};
-  final Set<DirectedEdge> _edges = {};
+  final List<ProdLineNode> _nodes = [];
+  final List<DirectedEdge> _edges = [];
   final Map<ProdLineNode, Set<DirectedEdge>> _parentOfMap = {};
   final Map<ProdLineNode, Set<DirectedEdge>> _childOfMap = {};
+
+  // Is not null if this graph is contained within a node of a parent graph
+  final ProdLineNode? parent;
 
   final Surface? surface;
 
@@ -41,13 +48,13 @@ class BaseGraph extends ProductionLine {
   ItemIo? _requirements;
   ItemIo? _totalIoPerSecond;
 
-  Function({
-    List<ProdLineNode> newNodes,
-    List<DirectedEdge> newEdges,
-    List<ProdLineNode> removedNodes,
-    List<DirectedEdge> removedEdges,
-  })?
-  _callBackOnChange;
+  // These two variables contain a rectangle
+  Offset _topLeft;
+  Offset _bottomRight;
+
+  // This contains the node currently being dragged
+  // Only one node may be dragged at a time
+  ProdLineNode? _draggableNode;
 
   @override
   late final Set<ItemData> allInputs = UnmodifiableSetView(_allInputs);
@@ -63,7 +70,12 @@ class BaseGraph extends ProductionLine {
   @override
   bool get immutableIo => false;
 
-  BaseGraph({this.surface});
+  Offset get topLeft => _topLeft;
+  Offset get bottomRight => _bottomRight;
+
+  BaseGraph({this.surface, this.parent})
+    : _topLeft = Offset.zero,
+      _bottomRight = Offset.zero;
 
   @override
   void update(ItemIo newRequirements) {
@@ -80,18 +92,6 @@ class BaseGraph extends ProductionLine {
 
     _totalIoPerSecond = null;
     _requirements = null;
-  }
-
-  set callBackOnChange(
-    Function({
-      List<ProdLineNode>? newNodes,
-      List<DirectedEdge>? newEdges,
-      List<ProdLineNode>? removedNodes,
-      List<DirectedEdge>? removedEdges,
-    })
-    callback,
-  ) {
-    _callBackOnChange = callback;
   }
 
   // Method is public to allow UI to use when displaying tree
@@ -117,10 +117,40 @@ class BaseGraph extends ProductionLine {
     return flippedMap;
   }
 
-  void updateNodesAndDescendants(
-    Map<ProdLineNode, ItemIo> nodesAndRequirements, {
-    bool updateListeners = false,
-  }) {
+  void clear() {
+    _nodes.clear();
+    _edges.clear();
+    _parentOfMap.clear();
+    _childOfMap.clear();
+    _allInputs.clear();
+    _allOutputs.clear();
+  }
+
+  void treeLayout() {
+    var nodeHeights = getNodeHeights(_nodes);
+
+    for (var y = 0; y < nodeHeights.length; y++) {
+      for (var x = 0; x < nodeHeights[y].length; x++) {
+        Offset topLeft = Offset(
+          (ProdLineNode.defaultWidth + ProdLineNode.defaultOffset) * x +
+              ProdLineNode.defaultOffset,
+          (ProdLineNode.defaultHeight + ProdLineNode.defaultOffset) * y +
+              ProdLineNode.defaultOffset,
+        );
+        Offset bottomRight = Offset(
+          topLeft.dx + ProdLineNode.defaultWidth,
+          topLeft.dy + ProdLineNode.defaultHeight,
+        );
+        nodeHeights[y][x].updatePosition(topLeft, bottomRight);
+      }
+    }
+
+    _updateGraphArea();
+  }
+
+  GraphStateUpdate updateNodesAndDescendants(
+    Map<ProdLineNode, ItemIo> nodesAndRequirements,
+  ) {
     var nodeHeights = getNodeHeights(nodesAndRequirements.keys);
 
     // Only possible if one node is a descendant of another
@@ -174,15 +204,13 @@ class BaseGraph extends ProductionLine {
         node.update(node._determineRequirementsFromParents());
       }
 
-      if (newDisposalNodes.isNotEmpty && updateListeners) {
-        // This call will ensure that the parent widget is rebuilt
-        // Doing so will rebuild all children widgets anyway
-        // eliminating the need to manually update all the children
-        // TODO - Confirm this is actually the case
-        _callBackOnChange!(newNodes: newDisposalNodes, newEdges: newEdges);
-      } else if (updateListeners) {
-        _updateNodeAndChildrenListeners(allOrderedNodes);
-      }
+      return GraphStateUpdate(
+        update: newDisposalNodes.isNotEmpty || newEdges.isNotEmpty,
+        newNodes: newDisposalNodes,
+        newEdges: newEdges,
+        updatedNodes: oldRequirementsMap.keys.toList(),
+        updatedEdges: oldAmountMap.keys.toList(),
+      );
     } catch (e) {
       oldRequirementsMap.forEach((node, oldRequirements) {
         if (oldRequirements == null) {
@@ -204,7 +232,244 @@ class BaseGraph extends ProductionLine {
     }
   }
 
-  void _addNewNodeData(ProdLineNode newNode, bool updateListener) {
+  GraphStateUpdate addConsumerNodeAndTree(
+    ItemData itemData,
+    List<CraftingMachine> sortedMachines,
+    List<Recipe> recipes,
+    List<ItemData> resources,
+    List<ItemData> availableFuels,
+  ) {
+    // TODO - Check if consumer node already exists
+    var newNode = ProdLineNode.addToGraph(
+      parentGraph: this,
+      type: NodeType.consumer,
+      line: IoLine(inputs: {itemData}),
+    );
+
+    // TODO - Cache this
+    Map<ItemData, List<ProdLineNode>> producers = {};
+    for (var node in _nodes) {
+      for (var output in node.allOutputs) {
+        producers.update(
+          output,
+          (pNodes) => pNodes..add(node),
+          ifAbsent: () => [node],
+        );
+      }
+    }
+
+    List<ProdLineNode> newNodes = [newNode];
+    List<DirectedEdge> newEdges = [];
+
+    _createRecipeTree(
+      newNode,
+      sortedMachines,
+      recipes,
+      resources,
+      availableFuels,
+      producers,
+      newNodes,
+      newEdges,
+    );
+
+    return GraphStateUpdate(
+      update: true,
+      newNodes: newNodes,
+      newEdges: newEdges,
+    );
+  }
+
+  void _createRecipeTree(
+    ProdLineNode parentNode,
+    List<CraftingMachine> sortedMachines,
+    List<Recipe> recipes,
+    List<ItemData> resources,
+    List<ItemData> availableFuels,
+    Map<ItemData, List<ProdLineNode>> producers,
+    List<ProdLineNode> newNodes,
+    List<DirectedEdge> newEdges,
+  ) {
+    for (var input in parentNode.allInputs) {
+      var childNode = producers[input]?.first;
+
+      if (childNode == null) {
+        childNode =
+            _createResourceNode(input, resources) ??
+            _createRecipeNode(input, sortedMachines, recipes, availableFuels) ??
+            _createProducerNode(input);
+
+        producers[input] = [childNode];
+        newNodes.add(childNode);
+
+        _createRecipeTree(
+          childNode,
+          sortedMachines,
+          recipes,
+          resources,
+          availableFuels,
+          producers,
+          newNodes,
+          newEdges,
+        );
+      }
+
+      if (!childNode.parentOf.any((edge) => edge.child == childNode)) {
+        var newEdge = DirectedEdge.addToGraph(
+          parentGraph: this,
+          item: input,
+          parent: parentNode,
+          child: childNode,
+          edgeType: Relationship.requestItems,
+        );
+
+        newEdges.add(newEdge);
+      }
+    }
+  }
+
+  ProdLineNode? _createResourceNode(
+    ItemData itemData,
+    List<ItemData> resources,
+  ) {
+    if (resources.contains(itemData)) {
+      return ProdLineNode.addToGraph(
+        parentGraph: this,
+        type: NodeType.producer,
+        line: IoLine(outputs: {itemData}),
+      );
+    } else {
+      return null;
+    }
+  }
+
+  ProdLineNode? _createRecipeNode(
+    ItemData itemData,
+    List<CraftingMachine> sortedMachines,
+    List<Recipe> recipes,
+    List<ItemData> availableFuels,
+  ) {
+    // TODO - account for null surface
+    var producerRecipe = recipes
+        .where(
+          (recipe) =>
+              itemData.item.producedBy.contains(recipe) &&
+              (recipe.itemIo[itemData.item] ?? -1) > 0,
+        )
+        .firstOrNull;
+
+    if (producerRecipe != null) {
+      // If recipe exists, create production line node
+      var fastestMachine = sortedMachines.firstWhere(
+        (machine) => machine.recipes.contains(producerRecipe),
+      );
+
+      ItemData? fuel;
+      if (fastestMachine.energySource.type == EnergySourceType.burner) {
+        BurnerEnergySource energySource =
+            fastestMachine.energySource as BurnerEnergySource;
+
+        // TODO - Account for surfaces without available fuel
+        fuel = availableFuels.firstWhere(
+          (fuel) => energySource.fuelItems.contains(fuel.item),
+        );
+      }
+
+      return ProdLineNode.addToGraph(
+        parentGraph: this,
+        type: NodeType.productionLine,
+        line: SingleRecipeLine(
+          MutableModuledMachineAndRecipe(
+            craftingMachine: fastestMachine,
+            recipe: producerRecipe,
+            fuel: fuel,
+          ).makeImmutable(),
+        ),
+      );
+    } else {
+      return null;
+    }
+  }
+
+  ProdLineNode _createProducerNode(ItemData itemData) {
+    return ProdLineNode.addToGraph(
+      parentGraph: this,
+      type: NodeType.producer,
+      line: IoLine(outputs: {itemData}),
+    );
+  }
+
+  // TODO - Account for edges potentially taking paths beyond limits
+  // TODO - Make more efficient? Maybe
+  // Returns true if graph area is updated
+  bool _updateGraphArea() {
+    double left, top, right, bottom;
+
+    if (_nodes.isEmpty) {
+      left = 0;
+      top = 0;
+      right = 0;
+      bottom = 0;
+    } else {
+      var firstNode = _nodes.first;
+      left = firstNode._topLeft.dx;
+      top = firstNode._topLeft.dy;
+      right = firstNode._bottomRight.dx;
+      bottom = firstNode._bottomRight.dy;
+
+      for (var node in _nodes.skip(1)) {
+        var nodeLeft = node._topLeft.dx;
+        var nodeTop = node._topLeft.dy;
+        var nodeRight = node._bottomRight.dx;
+        var nodeBottom = node._bottomRight.dy;
+
+        left = nodeLeft < left ? nodeLeft : left;
+        top = nodeTop < top ? nodeTop : top;
+        right = nodeRight > right ? nodeRight : right;
+        bottom = nodeBottom > bottom ? nodeBottom : bottom;
+      }
+    }
+
+    if (left != _topLeft.dx ||
+        top != _topLeft.dy ||
+        right != _bottomRight.dx ||
+        bottom != _bottomRight.dy) {
+      _topLeft = Offset(left, top);
+      _bottomRight = Offset(right, bottom);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  void _setDraggableNode(ProdLineNode node) {
+    // None of these conditions should ever happen. But best be safe
+    if (node.parentGraph != this) {
+      throw const FactorioException(
+        'Draggable node provided is not from this graph',
+      );
+    } else if (_draggableNode != null) {
+      throw const FactorioException(
+        'Cannot set new draggable node until old draggable node is cleared',
+      );
+    }
+
+    node._isBeingDragged = true;
+    _draggableNode = node;
+  }
+
+  GraphStateUpdate _clearDraggableNode(ProdLineNode node) {
+    if (_draggableNode != node) {
+      throw const FactorioException(
+        'Draggable node to be cleared is incorrect',
+      );
+    }
+
+    node._isBeingDragged = false;
+    _draggableNode = null;
+    return GraphStateUpdate(update: _updateGraphArea());
+  }
+
+  void _addNewNodeData(ProdLineNode newNode) {
     if (newNode.nodeType.isIo) {
       _addIo(newNode);
     }
@@ -213,25 +478,17 @@ class BaseGraph extends ProductionLine {
 
     _parentOfMap[newNode] = {};
     _childOfMap[newNode] = {};
-
-    if (updateListener) {
-      _callBackOnChange!(newNodes: [newNode]);
-    }
   }
 
-  void _addNewEdgeData(DirectedEdge newEdge, bool updateListener) {
+  void _addNewEdgeData(DirectedEdge newEdge) {
     _edges.add(newEdge);
 
     // Add edge to relevant parentOf and childOf entries
     _parentOfMap[newEdge.parent]!.add(newEdge);
     _childOfMap[newEdge.child]!.add(newEdge);
-
-    if (updateListener) {
-      _callBackOnChange!(newEdges: [newEdge]);
-    }
   }
 
-  void _removeNodeData(ProdLineNode node, bool updateIo, bool updateListener) {
+  GraphStateUpdate _removeNodeData(ProdLineNode node, bool updateIo) {
     _nodes.remove(node);
 
     List<DirectedEdge> edgesToRemove = [];
@@ -251,27 +508,27 @@ class BaseGraph extends ProductionLine {
     _parentOfMap.remove(node);
     _childOfMap.remove(node);
 
-    _edges.removeAll(edgesToRemove);
+    for (var edge in edgesToRemove) {
+      _edges.remove(edge);
+    }
 
     // Update IO if necessary
     if (updateIo && node.nodeType.isIo) {
       _removeIo(node);
     }
 
-    if (updateListener) {
-      _callBackOnChange!(removedNodes: [node], removedEdges: edgesToRemove);
-    }
+    return GraphStateUpdate(
+      update: true,
+      removedNodes: [node],
+      removedEdges: edgesToRemove,
+    );
   }
 
-  void _removeEdgeData(DirectedEdge edge, bool updateListener) {
+  void _removeEdgeData(DirectedEdge edge) {
     _edges.remove(edge);
 
     _parentOfMap[edge.parent]!.remove(edge);
     _childOfMap[edge.child]!.remove(edge);
-
-    if (updateListener) {
-      _callBackOnChange!(removedEdges: [edge]);
-    }
   }
 
   void _addIo(ProdLineNode newIoNode) {
@@ -424,13 +681,41 @@ class BaseGraph extends ProductionLine {
       return existingHeight;
     }
   }
+}
 
-  void _updateNodeAndChildrenListeners(List<ProdLineNode> updatedNodes) {
-    for (var updatedNode in updatedNodes) {
-      updatedNode._callbackOnChange!();
-      for (var edge in updatedNode.parentOf) {
-        edge._callbackOnChange!();
-      }
-    }
-  }
+/*
+ * Used by widget to determine whether to rebuild whole graph or just nodes
+ * .update will only be true if
+ * * Graph dimensions (offsets) are updated
+ * * New nodes or edges are added
+ * * Existing nodes or edges are removed
+ * If .update is true, GraphWidget and all child widgets must be rebuilt
+ * If not, only affected node widgets will be rebuilt
+ * 
+ * This object is only used in situations where it is not immediately clear
+ * what exactly needs to be updated
+ * eg. A call to node.updateSelfAndDependants will result in multiple
+ * nodes being updated, and some potential new nodes being created
+ * A call to node.updateSelfOnly does not need to return this object
+ */
+class GraphStateUpdate {
+  final bool update;
+  final List<ProdLineNode> newNodes;
+  final List<ProdLineNode> updatedNodes;
+  final List<ProdLineNode> removedNodes;
+  final List<DirectedEdge> newEdges;
+  final List<DirectedEdge> updatedEdges;
+  final List<DirectedEdge> removedEdges;
+
+  const GraphStateUpdate({
+    this.update = false,
+    this.newNodes = const [],
+    this.updatedNodes = const [],
+    this.removedNodes = const [],
+    this.newEdges = const [],
+    this.updatedEdges = const [],
+    this.removedEdges = const [],
+  });
+
+  static const GraphStateUpdate emptyUpdate = GraphStateUpdate();
 }

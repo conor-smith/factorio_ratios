@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:factorio_ratios/factorio/models.dart';
-import 'package:factorio_ratios/ui/graph_ui.dart';
+import 'package:factorio_ratios/ui/graph/top_graph_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
@@ -54,6 +54,6 @@ class FactorioRatiosApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TopLevelGraphWidget(db: factorioDb);
+    return TopGraphWidget.createFromDb(db: factorioDb);
   }
 }

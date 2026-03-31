@@ -19,8 +19,6 @@ class DirectedEdge {
   // List must always be ordered from parent to child
   final List<Offset> _lines = [];
 
-  Function? _callbackOnChange;
-
   double? get amount => _amount;
   ItemFlowDirection get flowDirection => edgeType.flowDirection;
   LineType get lineType => _lineType;
@@ -70,15 +68,11 @@ class DirectedEdge {
       _lines.add(_determineConnectionPoint(child, childConnectionSide));
     }
 
-    parentGraph._addNewEdgeData(this, updateGraphListener);
+    parentGraph._addNewEdgeData(this);
   }
 
   void removeFromGraph({bool updateGraphListener = false}) {
-    parentGraph._removeEdgeData(this, updateGraphListener);
-  }
-
-  set callbackOnChange(Function callback) {
-    _callbackOnChange = callback;
+    parentGraph._removeEdgeData(this);
   }
 
   @override
@@ -92,23 +86,15 @@ class DirectedEdge {
   @override
   int get hashCode => parent.hashCode + child.hashCode + item.hashCode;
 
-  void _updateParentPosition(bool updateListener) {
+  void _updateParentPosition() {
     if (lineType == LineType.shortestPath) {
       _lines[0] = _determineConnectionPoint(parent, _parentConnectionSide);
     }
-
-    if (updateListener) {
-      _callbackOnChange!();
-    }
   }
 
-  void _updateChildPosition(bool updateListener) {
+  void _updateChildPosition() {
     if (lineType == LineType.shortestPath) {
       _lines[1] = _determineConnectionPoint(child, _childConnectionSide);
-    }
-
-    if (updateListener) {
-      _callbackOnChange!();
     }
   }
 

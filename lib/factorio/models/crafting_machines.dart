@@ -2,6 +2,7 @@ part of '../models.dart';
 
 class CraftingMachine {
   // TODO - Quality effects on module and energy usage
+  // TODO - Create relationship with item used to place craftingMachine
 
   final FactorioDatabase factorioDb;
 
