@@ -3,7 +3,7 @@ part of '../graph.dart';
 // TODO - Add more linetypes
 enum LineType { shortestPath }
 
-class DirectedEdge {
+class DirectedEdge extends ChangeNotifier {
   final BaseGraph parentGraph;
   final ItemData item;
 
@@ -86,15 +86,23 @@ class DirectedEdge {
   @override
   int get hashCode => parent.hashCode + child.hashCode + item.hashCode;
 
-  void _updateParentPosition() {
+  void _updateParentPosition({bool updateListeners = false}) {
     if (lineType == LineType.shortestPath) {
       _lines[0] = _determineConnectionPoint(parent, _parentConnectionSide);
     }
+
+    if (updateListeners) {
+      notifyListeners();
+    }
   }
 
-  void _updateChildPosition() {
+  void _updateChildPosition({bool updateListeners = false}) {
     if (lineType == LineType.shortestPath) {
       _lines[1] = _determineConnectionPoint(child, _childConnectionSide);
+    }
+
+    if (updateListeners) {
+      notifyListeners();
     }
   }
 

@@ -12,6 +12,13 @@ class NodeWidget extends StatefulWidget {
 
 class _NodeWidgetState extends State<NodeWidget> {
   @override
+  void initState() {
+    super.initState();
+
+    widget.node.addListener(() => setState(() {}));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Positioned(
       left: widget.node.topLeft.dx,

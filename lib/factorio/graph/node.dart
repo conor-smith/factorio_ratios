@@ -1,6 +1,6 @@
 part of '../graph.dart';
 
-class ProdLineNode implements ProductionLine {
+class ProdLineNode extends ChangeNotifier implements ProductionLine {
   static const double defaultWidth = 100,
       defaultHeight = 100,
       defaultOffset = 50;
@@ -53,8 +53,8 @@ class ProdLineNode implements ProductionLine {
     required this.parentGraph,
     required NodeType type,
     required ProductionLine line,
-    Offset topLeft = const Offset(0, 0),
-    Offset bottomRight = const Offset(defaultWidth, defaultHeight),
+    Offset topLeft = Offset.zero,
+    Offset bottomRight = Offset.zero,
   }) : _topLeft = topLeft,
        _bottomRight = bottomRight,
        _isBeingDragged = false,
@@ -64,17 +64,16 @@ class ProdLineNode implements ProductionLine {
       throw FactorioException(
         'Nodetype $type is incompatible with production line $line',
       );
-    } else {
-      parentGraph._addNewNodeData(this);
     }
+    parentGraph._addNewNodeData(this);
   }
 
-  GraphStateUpdate removeFromGraph({bool updateIo = true}) {
-    return parentGraph._removeNodeData(this, updateIo);
+  void removeFromGraph({bool updateIo = true}) {
+    parentGraph._removeNodeData(this, updateIo);
   }
 
-  GraphStateUpdate updateSelfAndDescendants(ItemIo newRequirements) {
-    return parentGraph.updateNodesAndDescendants({this: newRequirements});
+  void updateSelfAndDescendants(ItemIo newRequirements) {
+    parentGraph.updateNodesAndDescendants({this: newRequirements});
   }
 
   void updateSelfOnly(ItemIo newRequirements) {
@@ -85,19 +84,27 @@ class ProdLineNode implements ProductionLine {
     parentGraph._setDraggableNode(this);
   }
 
-  GraphStateUpdate endDragging() {
-    return parentGraph._clearDraggableNode(this);
+  void endDragging() {
+    parentGraph._clearDraggableNode(this);
   }
 
-  void updatePosition(Offset newTopLeft, Offset newBottomRight) {
+  void updatePosition(
+    Offset newTopLeft,
+    Offset newBottomRight, {
+    bool updateListeners = false,
+  }) {
     _topLeft = newTopLeft;
     _bottomRight = newBottomRight;
 
     for (var edge in parentOf) {
-      edge._updateParentPosition();
+      edge._updateParentPosition(updateListeners: updateListeners);
     }
     for (var edge in childOf) {
-      edge._updateChildPosition();
+      edge._updateChildPosition(updateListeners: updateListeners);
+    }
+
+    if (updateListeners) {
+      notifyListeners();
     }
   }
 

@@ -6,13 +6,7 @@ import 'package:flutter/material.dart';
 class GraphWidget extends StatefulWidget {
   final BaseGraph graph;
 
-  final ValueNotifier<GraphStateUpdate> graphUpdateNotifier;
-
-  const GraphWidget({
-    super.key,
-    required this.graph,
-    required this.graphUpdateNotifier,
-  });
+  const GraphWidget({super.key, required this.graph});
 
   @override
   State<GraphWidget> createState() => _GraphWidgetState();
@@ -34,31 +28,28 @@ class _GraphWidgetState extends State<GraphWidget> {
       edgeWidgets[edge] = EdgeWidget(edge: edge);
     }
 
-    widget.graphUpdateNotifier.addListener(() {
-      var stateUpdate = widget.graphUpdateNotifier.value;
+    widget.graph.addListener(
+      () => setState(() {
+        var stateUpdate = widget.graph.value;
 
-      // TODO - add logic for updating only required nodes
-      if (stateUpdate.update) {
-        setState(() {
-          for (var newNode in stateUpdate.newNodes) {
-            nodeWidgets[newNode] = NodeWidget(node: newNode);
-          }
-          for (var oldNode in stateUpdate.removedNodes) {
-            nodeWidgets.remove(oldNode);
-          }
+        for (var newNode in stateUpdate.newNodes) {
+          nodeWidgets[newNode] = NodeWidget(node: newNode);
+        }
+        for (var oldNode in stateUpdate.removedNodes) {
+          nodeWidgets.remove(oldNode);
+        }
 
-          for (var newEdge in stateUpdate.newEdges) {
-            edgeWidgets[newEdge] = EdgeWidget(edge: newEdge);
-          }
-          for (var oldEdge in stateUpdate.removedEdges) {
-            edgeWidgets.remove(oldEdge);
-          }
-        });
+        for (var newEdge in stateUpdate.newEdges) {
+          edgeWidgets[newEdge] = EdgeWidget(edge: newEdge);
+        }
+        for (var oldEdge in stateUpdate.removedEdges) {
+          edgeWidgets.remove(oldEdge);
+        }
 
         // TODO - this is temporary
-        widget.graph.treeLayout();
-      }
-    });
+        widget.graph.treeLayout(updateNodeListeners: true);
+      }),
+    );
   }
 
   @override
@@ -93,7 +84,7 @@ class _GraphWidgetState extends State<GraphWidget> {
     }
 
     // TODO - Account for nodes existing at negative values
-    return Container(
+    return SizedBox(
       width: widget.graph.bottomRight.dx,
       height: widget.graph.bottomRight.dy,
       child: Stack(children: children),

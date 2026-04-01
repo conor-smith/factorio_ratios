@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models.dart';
 import 'package:factorio_ratios/factorio/production_line.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
 part 'graph/edge.dart';
@@ -29,7 +30,7 @@ part 'graph/node.dart';
  * As such, the positions of topLeft and bottomRight create a rectangle
  * capable of containing all nodes present in the graph
  */
-class BaseGraph extends ProductionLine {
+class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
   final List<ProdLineNode> _nodes = [];
   final List<DirectedEdge> _edges = [];
   final Map<ProdLineNode, Set<DirectedEdge>> _parentOfMap = {};
@@ -75,7 +76,8 @@ class BaseGraph extends ProductionLine {
 
   BaseGraph({this.surface, this.parent})
     : _topLeft = Offset.zero,
-      _bottomRight = Offset.zero;
+      _bottomRight = Offset.zero,
+      super(GraphStateUpdate.emptyUpdate);
 
   @override
   void update(ItemIo newRequirements) {
@@ -118,6 +120,11 @@ class BaseGraph extends ProductionLine {
   }
 
   void clear() {
+    value = GraphStateUpdate(
+      removedNodes: List.from(_nodes),
+      removedEdges: List.from(edges),
+    );
+
     _nodes.clear();
     _edges.clear();
     _parentOfMap.clear();
@@ -126,7 +133,10 @@ class BaseGraph extends ProductionLine {
     _allOutputs.clear();
   }
 
-  void treeLayout() {
+  void treeLayout({
+    bool updateListeners = false,
+    bool updateNodeListeners = false,
+  }) {
     var nodeHeights = getNodeHeights(_nodes);
 
     for (var y = 0; y < nodeHeights.length; y++) {
@@ -141,14 +151,18 @@ class BaseGraph extends ProductionLine {
           topLeft.dx + ProdLineNode.defaultWidth,
           topLeft.dy + ProdLineNode.defaultHeight,
         );
-        nodeHeights[y][x].updatePosition(topLeft, bottomRight);
+        nodeHeights[y][x].updatePosition(
+          topLeft,
+          bottomRight,
+          updateListeners: updateNodeListeners,
+        );
       }
     }
 
-    _updateGraphArea();
+    _updateGraphArea(updateListeners: updateListeners);
   }
 
-  GraphStateUpdate updateNodesAndDescendants(
+  void updateNodesAndDescendants(
     Map<ProdLineNode, ItemIo> nodesAndRequirements,
   ) {
     var nodeHeights = getNodeHeights(nodesAndRequirements.keys);
@@ -203,14 +217,6 @@ class BaseGraph extends ProductionLine {
       for (var node in newDisposalNodes) {
         node.update(node._determineRequirementsFromParents());
       }
-
-      return GraphStateUpdate(
-        update: newDisposalNodes.isNotEmpty || newEdges.isNotEmpty,
-        newNodes: newDisposalNodes,
-        newEdges: newEdges,
-        updatedNodes: oldRequirementsMap.keys.toList(),
-        updatedEdges: oldAmountMap.keys.toList(),
-      );
     } catch (e) {
       oldRequirementsMap.forEach((node, oldRequirements) {
         if (oldRequirements == null) {
@@ -232,13 +238,14 @@ class BaseGraph extends ProductionLine {
     }
   }
 
-  GraphStateUpdate addConsumerNodeAndTree(
+  void addConsumerNodeAndTree(
     ItemData itemData,
     List<CraftingMachine> sortedMachines,
     List<Recipe> recipes,
     List<ItemData> resources,
-    List<ItemData> availableFuels,
-  ) {
+    List<ItemData> availableFuels, {
+    bool updateListeners = false,
+  }) {
     // TODO - Check if consumer node already exists
     var newNode = ProdLineNode.addToGraph(
       parentGraph: this,
@@ -272,11 +279,9 @@ class BaseGraph extends ProductionLine {
       newEdges,
     );
 
-    return GraphStateUpdate(
-      update: true,
-      newNodes: newNodes,
-      newEdges: newEdges,
-    );
+    if (updateListeners) {
+      value = GraphStateUpdate(newNodes: newNodes, newEdges: newEdges);
+    }
   }
 
   void _createRecipeTree(
@@ -401,7 +406,7 @@ class BaseGraph extends ProductionLine {
   // TODO - Account for edges potentially taking paths beyond limits
   // TODO - Make more efficient? Maybe
   // Returns true if graph area is updated
-  bool _updateGraphArea() {
+  void _updateGraphArea({bool updateListeners = false}) {
     double left, top, right, bottom;
 
     if (_nodes.isEmpty) {
@@ -435,9 +440,10 @@ class BaseGraph extends ProductionLine {
         bottom != _bottomRight.dy) {
       _topLeft = Offset(left, top);
       _bottomRight = Offset(right, bottom);
-      return true;
-    } else {
-      return false;
+
+      if (updateListeners) {
+        value = GraphStateUpdate(topLeft: _topLeft, bottomRight: _bottomRight);
+      }
     }
   }
 
@@ -457,7 +463,7 @@ class BaseGraph extends ProductionLine {
     _draggableNode = node;
   }
 
-  GraphStateUpdate _clearDraggableNode(ProdLineNode node) {
+  void _clearDraggableNode(ProdLineNode node) {
     if (_draggableNode != node) {
       throw const FactorioException(
         'Draggable node to be cleared is incorrect',
@@ -466,7 +472,6 @@ class BaseGraph extends ProductionLine {
 
     node._isBeingDragged = false;
     _draggableNode = null;
-    return GraphStateUpdate(update: _updateGraphArea());
   }
 
   void _addNewNodeData(ProdLineNode newNode) {
@@ -488,7 +493,7 @@ class BaseGraph extends ProductionLine {
     _childOfMap[newEdge.child]!.add(newEdge);
   }
 
-  GraphStateUpdate _removeNodeData(ProdLineNode node, bool updateIo) {
+  void _removeNodeData(ProdLineNode node, bool updateIo) {
     _nodes.remove(node);
 
     List<DirectedEdge> edgesToRemove = [];
@@ -516,12 +521,6 @@ class BaseGraph extends ProductionLine {
     if (updateIo && node.nodeType.isIo) {
       _removeIo(node);
     }
-
-    return GraphStateUpdate(
-      update: true,
-      removedNodes: [node],
-      removedEdges: edgesToRemove,
-    );
   }
 
   void _removeEdgeData(DirectedEdge edge) {
@@ -699,23 +698,41 @@ class BaseGraph extends ProductionLine {
  * A call to node.updateSelfOnly does not need to return this object
  */
 class GraphStateUpdate {
-  final bool update;
+  final Offset? topLeft;
+  final Offset? bottomRight;
   final List<ProdLineNode> newNodes;
   final List<ProdLineNode> updatedNodes;
   final List<ProdLineNode> removedNodes;
   final List<DirectedEdge> newEdges;
   final List<DirectedEdge> updatedEdges;
   final List<DirectedEdge> removedEdges;
+  final ProdLineNode? selectedNode;
 
   const GraphStateUpdate({
-    this.update = false,
+    this.topLeft,
+    this.bottomRight,
     this.newNodes = const [],
     this.updatedNodes = const [],
     this.removedNodes = const [],
     this.newEdges = const [],
     this.updatedEdges = const [],
     this.removedEdges = const [],
+    this.selectedNode,
   });
 
   static const GraphStateUpdate emptyUpdate = GraphStateUpdate();
+
+  @override
+  bool operator ==(Object other) {
+    return other is GraphStateUpdate &&
+        other.topLeft == topLeft &&
+        other.bottomRight == bottomRight &&
+        other.newNodes == newNodes &&
+        other.updatedNodes == updatedNodes &&
+        other.removedNodes == removedNodes &&
+        other.newEdges == newEdges &&
+        other.updatedEdges == updatedEdges &&
+        other.removedEdges == removedEdges &&
+        other.selectedNode == selectedNode;
+  }
 }

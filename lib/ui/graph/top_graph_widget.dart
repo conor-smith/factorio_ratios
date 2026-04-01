@@ -98,15 +98,14 @@ class _TopGraphWidgetState extends State<TopGraphWidget> {
         surfaceProperties = SurfaceProperties.empty;
       }
 
-      var graphUpdate = activeGraph.addConsumerNodeAndTree(
+      activeGraph.addConsumerNodeAndTree(
         ItemData(item),
         widget.sortedMachines,
         surfaceProperties.defaultRecipes,
         surfaceProperties.resources,
         surfaceProperties.availableFuels,
+        updateListeners: true,
       );
-
-      graphWidgets[activeGraph]!.graphUpdateNotifier.value = graphUpdate;
     }),
   );
 
@@ -121,10 +120,7 @@ class _TopGraphWidgetState extends State<TopGraphWidget> {
       ),
       graphWidgets.putIfAbsent(
         activeGraph,
-        () => GraphWidget(
-          graph: activeGraph,
-          graphUpdateNotifier: ValueNotifier(GraphStateUpdate.emptyUpdate),
-        ),
+        () => GraphWidget(graph: activeGraph),
       ),
     ];
     if (selectionMenuActive) {

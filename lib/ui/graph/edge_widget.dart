@@ -12,6 +12,13 @@ class EdgeWidget extends StatefulWidget {
 
 class _EdgeWidgetState extends State<EdgeWidget> {
   @override
+  void initState() {
+    super.initState();
+
+    widget.edge.addListener(() => setState(() {}));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return CustomPaint(
       size: Size.infinite,

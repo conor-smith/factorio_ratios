@@ -13,7 +13,7 @@ part 'production_lines/single_recipe.dart';
  * These two maps will only be populated upon a call to .update()
  * IO and requirements can be reset back to null by calling .reset()
  */
-abstract class ProductionLine {
+abstract mixin class ProductionLine {
   @mustCallSuper
   void update(ItemIo newRequirements) {
     Set<ItemData> inputs = allInputs;
