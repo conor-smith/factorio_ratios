@@ -5,25 +5,24 @@ import 'package:factorio_ratios/ui/factorio_menu.dart';
 import 'package:factorio_ratios/ui/graph/graph_widget.dart';
 import 'package:flutter/material.dart';
 
-class TopGraphWidget extends StatefulWidget {
+class OverlayWidget extends StatefulWidget {
   final FactorioDatabase db;
   final BaseGraph topGraph;
 
   final List<CraftingMachine> sortedMachines;
   final Map<Surface, SurfaceProperties> surfacePropertiesMap;
 
-  const TopGraphWidget({
+  final ValueNotifier<OverlayUpdate> updateNotifier;
+
+  OverlayWidget({
     super.key,
     required this.db,
     required this.topGraph,
     required this.sortedMachines,
     required this.surfacePropertiesMap,
-  });
+  }) : updateNotifier = ValueNotifier(OverlayUpdate(activeGraph: topGraph));
 
-  factory TopGraphWidget.createFromDb({
-    Key? key,
-    required FactorioDatabase db,
-  }) {
+  factory OverlayWidget.createFromDb({Key? key, required FactorioDatabase db}) {
     // TODO - Top graph should have no surface
     BaseGraph topGraph = BaseGraph(surface: db.surfaceMap['nauvis']!);
 
@@ -67,7 +66,7 @@ class TopGraphWidget extends StatefulWidget {
       );
     }
 
-    return TopGraphWidget(
+    return OverlayWidget(
       key: key,
       db: db,
       topGraph: topGraph,
@@ -76,12 +75,20 @@ class TopGraphWidget extends StatefulWidget {
     );
   }
 
+  static void updateOverlay(BuildContext context, OverlayUpdate update) =>
+      context
+              .findAncestorWidgetOfExactType<OverlayWidget>()!
+              .updateNotifier
+              .value =
+          update;
+
   @override
-  State<TopGraphWidget> createState() => _TopGraphWidgetState();
+  State<OverlayWidget> createState() => _OverlayWidgetState();
 }
 
-class _TopGraphWidgetState extends State<TopGraphWidget> {
+class _OverlayWidgetState extends State<OverlayWidget> {
   late BaseGraph activeGraph = widget.topGraph;
+  ProdLineNode? activeNode;
 
   final Map<BaseGraph, GraphWidget> graphWidgets = {};
 
@@ -108,6 +115,20 @@ class _TopGraphWidgetState extends State<TopGraphWidget> {
       );
     }),
   );
+
+  @override
+  void initState() {
+    super.initState();
+
+    widget.updateNotifier.addListener(
+      () => setState(() {
+        OverlayUpdate update = widget.updateNotifier.value;
+
+        activeGraph = update.activeGraph;
+        activeNode = update.activeNode;
+      }),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -143,4 +164,17 @@ class SurfaceProperties {
   });
 
   static const SurfaceProperties empty = SurfaceProperties();
+}
+
+class OverlayUpdate {
+  final BaseGraph activeGraph;
+  final ProdLineNode? activeNode;
+
+  OverlayUpdate({required this.activeGraph, this.activeNode});
+
+  @override
+  bool operator ==(Object other) =>
+      other is OverlayUpdate &&
+      other.activeGraph == activeGraph &&
+      other.activeNode == activeNode;
 }
