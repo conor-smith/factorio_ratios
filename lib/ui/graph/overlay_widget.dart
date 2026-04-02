@@ -111,7 +111,6 @@ class _OverlayWidgetState extends State<OverlayWidget> {
         surfaceProperties.defaultRecipes,
         surfaceProperties.resources,
         surfaceProperties.availableFuels,
-        updateListeners: true,
       );
     }),
   );

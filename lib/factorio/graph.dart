@@ -134,8 +134,8 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
   }
 
   void treeLayout({
-    bool updateListeners = false,
-    bool updateNodeListeners = false,
+    bool updateListeners = true,
+    bool updateNodeListeners = true,
   }) {
     var nodeHeights = getNodeHeights(_nodes);
 
@@ -244,7 +244,7 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
     List<Recipe> recipes,
     List<ItemData> resources,
     List<ItemData> availableFuels, {
-    bool updateListeners = false,
+    bool updateListeners = true,
   }) {
     // TODO - Check if consumer node already exists
     var newNode = ProdLineNode.addToGraph(
@@ -406,7 +406,7 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
   // TODO - Account for edges potentially taking paths beyond limits
   // TODO - Make more efficient? Maybe
   // Returns true if graph area is updated
-  void _updateGraphArea({bool updateListeners = false}) {
+  void _updateGraphArea({bool updateListeners = true}) {
     double left, top, right, bottom;
 
     if (_nodes.isEmpty) {

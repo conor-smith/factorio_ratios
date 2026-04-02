@@ -47,7 +47,7 @@ class _GraphWidgetState extends State<GraphWidget> {
         }
 
         // TODO - this is temporary
-        widget.graph.treeLayout(updateNodeListeners: true);
+        widget.graph.treeLayout(updateListeners: false);
       }),
     );
   }

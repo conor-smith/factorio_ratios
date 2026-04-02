@@ -91,7 +91,7 @@ class ProdLineNode extends ChangeNotifier implements ProductionLine {
   void updatePosition(
     Offset newTopLeft,
     Offset newBottomRight, {
-    bool updateListeners = false,
+    bool updateListeners = true,
   }) {
     _topLeft = newTopLeft;
     _bottomRight = newBottomRight;

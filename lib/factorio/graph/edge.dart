@@ -34,7 +34,6 @@ class DirectedEdge extends ChangeNotifier {
     Side parentConnectionSide = Side.bottom,
     Side childConnectionSide = Side.top,
     LineType lineType = LineType.shortestPath,
-    bool updateGraphListener = false,
   }) : _childConnectionSide = childConnectionSide,
        _parentConnectionSide = parentConnectionSide,
        _amount = initialAmount,
@@ -86,7 +85,7 @@ class DirectedEdge extends ChangeNotifier {
   @override
   int get hashCode => parent.hashCode + child.hashCode + item.hashCode;
 
-  void _updateParentPosition({bool updateListeners = false}) {
+  void _updateParentPosition({bool updateListeners = true}) {
     if (lineType == LineType.shortestPath) {
       _lines[0] = _determineConnectionPoint(parent, _parentConnectionSide);
     }
@@ -96,7 +95,7 @@ class DirectedEdge extends ChangeNotifier {
     }
   }
 
-  void _updateChildPosition({bool updateListeners = false}) {
+  void _updateChildPosition({bool updateListeners = true}) {
     if (lineType == LineType.shortestPath) {
       _lines[1] = _determineConnectionPoint(child, _childConnectionSide);
     }
