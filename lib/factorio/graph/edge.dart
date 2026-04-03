@@ -1,8 +1,5 @@
 part of '../graph.dart';
 
-// TODO - Add more linetypes
-enum LineType { shortestPath }
-
 class DirectedEdge extends ChangeNotifier {
   final BaseGraph parentGraph;
   final ItemData item;
@@ -122,6 +119,9 @@ class DirectedEdge extends ChangeNotifier {
         ),
       };
 }
+
+// TODO - Add more linetypes
+enum LineType { shortestPath }
 
 enum ItemFlowDirection { parentToChild, childToParent }
 

@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
 part 'graph/edge.dart';
+part 'graph/events.dart';
 part 'graph/node.dart';
 
 /*
