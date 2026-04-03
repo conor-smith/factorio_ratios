@@ -92,25 +92,27 @@ class _OverlayWidgetState extends State<OverlayWidget> {
 
   late final FactorioGroupMenuWidget<Item> menuWidget = FactorioGroupMenuWidget(
     items: widget.db.itemMap.values.where((item) => !item.hidden).toList(),
-    onSelected: (item) {
-      widget.updateNotifier.toggleSelectionMenu(false);
-
-      SurfaceProperties surfaceProperties;
-      if (activeGraph.surface != null) {
-        surfaceProperties = widget.surfacePropertiesMap[activeGraph.surface]!;
-      } else {
-        surfaceProperties = SurfaceProperties.empty;
-      }
-
-      activeGraph.addConsumerNodeAndTree(
-        ItemData(item),
-        widget.sortedMachines,
-        surfaceProperties.defaultRecipes,
-        surfaceProperties.resources,
-        surfaceProperties.availableFuels,
-      );
-    },
+    onSelected: (item) => addConsumerToActiveGraph(item),
   );
+
+  void addConsumerToActiveGraph(Item item) {
+    widget.updateNotifier.toggleSelectionMenu(false);
+
+    SurfaceProperties surfaceProperties;
+    if (activeGraph.surface != null) {
+      surfaceProperties = widget.surfacePropertiesMap[activeGraph.surface]!;
+    } else {
+      surfaceProperties = SurfaceProperties.empty;
+    }
+
+    activeGraph.addConsumerNodeAndTree(
+      ItemData(item),
+      widget.sortedMachines,
+      surfaceProperties.defaultRecipes,
+      surfaceProperties.resources,
+      surfaceProperties.availableFuels,
+    );
+  }
 
   @override
   void initState() {
