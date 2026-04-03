@@ -47,7 +47,7 @@ class ProdLineNode extends ChangeNotifier implements ProductionLine {
   void update(ItemIo newRequirements) => _line.update(newRequirements);
 
   @override
-  void reset() => _line.reset();
+  void clearRequirements() => _line.clearRequirements();
 
   ProdLineNode.addToGraph({
     required this.parentGraph,

@@ -36,7 +36,7 @@ abstract mixin class ProductionLine {
     });
   }
 
-  void reset();
+  void clearRequirements();
 
   String get type;
 

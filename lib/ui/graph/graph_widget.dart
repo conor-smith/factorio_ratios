@@ -64,7 +64,7 @@ class _GraphWidgetState extends State<GraphWidget> {
           top: widget.graph.topLeft.dy,
           child: TextButton(
             onPressed: () => setState(() {
-              widget.graph.clear();
+              widget.graph.clearAllNodes();
               nodeWidgets.clear();
               edgeWidgets.clear();
             }),

@@ -64,7 +64,7 @@ class SingleRecipeLine extends ProductionLine {
   }
 
   @override
-  void reset() {
+  void clearRequirements() {
     _machineAmount = 0;
     _requirements = null;
     _totalIoPerSecond = null;

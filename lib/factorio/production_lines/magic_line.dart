@@ -43,7 +43,7 @@ class IoLine extends ProductionLine {
   }
 
   @override
-  void reset() {
+  void clearRequirements() {
     _requirements = null;
   }
 

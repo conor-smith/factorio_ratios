@@ -31,31 +31,26 @@ part 'graph/node.dart';
  * capable of containing all nodes present in the graph
  */
 class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
+  // Fields to track nodes and edges
   final List<ProdLineNode> _nodes = [];
   final List<DirectedEdge> _edges = [];
   final Map<ProdLineNode, Set<DirectedEdge>> _parentOfMap = {};
   final Map<ProdLineNode, Set<DirectedEdge>> _childOfMap = {};
 
-  // Is not null if this graph is contained within a node of a parent graph
-  final ProdLineNode? parent;
-
-  final Surface? surface;
-
   late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
   late final List<DirectedEdge> edges = UnmodifiableListView(_edges);
 
+  // Is not null if this graph is contained within a node of a parent graph
+  final ProdLineNode? parent;
+
+  // Used to make decisions about what production lines can be added
+  final Surface? surface;
+
+  // Fields and getters required in order to implement ProductionLine
   final Set<ItemData> _allInputs = {};
   final Set<ItemData> _allOutputs = {};
   ItemIo? _requirements;
   ItemIo? _totalIoPerSecond;
-
-  // These two variables contain a rectangle
-  Offset _topLeft;
-  Offset _bottomRight;
-
-  // This contains the node currently being dragged
-  // Only one node may be dragged at a time
-  ProdLineNode? _draggableNode;
 
   @override
   late final Set<ItemData> allInputs = UnmodifiableSetView(_allInputs);
@@ -66,19 +61,28 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
   @override
   ItemIo? get totalIoPerSecond => _totalIoPerSecond;
   @override
+  bool get immutableIo => false;
+  @override
   String get type => 'graph';
 
-  @override
-  bool get immutableIo => false;
+  // Describes the smallest possible rectangle to contain all nodes and edges
+  Offset _topLeft;
+  Offset _bottomRight;
 
   Offset get topLeft => _topLeft;
   Offset get bottomRight => _bottomRight;
 
+  // This contains the node currently being dragged
+  // Only one node may be dragged at a time
+  ProdLineNode? _draggableNode;
+
+  // Constructor
   BaseGraph({this.surface, this.parent})
     : _topLeft = Offset.zero,
       _bottomRight = Offset.zero,
       super(GraphStateUpdate.emptyUpdate);
 
+  // ProductionLine methods
   @override
   void update(ItemIo newRequirements) {
     super.update(newRequirements);
@@ -87,39 +91,16 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
   }
 
   @override
-  void reset() {
+  void clearRequirements() {
     for (var node in _nodes) {
-      node.reset();
+      node.clearRequirements();
     }
 
     _totalIoPerSecond = null;
     _requirements = null;
   }
 
-  // Method is public to allow UI to use when displaying tree
-  // 'Height' of a node is the length of the longest path from the input nodes
-  // Nodes with the same value can be updated in any order
-  List<List<ProdLineNode>> getNodeHeights(Iterable<ProdLineNode> nodes) {
-    Map<ProdLineNode, int> heightMap = {};
-
-    int maxHeight = 0;
-    for (var node in nodes) {
-      int newMax = _getDescendantsHeight(node, heightMap, 0);
-
-      maxHeight = newMax > maxHeight ? newMax : maxHeight;
-    }
-
-    List<List<ProdLineNode>> flippedMap = List.generate(
-      maxHeight + 1,
-      (_) => [],
-    );
-
-    heightMap.forEach((node, height) => flippedMap[height].add(node));
-
-    return flippedMap;
-  }
-
-  void clear() {
+  void clearAllNodes() {
     value = GraphStateUpdate(
       removedNodes: List.from(_nodes),
       removedEdges: List.from(edges),
@@ -137,7 +118,7 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
     bool updateListeners = true,
     bool updateNodeListeners = true,
   }) {
-    var nodeHeights = getNodeHeights(_nodes);
+    var nodeHeights = _getNodeHeights(_nodes);
 
     for (var y = 0; y < nodeHeights.length; y++) {
       for (var x = 0; x < nodeHeights[y].length; x++) {
@@ -165,7 +146,7 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
   void updateNodesAndDescendants(
     Map<ProdLineNode, ItemIo> nodesAndRequirements,
   ) {
-    var nodeHeights = getNodeHeights(nodesAndRequirements.keys);
+    var nodeHeights = _getNodeHeights(nodesAndRequirements.keys);
 
     // Only possible if one node is a descendant of another
     if (nodeHeights[0].length != nodesAndRequirements.length) {
@@ -220,7 +201,7 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
     } catch (e) {
       oldRequirementsMap.forEach((node, oldRequirements) {
         if (oldRequirements == null) {
-          node.reset();
+          node.clearRequirements();
         } else {
           node.update(oldRequirements);
         }
@@ -401,6 +382,26 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
       type: NodeType.producer,
       line: IoLine(outputs: {itemData}),
     );
+  }
+
+  List<List<ProdLineNode>> _getNodeHeights(Iterable<ProdLineNode> nodes) {
+    Map<ProdLineNode, int> heightMap = {};
+
+    int maxHeight = 0;
+    for (var node in nodes) {
+      int newMax = _getDescendantsHeight(node, heightMap, 0);
+
+      maxHeight = newMax > maxHeight ? newMax : maxHeight;
+    }
+
+    List<List<ProdLineNode>> flippedMap = List.generate(
+      maxHeight + 1,
+      (_) => [],
+    );
+
+    heightMap.forEach((node, height) => flippedMap[height].add(node));
+
+    return flippedMap;
   }
 
   // TODO - Account for edges potentially taking paths beyond limits
