@@ -12,7 +12,7 @@ class OverlayWidget extends StatefulWidget {
   final List<CraftingMachine> sortedMachines;
   final Map<Surface, SurfaceProperties> surfacePropertiesMap;
 
-  final ValueNotifier<OverlayUpdate> updateNotifier;
+  final OverlayStateNotifier updateNotifier;
 
   OverlayWidget({
     super.key,
@@ -20,7 +20,7 @@ class OverlayWidget extends StatefulWidget {
     required this.topGraph,
     required this.sortedMachines,
     required this.surfacePropertiesMap,
-  }) : updateNotifier = ValueNotifier(OverlayUpdate(activeGraph: topGraph));
+  }) : updateNotifier = OverlayStateNotifier(activeGraph: topGraph);
 
   factory OverlayWidget.createFromDb({Key? key, required FactorioDatabase db}) {
     // TODO - Top graph should have no surface
@@ -75,28 +75,25 @@ class OverlayWidget extends StatefulWidget {
     );
   }
 
-  static void updateOverlay(BuildContext context, OverlayUpdate update) =>
-      context
-              .findAncestorWidgetOfExactType<OverlayWidget>()!
-              .updateNotifier
-              .value =
-          update;
+  static OverlayStateNotifier getOverlayNotifier(BuildContext context) =>
+      context.findAncestorWidgetOfExactType<OverlayWidget>()!.updateNotifier;
 
   @override
   State<OverlayWidget> createState() => _OverlayWidgetState();
 }
 
 class _OverlayWidgetState extends State<OverlayWidget> {
-  late BaseGraph activeGraph = widget.topGraph;
-  ProdLineNode? activeNode;
-
   final Map<BaseGraph, GraphWidget> graphWidgets = {};
 
-  bool selectionMenuActive = false;
+  // These are for convenience
+  BaseGraph get activeGraph => widget.updateNotifier._activeGraph;
+  bool get selectionMenuActive => widget.updateNotifier._selectionMenuActive;
+  ProdLineNode? get activeNode => widget.updateNotifier._activeNode;
+
   late final FactorioGroupMenuWidget<Item> menuWidget = FactorioGroupMenuWidget(
     items: widget.db.itemMap.values.where((item) => !item.hidden).toList(),
-    onSelected: (item) => setState(() {
-      selectionMenuActive = false;
+    onSelected: (item) {
+      widget.updateNotifier.toggleSelectionMenu(false);
 
       SurfaceProperties surfaceProperties;
       if (activeGraph.surface != null) {
@@ -112,42 +109,19 @@ class _OverlayWidgetState extends State<OverlayWidget> {
         surfaceProperties.resources,
         surfaceProperties.availableFuels,
       );
-    }),
+    },
   );
 
   @override
   void initState() {
     super.initState();
 
-    widget.updateNotifier.addListener(
-      () => setState(() {
-        OverlayUpdate update = widget.updateNotifier.value;
-
-        activeGraph = update.activeGraph;
-        activeNode = update.activeNode;
-      }),
-    );
+    widget.updateNotifier.addListener(() => setState(() {}));
   }
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> children = [
-      GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => setState(() {
-          selectionMenuActive = !selectionMenuActive;
-        }),
-      ),
-      graphWidgets.putIfAbsent(
-        activeGraph,
-        () => GraphWidget(graph: activeGraph),
-      ),
-    ];
-    if (selectionMenuActive) {
-      children.add(Center(child: menuWidget));
-    }
-
-    return Stack(children: children);
+    return Placeholder();
   }
 }
 
@@ -165,15 +139,37 @@ class SurfaceProperties {
   static const SurfaceProperties empty = SurfaceProperties();
 }
 
-class OverlayUpdate {
-  final BaseGraph activeGraph;
-  final ProdLineNode? activeNode;
+class OverlayStateNotifier extends ChangeNotifier {
+  BaseGraph _activeGraph;
+  ProdLineNode? _activeNode;
+  bool _selectionMenuActive;
 
-  OverlayUpdate({required this.activeGraph, this.activeNode});
+  OverlayStateNotifier({
+    required BaseGraph activeGraph,
+    ProdLineNode? activeNode,
+    bool selectionMenuActive = false,
+  }) : _selectionMenuActive = selectionMenuActive,
+       _activeNode = activeNode,
+       _activeGraph = activeGraph;
 
-  @override
-  bool operator ==(Object other) =>
-      other is OverlayUpdate &&
-      other.activeGraph == activeGraph &&
-      other.activeNode == activeNode;
+  void toggleSelectionMenu([bool? explicitValue]) {
+    _selectionMenuActive = explicitValue ?? !_selectionMenuActive;
+    notifyListeners();
+  }
+
+  void updateActiveGraph(BaseGraph newGraph) {
+    if (_activeGraph != newGraph) {
+      _selectionMenuActive = false;
+      _activeNode = null;
+      _activeGraph = newGraph;
+      notifyListeners();
+    }
+  }
+
+  void updateActiveNode(ProdLineNode? newNode) {
+    if (newNode != _activeNode) {
+      _activeNode = newNode;
+      notifyListeners();
+    }
+  }
 }
