@@ -1,35 +1,60 @@
 part of '../graph.dart';
 
-class ProdLineNode extends ChangeNotifier implements ProductionLine {
+class ProdLineNode with Mutateable<NodeEvent> implements ProductionLine {
   static const double defaultWidth = 100,
       defaultHeight = 100,
       defaultOffset = 50;
 
+  // Fields used to determine nodes position in tree
   final BaseGraph parentGraph;
+  bool _active;
 
-  NodeType _type;
+  // Node type determines how parent graph's state is affected by this node
+  NodeType _nodeType;
+  NodeType get nodeType => _nodeType;
+
+  // Node is mostly a wrapper for production line
   ProductionLine _line;
 
+  // Fields and getters used to determine nodes position in graph
   Offset _topLeft;
   Offset _bottomRight;
-  bool _isBeingDragged;
-
-  late final Set<DirectedEdge> parentOf = UnmodifiableSetView(
-    parentGraph._parentOfMap[this]!,
-  );
-  late final Set<DirectedEdge> childOf = UnmodifiableSetView(
-    parentGraph._childOfMap[this]!,
-  );
-
-  NodeType get nodeType => _type;
 
   Offset get topLeft => _topLeft;
   Offset get bottomRight => _bottomRight;
-  bool get isBeingDragged => _isBeingDragged;
 
   double get width => (bottomRight.dx - topLeft.dx);
   double get height => (bottomRight.dy - topLeft.dy);
 
+  // Find related edges. This data is managed by the parent graph
+  final List<DirectedEdge> _parentOf = [];
+  final List<DirectedEdge> _childOf = [];
+
+  late final List<DirectedEdge> parentOf = UnmodifiableListView(_parentOf);
+  late final List<DirectedEdge> childOf = UnmodifiableListView(_childOf);
+
+  // Constructors
+  ProdLineNode._addToGraph({
+    required this.parentGraph,
+    required NodeType type,
+    required ProductionLine line,
+    Offset topLeft = Offset.zero,
+    Offset bottomRight = Offset.zero,
+  }) : _nodeType = type,
+       _line = line,
+       _topLeft = topLeft,
+       _bottomRight = bottomRight,
+       _active = true {
+    if (!_verifyNodeTypeAndLine(type, line)) {
+      throw FactorioException(
+        'Nodetype $type is incompatible with production line $line',
+      );
+    }
+
+    parentGraph._addNewNodeData(this);
+  }
+
+  // Accessor getters, setters and methods for production line
   @override
   Set<ItemData> get allOutputs => _line.allOutputs;
   @override
@@ -57,9 +82,10 @@ class ProdLineNode extends ChangeNotifier implements ProductionLine {
     Offset bottomRight = Offset.zero,
   }) : _topLeft = topLeft,
        _bottomRight = bottomRight,
-       _isBeingDragged = false,
-       _type = type,
-       _line = line {
+       _nodeType = type,
+       _line = line,
+       _active = false {
+    // TODO - fix up
     if (!_verifyNodeTypeAndLine(type, line)) {
       throw FactorioException(
         'Nodetype $type is incompatible with production line $line',
@@ -80,31 +106,15 @@ class ProdLineNode extends ChangeNotifier implements ProductionLine {
     _line.update(newRequirements);
   }
 
-  void startDragging() {
-    parentGraph._setDraggableNode(this);
-  }
-
-  void endDragging() {
-    parentGraph._clearDraggableNode(this);
-  }
-
-  void updatePosition(
-    Offset newTopLeft,
-    Offset newBottomRight, {
-    bool updateListeners = true,
-  }) {
+  void updatePosition(Offset newTopLeft, Offset newBottomRight) {
     _topLeft = newTopLeft;
     _bottomRight = newBottomRight;
 
     for (var edge in parentOf) {
-      edge._updateParentPosition(updateListeners: updateListeners);
+      edge._updateParentPosition();
     }
     for (var edge in childOf) {
-      edge._updateChildPosition(updateListeners: updateListeners);
-    }
-
-    if (updateListeners) {
-      notifyListeners();
+      edge._updateChildPosition();
     }
   }
 
@@ -139,6 +149,77 @@ class ProdLineNode extends ChangeNotifier implements ProductionLine {
 
   @override
   String toString() => _line.toString();
+
+  @override
+  void apply(NodeEvent event) {
+    _apply(event, true);
+  }
+
+  @override
+  void redo(NodeEvent event) {
+    _apply(event, false);
+  }
+
+  @override
+  void rollback(NodeEvent event) {
+    _apply(event.reversed, false);
+  }
+
+  void _apply(NodeEvent event, bool saveEvent) {
+    parentGraph._eventHistory.checkIfMutationPermitted();
+
+    for (var mutationEvent in event.mutations) {
+      switch (mutationEvent) {
+        case NodeEventType.newPosition:
+          _topLeft = event.newTopLeft!;
+          _bottomRight = event.newBottomRight!;
+
+        case NodeEventType.requirementsUpdate:
+          if (event.newRequirements == null) {
+            clearRequirements();
+          } else {
+            update(event.newRequirements!);
+          }
+
+        case NodeEventType.newNodeType:
+          _nodeType = event.newNodeType!;
+
+        case NodeEventType.newProductionLine:
+          _line = event.newProductionLine!;
+
+        case NodeEventType.parentOfUpdate:
+          for (var removed in event.removedParentOf) {
+            _parentOf.remove(removed);
+          }
+          _parentOf.addAll(event.newParentOf);
+
+        case NodeEventType.childrenOfUpdate:
+          for (var removed in event.removedChildOf) {
+            _childOf.remove(removed);
+          }
+          _childOf.addAll(event.newChildOf);
+
+        case NodeEventType.addedToGraph:
+          _active = true;
+
+        case NodeEventType.removedFromGraph:
+          _active = false;
+      }
+    }
+
+    if (saveEvent) {
+      parentGraph._eventHistory.addNodeEvent(event);
+    }
+  }
+
+  static int topMostNode(ProdLineNode node1, ProdLineNode node2) =>
+      -node1.topLeft.dy.compareTo(node2.topLeft.dy);
+  static int leftMostNode(ProdLineNode node1, ProdLineNode node2) =>
+      -node1.topLeft.dx.compareTo(node2.topLeft.dx);
+  static int bottomMostNode(ProdLineNode node1, ProdLineNode node2) =>
+      node1.bottomRight.dy.compareTo(node2.bottomRight.dy);
+  static int rightMostNode(ProdLineNode node1, ProdLineNode node2) =>
+      node1.bottomRight.dx.compareTo(node2.bottomRight.dx);
 }
 
 enum NodeType {

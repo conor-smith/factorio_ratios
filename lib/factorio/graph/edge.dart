@@ -1,6 +1,6 @@
 part of '../graph.dart';
 
-class DirectedEdge extends ChangeNotifier {
+class DirectedEdge with Mutateable<EdgeEvent> {
   final BaseGraph parentGraph;
   final ItemData item;
 
@@ -14,12 +14,15 @@ class DirectedEdge extends ChangeNotifier {
   Side _childConnectionSide;
   LineType _lineType;
   // List must always be ordered from parent to child
-  final List<Offset> _lines = [];
+  List<Offset> _lines = [];
 
   double? get amount => _amount;
   ItemFlowDirection get flowDirection => edgeType.flowDirection;
   LineType get lineType => _lineType;
-  late final List<Offset> lines = UnmodifiableListView(_lines);
+
+  List<Offset> get lines => _lines;
+
+  bool _active;
 
   DirectedEdge.addToGraph({
     required this.parentGraph,
@@ -34,7 +37,9 @@ class DirectedEdge extends ChangeNotifier {
   }) : _childConnectionSide = childConnectionSide,
        _parentConnectionSide = parentConnectionSide,
        _amount = initialAmount,
-       _lineType = lineType {
+       _lineType = lineType,
+       _active = false {
+    // TODO - fix up
     // Confirm both parent and child are valid
     if (parentGraph != parent.parentGraph || parentGraph != child.parentGraph) {
       throw const FactorioException(
@@ -67,7 +72,7 @@ class DirectedEdge extends ChangeNotifier {
     parentGraph._addNewEdgeData(this);
   }
 
-  void removeFromGraph({bool updateGraphListener = false}) {
+  void removeFromGraph() {
     parentGraph._removeEdgeData(this);
   }
 
@@ -82,23 +87,15 @@ class DirectedEdge extends ChangeNotifier {
   @override
   int get hashCode => parent.hashCode + child.hashCode + item.hashCode;
 
-  void _updateParentPosition({bool updateListeners = true}) {
+  void _updateParentPosition() {
     if (lineType == LineType.shortestPath) {
       _lines[0] = _determineConnectionPoint(parent, _parentConnectionSide);
     }
-
-    if (updateListeners) {
-      notifyListeners();
-    }
   }
 
-  void _updateChildPosition({bool updateListeners = true}) {
+  void _updateChildPosition() {
     if (lineType == LineType.shortestPath) {
       _lines[1] = _determineConnectionPoint(child, _childConnectionSide);
-    }
-
-    if (updateListeners) {
-      notifyListeners();
     }
   }
 
@@ -118,6 +115,45 @@ class DirectedEdge extends ChangeNotifier {
           node.topLeft.dy + node.height / 2,
         ),
       };
+
+  @override
+  void apply(EdgeEvent event) {
+    _apply(event, true);
+  }
+
+  @override
+  void redo(EdgeEvent event) {
+    _apply(event, false);
+  }
+
+  @override
+  void rollback(EdgeEvent event) {
+    _apply(event.reversed, false);
+  }
+
+  void _apply(EdgeEvent event, bool saveEvent) {
+    parentGraph._eventHistory.checkIfMutationPermitted();
+
+    for (var mutationEvent in event.mutations) {
+      switch (mutationEvent) {
+        case EdgeEventType.newAmount:
+          _amount = event.newAmount;
+
+        case EdgeEventType.newLines:
+          _lines = event.newLines!;
+
+        case EdgeEventType.addedToGraph:
+          _active = true;
+
+        case EdgeEventType.removedFromGraph:
+          _active = false;
+      }
+    }
+
+    if (saveEvent) {
+      parentGraph._eventHistory.addEdgeEvent(event);
+    }
+  }
 }
 
 // TODO - Add more linetypes

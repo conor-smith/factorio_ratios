@@ -1,306 +1,349 @@
 part of '../graph.dart';
 
-class UpdateEvent {
-  final Map<BaseGraph, GraphEvent> graphEvents;
-  final Map<ProdLineNode, NodeEvent> nodeEvents;
-  final Map<DirectedEdge, EdgeEvent> edgeEvents;
+class GraphEvent extends MutationEvent {
+  final BaseGraph graph;
 
-  UpdateEvent._({
-    Map<BaseGraph, GraphEvent> graphEvents = const {},
-    Map<ProdLineNode, NodeEvent> nodeEvents = const {},
-    Map<DirectedEdge, EdgeEvent> edgeEvents = const {},
-  }) : graphEvents = Map.unmodifiable(graphEvents),
-       nodeEvents = Map.unmodifiable(nodeEvents),
-       edgeEvents = Map.unmodifiable(edgeEvents);
+  final List<GraphEventType> mutations;
 
-  factory UpdateEvent._combine(List<UpdateEvent> orderedEvents) {
-    Map<BaseGraph, List<GraphEvent>> graphEventList = {};
-    Map<ProdLineNode, List<NodeEvent>> nodeEventList = {};
-    Map<DirectedEdge, List<EdgeEvent>> edgeEventList = {};
+  final ProdLineNode? oldTopNode,
+      newTopNode,
+      oldLeftNode,
+      newLeftNode,
+      oldBottomNode,
+      newBottomNode,
+      oldRightNode,
+      newRightNode;
 
-    for (var event in orderedEvents) {
-      event.graphEvents.forEach(
-        (graph, eventList) => graphEventList.update(
-          graph,
-          (oldEvents) => oldEvents..add(eventList),
-          ifAbsent: () => [eventList],
-        ),
-      );
+  final List<ProdLineNode> newNodes, removedNodes;
+  final List<DirectedEdge> newEdges, removedEdges;
+  final Set<ItemData> newInputs, newOutputs, removedInputs, removedOutputs;
 
-      event.nodeEvents.forEach(
-        (node, eventList) => nodeEventList.update(
-          node,
-          (oldEvents) => oldEvents..add(eventList),
-          ifAbsent: () => [eventList],
-        ),
-      );
+  final bool isReversed;
+  final GraphEvent? original;
+  late final GraphEvent reversed = original ?? GraphEvent._reverse(this);
 
-      event.edgeEvents.forEach(
-        (edge, eventList) => edgeEventList.update(
-          edge,
-          (oldEvents) => oldEvents..add(eventList),
-          ifAbsent: () => [eventList],
-        ),
-      );
-    }
-
-    return UpdateEvent._(
-      graphEvents: graphEventList.map(
-        (graph, eventList) => MapEntry(graph, GraphEvent._combine(eventList)),
-      ),
-      nodeEvents: nodeEventList.map(
-        (node, eventList) => MapEntry(node, NodeEvent._combine(eventList)),
-      ),
-      edgeEvents: edgeEventList.map(
-        (edge, eventList) => MapEntry(edge, EdgeEvent._combine(eventList)),
-      ),
-    );
-  }
-}
-
-class GraphEvent {
-  final bool positionUpdate;
-  final Offset? oldTopLeft, newTopLeft, oldBottomRight, newBottomRight;
-
-  final bool nodesUpdate;
-  final List<ProdLineNode>? newNodes;
-  final List<ProdLineNode>? removedNodes;
-
-  final bool edgesUpdate;
-  final List<DirectedEdge>? newEdges;
-  final List<DirectedEdge>? removedEdges;
-
-  // TODO - proper equality checks
-  GraphEvent._({
-    this.oldTopLeft,
-    this.oldBottomRight,
-    this.newTopLeft,
-    this.newBottomRight,
-    List<ProdLineNode>? newNodes,
-    List<ProdLineNode>? removedNodes,
-    List<DirectedEdge>? newEdges,
-    List<DirectedEdge>? removedEdges,
-  }) : newNodes = newNodes != null ? List.unmodifiable(newNodes) : null,
-       removedNodes = removedNodes != null
-           ? List.unmodifiable(removedNodes)
-           : null,
-       newEdges = newEdges != null ? List.unmodifiable(newEdges) : null,
-       removedEdges = removedEdges != null
-           ? List.unmodifiable(removedEdges)
-           : null,
-       positionUpdate =
-           oldTopLeft != newTopLeft || oldBottomRight != newBottomRight,
-       nodesUpdate = newNodes != null || removedNodes != null,
-       edgesUpdate = newEdges != null || removedEdges != null;
-
-  factory GraphEvent._combine(List<GraphEvent> orderedEvents) {
-    Offset? oldTopLeft, newTopLeft, oldBottomRight, newBottomRight;
-    List<ProdLineNode> allNewNodes = [];
-    List<ProdLineNode> allRemovedNodes = [];
-    List<DirectedEdge> allNewEdges = [];
-    List<DirectedEdge> allRemovedEdges = [];
-
-    for (var event in orderedEvents) {
-      if (event.positionUpdate) {
-        oldTopLeft ??= event.oldTopLeft;
-        oldBottomRight ??= event.oldBottomRight;
-        newTopLeft = event.newTopLeft;
-        newBottomRight = event.newBottomRight;
-      }
-
-      if (event.nodesUpdate) {
-        allNewNodes.addAll(event.newNodes ?? const []);
-        allRemovedNodes.addAll(event.removedNodes ?? const []);
-      }
-
-      if (event.edgesUpdate) {
-        allNewEdges.addAll(event.newEdges ?? const []);
-        allRemovedEdges.addAll(event.newEdges ?? const []);
+  GraphEvent._(
+    this.graph,
+    List<GraphEventType> mutations, {
+    this.newTopNode,
+    this.newLeftNode,
+    this.newBottomNode,
+    this.newRightNode,
+    List<ProdLineNode> newNodes = const [],
+    List<ProdLineNode> removedNodes = const [],
+    List<DirectedEdge> newEdges = const [],
+    List<DirectedEdge> removedEdges = const [],
+    Set<ItemData> newInputs = const {},
+    Set<ItemData> newOutputs = const {},
+    Set<ItemData> removedInputs = const {},
+    Set<ItemData> removedOutputs = const {},
+  }) : mutations = List.unmodifiable(mutations),
+       oldTopNode = graph._topNode,
+       oldLeftNode = graph._leftNode,
+       oldBottomNode = graph._bottomNode,
+       oldRightNode = graph._rightNode,
+       newNodes = List.unmodifiable(newNodes),
+       removedNodes = List.unmodifiable(removedNodes),
+       newEdges = List.unmodifiable(newEdges),
+       removedEdges = List.unmodifiable(removedEdges),
+       newInputs = Set.unmodifiable(newInputs),
+       newOutputs = Set.unmodifiable(newOutputs),
+       removedInputs = Set.unmodifiable(removedInputs),
+       removedOutputs = Set.unmodifiable(removedOutputs),
+       isReversed = false,
+       original = null {
+    for (var mutation in mutations) {
+      switch (mutation) {
+        case GraphEventType.updateNodes:
+          var duplicate = _containsAny(newNodes, removedNodes);
+          if (duplicate != null) {
+            throw MutationException('Node "$duplicate" both added and removed');
+          }
+        case GraphEventType.updateEdges:
+          var duplicate = _containsAny(newEdges, removedEdges);
+          if (duplicate != null) {
+            throw MutationException('Edge "$duplicate" both added and removed');
+          }
+        case GraphEventType.updateInput:
+          var duplicate = _containsAny(newInputs, removedInputs);
+          if (duplicate != null) {
+            throw MutationException(
+              'Input item "$duplicate" both added and removed',
+            );
+          }
+        case GraphEventType.updateOutput:
+          var duplicate = _containsAny(newOutputs, removedOutputs);
+          if (duplicate != null) {
+            throw MutationException(
+              'Output item "$duplicate" both added and removed',
+            );
+          }
+        case GraphEventType.positionalNodesUpdate:
+          break;
       }
     }
-
-    return GraphEvent._(
-      oldTopLeft: oldTopLeft,
-      newTopLeft: newTopLeft,
-      oldBottomRight: oldBottomRight,
-      newBottomRight: newBottomRight,
-      newNodes: List.unmodifiable(allNewNodes),
-      removedNodes: List.unmodifiable(allRemovedNodes),
-      newEdges: List.unmodifiable(allNewEdges),
-      removedEdges: List.unmodifiable(allRemovedEdges),
-    );
   }
+
+  GraphEvent._reverse(GraphEvent toReverse)
+    : graph = toReverse.graph,
+      mutations = toReverse.mutations,
+      oldTopNode = toReverse.newTopNode,
+      oldLeftNode = toReverse.newLeftNode,
+      oldBottomNode = toReverse.newBottomNode,
+      oldRightNode = toReverse.newRightNode,
+      newTopNode = toReverse.oldTopNode,
+      newLeftNode = toReverse.oldLeftNode,
+      newBottomNode = toReverse.oldBottomNode,
+      newRightNode = toReverse.oldRightNode,
+      newNodes = toReverse.removedNodes,
+      newEdges = toReverse.removedEdges,
+      newInputs = toReverse.removedInputs,
+      newOutputs = toReverse.removedOutputs,
+      removedNodes = toReverse.newNodes,
+      removedEdges = toReverse.newEdges,
+      removedInputs = toReverse.newInputs,
+      removedOutputs = toReverse.newOutputs,
+      isReversed = true,
+      original = toReverse;
 }
 
-class NodeEvent {
-  final bool positionUpdate;
-  final Offset? oldTopLeft, newTopLeft, oldBottomRight, newBottomRight;
+class NodeEvent extends MutationEvent {
+  final ProdLineNode node;
 
-  final bool requirementUpdate;
-  final ItemIo? oldRequirement, newRequirement;
+  final List<NodeEventType> mutations;
 
-  final bool typeUpdate;
-  final NodeType? oldType, newType;
-
-  final bool productionLineUpdate;
+  final Offset? oldTopLeft, oldBottomRight, newTopLeft, newBottomRight;
+  final ItemIo? oldRequirements, newRequirements;
+  final NodeType? oldNodeType, newNodeType;
   final ProductionLine? oldProductionLine, newProductionLine;
+  final List<DirectedEdge> newChildOf,
+      newParentOf,
+      removedChildOf,
+      removedParentOf;
 
-  // TODO - Proper equality checks
-  const NodeEvent._({
-    this.oldTopLeft,
+  final bool isReversed;
+  final NodeEvent? original;
+  late final NodeEvent reversed = original ?? NodeEvent._reverse(this);
+
+  NodeEvent._(
+    this.node,
+    List<NodeEventType> mutations, {
     this.newTopLeft,
-    this.oldBottomRight,
     this.newBottomRight,
-    this.oldRequirement,
-    this.newRequirement,
-    this.oldType,
-    this.newType,
-    this.oldProductionLine,
+    ItemIo? newRequirement,
+    this.newNodeType,
     this.newProductionLine,
-  }) : positionUpdate =
-           oldTopLeft != newTopLeft || oldBottomRight != newBottomRight,
-       requirementUpdate = oldRequirement != newRequirement,
-       typeUpdate = oldType != newType,
-       productionLineUpdate = oldProductionLine != newProductionLine;
+    List<DirectedEdge> newChildOf = const [],
+    List<DirectedEdge> newParentOf = const [],
+    List<DirectedEdge> removedChildOf = const [],
+    List<DirectedEdge> removedParentOf = const [],
+  }) : mutations = List.unmodifiable(mutations),
+       oldTopLeft = node.topLeft,
+       oldBottomRight = node.bottomRight,
+       oldRequirements = node.requirements != null
+           ? Map.unmodifiable(node.requirements!)
+           : null,
+       oldNodeType = node.nodeType,
+       oldProductionLine = node._line,
+       newRequirements = newRequirement != null
+           ? Map.unmodifiable(newRequirement)
+           : null,
+       newChildOf = List.unmodifiable(newChildOf),
+       newParentOf = List.unmodifiable(newParentOf),
+       removedChildOf = List.unmodifiable(removedChildOf),
+       removedParentOf = List.unmodifiable(removedParentOf),
+       isReversed = false,
+       original = null {
+    for (var mutation in mutations) {
+      switch (mutation) {
+        case NodeEventType.newPosition:
+          if (newTopLeft == null || newBottomRight == null) {
+            throw const MutationException('Must specify all offsets');
+          }
 
-  factory NodeEvent._combine(List<NodeEvent> orderedEvents) {
-    Offset? oldTopLeft, newTopLeft, oldBottomRight, newBottomRight;
+        case NodeEventType.newNodeType:
+          if (oldNodeType == null || newNodeType == null) {
+            throw const MutationException('Must specify node type update');
+          }
 
-    bool requirementUpdate = false;
-    ItemIo? oldRequirement, newRequirement;
+        case NodeEventType.newProductionLine:
+          if (oldProductionLine == null || newProductionLine == null) {
+            throw const MutationException(
+              'Must specify production line update',
+            );
+          }
 
-    NodeType? oldType, newType;
-    ProductionLine? oldProductionLine, newProductionLine;
+        case NodeEventType.parentOfUpdate:
+          var duplicate = _containsAny(newParentOf, removedParentOf);
+          if (duplicate != null) {
+            throw MutationException(
+              'Edge "$duplicate" both added and removed to parentOf',
+            );
+          }
 
-    for (var event in orderedEvents) {
-      if (event.positionUpdate) {
-        oldTopLeft ??= event.oldTopLeft;
-        oldBottomRight ??= event.oldBottomRight;
-        newTopLeft = event.newTopLeft;
-        newBottomRight = event.newBottomRight;
+        case NodeEventType.childrenOfUpdate:
+          var duplicate = _containsAny(newChildOf, removedChildOf);
+          if (duplicate != null) {
+            throw MutationException(
+              'Edge "$duplicate" both added and removed to parentOf',
+            );
+          }
+
+        case NodeEventType.addedToGraph:
+        case NodeEventType.removedFromGraph:
+          if (mutations.contains(mutation.reverse)) {
+            throw const MutationException(
+              'Node cannot be added to and removed from graph in same event',
+            );
+          }
+        case NodeEventType.requirementsUpdate:
+          break;
       }
-
-      if (event.requirementUpdate) {
-        // These values can actually be null, so we need to be more careful
-        if (!requirementUpdate) {
-          requirementUpdate = true;
-          oldRequirement = event.oldRequirement;
-        }
-        newRequirement = event.newRequirement;
-      }
-
-      oldType ??= event.oldType;
-      newType = event.newType;
-
-      oldProductionLine ??= event.oldProductionLine;
-      newProductionLine = event.newProductionLine;
     }
-
-    return NodeEvent._(
-      oldTopLeft: oldTopLeft,
-      newTopLeft: newTopLeft,
-      oldBottomRight: oldBottomRight,
-      newBottomRight: newBottomRight,
-      oldRequirement: oldRequirement,
-      newRequirement: newRequirement,
-      oldType: oldType,
-      newType: newType,
-      oldProductionLine: oldProductionLine,
-      newProductionLine: newProductionLine,
-    );
   }
+
+  NodeEvent._reverse(NodeEvent toReverse)
+    : node = toReverse.node,
+      mutations = List.unmodifiable(
+        toReverse.mutations.map((eventType) => eventType.reverse),
+      ),
+      oldTopLeft = toReverse.newTopLeft,
+      oldBottomRight = toReverse.newBottomRight,
+      newTopLeft = toReverse.oldTopLeft,
+      newBottomRight = toReverse.oldBottomRight,
+      oldRequirements = toReverse.newRequirements,
+      newRequirements = toReverse.oldRequirements,
+      oldNodeType = toReverse.newNodeType,
+      newNodeType = toReverse.oldNodeType,
+      oldProductionLine = toReverse.newProductionLine,
+      newProductionLine = toReverse.oldProductionLine,
+      removedChildOf = toReverse.newChildOf,
+      newChildOf = toReverse.removedChildOf,
+      removedParentOf = toReverse.newParentOf,
+      newParentOf = toReverse.removedParentOf,
+      isReversed = true,
+      original = toReverse;
 }
 
-class EdgeEvent {
-  final bool lineTypeUpdate;
-  final LineType? oldLineType, newLineType;
+class EdgeEvent extends MutationEvent {
+  final DirectedEdge edge;
 
-  final bool amountUpdate;
+  final List<EdgeEventType> mutations;
+
   final double? oldAmount, newAmount;
-
-  final bool parentConnectionUpdate;
-  final Side? oldParentConnection, newParentConnection;
-
-  final bool childConnectionUpdate;
-  final Side? oldChildConnection, newChildConnection;
-
-  final bool linesUpdate;
+  final Side? oldParentConnection,
+      oldChildConnection,
+      newParentConnection,
+      newChildConnection;
   final List<Offset>? oldLines, newLines;
 
-  // TODO - proper equality checks
-  EdgeEvent._({
-    this.oldLineType,
-    this.newLineType,
-    this.oldAmount,
+  final bool isReversed;
+  final EdgeEvent? original;
+  late final EdgeEvent reversed = original ?? EdgeEvent._reverse(this);
+
+  EdgeEvent._(
+    this.edge,
+    List<EdgeEventType> mutations, {
     this.newAmount,
-    this.oldParentConnection,
     this.newParentConnection,
-    this.oldChildConnection,
     this.newChildConnection,
-    List<Offset>? oldLines,
     List<Offset>? newLines,
-  }) : oldLines = oldLines != null ? List.unmodifiable(oldLines) : null,
+  }) : mutations = List.unmodifiable(mutations),
+       oldAmount = edge._amount,
+       oldParentConnection = edge._parentConnectionSide,
+       oldChildConnection = edge._childConnectionSide,
+       oldLines = edge._lines,
        newLines = newLines != null ? List.unmodifiable(newLines) : null,
-       lineTypeUpdate = oldLineType != newLineType,
-       amountUpdate = oldAmount != newAmount,
-       parentConnectionUpdate = oldParentConnection != newParentConnection,
-       childConnectionUpdate = oldChildConnection != newChildConnection,
-       linesUpdate = oldLines != newLines;
+       isReversed = false,
+       original = null {
+    for (var mutation in mutations) {
+      switch (mutation) {
+        case EdgeEventType.newLines:
+          if (newLines == null ||
+              newChildConnection == null ||
+              newParentConnection == null) {
+            throw const MutationException('Must specify lines update');
+          }
 
-  factory EdgeEvent._combine(List<EdgeEvent> orderedEvents) {
-    LineType? oldLineType, newLineType;
+        case EdgeEventType.addedToGraph:
+        case EdgeEventType.removedFromGraph:
+          if (mutations.contains(mutation.reverse)) {
+            throw const MutationException(
+              'Edge cannot be added to and removed from graph in same event',
+            );
+          }
 
-    bool amountUpdate = false;
-    double? oldAmount, newAmount;
-
-    Side? oldParentConnection,
-        newParentConnection,
-        oldChildConnection,
-        newChildConnection;
-    List<Offset>? oldLines, newLines;
-
-    for (var event in orderedEvents) {
-      if (event.lineTypeUpdate) {
-        oldLineType ??= event.oldLineType;
-        newLineType = event.newLineType;
-      }
-
-      if (event.amountUpdate) {
-        // These values can actually be null, so we need to be more careful
-        if (!amountUpdate) {
-          amountUpdate = true;
-          oldAmount = event.oldAmount;
-        }
-        newAmount = event.newAmount;
-      }
-
-      if (event.parentConnectionUpdate) {
-        oldParentConnection ??= event.oldParentConnection;
-        newParentConnection = event.newParentConnection;
-      }
-
-      if (event.childConnectionUpdate) {
-        oldChildConnection ??= event.oldChildConnection;
-        newChildConnection = event.newChildConnection;
-      }
-
-      if (event.linesUpdate) {
-        oldLines ??= event.oldLines;
-        newLines = event.newLines;
+        case EdgeEventType.newAmount:
+          break;
       }
     }
+  }
 
-    return EdgeEvent._(
-      oldLineType: oldLineType,
-      newLineType: newLineType,
-      oldAmount: oldAmount,
-      newAmount: newAmount,
-      oldParentConnection: oldParentConnection,
-      newParentConnection: newParentConnection,
-      oldChildConnection: oldChildConnection,
-      newChildConnection: newChildConnection,
-      oldLines: oldLines,
-      newLines: newLines,
-    );
+  EdgeEvent._reverse(EdgeEvent toReverse)
+    : edge = toReverse.edge,
+      mutations = List.unmodifiable(
+        toReverse.mutations.map((eventType) => eventType.reverse),
+      ),
+      oldAmount = toReverse.newAmount,
+      newAmount = toReverse.oldAmount,
+      oldParentConnection = toReverse.newParentConnection,
+      oldChildConnection = toReverse.newChildConnection,
+      oldLines = toReverse.newLines,
+      newParentConnection = toReverse.oldParentConnection,
+      newChildConnection = toReverse.oldChildConnection,
+      newLines = toReverse.oldLines,
+      isReversed = true,
+      original = toReverse;
+}
+
+enum GraphEventType {
+  positionalNodesUpdate,
+  updateNodes,
+  updateEdges,
+  updateInput,
+  updateOutput,
+}
+
+enum NodeEventType {
+  newPosition,
+  requirementsUpdate,
+  newNodeType,
+  newProductionLine,
+  parentOfUpdate,
+  childrenOfUpdate,
+  addedToGraph,
+  removedFromGraph;
+
+  NodeEventType get reverse => switch (this) {
+    newPosition => newPosition,
+    requirementsUpdate => requirementsUpdate,
+    newNodeType => newNodeType,
+    newProductionLine => newProductionLine,
+    parentOfUpdate => parentOfUpdate,
+    childrenOfUpdate => childrenOfUpdate,
+    addedToGraph => removedFromGraph,
+    removedFromGraph => addedToGraph,
+  };
+}
+
+enum EdgeEventType {
+  newAmount,
+  newLines,
+  addedToGraph,
+  removedFromGraph;
+
+  EdgeEventType get reverse => switch (this) {
+    newAmount => newAmount,
+    newLines => newLines,
+    addedToGraph => removedFromGraph,
+    removedFromGraph => addedToGraph,
+  };
+}
+
+T? _containsAny<T>(Iterable<T> it1, Iterable<T> it2) {
+  for (var item in it1) {
+    if (it2.contains(item)) {
+      return item;
+    }
   }
 }

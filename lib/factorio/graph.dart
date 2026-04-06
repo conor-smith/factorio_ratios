@@ -1,87 +1,110 @@
 import 'dart:collection';
+import 'dart:math';
 
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models.dart';
 import 'package:factorio_ratios/factorio/production_line.dart';
-import 'package:flutter/foundation.dart';
+import 'package:factorio_ratios/state_traversal/mutateable.dart';
 import 'package:flutter/painting.dart';
 
 part 'graph/edge.dart';
 part 'graph/events.dart';
+part 'graph/global_state.dart';
 part 'graph/node.dart';
 
 /*
  * Maintains a full graph
  * This acts as the state for the application, and the single source of truth
- * Every graph, edge, and widget will have a listener in the form of a widget
- * The widget will be the "owner" of it's respective element
  * 
- * Widgets are still largely responsible for their own state
- * As such, they can update their own state as they need
- * A callback only needs to occur when the one component affects the state of another
- * eg. If a node's position is changed, the positions of connected edges
- * will also be updated
+ * All contained objects are mutateable
+ * Mutating state must only be done through specific methods, even within the classes
+ * This means that mutations can be rolled back if need be
+ * Mutateables are also listenable, and will only notifyListeners when instructed to
  * 
- * If a graph is updated, there is no need to update states of node and edge widgets
- * as a graph update means a full rebuild of all widgets
+ * As nodes can contain graphs, the entire structure can be thought of as a tree
+ * In a tree, there is only one eventHistory object
+ * All mutations must be done within eventHistory._mutate(...)
+ * An arbitrary number of mutations can occur before committing
+ * At commit, all uncommitted events are combined into one single event
  * 
- * Only the active graph and it's nodes and edges need to worry about updating state
+ * The complex nature of the graphs means that updating the state of one object
+ * may affect the state of another
+ * Eg. Updating nodeType to "output" will result in the node's inputs
+ * being added to it's parentGraph's outputs
+ * As such, listeners should not be notified until all changes in a transaction
+ * are completed
  * 
- * The graph itself must have a size in order to be appropriately displayed
- * As such, the positions of topLeft and bottomRight create a rectangle
- * capable of containing all nodes present in the graph
+ * The root graph of a tree will never have requirements
+ * This is because requirements determine input and output,
+ * and the root graph has nowhere to input or output to
  */
-class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
-  // Fields to track nodes and edges
+class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
+  // Stores history of entire tree. Responsible for rollbacks, commits, etc
+  // All graphs in a tree must use the same eventHistory object
+  // TODO - Create toggle that only allows mutations under correct circumstances
+  static const int _maxSavedEvents = 50; // TODO - Revise this value
+  final _EventHistory _eventHistory;
+
+  // All following fields are considered part of the mutable graph state
+  // They are ONLY to be modified within .apply(...) and .rollback(...)
   final List<ProdLineNode> _nodes = [];
   final List<DirectedEdge> _edges = [];
-  final Map<ProdLineNode, Set<DirectedEdge>> _parentOfMap = {};
-  final Map<ProdLineNode, Set<DirectedEdge>> _childOfMap = {};
 
-  late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
-  late final List<DirectedEdge> edges = UnmodifiableListView(_edges);
-
-  // Is not null if this graph is contained within a node of a parent graph
-  final ProdLineNode? parent;
-
-  // Used to make decisions about what production lines can be added
-  final Surface? surface;
-
-  // Fields and getters required in order to implement ProductionLine
   final Set<ItemData> _allInputs = {};
   final Set<ItemData> _allOutputs = {};
   ItemIo? _requirements;
   ItemIo? _totalIoPerSecond;
 
+  Offset _topLeft, _bottomRight;
+  ProdLineNode? _topNode, _leftNode, _bottomNode, _rightNode;
+  bool get _hasPositionalNodes =>
+      _topNode != null &&
+      _leftNode != null &&
+      _bottomNode != null &&
+      _rightNode != null;
+
+  // Accessor fields for nodes and edges
+  late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
+  late final List<DirectedEdge> edges = UnmodifiableListView(_edges);
+
+  // Uses topNode, leftNode, etc to create smallest possible rectangle containing all nodes
+
+  Offset get topLeft => _topLeft;
+  Offset get bottomRight => _bottomRight;
+
+  // Used to make decisions about what production lines can be added
+  final Surface? surface;
+
+  // Used to track position in tree
+  final BaseGraph? parentGraph;
+
+  // Getter fields required for ProductionLine
   @override
   late final Set<ItemData> allInputs = UnmodifiableSetView(_allInputs);
   @override
   late final Set<ItemData> allOutputs = UnmodifiableSetView(_allOutputs);
+
   @override
   ItemIo? get requirements => _requirements;
   @override
   ItemIo? get totalIoPerSecond => _totalIoPerSecond;
+
   @override
   bool get immutableIo => false;
   @override
   String get type => 'graph';
 
-  // Describes the smallest possible rectangle to contain all nodes and edges
-  Offset _topLeft;
-  Offset _bottomRight;
-
-  Offset get topLeft => _topLeft;
-  Offset get bottomRight => _bottomRight;
-
-  // This contains the node currently being dragged
-  // Only one node may be dragged at a time
-  ProdLineNode? _draggableNode;
-
-  // Constructor
-  BaseGraph({this.surface, this.parent})
+  // Constructors
+  BaseGraph.root({this.surface})
     : _topLeft = Offset.zero,
       _bottomRight = Offset.zero,
-      super(GraphStateUpdate.emptyUpdate);
+      parentGraph = null,
+      _eventHistory = _EventHistory(_maxSavedEvents);
+
+  BaseGraph._addToTree({this.surface, required BaseGraph this.parentGraph})
+    : _topLeft = Offset.zero,
+      _bottomRight = Offset.zero,
+      _eventHistory = parentGraph._eventHistory;
 
   // ProductionLine methods
   @override
@@ -91,57 +114,187 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
     // TODO
   }
 
+  // Only clears output nodes and direct children
+  // Does not clear consumer nodes
   @override
   void clearRequirements() {
-    for (var node in _nodes) {
-      node.clearRequirements();
+    // TODO
+  }
+
+  // All state mutations must occur through these methods
+  @override
+  void apply(GraphEvent event) {
+    _apply(event, true);
+
+    if (event.mutations.contains(GraphEventType.updateNodes)) {
+      _checkForPositionalNodesUpdate(event.removedNodes, event.newNodes);
     }
-
-    _totalIoPerSecond = null;
-    _requirements = null;
   }
 
-  void clearAllNodes() {
-    value = GraphStateUpdate(
-      removedNodes: List.from(_nodes),
-      removedEdges: List.from(edges),
-    );
-
-    _nodes.clear();
-    _edges.clear();
-    _parentOfMap.clear();
-    _childOfMap.clear();
-    _allInputs.clear();
-    _allOutputs.clear();
+  @override
+  void redo(GraphEvent event) {
+    _apply(event, false);
   }
 
-  void treeLayout({
-    bool updateListeners = true,
-    bool updateNodeListeners = true,
-  }) {
-    var nodeHeights = _getNodeHeights(_nodes);
+  @override
+  void rollback(GraphEvent event) {
+    _apply(event.reversed, false);
+  }
 
-    for (var y = 0; y < nodeHeights.length; y++) {
-      for (var x = 0; x < nodeHeights[y].length; x++) {
-        Offset topLeft = Offset(
-          (ProdLineNode.defaultWidth + ProdLineNode.defaultOffset) * x +
-              ProdLineNode.defaultOffset,
-          (ProdLineNode.defaultHeight + ProdLineNode.defaultOffset) * y +
-              ProdLineNode.defaultOffset,
-        );
-        Offset bottomRight = Offset(
-          topLeft.dx + ProdLineNode.defaultWidth,
-          topLeft.dy + ProdLineNode.defaultHeight,
-        );
-        nodeHeights[y][x].updatePosition(
-          topLeft,
-          bottomRight,
-          updateListeners: updateNodeListeners,
-        );
+  void _apply(GraphEvent event, bool saveEvent) {
+    _eventHistory.checkIfMutationPermitted();
+
+    for (var mutationType in event.mutations) {
+      switch (mutationType) {
+        case GraphEventType.positionalNodesUpdate:
+          _topNode = event.newTopNode;
+          _leftNode = event.newLeftNode;
+          _bottomNode = event.newBottomNode;
+          _rightNode = event.newRightNode;
+
+          // TODO - Is this necessary?
+          if (_hasPositionalNodes) {
+            _topLeft = Offset(_leftNode!.topLeft.dx, _topNode!.topLeft.dy);
+            _bottomRight = Offset(
+              _rightNode!.bottomRight.dx,
+              _bottomNode!.bottomRight.dy,
+            );
+          }
+
+        case GraphEventType.updateNodes:
+          for (var removedNode in event.removedNodes) {
+            _nodes.remove(removedNode);
+          }
+          _nodes.addAll(event.newNodes);
+
+        case GraphEventType.updateEdges:
+          for (var removedEdge in event.removedEdges) {
+            _edges.remove(removedEdge);
+          }
+          _edges.addAll(event.newEdges);
+
+        case GraphEventType.updateInput:
+          allInputs.removeAll(event.removedInputs);
+          allInputs.addAll(event.newInputs);
+
+        case GraphEventType.updateOutput:
+          allOutputs.removeAll(event.removedOutputs);
+          allOutputs.addAll(event.newOutputs);
       }
     }
 
-    _updateGraphArea(updateListeners: updateListeners);
+    if (saveEvent) {
+      _eventHistory.addGraphEvent(event);
+    }
+  }
+
+  void _checkForPositionalNodesUpdate(
+    List<ProdLineNode> removedNodes,
+    List<ProdLineNode> newNodes,
+  ) {
+    if (_nodes.isEmpty) {
+      _apply(GraphEvent._(this, [GraphEventType.positionalNodesUpdate]), true);
+    } else {
+      ProdLineNode top = _findNewMaxNode(
+        _topNode!,
+        removedNodes,
+        newNodes,
+        ProdLineNode.topMostNode,
+      );
+      ProdLineNode left = _findNewMaxNode(
+        _leftNode!,
+        removedNodes,
+        newNodes,
+        ProdLineNode.leftMostNode,
+      );
+      ProdLineNode bottom = _findNewMaxNode(
+        _bottomNode!,
+        removedNodes,
+        newNodes,
+        ProdLineNode.bottomMostNode,
+      );
+      ProdLineNode right = _findNewMaxNode(
+        _rightNode!,
+        removedNodes,
+        newNodes,
+        ProdLineNode.rightMostNode,
+      );
+
+      if (top != _topNode ||
+          left != _leftNode ||
+          bottom != _bottomNode ||
+          right != _rightNode) {
+        _apply(
+          GraphEvent._(
+            this,
+            [GraphEventType.positionalNodesUpdate],
+            newTopNode: top,
+            newLeftNode: left,
+            newBottomNode: bottom,
+            newRightNode: right,
+          ),
+          true,
+        );
+      }
+    }
+  }
+
+  ProdLineNode _findNewMaxNode(
+    ProdLineNode oldMaxNode,
+    List<ProdLineNode> removedNodes,
+    List<ProdLineNode> newNodes,
+    Comparator<ProdLineNode> maxFunction,
+  ) {
+    ProdLineNode maxNode;
+    if (removedNodes.contains(oldMaxNode)) {
+      maxNode = _nodes.first;
+
+      for (var node in _nodes.skip(1)) {
+        if (maxFunction(maxNode, node) < 0) {
+          maxNode = node;
+        }
+      }
+    } else {
+      maxNode = oldMaxNode;
+
+      for (var node in newNodes) {
+        if (maxFunction(maxNode, node) < 0) {
+          maxNode = node;
+        }
+      }
+    }
+
+    return maxNode;
+  }
+
+  // Will not clear input and output nodes
+  void clearAllNodes() {
+    // TODO
+  }
+
+  // Uses tree structure and heirarchy to determine node positions
+  void treeLayout() {
+    _eventHistory.mutate(() {
+      var nodeHeights = _getNodeHeights(_nodes);
+
+      for (var y = 0; y < nodeHeights.length; y++) {
+        for (var x = 0; x < nodeHeights[y].length; x++) {
+          Offset topLeft = Offset(
+            (ProdLineNode.defaultWidth + ProdLineNode.defaultOffset) * x +
+                ProdLineNode.defaultOffset,
+            (ProdLineNode.defaultHeight + ProdLineNode.defaultOffset) * y +
+                ProdLineNode.defaultOffset,
+          );
+          Offset bottomRight = Offset(
+            topLeft.dx + ProdLineNode.defaultWidth,
+            topLeft.dy + ProdLineNode.defaultHeight,
+          );
+          nodeHeights[y][x].updatePosition(topLeft, bottomRight);
+        }
+      }
+
+      _updateGraphArea();
+    });
   }
 
   void updateNodesAndDescendants(
@@ -160,7 +313,7 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
 
     Map<ItemData, ProdLineNode> disposalNodes = {};
     for (var disposalNode in _nodes.where(
-      (node) => node._type == NodeType.disposal,
+      (node) => node._nodeType == NodeType.disposal,
     )) {
       for (var input in disposalNode.allInputs) {
         disposalNodes[input] = disposalNode;
@@ -225,9 +378,8 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
     List<CraftingMachine> sortedMachines,
     List<Recipe> recipes,
     List<ItemData> resources,
-    List<ItemData> availableFuels, {
-    bool updateListeners = true,
-  }) {
+    List<ItemData> availableFuels,
+  ) {
     // TODO - Check if consumer node already exists
     var newNode = ProdLineNode.addToGraph(
       parentGraph: this,
@@ -260,10 +412,6 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
       newNodes,
       newEdges,
     );
-
-    if (updateListeners) {
-      value = GraphStateUpdate(newNodes: newNodes, newEdges: newEdges);
-    }
   }
 
   void _createRecipeTree(
@@ -408,7 +556,7 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
   // TODO - Account for edges potentially taking paths beyond limits
   // TODO - Make more efficient? Maybe
   // Returns true if graph area is updated
-  void _updateGraphArea({bool updateListeners = true}) {
+  void _updateGraphArea() {
     double left, top, right, bottom;
 
     if (_nodes.isEmpty) {
@@ -442,38 +590,7 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
         bottom != _bottomRight.dy) {
       _topLeft = Offset(left, top);
       _bottomRight = Offset(right, bottom);
-
-      if (updateListeners) {
-        value = GraphStateUpdate(topLeft: _topLeft, bottomRight: _bottomRight);
-      }
     }
-  }
-
-  void _setDraggableNode(ProdLineNode node) {
-    // None of these conditions should ever happen. But best be safe
-    if (node.parentGraph != this) {
-      throw const FactorioException(
-        'Draggable node provided is not from this graph',
-      );
-    } else if (_draggableNode != null) {
-      throw const FactorioException(
-        'Cannot set new draggable node until old draggable node is cleared',
-      );
-    }
-
-    node._isBeingDragged = true;
-    _draggableNode = node;
-  }
-
-  void _clearDraggableNode(ProdLineNode node) {
-    if (_draggableNode != node) {
-      throw const FactorioException(
-        'Draggable node to be cleared is incorrect',
-      );
-    }
-
-    node._isBeingDragged = false;
-    _draggableNode = null;
   }
 
   void _addNewNodeData(ProdLineNode newNode) {
@@ -530,36 +647,6 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
 
     _parentOfMap[edge.parent]!.remove(edge);
     _childOfMap[edge.child]!.remove(edge);
-  }
-
-  void _addIo(ProdLineNode newIoNode) {
-    if (newIoNode.nodeType == NodeType.output) {
-      // Verify that output does not already exist
-      if (newIoNode.allInputs.every(
-        (nodeInput) => !_allOutputs.contains(nodeInput),
-      )) {
-        throw const FactorioException('Duplicate IO added');
-      } else {
-        _allOutputs.addAll(newIoNode.allInputs);
-      }
-    } else if (newIoNode.nodeType == NodeType.input) {
-      // Verify input does not already exist
-      if (newIoNode.allOutputs.every(
-        (nodeOutput) => !_allInputs.contains(nodeOutput),
-      )) {
-        throw const FactorioException('Duplicate IO added');
-      } else {
-        _allInputs.addAll(newIoNode.allOutputs);
-      }
-    }
-  }
-
-  void _removeIo(ProdLineNode oldIoNode) {
-    if (oldIoNode.nodeType == NodeType.output) {
-      _allOutputs.removeAll(oldIoNode.allInputs);
-    } else if (oldIoNode.nodeType == NodeType.input) {
-      _allInputs.removeAll(oldIoNode.allOutputs);
-    }
   }
 
   // Calls .update(...) a single node according to requirements
@@ -681,60 +768,5 @@ class BaseGraph extends ValueNotifier<GraphStateUpdate> with ProductionLine {
     } else {
       return existingHeight;
     }
-  }
-}
-
-/*
- * Used by widget to determine whether to rebuild whole graph or just nodes
- * .update will only be true if
- * * Graph dimensions (offsets) are updated
- * * New nodes or edges are added
- * * Existing nodes or edges are removed
- * If .update is true, GraphWidget and all child widgets must be rebuilt
- * If not, only affected node widgets will be rebuilt
- * 
- * This object is only used in situations where it is not immediately clear
- * what exactly needs to be updated
- * eg. A call to node.updateSelfAndDependants will result in multiple
- * nodes being updated, and some potential new nodes being created
- * A call to node.updateSelfOnly does not need to return this object
- */
-class GraphStateUpdate {
-  final Offset? topLeft;
-  final Offset? bottomRight;
-  final List<ProdLineNode> newNodes;
-  final List<ProdLineNode> updatedNodes;
-  final List<ProdLineNode> removedNodes;
-  final List<DirectedEdge> newEdges;
-  final List<DirectedEdge> updatedEdges;
-  final List<DirectedEdge> removedEdges;
-  final ProdLineNode? selectedNode;
-
-  const GraphStateUpdate({
-    this.topLeft,
-    this.bottomRight,
-    this.newNodes = const [],
-    this.updatedNodes = const [],
-    this.removedNodes = const [],
-    this.newEdges = const [],
-    this.updatedEdges = const [],
-    this.removedEdges = const [],
-    this.selectedNode,
-  });
-
-  static const GraphStateUpdate emptyUpdate = GraphStateUpdate();
-
-  @override
-  bool operator ==(Object other) {
-    return other is GraphStateUpdate &&
-        other.topLeft == topLeft &&
-        other.bottomRight == bottomRight &&
-        other.newNodes == newNodes &&
-        other.updatedNodes == updatedNodes &&
-        other.removedNodes == removedNodes &&
-        other.newEdges == newEdges &&
-        other.updatedEdges == updatedEdges &&
-        other.removedEdges == removedEdges &&
-        other.selectedNode == selectedNode;
   }
 }

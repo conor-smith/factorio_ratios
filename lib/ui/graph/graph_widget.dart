@@ -27,29 +27,6 @@ class _GraphWidgetState extends State<GraphWidget> {
     for (var edge in widget.graph.edges) {
       edgeWidgets[edge] = EdgeWidget(edge: edge);
     }
-
-    widget.graph.addListener(
-      () => setState(() {
-        var stateUpdate = widget.graph.value;
-
-        for (var newNode in stateUpdate.newNodes) {
-          nodeWidgets[newNode] = NodeWidget(node: newNode);
-        }
-        for (var oldNode in stateUpdate.removedNodes) {
-          nodeWidgets.remove(oldNode);
-        }
-
-        for (var newEdge in stateUpdate.newEdges) {
-          edgeWidgets[newEdge] = EdgeWidget(edge: newEdge);
-        }
-        for (var oldEdge in stateUpdate.removedEdges) {
-          edgeWidgets.remove(oldEdge);
-        }
-
-        // TODO - this is temporary
-        widget.graph.treeLayout(updateListeners: false);
-      }),
-    );
   }
 
   @override
