@@ -1,8 +1,8 @@
 // Could probably use ChangeNotifier here, but I'd like this code not to depend on flutter
 abstract mixin class Mutateable<T extends MutationEvent> {
-  final List<Function(bool isRollback, List<T> updates)> _listeners = [];
+  final List<Function(bool isRollback, T update)> _listeners = [];
 
-  void addListener(Function(bool isRollback, List<T> event) callback) {
+  void addListener(Function(bool isRollback, T event) callback) {
     _listeners.add(callback);
   }
 
@@ -10,9 +10,9 @@ abstract mixin class Mutateable<T extends MutationEvent> {
     _listeners.clear();
   }
 
-  void notifyListeners(bool isRollback, List<T> updates) {
+  void notifyListeners(bool isRollback, T update) {
     for (var callback in _listeners) {
-      callback(isRollback, updates);
+      callback(isRollback, update);
     }
   }
 

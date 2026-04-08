@@ -1,10 +1,10 @@
 import 'dart:collection';
-import 'dart:math';
 
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models.dart';
 import 'package:factorio_ratios/factorio/production_line.dart';
 import 'package:factorio_ratios/state_traversal/mutateable.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 
 part 'graph/edge.dart';
@@ -41,7 +41,6 @@ part 'graph/node.dart';
 class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
   // Stores history of entire tree. Responsible for rollbacks, commits, etc
   // All graphs in a tree must use the same eventHistory object
-  // TODO - Create toggle that only allows mutations under correct circumstances
   static const int _maxSavedEvents = 50; // TODO - Revise this value
   final _EventHistory _eventHistory;
 
@@ -63,6 +62,11 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
       _bottomNode != null &&
       _rightNode != null;
 
+  ProdLineNode? get topNode => _topNode;
+  ProdLineNode? get leftNode => _leftNode;
+  ProdLineNode? get bottomNode => _bottomNode;
+  ProdLineNode? get rightNode => _rightNode;
+
   // Accessor fields for nodes and edges
   late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
   late final List<DirectedEdge> edges = UnmodifiableListView(_edges);
@@ -76,7 +80,7 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
   final Surface? surface;
 
   // Used to track position in tree
-  final BaseGraph? parentGraph;
+  ProdLineNode? _parentNode;
 
   // Getter fields required for ProductionLine
   @override
@@ -98,13 +102,13 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
   BaseGraph.root({this.surface})
     : _topLeft = Offset.zero,
       _bottomRight = Offset.zero,
-      parentGraph = null,
+      _parentNode = null,
       _eventHistory = _EventHistory(_maxSavedEvents);
 
-  BaseGraph._addToTree({this.surface, required BaseGraph this.parentGraph})
+  BaseGraph._addToTree({this.surface, required _EventHistory eventHistory})
     : _topLeft = Offset.zero,
       _bottomRight = Offset.zero,
-      _eventHistory = parentGraph._eventHistory;
+      _eventHistory = eventHistory;
 
   // ProductionLine methods
   @override
@@ -121,27 +125,25 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
     // TODO
   }
 
-  // All state mutations must occur through these methods
+  // All changes to state occur in these methods
   @override
   void apply(GraphEvent event) {
-    _apply(event, true);
+    _apply(event);
 
-    if (event.mutations.contains(GraphEventType.updateNodes)) {
-      _checkForPositionalNodesUpdate(event.removedNodes, event.newNodes);
-    }
+    _eventHistory.addGraphEvent(event);
   }
 
   @override
   void redo(GraphEvent event) {
-    _apply(event, false);
+    _apply(event);
   }
 
   @override
   void rollback(GraphEvent event) {
-    _apply(event.reversed, false);
+    _apply(event.reversed);
   }
 
-  void _apply(GraphEvent event, bool saveEvent) {
+  void _apply(GraphEvent event) {
     _eventHistory.checkIfMutationPermitted();
 
     for (var mutationType in event.mutations) {
@@ -182,94 +184,18 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
           allOutputs.addAll(event.newOutputs);
       }
     }
-
-    if (saveEvent) {
-      _eventHistory.addGraphEvent(event);
-    }
-  }
-
-  void _checkForPositionalNodesUpdate(
-    List<ProdLineNode> removedNodes,
-    List<ProdLineNode> newNodes,
-  ) {
-    if (_nodes.isEmpty) {
-      _apply(GraphEvent._(this, [GraphEventType.positionalNodesUpdate]), true);
-    } else {
-      ProdLineNode top = _findNewMaxNode(
-        _topNode!,
-        removedNodes,
-        newNodes,
-        ProdLineNode.topMostNode,
-      );
-      ProdLineNode left = _findNewMaxNode(
-        _leftNode!,
-        removedNodes,
-        newNodes,
-        ProdLineNode.leftMostNode,
-      );
-      ProdLineNode bottom = _findNewMaxNode(
-        _bottomNode!,
-        removedNodes,
-        newNodes,
-        ProdLineNode.bottomMostNode,
-      );
-      ProdLineNode right = _findNewMaxNode(
-        _rightNode!,
-        removedNodes,
-        newNodes,
-        ProdLineNode.rightMostNode,
-      );
-
-      if (top != _topNode ||
-          left != _leftNode ||
-          bottom != _bottomNode ||
-          right != _rightNode) {
-        _apply(
-          GraphEvent._(
-            this,
-            [GraphEventType.positionalNodesUpdate],
-            newTopNode: top,
-            newLeftNode: left,
-            newBottomNode: bottom,
-            newRightNode: right,
-          ),
-          true,
-        );
-      }
-    }
-  }
-
-  ProdLineNode _findNewMaxNode(
-    ProdLineNode oldMaxNode,
-    List<ProdLineNode> removedNodes,
-    List<ProdLineNode> newNodes,
-    Comparator<ProdLineNode> maxFunction,
-  ) {
-    ProdLineNode maxNode;
-    if (removedNodes.contains(oldMaxNode)) {
-      maxNode = _nodes.first;
-
-      for (var node in _nodes.skip(1)) {
-        if (maxFunction(maxNode, node) < 0) {
-          maxNode = node;
-        }
-      }
-    } else {
-      maxNode = oldMaxNode;
-
-      for (var node in newNodes) {
-        if (maxFunction(maxNode, node) < 0) {
-          maxNode = node;
-        }
-      }
-    }
-
-    return maxNode;
   }
 
   // Will not clear input and output nodes
   void clearAllNodes() {
-    // TODO
+    // TODO - Create new nodes to supply remaining IO nodes
+    _eventHistory.mutate(() {
+      var nonIoNodes = _nodes.where((node) => !node.nodeType.isIo).toList();
+
+      for (var node in nonIoNodes) {
+        node.removeFromGraph();
+      }
+    });
   }
 
   // Uses tree structure and heirarchy to determine node positions
@@ -279,6 +205,7 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
 
       for (var y = 0; y < nodeHeights.length; y++) {
         for (var x = 0; x < nodeHeights[y].length; x++) {
+          var node = nodeHeights[y][x];
           Offset topLeft = Offset(
             (ProdLineNode.defaultWidth + ProdLineNode.defaultOffset) * x +
                 ProdLineNode.defaultOffset,
@@ -289,88 +216,13 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
             topLeft.dx + ProdLineNode.defaultWidth,
             topLeft.dy + ProdLineNode.defaultHeight,
           );
-          nodeHeights[y][x].updatePosition(topLeft, bottomRight);
+
+          node.updatePosition(topLeft, bottomRight);
         }
       }
 
-      _updateGraphArea();
+      _redoPositionalNodes();
     });
-  }
-
-  void updateNodesAndDescendants(
-    Map<ProdLineNode, ItemIo> nodesAndRequirements,
-  ) {
-    var nodeHeights = _getNodeHeights(nodesAndRequirements.keys);
-
-    // Only possible if one node is a descendant of another
-    if (nodeHeights[0].length != nodesAndRequirements.length) {
-      throw const FactorioException(
-        'Cannot give requirements to child and parent node',
-      );
-    }
-
-    var allOrderedNodes = nodeHeights.expand((entry) => entry).toList();
-
-    Map<ItemData, ProdLineNode> disposalNodes = {};
-    for (var disposalNode in _nodes.where(
-      (node) => node._nodeType == NodeType.disposal,
-    )) {
-      for (var input in disposalNode.allInputs) {
-        disposalNodes[input] = disposalNode;
-      }
-    }
-
-    // Exists so changes can be rolled back if exception occurs
-    Map<ProdLineNode, ItemIo?> oldRequirementsMap = {};
-    Map<DirectedEdge, double?> oldAmountMap = {};
-    List<ProdLineNode> newDisposalNodes = [];
-    List<DirectedEdge> newEdges = [];
-
-    try {
-      for (var node in allOrderedNodes) {
-        ItemIo requirements;
-        if (nodesAndRequirements.containsKey(node)) {
-          requirements = nodesAndRequirements[node]!;
-        } else {
-          requirements = node._determineRequirementsFromParents();
-        }
-
-        oldRequirementsMap[node] = node.requirements;
-        for (var edge in node.parentOf) {
-          oldAmountMap[edge] = edge.amount;
-        }
-
-        _updateNodeAndChildEdges(
-          node,
-          requirements,
-          disposalNodes,
-          newDisposalNodes,
-          newEdges,
-        );
-      }
-
-      for (var node in newDisposalNodes) {
-        node.update(node._determineRequirementsFromParents());
-      }
-    } catch (e) {
-      oldRequirementsMap.forEach((node, oldRequirements) {
-        if (oldRequirements == null) {
-          node.clearRequirements();
-        } else {
-          node.update(oldRequirements);
-        }
-      });
-
-      oldAmountMap.forEach((edge, oldAmount) {
-        edge._amount = oldAmount;
-      });
-
-      for (var newNode in newDisposalNodes) {
-        newNode.removeFromGraph();
-      }
-
-      rethrow;
-    }
   }
 
   void addConsumerNodeAndTree(
@@ -380,38 +232,46 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
     List<ItemData> resources,
     List<ItemData> availableFuels,
   ) {
-    // TODO - Check if consumer node already exists
-    var newNode = ProdLineNode.addToGraph(
-      parentGraph: this,
-      type: NodeType.consumer,
-      line: IoLine(inputs: {itemData}),
-    );
-
-    // TODO - Cache this
-    Map<ItemData, List<ProdLineNode>> producers = {};
-    for (var node in _nodes) {
-      for (var output in node.allOutputs) {
-        producers.update(
-          output,
-          (pNodes) => pNodes..add(node),
-          ifAbsent: () => [node],
-        );
-      }
+    // Return if consumer node already exists
+    if (_nodes.any(
+      (node) =>
+          node.nodeType == NodeType.consumer &&
+          node.allInputs.contains(itemData),
+    )) {
+      return;
     }
 
-    List<ProdLineNode> newNodes = [newNode];
-    List<DirectedEdge> newEdges = [];
+    _eventHistory.mutate(() {
+      var newConsumerNode = ProdLineNode.addToGraph(
+        parentGraph: this,
+        type: NodeType.consumer,
+        line: IoLine(inputs: {itemData}),
+      );
 
-    _createRecipeTree(
-      newNode,
-      sortedMachines,
-      recipes,
-      resources,
-      availableFuels,
-      producers,
-      newNodes,
-      newEdges,
-    );
+      // TODO - Cache this somehow
+      Map<ItemData, List<ProdLineNode>> producers = {};
+      for (var node in _nodes) {
+        for (var output in node.allOutputs) {
+          producers.update(
+            output,
+            (pNodes) => pNodes..add(node),
+            ifAbsent: () => [node],
+          );
+        }
+      }
+
+      _createRecipeTree(
+        newConsumerNode,
+        sortedMachines,
+        recipes,
+        resources,
+        availableFuels,
+        producers,
+      );
+
+      // TODO - Don't use treeLayout for everything
+      treeLayout();
+    });
   }
 
   void _createRecipeTree(
@@ -421,8 +281,6 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
     List<ItemData> resources,
     List<ItemData> availableFuels,
     Map<ItemData, List<ProdLineNode>> producers,
-    List<ProdLineNode> newNodes,
-    List<DirectedEdge> newEdges,
   ) {
     for (var input in parentNode.allInputs) {
       var childNode = producers[input]?.first;
@@ -434,7 +292,6 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
             _createProducerNode(input);
 
         producers[input] = [childNode];
-        newNodes.add(childNode);
 
         _createRecipeTree(
           childNode,
@@ -443,21 +300,17 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
           resources,
           availableFuels,
           producers,
-          newNodes,
-          newEdges,
         );
       }
 
       if (!childNode.parentOf.any((edge) => edge.child == childNode)) {
-        var newEdge = DirectedEdge.addToGraph(
+        DirectedEdge.addToGraph(
           parentGraph: this,
           item: input,
           parent: parentNode,
           child: childNode,
           edgeType: Relationship.requestItems,
         );
-
-        newEdges.add(newEdge);
       }
     }
   }
@@ -553,194 +406,50 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
     return flippedMap;
   }
 
-  // TODO - Account for edges potentially taking paths beyond limits
-  // TODO - Make more efficient? Maybe
-  // Returns true if graph area is updated
-  void _updateGraphArea() {
-    double left, top, right, bottom;
-
+  // Assumes all positional nodes are invalid
+  // Scans all nodes for new ones
+  void _redoPositionalNodes() {
     if (_nodes.isEmpty) {
-      left = 0;
-      top = 0;
-      right = 0;
-      bottom = 0;
+      apply(GraphEvent.clearPositionalNodes(this));
     } else {
-      var firstNode = _nodes.first;
-      left = firstNode._topLeft.dx;
-      top = firstNode._topLeft.dy;
-      right = firstNode._bottomRight.dx;
-      bottom = firstNode._bottomRight.dy;
+      apply(
+        GraphEvent.newPositionalNodes(
+          this,
+          newTopNode: _findNewMaxNode(ProdLineNode.topMostNode),
+          newLeftNode: _findNewMaxNode(ProdLineNode.leftMostNode),
+          newBottomNode: _findNewMaxNode(ProdLineNode.bottomMostNode),
+          newRightNode: _findNewMaxNode(ProdLineNode.rightMostNode),
+        ),
+      );
+    }
+  }
+
+  ProdLineNode _findNewMaxNode(
+    Comparator<ProdLineNode> maxFunction, {
+    ProdLineNode? oldMaxNode,
+    List<ProdLineNode> removedNodes = const [],
+    List<ProdLineNode> newNodes = const [],
+  }) {
+    ProdLineNode maxNode;
+    if (oldMaxNode == null || removedNodes.contains(oldMaxNode)) {
+      maxNode = _nodes.first;
 
       for (var node in _nodes.skip(1)) {
-        var nodeLeft = node._topLeft.dx;
-        var nodeTop = node._topLeft.dy;
-        var nodeRight = node._bottomRight.dx;
-        var nodeBottom = node._bottomRight.dy;
-
-        left = nodeLeft < left ? nodeLeft : left;
-        top = nodeTop < top ? nodeTop : top;
-        right = nodeRight > right ? nodeRight : right;
-        bottom = nodeBottom > bottom ? nodeBottom : bottom;
+        if (maxFunction(maxNode, node) < 0) {
+          maxNode = node;
+        }
       }
-    }
+    } else {
+      maxNode = oldMaxNode;
 
-    if (left != _topLeft.dx ||
-        top != _topLeft.dy ||
-        right != _bottomRight.dx ||
-        bottom != _bottomRight.dy) {
-      _topLeft = Offset(left, top);
-      _bottomRight = Offset(right, bottom);
-    }
-  }
-
-  void _addNewNodeData(ProdLineNode newNode) {
-    if (newNode.nodeType.isIo) {
-      _addIo(newNode);
-    }
-
-    _nodes.add(newNode);
-
-    _parentOfMap[newNode] = {};
-    _childOfMap[newNode] = {};
-  }
-
-  void _addNewEdgeData(DirectedEdge newEdge) {
-    _edges.add(newEdge);
-
-    // Add edge to relevant parentOf and childOf entries
-    _parentOfMap[newEdge.parent]!.add(newEdge);
-    _childOfMap[newEdge.child]!.add(newEdge);
-  }
-
-  void _removeNodeData(ProdLineNode node, bool updateIo) {
-    _nodes.remove(node);
-
-    List<DirectedEdge> edgesToRemove = [];
-
-    // Remove all edges in which this node is parent
-    for (var edge in node.parentOf) {
-      edgesToRemove.add(edge);
-      _childOfMap[edge.child]!.remove(edge);
-    }
-    // Remove all edges in which this node is child
-    for (var edge in node.childOf) {
-      edgesToRemove.add(edge);
-      _parentOfMap[edge.parent]!.remove(edge);
-    }
-
-    // Removed parentOf and childOf entries
-    _parentOfMap.remove(node);
-    _childOfMap.remove(node);
-
-    for (var edge in edgesToRemove) {
-      _edges.remove(edge);
-    }
-
-    // Update IO if necessary
-    if (updateIo && node.nodeType.isIo) {
-      _removeIo(node);
-    }
-  }
-
-  void _removeEdgeData(DirectedEdge edge) {
-    _edges.remove(edge);
-
-    _parentOfMap[edge.parent]!.remove(edge);
-    _childOfMap[edge.child]!.remove(edge);
-  }
-
-  // Calls .update(...) a single node according to requirements
-  // Then updates all child edge amounts
-  void _updateNodeAndChildEdges(
-    ProdLineNode node,
-    ItemIo newRequirements,
-    Map<ItemData, ProdLineNode> disposalNodes,
-    List<ProdLineNode> newDisposalNodes,
-    List<DirectedEdge> newEdges,
-  ) {
-    node.update(newRequirements);
-
-    ItemIo io = node.totalIoPerSecond!;
-
-    for (var output in node.allOutputs) {
-      double amount = io[output]!;
-
-      double totalRequested = node.childOf
-          .where((edge) => edge.item == output)
-          .map((edge) => edge._amount!)
-          .reduce((amount1, amount2) => amount1 + amount2);
-
-      double difference = totalRequested - amount;
-      // Account for floating point issues
-      bool withinBounds = difference.abs() < totalRequested * 0.01;
-
-      // Create or use existing disposal node if excess production
-      if (!withinBounds && difference < 0) {
-        throw FactorioException(
-          'Could not produce required amount of "$output"',
-        );
-      } else if (!withinBounds) {
-        /*
-         * In order
-         * Find existing acceptExcess edge
-         * If not available, find existing disposal node and create edge
-         * If not available, create disposal node and edge
-         */
-        DirectedEdge? acceptExcessEdge = node.parentOf
-            .where(
-              (edge) =>
-                  edge.item == output &&
-                  edge.edgeType == Relationship.acceptExcess,
-            )
-            .firstOrNull;
-
-        if (acceptExcessEdge != null) {
-          // acceptExcess edge and disposal node already exist
-          acceptExcessEdge._amount = difference;
-        } else {
-          // Check if a disposal node exists for this output
-          var disposalNode = disposalNodes[output];
-
-          if (disposalNode == null) {
-            // No disposal node exists. Create new one
-            disposalNode = ProdLineNode.addToGraph(
-              parentGraph: this,
-              type: NodeType.disposal,
-              line: IoLine(inputs: {output}),
-            );
-
-            newDisposalNodes.add(disposalNode);
-            disposalNodes[output] = disposalNode;
-          }
-
-          // Create new edge between this node and disposal node
-          acceptExcessEdge = DirectedEdge.addToGraph(
-            parentGraph: this,
-            item: output,
-            parent: node,
-            child: disposalNode,
-            initialAmount: difference,
-            edgeType: Relationship.acceptExcess,
-          );
-
-          newEdges.add(acceptExcessEdge);
+      for (var node in newNodes) {
+        if (maxFunction(maxNode, node) < 0) {
+          maxNode = node;
         }
       }
     }
 
-    for (var input in node.allInputs) {
-      // TODO - Account for multiple producers of single item
-      DirectedEdge? inputEdge = [
-        ...node.parentOf,
-        ...node.childOf,
-      ].where((edge) => edge.item == input).firstOrNull;
-
-      if (inputEdge == null) {
-        throw FactorioException('No input provided for item "$input"');
-      } else if (inputEdge.edgeType == Relationship.requestItems) {
-        inputEdge._amount = io[input]!;
-      }
-    }
+    return maxNode;
   }
 
   // Returns the maximum height

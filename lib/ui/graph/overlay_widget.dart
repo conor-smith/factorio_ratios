@@ -24,7 +24,7 @@ class OverlayWidget extends StatefulWidget {
 
   factory OverlayWidget.createFromDb({Key? key, required FactorioDatabase db}) {
     // TODO - Top graph should have no surface
-    BaseGraph topGraph = BaseGraph(surface: db.surfaceMap['nauvis']!);
+    BaseGraph topGraph = BaseGraph.root(surface: db.surfaceMap['nauvis']!);
 
     List<CraftingMachine> sortedMachines = db.craftingMachineMap.values
         .toList();
@@ -123,7 +123,10 @@ class _OverlayWidgetState extends State<OverlayWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Placeholder();
+    return graphWidgets.putIfAbsent(
+      activeGraph,
+      () => GraphWidget(graph: activeGraph),
+    );
   }
 }
 

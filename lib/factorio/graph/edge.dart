@@ -10,14 +10,21 @@ class DirectedEdge with Mutateable<EdgeEvent> {
   final Relationship edgeType;
   double? _amount;
 
-  Side _parentConnectionSide;
-  Side _childConnectionSide;
+  // Value must be from 0 to 1
+  // TODO - verification
+  double _percentage;
+
+  Side _parentConnection;
+  Side _childConnection;
   LineType _lineType;
   // List must always be ordered from parent to child
-  List<Offset> _lines = [];
+  List<Offset> _lines;
 
   double? get amount => _amount;
+  double get percentage => _percentage;
   ItemFlowDirection get flowDirection => edgeType.flowDirection;
+  Side get parentConnection => _parentConnection;
+  Side get childConnection => _childConnection;
   LineType get lineType => _lineType;
 
   List<Offset> get lines => _lines;
@@ -30,14 +37,17 @@ class DirectedEdge with Mutateable<EdgeEvent> {
     required this.parent,
     required this.child,
     double? initialAmount,
+    double percentage = 1,
     required this.edgeType,
     Side parentConnectionSide = Side.bottom,
     Side childConnectionSide = Side.top,
     LineType lineType = LineType.shortestPath,
-  }) : _childConnectionSide = childConnectionSide,
-       _parentConnectionSide = parentConnectionSide,
+  }) : _childConnection = childConnectionSide,
+       _parentConnection = parentConnectionSide,
        _amount = initialAmount,
        _lineType = lineType,
+       _percentage = percentage,
+       _lines = const [Offset.zero, Offset.zero],
        _active = false {
     // TODO - fix up
     // Confirm both parent and child are valid
@@ -64,74 +74,104 @@ class DirectedEdge with Mutateable<EdgeEvent> {
       }
     }
 
-    if (lineType == LineType.shortestPath) {
-      _lines.add(_determineConnectionPoint(parent, parentConnectionSide));
-      _lines.add(_determineConnectionPoint(child, childConnectionSide));
-    }
-
-    parentGraph._addNewEdgeData(this);
+    parentGraph.apply(GraphEvent.newEdge(parentGraph, this));
+    parent.apply(NodeEvent.newChildEdge(parent, this));
+    child.apply(NodeEvent.newParentEdge(child, this));
+    apply(EdgeEvent.addToGraph(this));
   }
 
   void removeFromGraph() {
-    parentGraph._removeEdgeData(this);
+    parentGraph.apply(GraphEvent.removeEdge(parentGraph, this));
+    parent.apply(NodeEvent.removeChildEdge(parent, this));
+    child.apply(NodeEvent.removeParentEdge(child, this));
+    apply(EdgeEvent.removeFromGraph(this));
   }
 
-  @override
-  bool operator ==(Object other) {
-    return other is DirectedEdge &&
-        other.item == item &&
-        other.parent == parent &&
-        other.child == child;
-  }
-
-  @override
-  int get hashCode => parent.hashCode + child.hashCode + item.hashCode;
-
-  void _updateParentPosition() {
-    if (lineType == LineType.shortestPath) {
-      _lines[0] = _determineConnectionPoint(parent, _parentConnectionSide);
+  // TODO - It has to be possible to do this without repeating myself this much
+  void updateParentPosition() {
+    List<Offset> newLines = List.from(lines);
+    switch (lineType) {
+      case LineType.shortestPath:
+        switch (parentConnection) {
+          case Side.top:
+            newLines[0] = Offset(
+              parent.topLeft.dx + (parent.width / 2),
+              parent.topLeft.dy,
+            );
+          case Side.right:
+            newLines[0] = Offset(
+              parent.bottomRight.dx,
+              parent.topLeft.dy + (parent.height / 2),
+            );
+          case Side.bottom:
+            newLines[0] = Offset(
+              parent.topLeft.dx + (parent.width / 2),
+              parent.bottomRight.dy,
+            );
+          case Side.left:
+            newLines[0] = Offset(
+              parent.topLeft.dx,
+              parent.topLeft.dy + (parent.height / 2),
+            );
+        }
     }
+
+    apply(
+      EdgeEvent.updateLines(this, newLines, parentConnection, childConnection),
+    );
   }
 
-  void _updateChildPosition() {
-    if (lineType == LineType.shortestPath) {
-      _lines[1] = _determineConnectionPoint(child, _childConnectionSide);
+  void updateChildPosition() {
+    List<Offset> newLines = List.from(lines);
+    switch (lineType) {
+      case LineType.shortestPath:
+        switch (childConnection) {
+          case Side.top:
+            newLines[1] = Offset(
+              child.topLeft.dx + (child.width / 2),
+              child.topLeft.dy,
+            );
+          case Side.right:
+            newLines[1] = Offset(
+              child.bottomRight.dx,
+              child.topLeft.dy + (child.height / 2),
+            );
+          case Side.bottom:
+            newLines[1] = Offset(
+              child.topLeft.dx + (child.width / 2),
+              child.bottomRight.dy,
+            );
+          case Side.left:
+            newLines[1] = Offset(
+              child.topLeft.dx,
+              child.topLeft.dy + (child.height / 2),
+            );
+        }
     }
-  }
 
-  Offset _determineConnectionPoint(ProdLineNode node, Side side) =>
-      switch (side) {
-        Side.top => Offset(node.topLeft.dx + node.width / 2, node.topLeft.dy),
-        Side.right => Offset(
-          node.bottomRight.dx,
-          node.topLeft.dy + node.height / 2,
-        ),
-        Side.bottom => Offset(
-          node.topLeft.dx + node.width / 2,
-          node.bottomRight.dy,
-        ),
-        Side.left => Offset(
-          node._topLeft.dx,
-          node.topLeft.dy + node.height / 2,
-        ),
-      };
+    apply(
+      EdgeEvent.updateLines(this, newLines, parentConnection, childConnection),
+    );
+  }
 
   @override
   void apply(EdgeEvent event) {
-    _apply(event, true);
+    _apply(event);
+
+    parentGraph._eventHistory.addEdgeEvent(event);
   }
 
   @override
   void redo(EdgeEvent event) {
-    _apply(event, false);
+    _apply(event);
   }
 
   @override
   void rollback(EdgeEvent event) {
-    _apply(event.reversed, false);
+    _apply(event.reversed);
   }
 
-  void _apply(EdgeEvent event, bool saveEvent) {
+  void _apply(EdgeEvent event) {
     parentGraph._eventHistory.checkIfMutationPermitted();
 
     for (var mutationEvent in event.mutations) {
@@ -140,6 +180,9 @@ class DirectedEdge with Mutateable<EdgeEvent> {
           _amount = event.newAmount;
 
         case EdgeEventType.newLines:
+          _lineType = event.newLineType!;
+          _parentConnection = event.newParentConnection!;
+          _childConnection = event.newChildConnection!;
           _lines = event.newLines!;
 
         case EdgeEventType.addedToGraph:
@@ -148,10 +191,6 @@ class DirectedEdge with Mutateable<EdgeEvent> {
         case EdgeEventType.removedFromGraph:
           _active = false;
       }
-    }
-
-    if (saveEvent) {
-      parentGraph._eventHistory.addEdgeEvent(event);
     }
   }
 }
@@ -170,4 +209,13 @@ enum Relationship {
   const Relationship(this.flowDirection);
 }
 
-enum Side { top, right, bottom, left }
+enum Side {
+  top(true),
+  right(false),
+  bottom(true),
+  left(false);
+
+  final bool isWidth;
+
+  const Side(this.isWidth);
+}

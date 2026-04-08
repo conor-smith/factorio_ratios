@@ -1,9 +1,10 @@
 part of '../graph.dart';
 
-class ProdLineNode with Mutateable<NodeEvent> implements ProductionLine {
+class ProdLineNode with Mutateable<NodeEvent> {
   static const double defaultWidth = 100,
       defaultHeight = 100,
-      defaultOffset = 50;
+      defaultOffset = 50,
+      connectionOffset = 8;
 
   // Fields used to determine nodes position in tree
   final BaseGraph parentGraph;
@@ -33,8 +34,19 @@ class ProdLineNode with Mutateable<NodeEvent> implements ProductionLine {
   late final List<DirectedEdge> parentOf = UnmodifiableListView(_parentOf);
   late final List<DirectedEdge> childOf = UnmodifiableListView(_childOf);
 
+  List<DirectedEdge> get allRelationships =>
+      List.unmodifiable([..._parentOf, ..._childOf]);
+
+  // Accessor getters, setters and methods for production line
+  Set<ItemData> get allOutputs => _line.allOutputs;
+  Set<ItemData> get allInputs => _line.allInputs;
+  bool get immutableIo => _line.immutableIo;
+  ItemIo? get totalIoPerSecond => _line.totalIoPerSecond;
+  ItemIo? get requirements => _line.requirements;
+  String get type => _line.type;
+
   // Constructors
-  ProdLineNode._addToGraph({
+  ProdLineNode.addToGraph({
     required this.parentGraph,
     required NodeType type,
     required ProductionLine line,
@@ -44,78 +56,27 @@ class ProdLineNode with Mutateable<NodeEvent> implements ProductionLine {
        _line = line,
        _topLeft = topLeft,
        _bottomRight = bottomRight,
-       _active = true {
-    if (!_verifyNodeTypeAndLine(type, line)) {
-      throw FactorioException(
-        'Nodetype $type is incompatible with production line $line',
-      );
-    }
-
-    parentGraph._addNewNodeData(this);
-  }
-
-  // Accessor getters, setters and methods for production line
-  @override
-  Set<ItemData> get allOutputs => _line.allOutputs;
-  @override
-  Set<ItemData> get allInputs => _line.allInputs;
-  @override
-  bool get immutableIo => _line.immutableIo;
-  @override
-  ItemIo? get totalIoPerSecond => _line.totalIoPerSecond;
-  @override
-  ItemIo? get requirements => _line.requirements;
-  @override
-  String get type => _line.type;
-
-  @override
-  void update(ItemIo newRequirements) => _line.update(newRequirements);
-
-  @override
-  void clearRequirements() => _line.clearRequirements();
-
-  ProdLineNode.addToGraph({
-    required this.parentGraph,
-    required NodeType type,
-    required ProductionLine line,
-    Offset topLeft = Offset.zero,
-    Offset bottomRight = Offset.zero,
-  }) : _topLeft = topLeft,
-       _bottomRight = bottomRight,
-       _nodeType = type,
-       _line = line,
        _active = false {
-    // TODO - fix up
     if (!_verifyNodeTypeAndLine(type, line)) {
       throw FactorioException(
         'Nodetype $type is incompatible with production line $line',
       );
     }
-    parentGraph._addNewNodeData(this);
-  }
 
-  void removeFromGraph({bool updateIo = true}) {
-    parentGraph._removeNodeData(this, updateIo);
-  }
+    parentGraph.apply(GraphEvent.newNode(parentGraph, this));
+    apply(NodeEvent.addToGraph(this));
 
-  void updateSelfAndDescendants(ItemIo newRequirements) {
-    parentGraph.updateNodesAndDescendants({this: newRequirements});
-  }
-
-  void updateSelfOnly(ItemIo newRequirements) {
-    _line.update(newRequirements);
-  }
-
-  void updatePosition(Offset newTopLeft, Offset newBottomRight) {
-    _topLeft = newTopLeft;
-    _bottomRight = newBottomRight;
-
-    for (var edge in parentOf) {
-      edge._updateParentPosition();
+    if (line is BaseGraph) {
+      line._parentNode = this;
     }
-    for (var edge in childOf) {
-      edge._updateChildPosition();
+  }
+
+  void removeFromGraph() {
+    parentGraph.apply(GraphEvent.removeNode(parentGraph, this));
+    for (var edge in [...parentOf, ...childOf]) {
+      edge.removeFromGraph();
     }
+    apply(NodeEvent.removeFromGraph(this));
   }
 
   bool _verifyNodeTypeAndLine(
@@ -129,43 +90,27 @@ class ProdLineNode with Mutateable<NodeEvent> implements ProductionLine {
     NodeType.productionLine => true,
   };
 
-  ItemIo _determineRequirementsFromParents() {
-    ItemIo requirements = {};
-    for (var edge in childOf) {
-      double itemAmount = edge._amount ?? 0.0;
-      itemAmount = edge.flowDirection == ItemFlowDirection.childToParent
-          ? itemAmount
-          : -itemAmount;
-
-      requirements.update(
-        edge.item,
-        (existingAmount) => existingAmount + itemAmount,
-        ifAbsent: () => itemAmount,
-      );
-    }
-
-    return requirements;
-  }
-
   @override
   String toString() => _line.toString();
 
   @override
   void apply(NodeEvent event) {
-    _apply(event, true);
+    _apply(event);
+
+    parentGraph._eventHistory.addNodeEvent(event);
   }
 
   @override
   void redo(NodeEvent event) {
-    _apply(event, false);
+    _apply(event);
   }
 
   @override
   void rollback(NodeEvent event) {
-    _apply(event.reversed, false);
+    _apply(event.reversed);
   }
 
-  void _apply(NodeEvent event, bool saveEvent) {
+  void _apply(NodeEvent event) {
     parentGraph._eventHistory.checkIfMutationPermitted();
 
     for (var mutationEvent in event.mutations) {
@@ -174,11 +119,11 @@ class ProdLineNode with Mutateable<NodeEvent> implements ProductionLine {
           _topLeft = event.newTopLeft!;
           _bottomRight = event.newBottomRight!;
 
-        case NodeEventType.requirementsUpdate:
+        case NodeEventType.newRequirements:
           if (event.newRequirements == null) {
-            clearRequirements();
+            _line.clearRequirements();
           } else {
-            update(event.newRequirements!);
+            _line.update(event.newRequirements!);
           }
 
         case NodeEventType.newNodeType:
@@ -187,13 +132,17 @@ class ProdLineNode with Mutateable<NodeEvent> implements ProductionLine {
         case NodeEventType.newProductionLine:
           _line = event.newProductionLine!;
 
+          if (_line is BaseGraph) {
+            (_line as BaseGraph)._parentNode = this;
+          }
+
         case NodeEventType.parentOfUpdate:
           for (var removed in event.removedParentOf) {
             _parentOf.remove(removed);
           }
           _parentOf.addAll(event.newParentOf);
 
-        case NodeEventType.childrenOfUpdate:
+        case NodeEventType.childOfUpdate:
           for (var removed in event.removedChildOf) {
             _childOf.remove(removed);
           }
@@ -206,9 +155,16 @@ class ProdLineNode with Mutateable<NodeEvent> implements ProductionLine {
           _active = false;
       }
     }
+  }
 
-    if (saveEvent) {
-      parentGraph._eventHistory.addNodeEvent(event);
+  void updatePosition(Offset newTopLeft, Offset newBottomRight) {
+    apply(NodeEvent.updatePosition(this, newTopLeft, newBottomRight));
+
+    for (var edge in parentOf) {
+      edge.updateParentPosition();
+    }
+    for (var edge in childOf) {
+      edge.updateChildPosition();
     }
   }
 

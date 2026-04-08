@@ -15,7 +15,12 @@ class _EdgeWidgetState extends State<EdgeWidget> {
   void initState() {
     super.initState();
 
-    widget.edge.addListener(() => setState(() {}));
+    // All relevant state is stored within edge object
+    widget.edge.addListener((isRollback, event) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   @override

@@ -63,12 +63,7 @@ class _EventHistory {
 
   void _commit() {
     if (!hasUncommittedEvents) {
-      var newEvent = _UpdateEvent(
-        _uGraphEvents
-          ..updateAll((graph, events) => [GraphEvent.combine(events)]),
-        _uNodeEvents..updateAll((node, events) => [NodeEvent.combine(events)]),
-        _uEdgeEvents..updateAll((edge, events) => [EdgeEvent.combine(events)]),
-      );
+      var newEvent = _UpdateEvent(_uGraphEvents, _uNodeEvents, _uEdgeEvents);
       _uGraphEvents = {};
       _uNodeEvents = {};
       _uEdgeEvents = {};
@@ -123,36 +118,44 @@ class _EventHistory {
 }
 
 class _UpdateEvent {
-  final Map<BaseGraph, List<GraphEvent>> graphEvents;
-  final Map<ProdLineNode, List<NodeEvent>> nodeEvents;
-  final Map<DirectedEdge, List<EdgeEvent>> edgeEvents;
+  final Map<BaseGraph, GraphEvent> graphEvents;
+  final Map<ProdLineNode, NodeEvent> nodeEvents;
+  final Map<DirectedEdge, EdgeEvent> edgeEvents;
 
-  late final Map<Mutateable, List<MutationEvent>> events =
-      Map<Mutateable, List<MutationEvent>>.from(graphEvents)
+  late final Map<Mutateable, MutationEvent> events =
+      Map<Mutateable, MutationEvent>.from(graphEvents)
         ..addAll(nodeEvents)
         ..addAll(edgeEvents);
 
-  _UpdateEvent(this.graphEvents, this.nodeEvents, this.edgeEvents);
+  _UpdateEvent(
+    Map<BaseGraph, List<GraphEvent>> graphEvents,
+    Map<ProdLineNode, List<NodeEvent>> nodeEvents,
+    Map<DirectedEdge, List<EdgeEvent>> edgeEvents,
+  ) : graphEvents = graphEvents.map(
+        (graph, events) => MapEntry(graph, GraphEvent.combine(events)),
+      ),
+      nodeEvents = nodeEvents.map(
+        (node, events) => MapEntry(node, NodeEvent.combine(events)),
+      ),
+      edgeEvents = edgeEvents.map(
+        (edge, events) => MapEntry(edge, EdgeEvent.combine(events)),
+      );
 
   void redo() {
-    events.forEach((mutateable, events) {
-      for (var event in events) {
-        mutateable.redo(event);
-      }
+    events.forEach((mutateable, event) {
+      mutateable.redo(event);
     });
   }
 
   void rollback() {
-    events.forEach((mutateable, events) {
-      for (var event in events.reversed) {
-        mutateable.rollback(event);
-      }
+    events.forEach((mutateable, event) {
+      mutateable.rollback(event);
     });
   }
 
   void notifyListeners(bool isRollback) {
     events.forEach(
-      (mutateable, events) => mutateable.notifyListeners(isRollback, events),
+      (mutateable, event) => mutateable.notifyListeners(isRollback, event),
     );
   }
 }

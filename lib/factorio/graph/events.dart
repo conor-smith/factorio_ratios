@@ -73,7 +73,7 @@ class GraphEvent extends MutationEvent {
          oldRightNode: graph.rightNode,
        );
 
-  GraphEvent.removePositionalNodes(BaseGraph graph)
+  GraphEvent.clearPositionalNodes(BaseGraph graph)
     : this._(
         graph,
         [GraphEventType.positionalNodesUpdate],
@@ -493,35 +493,35 @@ class EdgeEvent extends MutationEvent {
 
   EdgeEvent.updateLines(
     DirectedEdge edge,
-    List<Offset> newLines, {
-    required Side newParentConnectionSide,
-    required Side newChildConnectionSide,
-  }) : this.updateLineType(
-         edge,
-         newLines,
-         edge.lineType,
-         newParentConnectionSide: newParentConnectionSide,
-         newChildConnectionSide: newChildConnectionSide,
-       );
+    List<Offset> newLines,
+    Side newParentConnectionSide,
+    Side newChildConnectionSide,
+  ) : this.updateLineType(
+        edge,
+        newLines,
+        edge.lineType,
+        newParentConnectionSide,
+        newChildConnectionSide,
+      );
 
   EdgeEvent.updateLineType(
     DirectedEdge edge,
     List<Offset> newLines,
-    LineType newLineType, {
-    required Side newParentConnectionSide,
-    required Side newChildConnectionSide,
-  }) : this._(
-         edge,
-         [EdgeEventType.newLines],
-         newLines: newLines,
-         newLineType: newLineType,
-         newParentConnection: newParentConnectionSide,
-         newChildConnection: newChildConnectionSide,
-         oldLines: edge.lines,
-         oldLineType: edge.lineType,
-         oldParentConnection: edge.parentConnection,
-         oldChildConnection: edge.childConnection,
-       );
+    LineType newLineType,
+    Side newParentConnectionSide,
+    Side newChildConnectionSide,
+  ) : this._(
+        edge,
+        [EdgeEventType.newLines],
+        newLines: newLines,
+        newLineType: newLineType,
+        newParentConnection: newParentConnectionSide,
+        newChildConnection: newChildConnectionSide,
+        oldLines: edge.lines,
+        oldLineType: edge.lineType,
+        oldParentConnection: edge.parentConnection,
+        oldChildConnection: edge.childConnection,
+      );
 
   factory EdgeEvent.combine(List<EdgeEvent> orderedEvents) {
     Set<EdgeEventType> mutations = {};
