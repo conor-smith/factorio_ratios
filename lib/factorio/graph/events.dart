@@ -554,6 +554,10 @@ class EdgeEvent extends MutationEvent {
       }
     }
 
+    if (mutations.containsAll(EdgeEventType.creationEvents)) {
+      mutations.removeAll(EdgeEventType.creationEvents);
+    }
+
     oldAmount = amountUpdates.firstOrNull?.oldAmount;
     newAmount = amountUpdates.lastOrNull?.newAmount;
 
