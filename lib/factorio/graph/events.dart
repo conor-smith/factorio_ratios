@@ -84,64 +84,67 @@ class GraphEvent extends MutationEvent {
       );
 
   factory GraphEvent.combine(List<GraphEvent> orderedEvents) {
-    // Iterating through entire list for each variable isn't very efficient
-    // But it is much more readable than what I was doing before
-    var mutations = orderedEvents.expand((event) => event.mutations).toSet();
+    Set<GraphEventType> mutations = {};
 
-    var newNodes = orderedEvents.expand((event) => event.newNodes).toSet();
-    var removedNodes = orderedEvents
-        .expand((event) => event.removedNodes)
-        .toSet();
-    var newEdges = orderedEvents.expand((event) => event.newEdges).toSet();
-    var removedEdges = orderedEvents
-        .expand((event) => event.removedEdges)
-        .toSet();
-    _removedWhereBothContain(newNodes, removedNodes);
-    _removedWhereBothContain(newEdges, removedEdges);
+    Set<ProdLineNode> newNodes = {};
+    Set<ProdLineNode> removedNodes = {};
+    Set<DirectedEdge> newEdges = {};
+    Set<DirectedEdge> removedEdges = {};
 
-    var newInputs = orderedEvents.expand((event) => event.newInputs).toSet();
-    var removedInputs = orderedEvents
-        .expand((event) => event.removedInputs)
-        .toSet();
-    var newOutputs = orderedEvents.expand((event) => event.newOutputs).toSet();
-    var removedOutputs = orderedEvents
-        .expand((event) => event.removedOutputs)
-        .toSet();
-    _removedWhereBothContain(newInputs, removedInputs);
-    _removedWhereBothContain(newOutputs, removedOutputs);
+    Set<ItemData> newInputs = {};
+    Set<ItemData> removedInputs = {};
+    Set<ItemData> newOutputs = {};
+    Set<ItemData> removedOutputs = {};
 
+    List<GraphEvent> positionalUpdates = [];
     ProdLineNode? oldTop,
-        newTop,
         oldLeft,
-        newLeft,
         oldBottom,
-        newBottom,
         oldRight,
+        newTop,
+        newLeft,
+        newBottom,
         newRight;
 
-    var oldPosition = orderedEvents
-        .where(
-          (event) =>
-              event.mutations.contains(GraphEventType.positionalNodesUpdate),
-        )
-        .firstOrNull;
-    var newPosition = orderedEvents
-        .where(
-          (event) =>
-              event.mutations.contains(GraphEventType.positionalNodesUpdate),
-        )
-        .lastOrNull;
+    for (var event in orderedEvents) {
+      mutations.addAll(event.mutations);
+      for (var mutation in event.mutations) {
+        switch (mutation) {
+          case GraphEventType.positionalNodesUpdate:
+            positionalUpdates.add(event);
 
-    if (oldPosition != null && newPosition != null) {
-      newTop = newPosition.newTopNode;
-      newLeft = newPosition.newLeftNode;
-      newBottom = newPosition.newBottomNode;
-      newRight = newPosition.newRightNode;
-      oldTop = oldPosition.oldTopNode;
-      oldLeft = oldPosition.oldLeftNode;
-      oldBottom = oldPosition.oldBottomNode;
-      oldRight = oldPosition.oldRightNode;
+          case GraphEventType.updateNodes:
+            newNodes.addAll(event.newNodes);
+            removedNodes.addAll(event.removedNodes);
+
+          case GraphEventType.updateEdges:
+            newEdges.addAll(event.newEdges);
+            removedEdges.addAll(event.removedEdges);
+
+          case GraphEventType.updateInput:
+            newInputs.addAll(event.newInputs);
+            removedInputs.addAll(event.removedInputs);
+
+          case GraphEventType.updateOutput:
+            newOutputs.addAll(event.newOutputs);
+            removedOutputs.addAll(event.removedOutputs);
+        }
+      }
     }
+
+    oldTop = positionalUpdates.firstOrNull?.oldTopNode;
+    oldLeft = positionalUpdates.firstOrNull?.oldLeftNode;
+    oldBottom = positionalUpdates.firstOrNull?.oldBottomNode;
+    oldRight = positionalUpdates.firstOrNull?.oldRightNode;
+    newTop = positionalUpdates.lastOrNull?.newTopNode;
+    newLeft = positionalUpdates.lastOrNull?.newLeftNode;
+    newBottom = positionalUpdates.lastOrNull?.newBottomNode;
+    newRight = positionalUpdates.lastOrNull?.newRightNode;
+
+    _removedWhereBothContain(newNodes, removedNodes);
+    _removedWhereBothContain(newEdges, removedEdges);
+    _removedWhereBothContain(newInputs, removedInputs);
+    _removedWhereBothContain(newOutputs, removedOutputs);
 
     return GraphEvent._(
       orderedEvents.first.graph,
@@ -237,6 +240,12 @@ class NodeEvent extends MutationEvent {
   final NodeEvent? original;
   late final NodeEvent reversed = original ?? NodeEvent._reverse(this);
 
+  NodeEvent.addToGraph(ProdLineNode node)
+    : this._(node, [NodeEventType.addedToGraph]);
+
+  NodeEvent.removeFromGraph(ProdLineNode node)
+    : this._(node, [NodeEventType.removedFromGraph]);
+
   NodeEvent.updatePosition(
     ProdLineNode node,
     Offset newTopLeft,
@@ -302,88 +311,75 @@ class NodeEvent extends MutationEvent {
       );
 
   factory NodeEvent.combine(List<NodeEvent> orderedEvents) {
-    // Iterating through entire list for each variable isn't very efficient
-    // But it is much more readable than what I was doing before
-    var mutations = orderedEvents.expand((event) => event.mutations).toSet();
-    if (mutations.containsAll(const [
-      NodeEventType.addedToGraph,
-      NodeEventType.removedFromGraph,
-    ])) {
-      mutations.removeAll(const [
-        NodeEventType.addedToGraph,
-        NodeEventType.removedFromGraph,
-      ]);
+    Set<NodeEventType> mutations = {};
+
+    Set<DirectedEdge> newParentOf = {};
+    Set<DirectedEdge> removedParentOf = {};
+    Set<DirectedEdge> newChildOf = {};
+    Set<DirectedEdge> removedChildOf = {};
+
+    List<NodeEvent> positionalUpdates = [];
+    Offset? oldTopLeft, oldBottomRight, newTopLeft, newBottomRight;
+
+    List<NodeEvent> nodeTypeUpdates = [];
+    NodeType? oldNodeType, newNodeType;
+
+    List<NodeEvent> requirementsUpdates = [];
+    ItemIo? oldRequirements, newRequirements;
+
+    List<NodeEvent> prodLineUpdates = [];
+    ProductionLine? oldProdLine, newProdLine;
+
+    for (var event in orderedEvents) {
+      mutations.addAll(event.mutations);
+      for (var mutation in event.mutations) {
+        switch (mutation) {
+          case NodeEventType.newPosition:
+            positionalUpdates.add(event);
+
+          case NodeEventType.newRequirements:
+            requirementsUpdates.add(event);
+
+          case NodeEventType.newNodeType:
+            nodeTypeUpdates.add(event);
+
+          case NodeEventType.newProductionLine:
+            prodLineUpdates.add(event);
+
+          case NodeEventType.parentOfUpdate:
+            newParentOf.addAll(event.newParentOf);
+            removedParentOf.addAll(event.removedParentOf);
+
+          case NodeEventType.childOfUpdate:
+            newChildOf.addAll(event.newChildOf);
+            removedChildOf.addAll(event.removedChildOf);
+
+          case NodeEventType.addedToGraph:
+          case NodeEventType.removedFromGraph:
+            break;
+        }
+      }
     }
 
-    var newParentOf = orderedEvents
-        .expand((event) => event.newParentOf)
-        .toSet();
-    var removedParentOf = orderedEvents
-        .expand((event) => event.removedParentOf)
-        .toSet();
-    var newChildOf = orderedEvents.expand((event) => event.newChildOf).toSet();
-    var removedChildOf = orderedEvents
-        .expand((event) => event.removedChildOf)
-        .toSet();
+    oldTopLeft = positionalUpdates.firstOrNull?.oldTopLeft;
+    oldBottomRight = positionalUpdates.firstOrNull?.oldBottomRight;
+    newTopLeft = positionalUpdates.lastOrNull?.newTopLeft;
+    newBottomRight = positionalUpdates.lastOrNull?.newBottomRight;
+
+    oldRequirements = requirementsUpdates.firstOrNull?.oldRequirements;
+    newRequirements = requirementsUpdates.lastOrNull?.newRequirements;
+
+    oldNodeType = nodeTypeUpdates.firstOrNull?.oldNodeType;
+    newNodeType = nodeTypeUpdates.lastOrNull?.newNodeType;
+
+    oldProdLine = prodLineUpdates.firstOrNull?.oldProductionLine;
+    newProdLine = prodLineUpdates.lastOrNull?.newProductionLine;
+
     _removedWhereBothContain(newParentOf, removedParentOf);
     _removedWhereBothContain(newChildOf, removedChildOf);
 
-    ItemIo? oldRequirements, newRequirements;
-    var oldRequirementsEvent = orderedEvents
-        .where(
-          (event) => event.mutations.contains(NodeEventType.newRequirements),
-        )
-        .firstOrNull;
-    var newRequirementsEvent = orderedEvents
-        .where(
-          (event) => event.mutations.contains(NodeEventType.newRequirements),
-        )
-        .lastOrNull;
-
-    if (oldRequirementsEvent != null && newRequirementsEvent != null) {
-      oldRequirements = oldRequirementsEvent.oldRequirements;
-      newRequirements = newRequirementsEvent.newRequirements;
-    }
-
-    NodeType? newNodeType, oldNodeType;
-    var oldNodeTypeEvent = orderedEvents
-        .where((event) => event.mutations.contains(NodeEventType.newNodeType))
-        .firstOrNull;
-    var newNodeTypeEvent = orderedEvents
-        .where((event) => event.mutations.contains(NodeEventType.newNodeType))
-        .lastOrNull;
-
-    if (oldNodeTypeEvent != null && newNodeTypeEvent != null) {
-      oldNodeType = oldNodeTypeEvent.oldNodeType;
-      newNodeType = newNodeTypeEvent.newNodeType;
-    }
-
-    ProductionLine? newProdLine, oldProdLine;
-    var oldProdLineEvent = orderedEvents
-        .where((event) => event.mutations.contains(NodeEventType.newNodeType))
-        .firstOrNull;
-    var newProdLineEvent = orderedEvents
-        .where((event) => event.mutations.contains(NodeEventType.newNodeType))
-        .lastOrNull;
-
-    if (oldProdLineEvent != null && newProdLineEvent != null) {
-      oldProdLine = oldProdLineEvent.oldProductionLine;
-      newProdLine = newProdLineEvent.newProductionLine;
-    }
-
-    Offset? newTopLeft, oldTopLeft, newBottomRight, oldBottomRight;
-    var oldPositionEvent = orderedEvents
-        .where((event) => event.mutations.contains(NodeEventType.newPosition))
-        .firstOrNull;
-    var newPositionEvent = orderedEvents
-        .where((event) => event.mutations.contains(NodeEventType.newPosition))
-        .lastOrNull;
-
-    if (oldPositionEvent != null && newPositionEvent != null) {
-      oldTopLeft = oldPositionEvent.oldTopLeft;
-      oldBottomRight = oldPositionEvent.oldBottomRight;
-      newTopLeft = newPositionEvent.newTopLeft;
-      newBottomRight = newPositionEvent.newBottomRight;
+    if (mutations.containsAll(NodeEventType.creationEvents)) {
+      mutations.removeAll(NodeEventType.creationEvents);
     }
 
     return NodeEvent._(
@@ -478,6 +474,12 @@ class EdgeEvent extends MutationEvent {
   final EdgeEvent? original;
   late final EdgeEvent reversed = original ?? EdgeEvent._reverse(this);
 
+  EdgeEvent.addToGraph(DirectedEdge edge)
+    : this._(edge, [EdgeEventType.addedToGraph]);
+
+  EdgeEvent.removeFromGraph(DirectedEdge edge)
+    : this._(edge, [EdgeEventType.removedFromGraph]);
+
   EdgeEvent.newAmount(DirectedEdge edge, double newAmount)
     : this._(
         edge,
@@ -517,60 +519,52 @@ class EdgeEvent extends MutationEvent {
          newChildConnection: newChildConnectionSide,
          oldLines: edge.lines,
          oldLineType: edge.lineType,
-         oldParentConnection: edge.parentConnectionSide,
-         oldChildConnection: edge.childConnectionSide,
+         oldParentConnection: edge.parentConnection,
+         oldChildConnection: edge.childConnection,
        );
 
   factory EdgeEvent.combine(List<EdgeEvent> orderedEvents) {
-    // Iterating through entire list for each variable isn't very efficient
-    // But it is much more readable than what I was doing before
-    var mutations = orderedEvents.expand((event) => event.mutations).toSet();
-    if (mutations.containsAll(const [
-      EdgeEventType.addedToGraph,
-      EdgeEventType.removedFromGraph,
-    ])) {
-      mutations.removeAll(const [
-        EdgeEventType.addedToGraph,
-        EdgeEventType.removedFromGraph,
-      ]);
-    }
+    Set<EdgeEventType> mutations = {};
 
+    List<EdgeEvent> amountUpdates = [];
     double? oldAmount, newAmount;
-    var oldAmountEvent = orderedEvents
-        .where((event) => event.mutations.contains(EdgeEventType.newAmount))
-        .firstOrNull;
-    var newAmountEvent = orderedEvents
-        .where((event) => event.mutations.contains(EdgeEventType.newAmount))
-        .lastOrNull;
 
-    if (oldAmountEvent != null && newAmountEvent != null) {
-      oldAmount = oldAmountEvent.oldAmount;
-      newAmount = newAmountEvent.newAmount;
-    }
-
-    LineType? oldLineType, newLineType;
+    List<EdgeEvent> linesUpdates = [];
     Side? oldParentConnection,
         oldChildConnection,
         newParentConnection,
         newChildConnection;
+    LineType? oldLineType, newLineType;
     List<Offset>? oldLines, newLines;
-    var oldLinesEvent = orderedEvents
-        .where((event) => event.mutations.contains(EdgeEventType.newLines))
-        .firstOrNull;
-    var newLinestEvent = orderedEvents
-        .where((event) => event.mutations.contains(EdgeEventType.newLines))
-        .lastOrNull;
 
-    if (oldLinesEvent != null && newLinestEvent != null) {
-      oldLineType = oldLinesEvent.oldLineType;
-      oldParentConnection = oldLinesEvent.oldParentConnection;
-      oldChildConnection = oldLinesEvent.oldChildConnection;
-      oldLines = oldLinesEvent.oldLines;
-      newLineType = newLinestEvent.newLineType;
-      newParentConnection = newLinestEvent.newParentConnection;
-      newChildConnection = newLinestEvent.newChildConnection;
-      newLines = newLinestEvent.newLines;
+    for (var event in orderedEvents) {
+      mutations.addAll(event.mutations);
+      for (var mutation in event.mutations) {
+        switch (mutation) {
+          case EdgeEventType.newAmount:
+            amountUpdates.add(event);
+
+          case EdgeEventType.newLines:
+            linesUpdates.add(event);
+
+          case EdgeEventType.addedToGraph:
+          case EdgeEventType.removedFromGraph:
+            break;
+        }
+      }
     }
+
+    oldAmount = amountUpdates.firstOrNull?.oldAmount;
+    newAmount = amountUpdates.lastOrNull?.newAmount;
+
+    oldParentConnection = linesUpdates.firstOrNull?.oldParentConnection;
+    oldChildConnection = linesUpdates.firstOrNull?.oldChildConnection;
+    oldLineType = linesUpdates.firstOrNull?.oldLineType;
+    oldLines = linesUpdates.firstOrNull?.oldLines;
+    newParentConnection = linesUpdates.lastOrNull?.newParentConnection;
+    newChildConnection = linesUpdates.lastOrNull?.newChildConnection;
+    newLineType = linesUpdates.lastOrNull?.newLineType;
+    newLines = linesUpdates.lastOrNull?.newLines;
 
     return EdgeEvent._(
       orderedEvents.first.edge,
@@ -653,6 +647,11 @@ enum NodeEventType {
     addedToGraph => removedFromGraph,
     removedFromGraph => addedToGraph,
   };
+
+  static const List<NodeEventType> creationEvents = [
+    addedToGraph,
+    removedFromGraph,
+  ];
 }
 
 enum EdgeEventType {
@@ -667,6 +666,11 @@ enum EdgeEventType {
     addedToGraph => removedFromGraph,
     removedFromGraph => addedToGraph,
   };
+
+  static const List<EdgeEventType> creationEvents = [
+    addedToGraph,
+    removedFromGraph,
+  ];
 }
 
 void _removedWhereBothContain(Set set1, Set set2) {

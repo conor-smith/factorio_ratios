@@ -61,9 +61,14 @@ class _EventHistory {
     ifAbsent: () => [event],
   );
 
-  void commit() {
+  void _commit() {
     if (!hasUncommittedEvents) {
-      var newEvent = _UpdateEvent(_uGraphEvents, _uNodeEvents, _uEdgeEvents);
+      var newEvent = _UpdateEvent(
+        _uGraphEvents
+          ..updateAll((graph, events) => [GraphEvent.combine(events)]),
+        _uNodeEvents..updateAll((node, events) => [NodeEvent.combine(events)]),
+        _uEdgeEvents..updateAll((edge, events) => [EdgeEvent.combine(events)]),
+      );
       _uGraphEvents = {};
       _uNodeEvents = {};
       _uEdgeEvents = {};
@@ -89,17 +94,25 @@ class _EventHistory {
     }
   }
 
-  void mutate(Function() function) {
+  void mutate(Function() function, {bool commit = true}) {
     _mutationLock++;
 
     try {
       function();
     } catch (e) {
       _mutationLock--;
+
+      if (_mutationLock == 0) {
+        undoUncommittedEvents();
+      }
       rethrow;
     }
 
     _mutationLock--;
+
+    if (_mutationLock == 0 && commit) {
+      _commit();
+    }
   }
 
   void checkIfMutationPermitted() {
