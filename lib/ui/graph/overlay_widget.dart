@@ -85,10 +85,9 @@ class OverlayWidget extends StatefulWidget {
 class _OverlayWidgetState extends State<OverlayWidget> {
   final Map<BaseGraph, GraphWidget> graphWidgets = {};
 
-  // These are for convenience
   BaseGraph get activeGraph => widget.updateNotifier._activeGraph;
-  bool get selectionMenuActive => widget.updateNotifier._selectionMenuActive;
   ProdLineNode? get activeNode => widget.updateNotifier._activeNode;
+  bool get selectionMenuActive => widget.updateNotifier._selectionMenuActive;
 
   late final FactorioGroupMenuWidget<Item> menuWidget = FactorioGroupMenuWidget(
     items: widget.db.itemMap.values.where((item) => !item.hidden).toList(),
@@ -123,10 +122,18 @@ class _OverlayWidgetState extends State<OverlayWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return graphWidgets.putIfAbsent(
-      activeGraph,
-      () => GraphWidget(graph: activeGraph),
-    );
+    List<Widget> children = [
+      graphWidgets.putIfAbsent(
+        activeGraph,
+        () => GraphWidget(graph: activeGraph),
+      ),
+    ];
+
+    if (selectionMenuActive) {
+      children.add(Center(child: menuWidget));
+    }
+
+    return Stack(children: children);
   }
 }
 

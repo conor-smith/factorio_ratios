@@ -62,7 +62,7 @@ class _EventHistory {
   );
 
   void _commit() {
-    if (!hasUncommittedEvents) {
+    if (hasUncommittedEvents) {
       var newEvent = _UpdateEvent(_uGraphEvents, _uNodeEvents, _uEdgeEvents);
       _uGraphEvents = {};
       _uNodeEvents = {};
