@@ -26,7 +26,6 @@ class _EdgeWidgetState extends State<EdgeWidget> {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      size: Size.infinite,
       painter: LinesPainter(
         start: widget.edge.lines[0],
         end: widget.edge.lines[1],
