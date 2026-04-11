@@ -1,5 +1,5 @@
 // Could probably use ChangeNotifier here, but I'd like this code not to depend on flutter
-abstract mixin class Mutateable<T extends MutationEvent> {
+abstract mixin class Stateful<T extends MutationEvent> {
   final List<Function(bool isRollback, T update)> _listeners = [];
 
   void addListener(Function(bool isRollback, T event) callback) {

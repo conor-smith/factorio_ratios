@@ -25,11 +25,8 @@ class _NodeWidgetState extends State<NodeWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      left: widget.node.topLeft.dx,
-      top: widget.node.topLeft.dy,
-      width: widget.node.bottomRight.dx - widget.node.topLeft.dx,
-      height: widget.node.bottomRight.dy - widget.node.topLeft.dy,
+    return Positioned.fromRect(
+      rect: widget.node.rect,
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(color: Colors.black),

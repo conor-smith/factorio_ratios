@@ -122,8 +122,8 @@ class _UpdateEvent {
   final Map<ProdLineNode, NodeEvent> nodeEvents;
   final Map<DirectedEdge, EdgeEvent> edgeEvents;
 
-  late final Map<Mutateable, MutationEvent> events =
-      Map<Mutateable, MutationEvent>.from(graphEvents)
+  late final Map<Stateful, MutationEvent> events =
+      Map<Stateful, MutationEvent>.from(graphEvents)
         ..addAll(nodeEvents)
         ..addAll(edgeEvents);
 

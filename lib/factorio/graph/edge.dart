@@ -1,6 +1,6 @@
 part of '../graph.dart';
 
-class DirectedEdge with Mutateable<EdgeEvent> {
+class DirectedEdge with Stateful<EdgeEvent> {
   final BaseGraph parentGraph;
   final ItemData item;
 
@@ -90,29 +90,18 @@ class DirectedEdge with Mutateable<EdgeEvent> {
   // TODO - It has to be possible to do this without repeating myself this much
   void updateParentPosition() {
     List<Offset> newLines = List.from(lines);
+    var rect = parent._rect;
     switch (lineType) {
       case LineType.shortestPath:
         switch (parentConnection) {
           case Side.top:
-            newLines[0] = Offset(
-              parent.topLeft.dx + (parent.width / 2),
-              parent.topLeft.dy,
-            );
+            newLines[0] = Offset(rect.left + (rect.width / 2), rect.top);
           case Side.right:
-            newLines[0] = Offset(
-              parent.bottomRight.dx,
-              parent.topLeft.dy + (parent.height / 2),
-            );
+            newLines[0] = Offset(rect.right, rect.top + (rect.height / 2));
           case Side.bottom:
-            newLines[0] = Offset(
-              parent.topLeft.dx + (parent.width / 2),
-              parent.bottomRight.dy,
-            );
+            newLines[0] = Offset(rect.left + (rect.width / 2), rect.bottom);
           case Side.left:
-            newLines[0] = Offset(
-              parent.topLeft.dx,
-              parent.topLeft.dy + (parent.height / 2),
-            );
+            newLines[0] = Offset(rect.left, rect.top + (rect.height / 2));
         }
     }
 
@@ -123,29 +112,18 @@ class DirectedEdge with Mutateable<EdgeEvent> {
 
   void updateChildPosition() {
     List<Offset> newLines = List.from(lines);
+    var rect = child._rect;
     switch (lineType) {
       case LineType.shortestPath:
-        switch (childConnection) {
+        switch (parentConnection) {
           case Side.top:
-            newLines[1] = Offset(
-              child.topLeft.dx + (child.width / 2),
-              child.topLeft.dy,
-            );
+            newLines[1] = Offset(rect.left + (rect.width / 2), rect.top);
           case Side.right:
-            newLines[1] = Offset(
-              child.bottomRight.dx,
-              child.topLeft.dy + (child.height / 2),
-            );
+            newLines[1] = Offset(rect.right, rect.top + (rect.height / 2));
           case Side.bottom:
-            newLines[1] = Offset(
-              child.topLeft.dx + (child.width / 2),
-              child.bottomRight.dy,
-            );
+            newLines[1] = Offset(rect.left + (rect.width / 2), rect.bottom);
           case Side.left:
-            newLines[1] = Offset(
-              child.topLeft.dx,
-              child.topLeft.dy + (child.height / 2),
-            );
+            newLines[1] = Offset(rect.left, rect.top + (rect.height / 2));
         }
     }
 
@@ -209,13 +187,4 @@ enum Relationship {
   const Relationship(this.flowDirection);
 }
 
-enum Side {
-  top(true),
-  right(false),
-  bottom(true),
-  left(false);
-
-  final bool isWidth;
-
-  const Side(this.isWidth);
-}
+enum Side { top, right, bottom, left }

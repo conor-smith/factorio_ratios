@@ -1,43 +1,45 @@
 part of '../graph.dart';
 
-class ProdLineNode with Mutateable<NodeEvent> {
+class ProdLineNode with Stateful<NodeEvent> {
   static const double defaultWidth = 100,
       defaultHeight = 100,
       defaultOffset = 50,
       connectionOffset = 8;
 
-  // Fields used to determine nodes position in tree
+  /* ------------- Immutable fields ------------- */
   final BaseGraph parentGraph;
+  final _EventHistory _eventHistory;
+
+  /* -------------- Mutable fields -------------- */
+  // Node type determines how parent valid operations and how parent graph is affected
+  NodeType _nodeType;
+  // True if part of a graph. False otherwise
   bool _active;
 
-  // Node type determines how parent graph's state is affected by this node
-  NodeType _nodeType;
-  NodeType get nodeType => _nodeType;
-
-  // Node is mostly a wrapper for production line
   ProductionLine _line;
+  Rect _rect;
 
-  // Fields and getters used to determine nodes position in graph
-  Offset _topLeft;
-  Offset _bottomRight;
+  // Edges that this node is a parent of
+  final Set<DirectedEdge> _parentOf = {};
+  // Edges that this node is a child of
+  final Set<DirectedEdge> _childOf = {};
 
-  Offset get topLeft => _topLeft;
-  Offset get bottomRight => _bottomRight;
+  /* ------------ Calculated fields ------------ */
+  final Map<Side, Set<DirectedEdge>> _edgesOnSides = {
+    Side.top: {},
+    Side.left: {},
+    Side.bottom: {},
+    Side.right: {},
+  };
 
-  double get width => (bottomRight.dx - topLeft.dx);
-  double get height => (bottomRight.dy - topLeft.dy);
+  /* ---------------- Accessors ---------------- */
+  late final Set<DirectedEdge> parentOf = UnmodifiableSetView(_parentOf);
+  late final Set<DirectedEdge> childOf = UnmodifiableSetView(_childOf);
 
-  // Find related edges. This data is managed by the parent graph
-  final List<DirectedEdge> _parentOf = [];
-  final List<DirectedEdge> _childOf = [];
+  NodeType get nodeType => _nodeType;
+  Rect get rect => _rect;
 
-  late final List<DirectedEdge> parentOf = UnmodifiableListView(_parentOf);
-  late final List<DirectedEdge> childOf = UnmodifiableListView(_childOf);
-
-  List<DirectedEdge> get allRelationships =>
-      List.unmodifiable([..._parentOf, ..._childOf]);
-
-  // Accessor getters, setters and methods for production line
+  // Accessors for production line
   Set<ItemData> get allOutputs => _line.allOutputs;
   Set<ItemData> get allInputs => _line.allInputs;
   bool get immutableIo => _line.immutableIo;
@@ -45,17 +47,16 @@ class ProdLineNode with Mutateable<NodeEvent> {
   ItemIo? get requirements => _line.requirements;
   String get type => _line.type;
 
-  // Constructors
+  /* --------------- Constructors --------------- */
   ProdLineNode.addToGraph({
     required this.parentGraph,
     required NodeType type,
     required ProductionLine line,
-    Offset topLeft = Offset.zero,
-    Offset bottomRight = Offset.zero,
-  }) : _nodeType = type,
+    Rect rect = Rect.zero,
+  }) : _eventHistory = parentGraph._eventHistory,
+       _nodeType = type,
        _line = line,
-       _topLeft = topLeft,
-       _bottomRight = bottomRight,
+       _rect = rect,
        _active = false {
     if (!_verifyNodeTypeAndLine(type, line)) {
       throw FactorioException(
@@ -116,8 +117,7 @@ class ProdLineNode with Mutateable<NodeEvent> {
     for (var mutationEvent in event.mutations) {
       switch (mutationEvent) {
         case NodeEventType.newPosition:
-          _topLeft = event.newTopLeft!;
-          _bottomRight = event.newBottomRight!;
+          _rect = event.newRect!;
 
         case NodeEventType.newRequirements:
           if (event.newRequirements == null) {
@@ -137,15 +137,11 @@ class ProdLineNode with Mutateable<NodeEvent> {
           }
 
         case NodeEventType.parentOfUpdate:
-          for (var removed in event.removedParentOf) {
-            _parentOf.remove(removed);
-          }
+          _parentOf.removeAll(event.removedParentOf);
           _parentOf.addAll(event.newParentOf);
 
         case NodeEventType.childOfUpdate:
-          for (var removed in event.removedChildOf) {
-            _childOf.remove(removed);
-          }
+          _childOf.removeAll(event.removedChildOf);
           _childOf.addAll(event.newChildOf);
 
         case NodeEventType.addedToGraph:
@@ -157,8 +153,8 @@ class ProdLineNode with Mutateable<NodeEvent> {
     }
   }
 
-  void updatePosition(Offset newTopLeft, Offset newBottomRight) {
-    apply(NodeEvent.updatePosition(this, newTopLeft, newBottomRight));
+  void updatePosition(Rect newRect) {
+    apply(NodeEvent.updatePosition(this, newRect));
 
     for (var edge in parentOf) {
       edge.updateParentPosition();
@@ -169,13 +165,13 @@ class ProdLineNode with Mutateable<NodeEvent> {
   }
 
   static int topMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      -node1.topLeft.dy.compareTo(node2.topLeft.dy);
+      -node1._rect.top.compareTo(node2._rect.top);
   static int leftMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      -node1.topLeft.dx.compareTo(node2.topLeft.dx);
+      -node1._rect.left.compareTo(node2._rect.left);
   static int bottomMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      node1.bottomRight.dy.compareTo(node2.bottomRight.dy);
+      node1._rect.bottom.compareTo(node2._rect.bottom);
   static int rightMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      node1.bottomRight.dx.compareTo(node2.bottomRight.dx);
+      node1._rect.right.compareTo(node2._rect.right);
 }
 
 enum NodeType {

@@ -1,11 +1,10 @@
 import 'dart:collection';
+import 'dart:ui';
 
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models.dart';
 import 'package:factorio_ratios/factorio/production_line.dart';
-import 'package:factorio_ratios/state_traversal/mutateable.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/painting.dart';
+import 'package:factorio_ratios/state_traversal/stateful.dart';
 
 part 'graph/edge.dart';
 part 'graph/events.dart';
@@ -38,51 +37,39 @@ part 'graph/node.dart';
  * This is because requirements determine input and output,
  * and the root graph has nowhere to input or output to
  */
-class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
+class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   // Stores history of entire tree. Responsible for rollbacks, commits, etc
   // All graphs in a tree must use the same eventHistory object
   static const int _maxSavedEvents = 50; // TODO - Revise this value
+
+  /* ------------- Immutable fields ------------- */
   final _EventHistory _eventHistory;
 
-  // All following fields are considered part of the mutable graph state
-  // They are ONLY to be modified within .apply(...) and .rollback(...)
-  final List<ProdLineNode> _nodes = [];
-  final List<DirectedEdge> _edges = [];
+  final Surface? surface;
+
+  // Used to track position in tree. Should only be set once
+  ProdLineNode? _parentNode;
+
+  /* -------------- Mutable fields -------------- */
+  final Set<ProdLineNode> _nodes = {};
+  final Set<DirectedEdge> _edges = {};
 
   final Set<ItemData> _allInputs = {};
   final Set<ItemData> _allOutputs = {};
+
   ItemIo? _requirements;
   ItemIo? _totalIoPerSecond;
 
-  Offset _topLeft, _bottomRight;
-  ProdLineNode? _topNode, _leftNode, _bottomNode, _rightNode;
-  bool get _hasPositionalNodes =>
-      _topNode != null &&
-      _leftNode != null &&
-      _bottomNode != null &&
-      _rightNode != null;
+  // Used to build smallest rectangle possible containing all objects
+  ProdLineNode? _top, _left, _bottom, _right;
 
-  ProdLineNode? get topNode => _topNode;
-  ProdLineNode? get leftNode => _leftNode;
-  ProdLineNode? get bottomNode => _bottomNode;
-  ProdLineNode? get rightNode => _rightNode;
+  /* ------------ Calculated fields ------------ */
+  Rect _rect = Rect.zero;
 
-  // Accessor fields for nodes and edges
+  /* ---------------- Accessors ---------------- */
   late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
   late final List<DirectedEdge> edges = UnmodifiableListView(_edges);
 
-  // Uses topNode, leftNode, etc to create smallest possible rectangle containing all nodes
-
-  Offset get topLeft => _topLeft;
-  Offset get bottomRight => _bottomRight;
-
-  // Used to make decisions about what production lines can be added
-  final Surface? surface;
-
-  // Used to track position in tree
-  ProdLineNode? _parentNode;
-
-  // Getter fields required for ProductionLine
   @override
   late final Set<ItemData> allInputs = UnmodifiableSetView(_allInputs);
   @override
@@ -98,34 +85,17 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
   @override
   String get type => 'graph';
 
-  // Constructors
+  Rect get rect => _rect;
+
+  /* --------------- Constructors --------------- */
   BaseGraph.root({this.surface})
-    : _topLeft = Offset.zero,
-      _bottomRight = Offset.zero,
-      _parentNode = null,
+    : _parentNode = null,
       _eventHistory = _EventHistory(_maxSavedEvents);
 
   BaseGraph._addToTree({this.surface, required _EventHistory eventHistory})
-    : _topLeft = Offset.zero,
-      _bottomRight = Offset.zero,
-      _eventHistory = eventHistory;
+    : _eventHistory = eventHistory;
 
-  // ProductionLine methods
-  @override
-  void update(ItemIo newRequirements) {
-    super.update(newRequirements);
-
-    // TODO
-  }
-
-  // Only clears output nodes and direct children
-  // Does not clear consumer nodes
-  @override
-  void clearRequirements() {
-    // TODO
-  }
-
-  // All changes to state occur in these methods
+  /* ------------- Stateful methods ------------- */
   @override
   void apply(GraphEvent event) {
     _apply(event);
@@ -149,30 +119,28 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
     for (var mutationType in event.mutations) {
       switch (mutationType) {
         case GraphEventType.positionalNodesUpdate:
-          _topNode = event.newTopNode;
-          _leftNode = event.newLeftNode;
-          _bottomNode = event.newBottomNode;
-          _rightNode = event.newRightNode;
+          _top = event.newTopNode;
+          _left = event.newLeftNode;
+          _bottom = event.newBottomNode;
+          _right = event.newRightNode;
 
-          // TODO - Is this necessary?
-          if (_hasPositionalNodes) {
-            _topLeft = Offset(_leftNode!.topLeft.dx, _topNode!.topLeft.dy);
-            _bottomRight = Offset(
-              _rightNode!.bottomRight.dx,
-              _bottomNode!.bottomRight.dy,
+          if (_top != null) {
+            _rect = Rect.fromLTRB(
+              _left!.rect.left,
+              _top!.rect.top,
+              _left!.rect.left,
+              _bottom!.rect.bottom,
             );
+          } else {
+            _rect = Rect.zero;
           }
 
         case GraphEventType.updateNodes:
-          for (var removedNode in event.removedNodes) {
-            _nodes.remove(removedNode);
-          }
+          _nodes.removeAll(event.removedNodes);
           _nodes.addAll(event.newNodes);
 
         case GraphEventType.updateEdges:
-          for (var removedEdge in event.removedEdges) {
-            _edges.remove(removedEdge);
-          }
+          _edges.removeAll(event.removedEdges);
           _edges.addAll(event.newEdges);
 
         case GraphEventType.updateInput:
@@ -184,6 +152,21 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
           allOutputs.addAll(event.newOutputs);
       }
     }
+  }
+
+  /* ------------- All other logic ------------- */
+  @override
+  void update(ItemIo newRequirements) {
+    super.update(newRequirements);
+
+    // TODO
+  }
+
+  // Only clears output nodes and direct children
+  // Does not clear consumer nodes
+  @override
+  void clearRequirements() {
+    // TODO
   }
 
   // Will not clear input and output nodes
@@ -206,18 +189,19 @@ class BaseGraph extends ProductionLine with Mutateable<GraphEvent> {
       for (var y = 0; y < nodeHeights.length; y++) {
         for (var x = 0; x < nodeHeights[y].length; x++) {
           var node = nodeHeights[y][x];
-          Offset topLeft = Offset(
-            (ProdLineNode.defaultWidth + ProdLineNode.defaultOffset) * x +
-                ProdLineNode.defaultOffset,
-            (ProdLineNode.defaultHeight + ProdLineNode.defaultOffset) * y +
-                ProdLineNode.defaultOffset,
-          );
-          Offset bottomRight = Offset(
-            topLeft.dx + ProdLineNode.defaultWidth,
-            topLeft.dy + ProdLineNode.defaultHeight,
-          );
 
-          node.updatePosition(topLeft, bottomRight);
+          var left =
+              x * (ProdLineNode.defaultWidth + ProdLineNode.defaultOffset) +
+              ProdLineNode.defaultOffset;
+          var top =
+              y * (ProdLineNode.defaultHeight + ProdLineNode.defaultOffset) +
+              ProdLineNode.defaultOffset;
+          var right = left + ProdLineNode.defaultWidth;
+          var bottom = top + ProdLineNode.defaultHeight;
+
+          Rect newRect = Rect.fromLTRB(left, top, right, bottom);
+
+          node.updatePosition(newRect);
         }
       }
 
