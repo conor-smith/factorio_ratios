@@ -1,18 +1,20 @@
 part of '../graph.dart';
 
 class DirectedEdge with Stateful<EdgeEvent> {
+  /* ------------- Immutable fields ------------- */
   final BaseGraph parentGraph;
-  final ItemData item;
+  final _EventHistory _eventHistory;
 
   final ProdLineNode parent;
   final ProdLineNode child;
+  final ItemData item;
 
   final Relationship edgeType;
-  double? _amount;
 
-  // Value must be from 0 to 1
-  // TODO - verification
-  double _percentage;
+  /* -------------- Mutable fields -------------- */
+  bool _active;
+
+  double? _amount;
 
   Side _parentConnection;
   Side _childConnection;
@@ -20,8 +22,8 @@ class DirectedEdge with Stateful<EdgeEvent> {
   // List must always be ordered from parent to child
   List<Offset> _lines;
 
+  /* ---------------- Accessors ---------------- */
   double? get amount => _amount;
-  double get percentage => _percentage;
   ItemFlowDirection get flowDirection => edgeType.flowDirection;
   Side get parentConnection => _parentConnection;
   Side get childConnection => _childConnection;
@@ -29,24 +31,24 @@ class DirectedEdge with Stateful<EdgeEvent> {
 
   List<Offset> get lines => _lines;
 
-  bool _active;
+  bool get active => _active;
 
+  /* --------------- Constructors --------------- */
   DirectedEdge.addToGraph({
     required this.parentGraph,
     required this.item,
     required this.parent,
     required this.child,
     double? initialAmount,
-    double percentage = 1,
     required this.edgeType,
     Side parentConnectionSide = Side.bottom,
     Side childConnectionSide = Side.top,
     LineType lineType = LineType.shortestPath,
-  }) : _childConnection = childConnectionSide,
+  }) : _eventHistory = parentGraph._eventHistory,
+       _childConnection = childConnectionSide,
        _parentConnection = parentConnectionSide,
        _amount = initialAmount,
        _lineType = lineType,
-       _percentage = percentage,
        _lines = const [Offset.zero, Offset.zero],
        _active = false {
     // TODO - fix up
@@ -60,6 +62,7 @@ class DirectedEdge with Stateful<EdgeEvent> {
     }
 
     // Ensure no loops are created
+    // TODO - Allow loops
     Set<ProdLineNode> visitedNodes = {};
     List<ProdLineNode> nodesToVisit = child.parentOf
         .map((edge) => edge.child)
@@ -87,10 +90,11 @@ class DirectedEdge with Stateful<EdgeEvent> {
     apply(EdgeEvent.removeFromGraph(this));
   }
 
+  /* ------------- All other logic ------------- */
   // TODO - It has to be possible to do this without repeating myself this much
   void updateParentPosition() {
     List<Offset> newLines = List.from(lines);
-    var rect = parent._rect;
+    var rect = parent._internalRect;
     switch (lineType) {
       case LineType.shortestPath:
         switch (parentConnection) {
@@ -112,7 +116,7 @@ class DirectedEdge with Stateful<EdgeEvent> {
 
   void updateChildPosition() {
     List<Offset> newLines = List.from(lines);
-    var rect = child._rect;
+    var rect = child._internalRect;
     switch (lineType) {
       case LineType.shortestPath:
         switch (parentConnection) {
@@ -136,7 +140,7 @@ class DirectedEdge with Stateful<EdgeEvent> {
   void apply(EdgeEvent event) {
     _apply(event);
 
-    parentGraph._eventHistory.addEdgeEvent(event);
+    _eventHistory.addEdgeEvent(event);
   }
 
   @override
@@ -150,7 +154,7 @@ class DirectedEdge with Stateful<EdgeEvent> {
   }
 
   void _apply(EdgeEvent event) {
-    parentGraph._eventHistory.checkIfMutationPermitted();
+    _eventHistory.checkIfMutationPermitted();
 
     for (var mutationEvent in event.mutations) {
       switch (mutationEvent) {

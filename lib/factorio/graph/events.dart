@@ -253,7 +253,7 @@ class NodeEvent extends MutationEvent {
     : this._(
         node,
         {NodeEventType.newPosition},
-        oldRect: node._rect,
+        oldRect: node._internalRect,
         newRect: newRect,
       );
 

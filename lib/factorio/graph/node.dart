@@ -17,27 +17,23 @@ class ProdLineNode with Stateful<NodeEvent> {
   bool _active;
 
   ProductionLine _line;
-  Rect _rect;
+  Rect _internalRect;
 
   // Edges that this node is a parent of
   final Set<DirectedEdge> _parentOf = {};
   // Edges that this node is a child of
   final Set<DirectedEdge> _childOf = {};
 
-  /* ------------ Calculated fields ------------ */
-  final Map<Side, Set<DirectedEdge>> _edgesOnSides = {
-    Side.top: {},
-    Side.left: {},
-    Side.bottom: {},
-    Side.right: {},
-  };
+  /* --------------- Drag fields --------------- */
+  bool _isBeingDragged = false;
+  Offset _dragOffset = Offset.zero;
 
   /* ---------------- Accessors ---------------- */
   late final Set<DirectedEdge> parentOf = UnmodifiableSetView(_parentOf);
   late final Set<DirectedEdge> childOf = UnmodifiableSetView(_childOf);
 
   NodeType get nodeType => _nodeType;
-  Rect get rect => _rect;
+  Rect get rect => _internalRect;
 
   // Accessors for production line
   Set<ItemData> get allOutputs => _line.allOutputs;
@@ -46,6 +42,9 @@ class ProdLineNode with Stateful<NodeEvent> {
   ItemIo? get totalIoPerSecond => _line.totalIoPerSecond;
   ItemIo? get requirements => _line.requirements;
   String get type => _line.type;
+
+  @override
+  String toString() => _line.toString();
 
   /* --------------- Constructors --------------- */
   ProdLineNode.addToGraph({
@@ -56,7 +55,7 @@ class ProdLineNode with Stateful<NodeEvent> {
   }) : _eventHistory = parentGraph._eventHistory,
        _nodeType = type,
        _line = line,
-       _rect = rect,
+       _internalRect = rect,
        _active = false {
     if (!_verifyNodeTypeAndLine(type, line)) {
       throw FactorioException(
@@ -72,33 +71,12 @@ class ProdLineNode with Stateful<NodeEvent> {
     }
   }
 
-  void removeFromGraph() {
-    parentGraph.apply(GraphEvent.removeNode(parentGraph, this));
-    for (var edge in [...parentOf, ...childOf]) {
-      edge.removeFromGraph();
-    }
-    apply(NodeEvent.removeFromGraph(this));
-  }
-
-  bool _verifyNodeTypeAndLine(
-    NodeType nodeType,
-    ProductionLine line,
-  ) => switch (nodeType) {
-    NodeType.consumer || NodeType.disposal || NodeType.output =>
-      line.immutableIo && line.allOutputs.isEmpty && line.allInputs.isNotEmpty,
-    NodeType.producer || NodeType.input =>
-      line.immutableIo && line.allOutputs.isNotEmpty && line.allInputs.isEmpty,
-    NodeType.productionLine => true,
-  };
-
-  @override
-  String toString() => _line.toString();
-
+  /* ------------- Stateful methods ------------- */
   @override
   void apply(NodeEvent event) {
     _apply(event);
 
-    parentGraph._eventHistory.addNodeEvent(event);
+    _eventHistory.addNodeEvent(event);
   }
 
   @override
@@ -112,12 +90,12 @@ class ProdLineNode with Stateful<NodeEvent> {
   }
 
   void _apply(NodeEvent event) {
-    parentGraph._eventHistory.checkIfMutationPermitted();
+    _eventHistory.checkIfMutationPermitted();
 
     for (var mutationEvent in event.mutations) {
       switch (mutationEvent) {
         case NodeEventType.newPosition:
-          _rect = event.newRect!;
+          _internalRect = event.newRect!;
 
         case NodeEventType.newRequirements:
           if (event.newRequirements == null) {
@@ -153,6 +131,30 @@ class ProdLineNode with Stateful<NodeEvent> {
     }
   }
 
+  /* ------------- All other logic ------------- */
+  void removeFromGraph() {
+    parentGraph.apply(GraphEvent.removeNode(parentGraph, this));
+    for (var edge in [...parentOf, ...childOf]) {
+      edge.removeFromGraph();
+    }
+    apply(NodeEvent.removeFromGraph(this));
+  }
+
+  void startDragging() {
+    _isBeingDragged = true;
+  }
+
+  bool _verifyNodeTypeAndLine(
+    NodeType nodeType,
+    ProductionLine line,
+  ) => switch (nodeType) {
+    NodeType.consumer || NodeType.disposal || NodeType.output =>
+      line.immutableIo && line.allOutputs.isEmpty && line.allInputs.isNotEmpty,
+    NodeType.producer || NodeType.input =>
+      line.immutableIo && line.allOutputs.isNotEmpty && line.allInputs.isEmpty,
+    NodeType.productionLine => true,
+  };
+
   void updatePosition(Rect newRect) {
     apply(NodeEvent.updatePosition(this, newRect));
 
@@ -165,13 +167,13 @@ class ProdLineNode with Stateful<NodeEvent> {
   }
 
   static int topMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      -node1._rect.top.compareTo(node2._rect.top);
+      -node1._internalRect.top.compareTo(node2._internalRect.top);
   static int leftMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      -node1._rect.left.compareTo(node2._rect.left);
+      -node1._internalRect.left.compareTo(node2._internalRect.left);
   static int bottomMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      node1._rect.bottom.compareTo(node2._rect.bottom);
+      node1._internalRect.bottom.compareTo(node2._internalRect.bottom);
   static int rightMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      node1._rect.right.compareTo(node2._rect.right);
+      node1._internalRect.right.compareTo(node2._internalRect.right);
 }
 
 enum NodeType {
