@@ -90,52 +90,7 @@ class DirectedEdge with Stateful<EdgeEvent> {
     apply(EdgeEvent.removeFromGraph(this));
   }
 
-  /* ------------- All other logic ------------- */
-  // TODO - It has to be possible to do this without repeating myself this much
-  void updateParentPosition() {
-    List<Offset> newLines = List.from(lines);
-    var rect = parent._internalRect;
-    switch (lineType) {
-      case LineType.shortestPath:
-        switch (parentConnection) {
-          case Side.top:
-            newLines[0] = Offset(rect.left + (rect.width / 2), rect.top);
-          case Side.right:
-            newLines[0] = Offset(rect.right, rect.top + (rect.height / 2));
-          case Side.bottom:
-            newLines[0] = Offset(rect.left + (rect.width / 2), rect.bottom);
-          case Side.left:
-            newLines[0] = Offset(rect.left, rect.top + (rect.height / 2));
-        }
-    }
-
-    apply(
-      EdgeEvent.updateLines(this, newLines, parentConnection, childConnection),
-    );
-  }
-
-  void updateChildPosition() {
-    List<Offset> newLines = List.from(lines);
-    var rect = child._internalRect;
-    switch (lineType) {
-      case LineType.shortestPath:
-        switch (parentConnection) {
-          case Side.top:
-            newLines[1] = Offset(rect.left + (rect.width / 2), rect.top);
-          case Side.right:
-            newLines[1] = Offset(rect.right, rect.top + (rect.height / 2));
-          case Side.bottom:
-            newLines[1] = Offset(rect.left + (rect.width / 2), rect.bottom);
-          case Side.left:
-            newLines[1] = Offset(rect.left, rect.top + (rect.height / 2));
-        }
-    }
-
-    apply(
-      EdgeEvent.updateLines(this, newLines, parentConnection, childConnection),
-    );
-  }
-
+  /* ------------- Stateful methods ------------- */
   @override
   void apply(EdgeEvent event) {
     _apply(event);
@@ -175,6 +130,24 @@ class DirectedEdge with Stateful<EdgeEvent> {
       }
     }
   }
+
+  /* ---------- Delayed Event Methods ---------- */
+  @override
+  void cancelDelayedEventOperation() {
+    // TODO: implement cancelDelayedEventOperation
+  }
+
+  @override
+  void finishDelayedEventOperation() {
+    // TODO: implement finishDelayedEventOperation
+  }
+
+  @override
+  void startDelayedEventOperation() {
+    // TODO: implement startDelayedEventOperation
+  }
+
+  /* ------------- All other logic ------------- */
 }
 
 // TODO - Add more linetypes

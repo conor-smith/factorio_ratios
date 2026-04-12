@@ -19,6 +19,10 @@ abstract mixin class Stateful<T extends MutationEvent> {
   void apply(T event);
   void redo(T event);
   void rollback(T event);
+
+  void startDelayedEventOperation();
+  void cancelDelayedEventOperation();
+  void finishDelayedEventOperation();
 }
 
 abstract class MutationEvent {}

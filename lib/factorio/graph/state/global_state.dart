@@ -1,4 +1,4 @@
-part of '../graph.dart';
+part of '../../graph.dart';
 
 // Only one of these may exist per graph tree
 class _EventHistory {

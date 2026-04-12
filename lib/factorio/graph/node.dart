@@ -24,7 +24,7 @@ class ProdLineNode with Stateful<NodeEvent> {
   // Edges that this node is a child of
   final Set<DirectedEdge> _childOf = {};
 
-  /* --------------- Drag fields --------------- */
+  /* ----------- Delayed event fields ----------- */
   bool _isBeingDragged = false;
   Offset _dragOffset = Offset.zero;
 
@@ -131,6 +131,22 @@ class ProdLineNode with Stateful<NodeEvent> {
     }
   }
 
+  /* ---------- Delayed Event Methods ---------- */
+  @override
+  void cancelDelayedEventOperation() {
+    // TODO: implement cancelDelayedEventOperation
+  }
+
+  @override
+  void finishDelayedEventOperation() {
+    // TODO: implement finishDelayedEventOperation
+  }
+
+  @override
+  void startDelayedEventOperation() {
+    // TODO: implement startDelayedEventOperation
+  }
+
   /* ------------- All other logic ------------- */
   void removeFromGraph() {
     parentGraph.apply(GraphEvent.removeNode(parentGraph, this));
@@ -156,14 +172,7 @@ class ProdLineNode with Stateful<NodeEvent> {
   };
 
   void updatePosition(Rect newRect) {
-    apply(NodeEvent.updatePosition(this, newRect));
-
-    for (var edge in parentOf) {
-      edge.updateParentPosition();
-    }
-    for (var edge in childOf) {
-      edge.updateChildPosition();
-    }
+    // TODO
   }
 
   static int topMostNode(ProdLineNode node1, ProdLineNode node2) =>
