@@ -1,4 +1,14 @@
-// Could probably use ChangeNotifier here, but I'd like this code not to depend on flutter
+/*
+ * A stateful class can only have it's internal state be meaningfully modified
+ * by applying a MutationEvent
+ * Said mutationEvents can also be rolled back and redone, completely restoring
+ * a previously existing state
+ * 
+ * There also exist Delayed Event Operations (DEO for convenience)
+ * A DEO will change the apparent state of the object, but can be cancelled at any time
+ * When cancelled, the object will return to it's state before the start of the DEO
+ * Calling finishDelayedEventOperation will internally generate an event and commit the changes
+ */
 abstract mixin class Stateful<T extends MutationEvent> {
   final List<Function(bool isRollback, T update)> _listeners = [];
 
@@ -23,6 +33,7 @@ abstract mixin class Stateful<T extends MutationEvent> {
   void startDelayedEventOperation();
   void cancelDelayedEventOperation();
   void finishDelayedEventOperation();
+  bool get performingDelayedEventOperation;
 }
 
 abstract class MutationEvent {}

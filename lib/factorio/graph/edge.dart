@@ -22,7 +22,13 @@ class DirectedEdge with Stateful<EdgeEvent> {
   // List must always be ordered from parent to child
   List<Offset> _lines;
 
+  /* ----------- Delayed event fields ----------- */
+  bool _performingDelayedEventOperation = false;
+
   /* ---------------- Accessors ---------------- */
+  @override
+  bool get performingDelayedEventOperation => _performingDelayedEventOperation;
+
   double? get amount => _amount;
   ItemFlowDirection get flowDirection => edgeType.flowDirection;
   Side get parentConnection => _parentConnection;

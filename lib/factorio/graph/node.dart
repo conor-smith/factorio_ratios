@@ -25,12 +25,17 @@ class ProdLineNode with Stateful<NodeEvent> {
   final Set<DirectedEdge> _childOf = {};
 
   /* ----------- Delayed event fields ----------- */
+  bool _performingDelayedEventOperation = false;
+
   bool _isBeingDragged = false;
   Offset _dragOffset = Offset.zero;
 
   /* ---------------- Accessors ---------------- */
   late final Set<DirectedEdge> parentOf = UnmodifiableSetView(_parentOf);
   late final Set<DirectedEdge> childOf = UnmodifiableSetView(_childOf);
+
+  @override
+  bool get performingDelayedEventOperation => _performingDelayedEventOperation;
 
   NodeType get nodeType => _nodeType;
   Rect get rect => _internalRect;

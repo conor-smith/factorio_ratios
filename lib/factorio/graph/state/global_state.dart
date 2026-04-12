@@ -16,6 +16,9 @@ class _EventHistory {
   // TODO - Should this be a linked list or queue?
   final List<_UpdateEvent> _committedEvents = [];
 
+  // Objects currently undergoing delayedEventOperations
+  Set<Stateful> delayedEventOperations = {};
+
   // Uncommitted events
   Map<BaseGraph, List<GraphEvent>> _uGraphEvents;
   Map<ProdLineNode, List<NodeEvent>> _uNodeEvents;

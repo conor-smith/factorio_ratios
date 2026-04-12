@@ -52,12 +52,21 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   // Used to build smallest rectangle possible containing all objects
   ProdLineNode? _top, _left, _bottom, _right;
 
+  /* ----------- Delayed event fields ----------- */
+  bool _performingDelayedEventOperation = false;
+
+  final Set<ProdLineNode> _nodesBeingDragged = {};
+  final Set<DirectedEdge> _edgesBeingDragged = {};
+
   /* ------------ Calculated fields ------------ */
   Rect _rect = Rect.zero;
 
   /* ---------------- Accessors ---------------- */
   late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
   late final List<DirectedEdge> edges = UnmodifiableListView(_edges);
+
+  @override
+  bool get performingDelayedEventOperation => _performingDelayedEventOperation;
 
   @override
   late final Set<ItemData> allInputs = UnmodifiableSetView(_allInputs);
