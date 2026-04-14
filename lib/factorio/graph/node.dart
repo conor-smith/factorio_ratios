@@ -93,8 +93,7 @@ class ProdLineNode with Stateful<NodeEvent> {
     for (var mutationEvent in event.mutations) {
       switch (mutationEvent) {
         case NodeEventType.newPosition:
-          // TODO
-          break;
+          _cartesianData = event.newCartesianData!;
 
         case NodeEventType.newRequirements:
           if (event.newRequirements == null) {
@@ -149,10 +148,6 @@ class ProdLineNode with Stateful<NodeEvent> {
       line.immutableIo && line.allOutputs.isNotEmpty && line.allInputs.isEmpty,
     NodeType.productionLine => true,
   };
-
-  void updatePosition(Rect newRect) {
-    // TODO
-  }
 }
 
 enum NodeType {

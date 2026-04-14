@@ -106,8 +106,7 @@ class DirectedEdge with Stateful<EdgeEvent> {
           _amount = event.newAmount;
 
         case EdgeEventType.newCartesianData:
-          // TODO
-          break;
+          _cartesianData = event.newCartesianData!;
 
         case EdgeEventType.addedToGraph:
           _active = true;
@@ -119,6 +118,14 @@ class DirectedEdge with Stateful<EdgeEvent> {
   }
 
   /* ------------- All other logic ------------- */
+  void _shortestLineBetweenNodes() {
+    apply(
+      EdgeEvent.newCartesianData(
+        this,
+        EdgeCartesianData.shortestPath(Line.shortest(parent.rect, child.rect)),
+      ),
+    );
+  }
 }
 
 // TODO - Add more linetypes
@@ -128,7 +135,7 @@ enum ItemFlowDirection { parentToChild, childToParent }
 
 enum Relationship {
   requestItems(ItemFlowDirection.childToParent),
-  acceptExcess(ItemFlowDirection.childToParent);
+  acceptExcess(ItemFlowDirection.parentToChild);
 
   final ItemFlowDirection flowDirection;
 
@@ -144,6 +151,11 @@ class EdgeCartesianData extends CartesianData {
     : lineType = LineType.shortestPath,
       lines = const [Line.uninitialised()],
       super(Rect.zero);
+
+  EdgeCartesianData.shortestPath(Line line)
+    : lineType = LineType.shortestPath,
+      lines = List.unmodifiable([line]),
+      super(Rect.fromPoints(line.start, line.end));
 }
 
 class Line {
@@ -152,4 +164,6 @@ class Line {
   const Line(this.start, this.end);
 
   const Line.uninitialised() : this(Offset.zero, Offset.zero);
+
+  Line.shortest(Rect start, Rect end) : this(start.center, end.center);
 }

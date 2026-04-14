@@ -104,8 +104,7 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
     for (var mutationType in event.mutations) {
       switch (mutationType) {
         case GraphEventType.cartesianDataUpdate:
-          //TODO
-          break;
+          _cartesianData = event.newCartesianData!;
 
         case GraphEventType.updateNodes:
           _nodes.removeAll(event.removedNodes);
@@ -168,13 +167,22 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
           var top =
               y * (ProdLineNode.defaultHeight + ProdLineNode.defaultOffset) +
               ProdLineNode.defaultOffset;
-          var right = left + ProdLineNode.defaultWidth;
-          var bottom = top + ProdLineNode.defaultHeight;
 
-          Rect newRect = Rect.fromLTRB(left, top, right, bottom);
+          Rect newRect = Rect.fromLTWH(
+            left,
+            top,
+            ProdLineNode.defaultWidth,
+            ProdLineNode.defaultHeight,
+          );
 
-          node.updatePosition(newRect);
+          node.apply(
+            NodeEvent.updatePosition(node, NodeCartesianData(newRect)),
+          );
         }
+      }
+
+      for (var edge in _edges) {
+        edge._shortestLineBetweenNodes();
       }
 
       _redoPositionalNodes();
@@ -368,36 +376,56 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
     if (_nodes.isEmpty) {
       apply(GraphEvent.clearCartesianData(this));
     } else {
-      // TODO
+      var allCartesianData = _nodes
+          .map<CartesianData>((node) => node._cartesianData)
+          .followedBy(_edges.map((edge) => edge._cartesianData))
+          .toList();
+
+      CartesianData top = _findNewMaxNode(
+            CartesianData.topMost,
+            allCartesianData,
+          ),
+          left = _findNewMaxNode(CartesianData.leftMost, allCartesianData),
+          bottom = _findNewMaxNode(CartesianData.bottomMost, allCartesianData),
+          right = _findNewMaxNode(CartesianData.rightMost, allCartesianData);
+
+      apply(
+        GraphEvent.newCartesianData(
+          this,
+          GraphCartesianData.fromLTRB(left, top, right, bottom),
+        ),
+      );
     }
   }
 
-  ProdLineNode _findNewMaxNode(
-    Comparator<ProdLineNode> maxFunction, {
-    ProdLineNode? oldMaxNode,
-    List<ProdLineNode> removedNodes = const [],
-    List<ProdLineNode> newNodes = const [],
+  CartesianData _findNewMaxNode(
+    Comparator<CartesianData> maxFunction,
+    List<CartesianData> allCartesianData, {
+    CartesianData? oldMax,
+    List<CartesianData> removedData = const [],
+    List<CartesianData> newData = const [],
   }) {
-    ProdLineNode maxNode;
-    if (oldMaxNode == null || removedNodes.contains(oldMaxNode)) {
-      maxNode = _nodes.first;
+    CartesianData max;
 
-      for (var node in _nodes.skip(1)) {
-        if (maxFunction(maxNode, node) < 0) {
-          maxNode = node;
+    if (oldMax == null || removedData.contains(oldMax)) {
+      max = allCartesianData.first;
+
+      for (var data in allCartesianData.skip(1)) {
+        if (maxFunction(max, data) < 0) {
+          max = data;
         }
       }
     } else {
-      maxNode = oldMaxNode;
+      max = oldMax;
 
-      for (var node in newNodes) {
-        if (maxFunction(maxNode, node) < 0) {
-          maxNode = node;
+      for (var data in newData) {
+        if (maxFunction(max, data) < 0) {
+          max = data;
         }
       }
     }
 
-    return maxNode;
+    return max;
   }
 
   // Returns the maximum height
