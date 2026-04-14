@@ -25,25 +25,20 @@ class _EdgeWidgetState extends State<EdgeWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: LinesPainter(
-        start: widget.edge.lines[0],
-        end: widget.edge.lines[1],
-      ),
-    );
+    return CustomPaint(painter: LinesPainter(widget.edge.lines[0]));
   }
 }
 
 class LinesPainter extends CustomPainter {
-  final Offset start, end;
+  final Line line;
 
-  LinesPainter({required this.start, required this.end});
+  LinesPainter(this.line);
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawLine(
-      start,
-      end,
+      line.start,
+      line.end,
       Paint()
         ..strokeWidth = 2
         ..color = Colors.black,
@@ -52,6 +47,6 @@ class LinesPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant LinesPainter oldDelegate) {
-    return oldDelegate.start != start || oldDelegate.end != end;
+    return oldDelegate.line != line;
   }
 }

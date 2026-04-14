@@ -17,7 +17,8 @@ class ProdLineNode with Stateful<NodeEvent> {
   bool _active;
 
   ProductionLine _line;
-  Rect _internalRect;
+
+  NodeCartesianData _cartesianData;
 
   // Edges that this node is a parent of
   final Set<DirectedEdge> _parentOf = {};
@@ -29,7 +30,9 @@ class ProdLineNode with Stateful<NodeEvent> {
   late final Set<DirectedEdge> childOf = UnmodifiableSetView(_childOf);
 
   NodeType get nodeType => _nodeType;
-  Rect get rect => _internalRect;
+
+  NodeCartesianData get cartesianData => _cartesianData;
+  Rect get rect => _cartesianData.rect;
 
   // Accessors for production line
   Set<ItemData> get allOutputs => _line.allOutputs;
@@ -47,11 +50,10 @@ class ProdLineNode with Stateful<NodeEvent> {
     required this.parentGraph,
     required NodeType type,
     required ProductionLine line,
-    Rect rect = Rect.zero,
   }) : _eventHistory = parentGraph._eventHistory,
        _nodeType = type,
        _line = line,
-       _internalRect = rect,
+       _cartesianData = NodeCartesianData.uninitialised,
        _active = false {
     if (!_verifyNodeTypeAndLine(type, line)) {
       throw FactorioException(
@@ -91,7 +93,8 @@ class ProdLineNode with Stateful<NodeEvent> {
     for (var mutationEvent in event.mutations) {
       switch (mutationEvent) {
         case NodeEventType.newPosition:
-          _internalRect = event.newRect!;
+          // TODO
+          break;
 
         case NodeEventType.newRequirements:
           if (event.newRequirements == null) {
@@ -152,13 +155,13 @@ class ProdLineNode with Stateful<NodeEvent> {
   }
 
   static int topMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      -node1._internalRect.top.compareTo(node2._internalRect.top);
+      -node1.rect.top.compareTo(node2.rect.top);
   static int leftMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      -node1._internalRect.left.compareTo(node2._internalRect.left);
+      -node1.rect.left.compareTo(node2.rect.left);
   static int bottomMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      node1._internalRect.bottom.compareTo(node2._internalRect.bottom);
+      node1.cartesianData.rect.bottom.compareTo(node2.rect.bottom);
   static int rightMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      node1._internalRect.right.compareTo(node2._internalRect.right);
+      node1.rect.right.compareTo(node2.rect.right);
 }
 
 enum NodeType {
@@ -189,4 +192,20 @@ enum NodeType {
         output => false,
         productionLine => false,
       };
+}
+
+class NodeCartesianData {
+  final Rect rect;
+
+  const NodeCartesianData._(this.rect);
+
+  static const uninitialised = NodeCartesianData._(Rect.zero);
+}
+
+class MutableNodeCartesianData {
+  Rect _rect;
+
+  Rect get rect => _rect;
+
+  MutableNodeCartesianData.from(NodeCartesianData data) : _rect = data.rect;
 }

@@ -16,20 +16,15 @@ class DirectedEdge with Stateful<EdgeEvent> {
 
   double? _amount;
 
-  Side _parentConnection;
-  Side _childConnection;
-  LineType _lineType;
-  // List must always be ordered from parent to child
-  List<Offset> _lines;
+  EdgeCartesianData _cartesianData;
 
   /* ---------------- Accessors ---------------- */
   double? get amount => _amount;
   ItemFlowDirection get flowDirection => edgeType.flowDirection;
-  Side get parentConnection => _parentConnection;
-  Side get childConnection => _childConnection;
-  LineType get lineType => _lineType;
 
-  List<Offset> get lines => _lines;
+  EdgeCartesianData get cartesianData => _cartesianData;
+  LineType get lineType => _cartesianData.lineType;
+  List<Line> get lines => _cartesianData.lines;
 
   bool get active => _active;
 
@@ -41,15 +36,9 @@ class DirectedEdge with Stateful<EdgeEvent> {
     required this.child,
     double? initialAmount,
     required this.edgeType,
-    Side parentConnectionSide = Side.bottom,
-    Side childConnectionSide = Side.top,
-    LineType lineType = LineType.shortestPath,
   }) : _eventHistory = parentGraph._eventHistory,
-       _childConnection = childConnectionSide,
-       _parentConnection = parentConnectionSide,
        _amount = initialAmount,
-       _lineType = lineType,
-       _lines = const [Offset.zero, Offset.zero],
+       _cartesianData = EdgeCartesianData.uninitialised,
        _active = false {
     // TODO - fix up
     // Confirm both parent and child are valid
@@ -116,11 +105,9 @@ class DirectedEdge with Stateful<EdgeEvent> {
         case EdgeEventType.newAmount:
           _amount = event.newAmount;
 
-        case EdgeEventType.newLines:
-          _lineType = event.newLineType!;
-          _parentConnection = event.newParentConnection!;
-          _childConnection = event.newChildConnection!;
-          _lines = event.newLines!;
+        case EdgeEventType.newCartesianData:
+          // TODO
+          break;
 
         case EdgeEventType.addedToGraph:
           _active = true;
@@ -148,4 +135,34 @@ enum Relationship {
   const Relationship(this.flowDirection);
 }
 
-enum Side { top, right, bottom, left }
+class EdgeCartesianData {
+  final LineType lineType;
+  // Goes from parent to child
+  final List<Line> lines;
+
+  static const uninitialised = EdgeCartesianData._(LineType.shortestPath, [
+    Line.uninitialised,
+  ]);
+
+  const EdgeCartesianData._(this.lineType, this.lines);
+}
+
+class MutableEdgeCartesianData {
+  LineType _lineType;
+  final List<Line> _lines;
+
+  LineType get lineType => _lineType;
+  late final List<Line> lines = UnmodifiableListView(_lines);
+
+  MutableEdgeCartesianData.from(EdgeCartesianData cartesianData)
+    : _lineType = cartesianData.lineType,
+      _lines = List.from(cartesianData.lines);
+}
+
+class Line {
+  final Offset start, end;
+
+  static const uninitialised = Line(Offset.zero, Offset.zero);
+
+  const Line(this.start, this.end);
+}

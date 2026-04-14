@@ -224,3 +224,11 @@ class GraphEvent extends MutationEvent {
       isReversed = true,
       original = toReverse;
 }
+
+enum GraphEventType {
+  positionalNodesUpdate,
+  updateNodes,
+  updateEdges,
+  updateInput,
+  updateOutput,
+}

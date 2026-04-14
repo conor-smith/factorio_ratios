@@ -5,7 +5,7 @@ class NodeEvent extends MutationEvent {
 
   final Set<NodeEventType> mutations;
 
-  final Rect? oldRect, newRect;
+  final NodeCartesianData? oldCartesianData, newCartesianData;
   final ItemIo? oldRequirements, newRequirements;
   final NodeType? oldNodeType, newNodeType;
   final ProductionLine? oldProductionLine, newProductionLine;
@@ -24,12 +24,14 @@ class NodeEvent extends MutationEvent {
   NodeEvent.removeFromGraph(ProdLineNode node)
     : this._(node, {NodeEventType.removedFromGraph});
 
-  NodeEvent.updatePosition(ProdLineNode node, Rect newRect)
-    : this._(
+  NodeEvent.updatePosition(
+    ProdLineNode node,
+    NodeCartesianData newCartesianData,
+  ) : this._(
         node,
         {NodeEventType.newPosition},
-        oldRect: node._internalRect,
-        newRect: newRect,
+        oldCartesianData: node.cartesianData,
+        newCartesianData: newCartesianData,
       );
 
   NodeEvent.newRequirements(ProdLineNode node, ItemIo newRequirements)
@@ -91,8 +93,8 @@ class NodeEvent extends MutationEvent {
     Set<DirectedEdge> newChildOf = {};
     Set<DirectedEdge> removedChildOf = {};
 
-    NodeEvent? oldPositionEvent, newPositionEvent;
-    Rect? oldRect, newRect;
+    NodeEvent? oldCartesianEvent, newCartesianEvent;
+    NodeCartesianData? oldCartesianData, newCartesianData;
 
     NodeEvent? oldNodeTypeEvent, newNodeTypeEvent;
     NodeType? oldNodeType, newNodeType;
@@ -108,8 +110,8 @@ class NodeEvent extends MutationEvent {
       for (var mutation in event.mutations) {
         switch (mutation) {
           case NodeEventType.newPosition:
-            oldPositionEvent ??= event;
-            newPositionEvent = event;
+            oldCartesianEvent ??= event;
+            newCartesianEvent = event;
 
           case NodeEventType.newRequirements:
             oldRequirementsEvent ??= event;
@@ -138,9 +140,9 @@ class NodeEvent extends MutationEvent {
       }
     }
 
-    if (oldPositionEvent != null) {
-      oldRect = oldPositionEvent.oldRect;
-      newRect = newPositionEvent!.newRect;
+    if (oldCartesianEvent != null) {
+      oldCartesianData = oldCartesianEvent.oldCartesianData;
+      newCartesianData = newCartesianEvent!.newCartesianData;
     }
 
     if (oldRequirementsEvent != null) {
@@ -168,13 +170,13 @@ class NodeEvent extends MutationEvent {
     return NodeEvent._(
       orderedEvents.first.node,
       mutations,
-      oldRect: oldRect,
+      oldCartesianData: oldCartesianData,
       oldRequirements: oldRequirements,
       oldNodeType: oldNodeType,
       oldProductionLine: oldProdLine,
       removedParentOf: removedParentOf,
       removedChildOf: removedChildOf,
-      newRect: newRect,
+      newCartesianData: newCartesianData,
       newRequirements: newRequirements,
       newNodeType: newNodeType,
       newProductionLine: newProdLine,
@@ -187,13 +189,13 @@ class NodeEvent extends MutationEvent {
     this.node,
     Set<NodeEventType> mutations, {
     ItemIo? oldRequirements,
-    this.oldRect,
+    this.oldCartesianData,
     this.oldNodeType,
     this.oldProductionLine,
     Set<DirectedEdge> removedParentOf = const {},
     Set<DirectedEdge> removedChildOf = const {},
     ItemIo? newRequirements,
-    this.newRect,
+    this.newCartesianData,
     this.newNodeType,
     this.newProductionLine,
     Set<DirectedEdge> newParentOf = const {},
@@ -217,13 +219,13 @@ class NodeEvent extends MutationEvent {
       mutations = Set.unmodifiable(
         toReverse.mutations.map((eventType) => eventType.reverse),
       ),
-      oldRect = toReverse.newRect,
+      oldCartesianData = toReverse.oldCartesianData,
       oldRequirements = toReverse.newRequirements,
       oldNodeType = toReverse.newNodeType,
       oldProductionLine = toReverse.newProductionLine,
       removedParentOf = toReverse.newParentOf,
       removedChildOf = toReverse.newChildOf,
-      newRect = toReverse.oldRect,
+      newCartesianData = toReverse.newCartesianData,
       newRequirements = toReverse.oldRequirements,
       newNodeType = toReverse.oldNodeType,
       newProductionLine = toReverse.oldProductionLine,
@@ -231,4 +233,31 @@ class NodeEvent extends MutationEvent {
       newChildOf = toReverse.removedChildOf,
       isReversed = true,
       original = toReverse;
+}
+
+enum NodeEventType {
+  newPosition,
+  newRequirements,
+  newNodeType,
+  newProductionLine,
+  parentOfUpdate,
+  childOfUpdate,
+  addedToGraph,
+  removedFromGraph;
+
+  NodeEventType get reverse => switch (this) {
+    newPosition => newPosition,
+    newRequirements => newRequirements,
+    newNodeType => newNodeType,
+    newProductionLine => newProductionLine,
+    parentOfUpdate => parentOfUpdate,
+    childOfUpdate => childOfUpdate,
+    addedToGraph => removedFromGraph,
+    removedFromGraph => addedToGraph,
+  };
+
+  static const List<NodeEventType> creationEvents = [
+    addedToGraph,
+    removedFromGraph,
+  ];
 }
