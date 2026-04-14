@@ -24,18 +24,9 @@ class ProdLineNode with Stateful<NodeEvent> {
   // Edges that this node is a child of
   final Set<DirectedEdge> _childOf = {};
 
-  /* ----------- Delayed event fields ----------- */
-  bool _performingDelayedEventOperation = false;
-
-  bool _isBeingDragged = false;
-  Offset _dragOffset = Offset.zero;
-
   /* ---------------- Accessors ---------------- */
   late final Set<DirectedEdge> parentOf = UnmodifiableSetView(_parentOf);
   late final Set<DirectedEdge> childOf = UnmodifiableSetView(_childOf);
-
-  @override
-  bool get performingDelayedEventOperation => _performingDelayedEventOperation;
 
   NodeType get nodeType => _nodeType;
   Rect get rect => _internalRect;
@@ -136,22 +127,6 @@ class ProdLineNode with Stateful<NodeEvent> {
     }
   }
 
-  /* ---------- Delayed Event Methods ---------- */
-  @override
-  void cancelDelayedEventOperation() {
-    // TODO: implement cancelDelayedEventOperation
-  }
-
-  @override
-  void finishDelayedEventOperation() {
-    // TODO: implement finishDelayedEventOperation
-  }
-
-  @override
-  void startDelayedEventOperation() {
-    // TODO: implement startDelayedEventOperation
-  }
-
   /* ------------- All other logic ------------- */
   void removeFromGraph() {
     parentGraph.apply(GraphEvent.removeNode(parentGraph, this));
@@ -159,10 +134,6 @@ class ProdLineNode with Stateful<NodeEvent> {
       edge.removeFromGraph();
     }
     apply(NodeEvent.removeFromGraph(this));
-  }
-
-  void startDragging() {
-    _isBeingDragged = true;
   }
 
   bool _verifyNodeTypeAndLine(
