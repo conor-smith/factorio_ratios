@@ -5,15 +5,7 @@ class GraphEvent extends MutationEvent {
 
   final Set<GraphEventType> mutations;
 
-  final ProdLineNode? oldTopNode,
-      oldLeftNode,
-      oldBottomNode,
-      oldRightNode,
-      newTopNode,
-      newLeftNode,
-      newBottomNode,
-      newRightNode;
-
+  final GraphCartesianData? oldCartesianData, newCartesianData;
   final Set<ProdLineNode> newNodes, removedNodes;
   final Set<DirectedEdge> newEdges, removedEdges;
   final Set<ItemData> newInputs, newOutputs, removedInputs, removedOutputs;
@@ -54,33 +46,22 @@ class GraphEvent extends MutationEvent {
         removedOutputs: {removedOutput},
       );
 
-  GraphEvent.newPositionalNodes(
-    BaseGraph graph, {
-    required ProdLineNode newTopNode,
-    required ProdLineNode newLeftNode,
-    required ProdLineNode newBottomNode,
-    required ProdLineNode newRightNode,
-  }) : this._(
-         graph,
-         {GraphEventType.positionalNodesUpdate},
-         oldTopNode: graph._top,
-         oldLeftNode: graph._left,
-         oldBottomNode: graph._bottom,
-         oldRightNode: graph._right,
-         newTopNode: newTopNode,
-         newLeftNode: newLeftNode,
-         newBottomNode: newBottomNode,
-         newRightNode: newRightNode,
-       );
+  GraphEvent.newCartesianData(
+    BaseGraph graph,
+    GraphCartesianData newCartesianData,
+  ) : this._(
+        graph,
+        {GraphEventType.cartesianDataUpdate},
+        oldCartesianData: graph._cartesianData,
+        newCartesianData: newCartesianData,
+      );
 
-  GraphEvent.clearPositionalNodes(BaseGraph graph)
+  GraphEvent.clearCartesianData(BaseGraph graph)
     : this._(
         graph,
-        {GraphEventType.positionalNodesUpdate},
-        oldTopNode: graph._top,
-        oldLeftNode: graph._left,
-        oldBottomNode: graph._bottom,
-        oldRightNode: graph._right,
+        {GraphEventType.cartesianDataUpdate},
+        oldCartesianData: graph._cartesianData,
+        newCartesianData: const GraphCartesianData.uninitialised(),
       );
 
   factory GraphEvent.combine(List<GraphEvent> orderedEvents) {
@@ -97,20 +78,13 @@ class GraphEvent extends MutationEvent {
     Set<ItemData> removedOutputs = {};
 
     GraphEvent? oldPositionEvent, newPositionEvent;
-    ProdLineNode? oldTop,
-        oldLeft,
-        oldBottom,
-        oldRight,
-        newTop,
-        newLeft,
-        newBottom,
-        newRight;
+    GraphCartesianData? oldCartesianData, newCartesianData;
 
     for (var event in orderedEvents) {
       mutations.addAll(event.mutations);
       for (var mutation in event.mutations) {
         switch (mutation) {
-          case GraphEventType.positionalNodesUpdate:
+          case GraphEventType.cartesianDataUpdate:
             oldPositionEvent ??= event;
             newPositionEvent = event;
 
@@ -134,14 +108,8 @@ class GraphEvent extends MutationEvent {
     }
 
     if (oldPositionEvent != null) {
-      oldTop = oldPositionEvent.oldTopNode;
-      oldLeft = oldPositionEvent.oldLeftNode;
-      oldBottom = oldPositionEvent.oldBottomNode;
-      oldRight = oldPositionEvent.oldRightNode;
-      newTop = newPositionEvent!.newTopNode;
-      newLeft = newPositionEvent.newLeftNode;
-      newBottom = newPositionEvent.newBottomNode;
-      newRight = newPositionEvent.newRightNode;
+      oldCartesianData = oldPositionEvent.oldCartesianData;
+      newCartesianData = newPositionEvent!.newCartesianData;
     }
 
     _removedWhereBothContain(newNodes, removedNodes);
@@ -152,40 +120,28 @@ class GraphEvent extends MutationEvent {
     return GraphEvent._(
       orderedEvents.first.graph,
       mutations,
-      newNodes: newNodes,
-      newEdges: newEdges,
-      newInputs: newInputs,
-      newOutputs: newOutputs,
-      newTopNode: newTop,
-      newLeftNode: newLeft,
-      newBottomNode: newBottom,
-      newRightNode: newRight,
       removedNodes: removedNodes,
       removedEdges: removedEdges,
       removedInputs: removedInputs,
       removedOutputs: removedOutputs,
-      oldTopNode: oldTop,
-      oldLeftNode: oldLeft,
-      oldBottomNode: oldBottom,
-      oldRightNode: oldRight,
+      oldCartesianData: oldCartesianData,
+      newNodes: newNodes,
+      newEdges: newEdges,
+      newInputs: newInputs,
+      newOutputs: newOutputs,
+      newCartesianData: newCartesianData,
     );
   }
 
   GraphEvent._(
     this.graph,
     Set<GraphEventType> mutations, {
-    this.oldTopNode,
-    this.oldLeftNode,
-    this.oldBottomNode,
-    this.oldRightNode,
+    this.oldCartesianData,
     Set<ProdLineNode> removedNodes = const {},
     Set<DirectedEdge> removedEdges = const {},
     Set<ItemData> removedInputs = const {},
     Set<ItemData> removedOutputs = const {},
-    this.newTopNode,
-    this.newLeftNode,
-    this.newBottomNode,
-    this.newRightNode,
+    this.newCartesianData,
     Set<ProdLineNode> newNodes = const {},
     Set<DirectedEdge> newEdges = const {},
     Set<ItemData> newInputs = const {},
@@ -205,18 +161,12 @@ class GraphEvent extends MutationEvent {
   GraphEvent._reverse(GraphEvent toReverse)
     : graph = toReverse.graph,
       mutations = toReverse.mutations,
-      oldTopNode = toReverse.newTopNode,
-      oldLeftNode = toReverse.newLeftNode,
-      oldBottomNode = toReverse.newBottomNode,
-      oldRightNode = toReverse.newRightNode,
+      oldCartesianData = toReverse.newCartesianData,
       removedNodes = toReverse.newNodes,
       removedEdges = toReverse.newEdges,
       removedInputs = toReverse.newInputs,
       removedOutputs = toReverse.newOutputs,
-      newTopNode = toReverse.oldTopNode,
-      newLeftNode = toReverse.oldLeftNode,
-      newBottomNode = toReverse.oldBottomNode,
-      newRightNode = toReverse.oldRightNode,
+      newCartesianData = toReverse.oldCartesianData,
       newNodes = toReverse.removedNodes,
       newEdges = toReverse.removedEdges,
       newInputs = toReverse.removedInputs,
@@ -226,7 +176,7 @@ class GraphEvent extends MutationEvent {
 }
 
 enum GraphEventType {
-  positionalNodesUpdate,
+  cartesianDataUpdate,
   updateNodes,
   updateEdges,
   updateInput,

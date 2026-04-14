@@ -38,7 +38,7 @@ class DirectedEdge with Stateful<EdgeEvent> {
     required this.edgeType,
   }) : _eventHistory = parentGraph._eventHistory,
        _amount = initialAmount,
-       _cartesianData = EdgeCartesianData.uninitialised,
+       _cartesianData = const EdgeCartesianData.uninitialised(),
        _active = false {
     // TODO - fix up
     // Confirm both parent and child are valid
@@ -135,34 +135,21 @@ enum Relationship {
   const Relationship(this.flowDirection);
 }
 
-class EdgeCartesianData {
+class EdgeCartesianData extends CartesianData {
   final LineType lineType;
   // Goes from parent to child
   final List<Line> lines;
 
-  static const uninitialised = EdgeCartesianData._(LineType.shortestPath, [
-    Line.uninitialised,
-  ]);
-
-  const EdgeCartesianData._(this.lineType, this.lines);
-}
-
-class MutableEdgeCartesianData {
-  LineType _lineType;
-  final List<Line> _lines;
-
-  LineType get lineType => _lineType;
-  late final List<Line> lines = UnmodifiableListView(_lines);
-
-  MutableEdgeCartesianData.from(EdgeCartesianData cartesianData)
-    : _lineType = cartesianData.lineType,
-      _lines = List.from(cartesianData.lines);
+  const EdgeCartesianData.uninitialised()
+    : lineType = LineType.shortestPath,
+      lines = const [Line.uninitialised()],
+      super(Rect.zero);
 }
 
 class Line {
   final Offset start, end;
 
-  static const uninitialised = Line(Offset.zero, Offset.zero);
-
   const Line(this.start, this.end);
+
+  const Line.uninitialised() : this(Offset.zero, Offset.zero);
 }

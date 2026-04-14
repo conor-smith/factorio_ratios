@@ -49,11 +49,7 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   ItemIo? _requirements;
   ItemIo? _totalIoPerSecond;
 
-  // Used to build smallest rectangle possible containing all objects
-  ProdLineNode? _top, _left, _bottom, _right;
-
-  /* ------------ Calculated fields ------------ */
-  Rect _rect = Rect.zero;
+  GraphCartesianData _cartesianData;
 
   /* ---------------- Accessors ---------------- */
   late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
@@ -74,15 +70,15 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   @override
   String get type => 'graph';
 
-  Rect get rect => _rect;
-
   /* --------------- Constructors --------------- */
   BaseGraph.root({this.surface})
     : _parentNode = null,
-      _eventHistory = _EventHistory(_maxSavedEvents);
+      _eventHistory = _EventHistory(_maxSavedEvents),
+      _cartesianData = const GraphCartesianData.uninitialised();
 
   BaseGraph._addToTree({this.surface, required _EventHistory eventHistory})
-    : _eventHistory = eventHistory;
+    : _eventHistory = eventHistory,
+      _cartesianData = GraphCartesianData.uninitialised();
 
   /* ------------- Stateful methods ------------- */
   @override
@@ -107,22 +103,9 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
 
     for (var mutationType in event.mutations) {
       switch (mutationType) {
-        case GraphEventType.positionalNodesUpdate:
-          _top = event.newTopNode;
-          _left = event.newLeftNode;
-          _bottom = event.newBottomNode;
-          _right = event.newRightNode;
-
-          if (_top != null) {
-            _rect = Rect.fromLTRB(
-              _left!.rect.left,
-              _top!.rect.top,
-              _left!.rect.left,
-              _bottom!.rect.bottom,
-            );
-          } else {
-            _rect = Rect.zero;
-          }
+        case GraphEventType.cartesianDataUpdate:
+          //TODO
+          break;
 
         case GraphEventType.updateNodes:
           _nodes.removeAll(event.removedNodes);
@@ -383,17 +366,9 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   // Scans all nodes for new ones
   void _redoPositionalNodes() {
     if (_nodes.isEmpty) {
-      apply(GraphEvent.clearPositionalNodes(this));
+      apply(GraphEvent.clearCartesianData(this));
     } else {
-      apply(
-        GraphEvent.newPositionalNodes(
-          this,
-          newTopNode: _findNewMaxNode(ProdLineNode.topMostNode),
-          newLeftNode: _findNewMaxNode(ProdLineNode.leftMostNode),
-          newBottomNode: _findNewMaxNode(ProdLineNode.bottomMostNode),
-          newRightNode: _findNewMaxNode(ProdLineNode.rightMostNode),
-        ),
-      );
+      // TODO
     }
   }
 
@@ -451,4 +426,29 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
       return existingHeight;
     }
   }
+}
+
+class GraphCartesianData extends CartesianData {
+  final CartesianData? top, left, bottom, right;
+
+  GraphCartesianData.fromLTRB(
+    CartesianData this.left,
+    CartesianData this.top,
+    CartesianData this.right,
+    CartesianData this.bottom,
+  ) : super(
+        Rect.fromLTRB(
+          left.minimalRect.left,
+          top.minimalRect.top,
+          right.minimalRect.right,
+          bottom.minimalRect.bottom,
+        ),
+      );
+
+  const GraphCartesianData.uninitialised()
+    : top = null,
+      left = null,
+      bottom = null,
+      right = null,
+      super(Rect.zero);
 }

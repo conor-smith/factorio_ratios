@@ -23,6 +23,21 @@ class GraphException implements Exception {
   String toString() => 'GraphException: $message';
 }
 
+abstract class CartesianData {
+  final Rect minimalRect;
+
+  const CartesianData(this.minimalRect);
+
+  static int topMost(CartesianData data1, CartesianData data2) =>
+      -data1.minimalRect.top.compareTo(data2.minimalRect.top);
+  static int leftMost(CartesianData data1, CartesianData data2) =>
+      -data1.minimalRect.left.compareTo(data2.minimalRect.left);
+  static int bottomMost(CartesianData data1, CartesianData data2) =>
+      data1.minimalRect.bottom.compareTo(data2.minimalRect.bottom);
+  static int rightMost(CartesianData data1, CartesianData data2) =>
+      data1.minimalRect.right.compareTo(data2.minimalRect.right);
+}
+
 void _removedWhereBothContain(Set set1, Set set2) {
   for (var item in List.from(set1)) {
     if (set2.contains(item)) {

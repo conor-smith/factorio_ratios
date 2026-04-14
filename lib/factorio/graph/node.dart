@@ -32,7 +32,7 @@ class ProdLineNode with Stateful<NodeEvent> {
   NodeType get nodeType => _nodeType;
 
   NodeCartesianData get cartesianData => _cartesianData;
-  Rect get rect => _cartesianData.rect;
+  Rect get rect => _cartesianData.minimalRect;
 
   // Accessors for production line
   Set<ItemData> get allOutputs => _line.allOutputs;
@@ -53,7 +53,7 @@ class ProdLineNode with Stateful<NodeEvent> {
   }) : _eventHistory = parentGraph._eventHistory,
        _nodeType = type,
        _line = line,
-       _cartesianData = NodeCartesianData.uninitialised,
+       _cartesianData = const NodeCartesianData.uninitialised(),
        _active = false {
     if (!_verifyNodeTypeAndLine(type, line)) {
       throw FactorioException(
@@ -153,15 +153,6 @@ class ProdLineNode with Stateful<NodeEvent> {
   void updatePosition(Rect newRect) {
     // TODO
   }
-
-  static int topMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      -node1.rect.top.compareTo(node2.rect.top);
-  static int leftMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      -node1.rect.left.compareTo(node2.rect.left);
-  static int bottomMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      node1.cartesianData.rect.bottom.compareTo(node2.rect.bottom);
-  static int rightMostNode(ProdLineNode node1, ProdLineNode node2) =>
-      node1.rect.right.compareTo(node2.rect.right);
 }
 
 enum NodeType {
@@ -194,18 +185,8 @@ enum NodeType {
       };
 }
 
-class NodeCartesianData {
-  final Rect rect;
+class NodeCartesianData extends CartesianData {
+  const NodeCartesianData(super.minimalRect);
 
-  const NodeCartesianData._(this.rect);
-
-  static const uninitialised = NodeCartesianData._(Rect.zero);
-}
-
-class MutableNodeCartesianData {
-  Rect _rect;
-
-  Rect get rect => _rect;
-
-  MutableNodeCartesianData.from(NodeCartesianData data) : _rect = data.rect;
+  const NodeCartesianData.uninitialised() : this(Rect.zero);
 }
