@@ -158,6 +158,36 @@ class EdgeCartesianData extends CartesianData {
       super(Rect.fromPoints(line.start, line.end));
 }
 
+class _MutableEdgeCartesianData implements EdgeCartesianData {
+  final DirectedEdge edge;
+
+  @override
+  final Rect minimalRect;
+  @override
+  final LineType lineType;
+
+  final List<Line> _lines;
+  @override
+  late final List<Line> lines = UnmodifiableListView(_lines);
+
+  _MutableEdgeCartesianData.from(this.edge)
+    : minimalRect = edge._cartesianData.minimalRect,
+      lineType = edge.lineType,
+      _lines = List.from(edge.lines);
+
+  void parentUpdate(NodeCartesianData parent) {
+    // TODO
+  }
+
+  void childUpdate(NodeCartesianData child) {
+    // TODO
+  }
+
+  void dragWholeEdge(Offset shift) {
+    // TODO
+  }
+}
+
 class Line {
   final Offset start, end;
 

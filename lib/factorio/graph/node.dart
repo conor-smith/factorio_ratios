@@ -185,3 +185,32 @@ class NodeCartesianData extends CartesianData {
 
   const NodeCartesianData.uninitialised() : this(Rect.zero);
 }
+
+class _MutableNodeCartesianData implements NodeCartesianData {
+  final ProdLineNode node;
+
+  @override
+  Rect minimalRect;
+
+  final List<_MutableEdgeCartesianData> affectedParents;
+  final List<_MutableEdgeCartesianData> affectedChildren;
+
+  _MutableNodeCartesianData.from(
+    this.node,
+    this.affectedParents,
+    this.affectedChildren,
+  ) : minimalRect = node.rect;
+
+  void drag(Offset shift) {
+    // TODO
+  }
+
+  void transform({
+    double topOffset = 0,
+    double leftOffset = 0,
+    double bottomOffset = 0,
+    double rightOffset = 0,
+  }) {
+    // TODO
+  }
+}
