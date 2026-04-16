@@ -10,8 +10,10 @@ class GraphEvent extends MutationEvent {
   final Set<DirectedEdge> newEdges, removedEdges;
   final Set<ItemData> newInputs, newOutputs, removedInputs, removedOutputs;
 
-  final bool isReversed;
   final GraphEvent? original;
+  @override
+  final bool isReversed;
+  @override
   late final GraphEvent reversed = original ?? GraphEvent._reverse(this);
 
   GraphEvent.newNode(BaseGraph graph, ProdLineNode newNode)

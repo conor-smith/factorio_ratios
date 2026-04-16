@@ -5,9 +5,9 @@
  * a previously existing state
  */
 abstract mixin class Stateful<T extends MutationEvent> {
-  final List<Function(bool isRollback, T update)> _listeners = [];
+  final List<Function(T update)> _listeners = [];
 
-  void addListener(Function(bool isRollback, T event) callback) {
+  void addListener(Function(T event) callback) {
     _listeners.add(callback);
   }
 
@@ -15,9 +15,9 @@ abstract mixin class Stateful<T extends MutationEvent> {
     _listeners.clear();
   }
 
-  void notifyListeners(bool isRollback, T update) {
+  void notifyListeners(T update) {
     for (var callback in _listeners) {
-      callback(isRollback, update);
+      callback(update);
     }
   }
 
@@ -26,7 +26,10 @@ abstract mixin class Stateful<T extends MutationEvent> {
   void rollback(T event);
 }
 
-abstract class MutationEvent {}
+abstract class MutationEvent {
+  bool get isReversed;
+  MutationEvent get reversed;
+}
 
 class MutationException implements Exception {
   final String message;

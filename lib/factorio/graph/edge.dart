@@ -72,13 +72,6 @@ class DirectedEdge with Stateful<EdgeEvent> {
     apply(EdgeEvent.addToGraph(this));
   }
 
-  void removeFromGraph() {
-    parentGraph.apply(GraphEvent.removeEdge(parentGraph, this));
-    parent.apply(NodeEvent.removeChildEdge(parent, this));
-    child.apply(NodeEvent.removeParentEdge(child, this));
-    apply(EdgeEvent.removeFromGraph(this));
-  }
-
   /* ------------- Stateful methods ------------- */
   @override
   void apply(EdgeEvent event) {
@@ -113,11 +106,23 @@ class DirectedEdge with Stateful<EdgeEvent> {
 
         case EdgeEventType.removedFromGraph:
           _active = false;
+
+        case EdgeEventType.tempCartesianData:
+          throw const MutationException(
+            'Cannot apply event of type tempPosition',
+          );
       }
     }
   }
 
   /* ------------- All other logic ------------- */
+  void removeFromGraph() {
+    parentGraph.apply(GraphEvent.removeEdge(parentGraph, this));
+    parent.apply(NodeEvent.removeChildEdge(parent, this));
+    child.apply(NodeEvent.removeParentEdge(child, this));
+    apply(EdgeEvent.removeFromGraph(this));
+  }
+
   void _shortestLineBetweenNodes() {
     apply(
       EdgeEvent.newCartesianData(
@@ -161,30 +166,41 @@ class EdgeCartesianData extends CartesianData {
 class _MutableEdgeCartesianData implements EdgeCartesianData {
   final DirectedEdge edge;
 
+  final NodeCartesianData parentNodeData, childNodeData;
+
   @override
   final Rect minimalRect;
   @override
   final LineType lineType;
 
-  final List<Line> _lines;
+  final List<Line> _baseLines;
+  final List<Line> _transformedLines;
   @override
-  late final List<Line> lines = UnmodifiableListView(_lines);
+  late final List<Line> lines = UnmodifiableListView(_transformedLines);
 
-  _MutableEdgeCartesianData.from(this.edge)
-    : minimalRect = edge._cartesianData.minimalRect,
+  _MutableEdgeCartesianData.from(
+    this.edge,
+    this.parentNodeData,
+    this.childNodeData,
+  ) : minimalRect = edge._cartesianData.minimalRect,
       lineType = edge.lineType,
-      _lines = List.from(edge.lines);
+      _baseLines = edge.lines,
+      _transformedLines = List.from(edge.lines);
 
-  void parentUpdate(NodeCartesianData parent) {
-    // TODO
+  void update() {
+    switch (lineType) {
+      case LineType.shortestPath:
+        _transformedLines[1] = Line.shortest(
+          parentNodeData.minimalRect,
+          childNodeData.minimalRect,
+        );
+    }
   }
 
-  void childUpdate(NodeCartesianData child) {
-    // TODO
-  }
-
-  void dragWholeEdge(Offset shift) {
-    // TODO
+  void shiftAllLines(Offset offset) {
+    for (var i = 0; i < _baseLines.length; i++) {
+      _transformedLines[i] = _baseLines[i].shift(offset);
+    }
   }
 }
 
@@ -192,8 +208,9 @@ class Line {
   final Offset start, end;
 
   const Line(this.start, this.end);
+  Line.shortest(Rect start, Rect end) : this(start.center, end.center);
 
   const Line.uninitialised() : this(Offset.zero, Offset.zero);
 
-  Line.shortest(Rect start, Rect end) : this(start.center, end.center);
+  Line shift(Offset shift) => Line(start + shift, end + shift);
 }

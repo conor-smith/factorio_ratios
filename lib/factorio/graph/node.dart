@@ -4,6 +4,7 @@ class ProdLineNode with Stateful<NodeEvent> {
   static const double defaultWidth = 100,
       defaultHeight = 100,
       defaultOffset = 50,
+      minSideLength = 20,
       connectionOffset = 8;
 
   /* ------------- Immutable fields ------------- */
@@ -125,6 +126,11 @@ class ProdLineNode with Stateful<NodeEvent> {
 
         case NodeEventType.removedFromGraph:
           _active = false;
+
+        case NodeEventType.tempPosition:
+          throw const MutationException(
+            'Cannot apply event of type tempPosition',
+          );
       }
     }
   }
@@ -137,6 +143,11 @@ class ProdLineNode with Stateful<NodeEvent> {
     }
     apply(NodeEvent.removeFromGraph(this));
   }
+
+  List<DirectedEdge> findRelationships(ProdLineNode other) => parentOf
+      .where((childEdge) => childEdge.child == other)
+      .followedBy(_childOf.where((parentEdge) => parentEdge.parent == other))
+      .toList();
 
   bool _verifyNodeTypeAndLine(
     NodeType nodeType,
@@ -189,28 +200,30 @@ class NodeCartesianData extends CartesianData {
 class _MutableNodeCartesianData implements NodeCartesianData {
   final ProdLineNode node;
 
+  final Rect baseRect;
+
   @override
   Rect minimalRect;
 
-  final List<_MutableEdgeCartesianData> affectedParents;
-  final List<_MutableEdgeCartesianData> affectedChildren;
+  _MutableNodeCartesianData.from(this.node, {Rect? baseRect})
+    : baseRect = baseRect ?? node.rect,
+      minimalRect = baseRect ?? node.rect;
 
-  _MutableNodeCartesianData.from(
-    this.node,
-    this.affectedParents,
-    this.affectedChildren,
-  ) : minimalRect = node.rect;
-
-  void drag(Offset shift) {
-    // TODO
+  void shift(Offset offset) {
+    minimalRect = baseRect.shift(offset);
   }
 
-  void transform({
-    double topOffset = 0,
-    double leftOffset = 0,
-    double bottomOffset = 0,
-    double rightOffset = 0,
-  }) {
-    // TODO
+  void resize(
+    double leftOffset,
+    double topOffset,
+    double rightOffset,
+    double bottomOffset,
+  ) {
+    minimalRect = Rect.fromLTRB(
+      baseRect.left + leftOffset,
+      baseRect.top + topOffset,
+      baseRect.right + rightOffset,
+      baseRect.bottom + bottomOffset,
+    );
   }
 }

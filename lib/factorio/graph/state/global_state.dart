@@ -158,7 +158,8 @@ class _UpdateEvent {
 
   void notifyListeners(bool isRollback) {
     events.forEach(
-      (mutateable, event) => mutateable.notifyListeners(isRollback, event),
+      (mutable, event) =>
+          mutable.notifyListeners(isRollback ? event.reversed : event),
     );
   }
 }

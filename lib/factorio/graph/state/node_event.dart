@@ -14,8 +14,10 @@ class NodeEvent extends MutationEvent {
       removedChildOf,
       removedParentOf;
 
-  final bool isReversed;
   final NodeEvent? original;
+  @override
+  final bool isReversed;
+  @override
   late final NodeEvent reversed = original ?? NodeEvent._reverse(this);
 
   NodeEvent.addToGraph(ProdLineNode node)
@@ -85,6 +87,9 @@ class NodeEvent extends MutationEvent {
         removedChildOf: {removedParentEdge},
       );
 
+  NodeEvent.tempPosition(ProdLineNode node, NodeCartesianData tempData)
+    : this._(node, {NodeEventType.tempPosition}, newCartesianData: tempData);
+
   factory NodeEvent.combine(List<NodeEvent> orderedEvents) {
     Set<NodeEventType> mutations = {};
 
@@ -136,6 +141,11 @@ class NodeEvent extends MutationEvent {
           case NodeEventType.addedToGraph:
           case NodeEventType.removedFromGraph:
             break;
+
+          case NodeEventType.tempPosition:
+            throw const GraphException(
+              'Cannot combine temp position node event',
+            );
         }
       }
     }
@@ -237,6 +247,7 @@ class NodeEvent extends MutationEvent {
 
 enum NodeEventType {
   newPosition,
+  tempPosition,
   newRequirements,
   newNodeType,
   newProductionLine,
@@ -247,6 +258,7 @@ enum NodeEventType {
 
   NodeEventType get reverse => switch (this) {
     newPosition => newPosition,
+    tempPosition => tempPosition,
     newRequirements => newRequirements,
     newNodeType => newNodeType,
     newProductionLine => newProductionLine,

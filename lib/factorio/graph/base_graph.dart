@@ -51,6 +51,20 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
 
   GraphCartesianData _cartesianData;
 
+  /* ----------- Cartesian Operation ----------- */
+  _CartesianOperation? _cartOp;
+  void _throwIfNoCartOp() {
+    if (_cartOp == null) {
+      throw const GraphException('No cartesian operation taking place');
+    }
+  }
+
+  void _throwIfCartOp() {
+    if (_cartOp != null) {
+      throw const GraphException('Cartesian operation currently taking place');
+    }
+  }
+
   /* ---------------- Accessors ---------------- */
   late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
   late final List<DirectedEdge> edges = UnmodifiableListView(_edges);
@@ -123,6 +137,30 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
           allOutputs.addAll(event.newOutputs);
       }
     }
+  }
+
+  /* ----------- Cartesian Operations ----------- */
+  void beginDrag(List<ProdLineNode> nodes, List<DirectedEdge> edges) {
+    _throwIfCartOp();
+
+    _cartOp = _CartesianOperation.dragOperation(
+      Set.from(nodes),
+      Set.from(edges),
+    );
+  }
+
+  void beginResize(
+    List<ProdLineNode> nodes,
+    ProdLineNode selectedNode,
+    RectPoint selectedPoint,
+  ) {
+    _throwIfCartOp();
+
+    _cartOp = _CartesianOperation.resizeOperation(
+      nodes,
+      selectedNode,
+      selectedPoint,
+    );
   }
 
   /* ------------- All other logic ------------- */
@@ -479,4 +517,177 @@ class GraphCartesianData extends CartesianData {
       bottom = null,
       right = null,
       super(Rect.zero);
+}
+
+class _CartesianOperation {
+  // All of these elements are affected by drag operations
+  final List<_MutableNodeCartesianData> nodeCartesianData;
+  final List<_MutableEdgeCartesianData> edgeCartesianData;
+
+  // These elements are only affected their connected nodes
+  final List<_MutableEdgeCartesianData> affectedEdgeCartesianData;
+
+  final bool isDragOperation;
+
+  factory _CartesianOperation.dragOperation(
+    Set<ProdLineNode> nodes,
+    Set<DirectedEdge> edges,
+  ) {
+    Map<ProdLineNode, _MutableNodeCartesianData> nodeData = {};
+    Set<DirectedEdge> affectedEdges = {};
+
+    for (var node in nodes) {
+      nodeData[node] = _MutableNodeCartesianData.from(node);
+      affectedEdges.addAll([...node.parentOf, ...node.childOf]);
+    }
+
+    affectedEdges.removeAll(edges);
+    var affectedEdgeData = buildEdgeData(affectedEdges, nodeData);
+    var edgeData = buildEdgeData(edges, nodeData);
+
+    return _CartesianOperation._(
+      nodeData.values.toList(),
+      edgeData,
+      affectedEdgeData,
+      true,
+    );
+  }
+
+  factory _CartesianOperation.resizeOperation(
+    Set<ProdLineNode> nodes,
+    ProdLineNode selectedNode,
+    RectPoint selectedPoint,
+  ) {
+    Map<ProdLineNode, _MutableNodeCartesianData> nodeData = {};
+    Set<DirectedEdge> affectedEdges = {};
+    var opposite = selectedPoint.opposite;
+
+    for (var node in nodes) {
+      if (node == selectedNode) {
+        nodeData[node] = _MutableNodeCartesianData.from(node);
+      } else {
+        var offset =
+            opposite.getPoint(node.rect) - opposite.getPoint(selectedNode.rect);
+        var newBaseRect = selectedNode.rect.shift(offset);
+        nodeData[node] = _MutableNodeCartesianData.from(
+          node,
+          baseRect: newBaseRect,
+        );
+      }
+      affectedEdges.addAll([...node.parentOf, ...node.childOf]);
+    }
+
+    var affectedEdgeData = buildEdgeData(affectedEdges, nodeData);
+
+    return _CartesianOperation._(
+      nodeData.values.toList(),
+      const [],
+      affectedEdgeData,
+      false,
+    );
+  }
+
+  _CartesianOperation._(
+    this.nodeCartesianData,
+    this.edgeCartesianData,
+    this.affectedEdgeCartesianData,
+    this.isDragOperation,
+  );
+
+  static List<_MutableEdgeCartesianData> buildEdgeData(
+    Iterable<DirectedEdge> edges,
+    Map<ProdLineNode, _MutableNodeCartesianData> nodeData,
+  ) => edges
+      .map(
+        (edge) => _MutableEdgeCartesianData.from(
+          edge,
+          nodeData[edge.parent] ?? edge.parent.cartesianData,
+          nodeData[edge.child] ?? edge.child.cartesianData,
+        ),
+      )
+      .toList();
+
+  void drag(Offset offset) {
+    if (!isDragOperation) {
+      throw const GraphException(
+        'Current cartesian operation is not a drag operation',
+      );
+    }
+
+    for (var nodeData in nodeCartesianData) {
+      nodeData.shift(offset);
+    }
+
+    for (var edgeData in edgeCartesianData) {
+      edgeData.shiftAllLines(offset);
+    }
+
+    for (var edgeData in affectedEdgeCartesianData) {
+      edgeData.update();
+    }
+  }
+
+  void resizeNodes(
+    double topOffset,
+    double leftOffset,
+    double bottomOffset,
+    double rightOffset,
+  ) {
+    for (var nodeData in nodeCartesianData) {
+      nodeData.resize(leftOffset, topOffset, rightOffset, bottomOffset);
+    }
+
+    for (var edgeData in affectedEdgeCartesianData) {
+      edgeData.update();
+    }
+  }
+
+  void _updateAll() {
+    for (var nodeData in nodeCartesianData) {
+      nodeData.node.notifyListeners(
+        NodeEvent.tempPosition(nodeData.node, nodeData),
+      );
+    }
+
+    for (var edgeData in edgeCartesianData.followedBy(
+      affectedEdgeCartesianData,
+    )) {
+      edgeData.edge.notifyListeners(
+        EdgeEvent.tempCartesianData(edgeData.edge, edgeData),
+      );
+    }
+  }
+}
+
+enum RectPoint {
+  topLeft,
+  top,
+  topRight,
+  right,
+  bottomRight,
+  bottom,
+  bottomLeft,
+  left;
+
+  Offset getPoint(Rect rect) => switch (this) {
+    topLeft => rect.topLeft,
+    top => rect.topCenter,
+    topRight => rect.topRight,
+    right => rect.centerRight,
+    bottomRight => rect.bottomRight,
+    bottom => rect.bottomCenter,
+    bottomLeft => rect.bottomLeft,
+    left => rect.centerLeft,
+  };
+
+  RectPoint get opposite => switch (this) {
+    topLeft => bottomRight,
+    top => bottom,
+    topRight => bottomLeft,
+    right => left,
+    bottomRight => topLeft,
+    bottom => top,
+    bottomLeft => topRight,
+    left => right,
+  };
 }

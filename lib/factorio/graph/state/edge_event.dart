@@ -9,8 +9,10 @@ class EdgeEvent extends MutationEvent {
 
   final EdgeCartesianData? oldCartesianData, newCartesianData;
 
-  final bool isReversed;
   final EdgeEvent? original;
+  @override
+  final bool isReversed;
+  @override
   late final EdgeEvent reversed = original ?? EdgeEvent._reverse(this);
 
   EdgeEvent.addToGraph(DirectedEdge edge)
@@ -36,6 +38,13 @@ class EdgeEvent extends MutationEvent {
         oldCartesianData: edge.cartesianData,
         newCartesianData: newCartesianData,
       );
+
+  EdgeEvent.tempCartesianData(
+    DirectedEdge edge,
+    EdgeCartesianData tempCartesianData,
+  ) : this._(edge, {
+        EdgeEventType.tempCartesianData,
+      }, newCartesianData: tempCartesianData);
 
   EdgeEvent.clearAmount(DirectedEdge edge)
     : this._(edge, {EdgeEventType.newAmount}, oldAmount: edge.amount);
@@ -64,6 +73,11 @@ class EdgeEvent extends MutationEvent {
           case EdgeEventType.addedToGraph:
           case EdgeEventType.removedFromGraph:
             break;
+
+          case EdgeEventType.tempCartesianData:
+            throw const GraphException(
+              'Cannot combine edge temp position event',
+            );
         }
       }
     }
@@ -119,12 +133,14 @@ class EdgeEvent extends MutationEvent {
 enum EdgeEventType {
   newAmount,
   newCartesianData,
+  tempCartesianData,
   addedToGraph,
   removedFromGraph;
 
   EdgeEventType get reverse => switch (this) {
     newAmount => newAmount,
     newCartesianData => newCartesianData,
+    tempCartesianData => tempCartesianData,
     addedToGraph => removedFromGraph,
     removedFromGraph => addedToGraph,
   };
