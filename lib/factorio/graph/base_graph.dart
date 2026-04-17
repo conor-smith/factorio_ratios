@@ -53,17 +53,6 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
 
   /* ----------- Cartesian Operation ----------- */
   _CartesianOperation? _cartOp;
-  void _throwIfNoCartOp() {
-    if (_cartOp == null) {
-      throw const GraphException('No cartesian operation taking place');
-    }
-  }
-
-  void _throwIfCartOp() {
-    if (_cartOp != null) {
-      throw const GraphException('Cartesian operation currently taking place');
-    }
-  }
 
   /* ---------------- Accessors ---------------- */
   late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
@@ -83,6 +72,10 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   bool get immutableIo => false;
   @override
   String get type => 'graph';
+
+  Iterable<CartesianData> get allCartesianData => _nodes
+      .map<CartesianData>((node) => node.cartesianData)
+      .followedBy(_edges.map((edge) => edge.cartesianData));
 
   /* --------------- Constructors --------------- */
   BaseGraph.root({this.surface})
@@ -140,7 +133,19 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   }
 
   /* ----------- Cartesian Operations ----------- */
-  void beginDrag(List<ProdLineNode> nodes, List<DirectedEdge> edges) {
+  void _throwIfNoCartOp() {
+    if (_cartOp == null) {
+      throw const GraphException('No cartesian operation taking place');
+    }
+  }
+
+  void _throwIfCartOp() {
+    if (_cartOp != null) {
+      throw const GraphException('Cartesian operation currently taking place');
+    }
+  }
+
+  void beginMultiNodeDrag(List<ProdLineNode> nodes, List<DirectedEdge> edges) {
     _throwIfCartOp();
 
     _cartOp = _CartesianOperation.dragOperation(
@@ -149,7 +154,7 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
     );
   }
 
-  void beginResize(
+  void beginMultiNodeResize(
     List<ProdLineNode> nodes,
     ProdLineNode selectedNode,
     RectPoint selectedPoint,
@@ -157,10 +162,134 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
     _throwIfCartOp();
 
     _cartOp = _CartesianOperation.resizeOperation(
-      nodes,
+      Set.from(nodes),
       selectedNode,
       selectedPoint,
     );
+  }
+
+  void _cancelCartOp() {
+    _throwIfNoCartOp();
+
+    _cartOp!.notifyAllListeners(cancel: true);
+    _cartOp = null;
+  }
+
+  void _finishCartOp() {
+    _throwIfNoCartOp();
+
+    _eventHistory.mutate(() {
+      var nodeEvents = _cartOp!.nodeCartesianData
+          .map((data) => NodeEvent.updatePosition(data.node, data.finish()))
+          .toList();
+
+      var edgeEvents = _cartOp!.edgeCartesianData
+          .followedBy(_cartOp!.affectedEdgeCartesianData)
+          .map((data) => EdgeEvent.newCartesianData(data.edge, data.finish()));
+
+      Map<CartesianData, CartesianData> oldVsNew = {};
+      for (var nodeEvent in nodeEvents) {
+        nodeEvent.node.apply(nodeEvent);
+        oldVsNew[nodeEvent.oldCartesianData!] = nodeEvent.newCartesianData!;
+      }
+      for (var edgeEvent in edgeEvents) {
+        edgeEvent.edge.apply(edgeEvent);
+        oldVsNew[edgeEvent.oldCartesianData!] = edgeEvent.newCartesianData!;
+      }
+
+      CartesianData? left = _getNewPositionalRect(
+            _cartesianData.left!,
+            oldVsNew,
+            CartesianData.leftMost,
+          ),
+          top = _getNewPositionalRect(
+            _cartesianData.top!,
+            oldVsNew,
+            CartesianData.topMost,
+          ),
+          right = _getNewPositionalRect(
+            _cartesianData.right!,
+            oldVsNew,
+            CartesianData.rightMost,
+          ),
+          bottom = _getNewPositionalRect(
+            _cartesianData.bottom!,
+            oldVsNew,
+            CartesianData.bottomMost,
+          );
+
+      if (left != null || top != null || right != null || bottom != null) {
+        apply(
+          GraphEvent.newCartesianData(
+            this,
+            GraphCartesianData.fromLTRB(
+              left ?? _cartesianData.left!,
+              top ?? _cartesianData.top!,
+              right ?? _cartesianData.top!,
+              bottom ?? _cartesianData.bottom!,
+            ),
+          ),
+        );
+      }
+
+      _cartOp = null;
+    });
+  }
+
+  // TODO - Naming here is terrible. Rename it soon
+  CartesianData? _getNewPositionalRect(
+    CartesianData oldPositionalRect,
+    Map<CartesianData, CartesianData> oldVsNew,
+    Comparator<CartesianData> comparator,
+  ) {
+    if (oldVsNew.containsKey(oldPositionalRect)) {
+      var allData = allCartesianData;
+      var newMax = allCartesianData.first;
+
+      for (var data in allCartesianData) {
+        if (comparator(data, newMax) > 0) {
+          newMax = data;
+        }
+
+        return newMax;
+      }
+    } else {
+      for (var data in oldVsNew.values) {
+        if (comparator(data, oldPositionalRect) > 0) {
+          return data;
+        }
+      }
+
+      return null;
+    }
+  }
+
+  // Assumes all positional data objects are invalid
+  // Scans all nodes and edge objects for new ones
+  void _redoGraphCartesianData() {
+    if (_nodes.isEmpty) {
+      apply(GraphEvent.clearCartesianData(this));
+    } else {
+      var allCartesianData = _nodes
+          .map<CartesianData>((node) => node._cartesianData)
+          .followedBy(_edges.map((edge) => edge._cartesianData))
+          .toList();
+
+      CartesianData top = _findNewMaxNode(
+            CartesianData.topMost,
+            allCartesianData,
+          ),
+          left = _findNewMaxNode(CartesianData.leftMost, allCartesianData),
+          bottom = _findNewMaxNode(CartesianData.bottomMost, allCartesianData),
+          right = _findNewMaxNode(CartesianData.rightMost, allCartesianData);
+
+      apply(
+        GraphEvent.newCartesianData(
+          this,
+          GraphCartesianData.fromLTRB(left, top, right, bottom),
+        ),
+      );
+    }
   }
 
   /* ------------- All other logic ------------- */
@@ -223,7 +352,7 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
         edge._shortestLineBetweenNodes();
       }
 
-      _redoPositionalNodes();
+      _redoGraphCartesianData();
     });
   }
 
@@ -406,34 +535,6 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
     heightMap.forEach((node, height) => flippedMap[height].add(node));
 
     return flippedMap;
-  }
-
-  // Assumes all positional nodes are invalid
-  // Scans all nodes for new ones
-  void _redoPositionalNodes() {
-    if (_nodes.isEmpty) {
-      apply(GraphEvent.clearCartesianData(this));
-    } else {
-      var allCartesianData = _nodes
-          .map<CartesianData>((node) => node._cartesianData)
-          .followedBy(_edges.map((edge) => edge._cartesianData))
-          .toList();
-
-      CartesianData top = _findNewMaxNode(
-            CartesianData.topMost,
-            allCartesianData,
-          ),
-          left = _findNewMaxNode(CartesianData.leftMost, allCartesianData),
-          bottom = _findNewMaxNode(CartesianData.bottomMost, allCartesianData),
-          right = _findNewMaxNode(CartesianData.rightMost, allCartesianData);
-
-      apply(
-        GraphEvent.newCartesianData(
-          this,
-          GraphCartesianData.fromLTRB(left, top, right, bottom),
-        ),
-      );
-    }
   }
 
   CartesianData _findNewMaxNode(
@@ -625,13 +726,15 @@ class _CartesianOperation {
     for (var edgeData in affectedEdgeCartesianData) {
       edgeData.update();
     }
+
+    notifyAllListeners();
   }
 
   void resizeNodes(
-    double topOffset,
     double leftOffset,
-    double bottomOffset,
+    double topOffset,
     double rightOffset,
+    double bottomOffset,
   ) {
     for (var nodeData in nodeCartesianData) {
       nodeData.resize(leftOffset, topOffset, rightOffset, bottomOffset);
@@ -640,12 +743,17 @@ class _CartesianOperation {
     for (var edgeData in affectedEdgeCartesianData) {
       edgeData.update();
     }
+
+    notifyAllListeners();
   }
 
-  void _updateAll() {
+  void notifyAllListeners({bool cancel = false}) {
     for (var nodeData in nodeCartesianData) {
       nodeData.node.notifyListeners(
-        NodeEvent.tempPosition(nodeData.node, nodeData),
+        NodeEvent.tempPosition(
+          nodeData.node,
+          cancel ? nodeData.node.cartesianData : nodeData,
+        ),
       );
     }
 
@@ -653,7 +761,10 @@ class _CartesianOperation {
       affectedEdgeCartesianData,
     )) {
       edgeData.edge.notifyListeners(
-        EdgeEvent.tempCartesianData(edgeData.edge, edgeData),
+        EdgeEvent.tempCartesianData(
+          edgeData.edge,
+          cancel ? edgeData.edge.cartesianData : edgeData,
+        ),
       );
     }
   }

@@ -202,6 +202,10 @@ class _MutableEdgeCartesianData implements EdgeCartesianData {
       _transformedLines[i] = _baseLines[i].shift(offset);
     }
   }
+
+  EdgeCartesianData finish() => switch (lineType) {
+    LineType.shortestPath => EdgeCartesianData.shortestPath(_baseLines[0]),
+  };
 }
 
 class Line {

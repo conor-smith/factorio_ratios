@@ -135,6 +135,37 @@ class ProdLineNode with Stateful<NodeEvent> {
     }
   }
 
+  /* ----------- Cartesian Operations ----------- */
+  void beginDragging() {
+    parentGraph.beginMultiNodeDrag([this], const []);
+  }
+
+  void beginResize(RectPoint selectedPoint) {
+    parentGraph.beginMultiNodeResize([this], this, selectedPoint);
+  }
+
+  void drag(Offset offset) {
+    parentGraph._throwIfNoCartOp();
+    parentGraph._cartOp!.drag(offset);
+  }
+
+  void resize({
+    double leftOffset = 0,
+    double topOffset = 0,
+    double rightOffset = 0,
+    double bottomOffset = 0,
+  }) {
+    parentGraph._throwIfNoCartOp();
+    parentGraph._cartOp!.resizeNodes(
+      leftOffset,
+      topOffset,
+      rightOffset,
+      bottomOffset,
+    );
+  }
+
+  void finishDragOrResize() {}
+
   /* ------------- All other logic ------------- */
   void removeFromGraph() {
     parentGraph.apply(GraphEvent.removeNode(parentGraph, this));
@@ -225,5 +256,9 @@ class _MutableNodeCartesianData implements NodeCartesianData {
       baseRect.right + rightOffset,
       baseRect.bottom + bottomOffset,
     );
+  }
+
+  NodeCartesianData finish() {
+    return NodeCartesianData(minimalRect);
   }
 }
