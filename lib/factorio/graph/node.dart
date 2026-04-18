@@ -19,7 +19,7 @@ class ProdLineNode with Stateful<NodeEvent> {
 
   ProductionLine _line;
 
-  NodeCartesianData _cartesianData;
+  NodeGeometry _geometry;
 
   // Edges that this node is a parent of
   final Set<DirectedEdge> _parentOf = {};
@@ -32,8 +32,8 @@ class ProdLineNode with Stateful<NodeEvent> {
 
   NodeType get nodeType => _nodeType;
 
-  NodeCartesianData get cartesianData => _cartesianData;
-  Rect get rect => _cartesianData.minimalRect;
+  NodeGeometry get geometry => _geometry;
+  Rect get rect => _geometry.minimalRect;
 
   // Accessors for production line
   Set<ItemData> get allOutputs => _line.allOutputs;
@@ -54,7 +54,7 @@ class ProdLineNode with Stateful<NodeEvent> {
   }) : _eventHistory = parentGraph._eventHistory,
        _nodeType = type,
        _line = line,
-       _cartesianData = const NodeCartesianData.uninitialised(),
+       _geometry = const NodeGeometry.uninitialised(),
        _active = false {
     if (!_verifyNodeTypeAndLine(type, line)) {
       throw FactorioException(
@@ -93,8 +93,8 @@ class ProdLineNode with Stateful<NodeEvent> {
 
     for (var mutationEvent in event.mutations) {
       switch (mutationEvent) {
-        case NodeEventType.newPosition:
-          _cartesianData = event.newCartesianData!;
+        case NodeEventType.updateGeometry:
+          _geometry = event.newGeometry!;
 
         case NodeEventType.newRequirements:
           if (event.newRequirements == null) {
@@ -127,15 +127,15 @@ class ProdLineNode with Stateful<NodeEvent> {
         case NodeEventType.removedFromGraph:
           _active = false;
 
-        case NodeEventType.tempPosition:
+        case NodeEventType.tempGeometry:
           throw const MutationException(
-            'Cannot apply event of type tempPosition',
+            'Cannot apply event of type tempGeometry',
           );
       }
     }
   }
 
-  /* ----------- Cartesian Operations ----------- */
+  /* ----------- Geometry Operations ----------- */
   void beginDragging() {
     parentGraph.beginMultiNodeDrag([this], const []);
   }
@@ -145,8 +145,8 @@ class ProdLineNode with Stateful<NodeEvent> {
   }
 
   void drag(Offset offset) {
-    parentGraph._throwIfNoCartOp();
-    parentGraph._cartOp!.drag(offset);
+    parentGraph._throwIfNoGeometricOp();
+    parentGraph._geometryOperation!.drag(offset);
   }
 
   void resize({
@@ -155,8 +155,8 @@ class ProdLineNode with Stateful<NodeEvent> {
     double rightOffset = 0,
     double bottomOffset = 0,
   }) {
-    parentGraph._throwIfNoCartOp();
-    parentGraph._cartOp!.resizeNodes(
+    parentGraph._throwIfNoGeometricOp();
+    parentGraph._geometryOperation!.resizeNodes(
       leftOffset,
       topOffset,
       rightOffset,
@@ -220,45 +220,4 @@ enum NodeType {
         output => false,
         productionLine => false,
       };
-}
-
-class NodeCartesianData extends CartesianData {
-  const NodeCartesianData(super.minimalRect);
-
-  const NodeCartesianData.uninitialised() : this(Rect.zero);
-}
-
-class _MutableNodeCartesianData implements NodeCartesianData {
-  final ProdLineNode node;
-
-  final Rect baseRect;
-
-  @override
-  Rect minimalRect;
-
-  _MutableNodeCartesianData.from(this.node, {Rect? baseRect})
-    : baseRect = baseRect ?? node.rect,
-      minimalRect = baseRect ?? node.rect;
-
-  void shift(Offset offset) {
-    minimalRect = baseRect.shift(offset);
-  }
-
-  void resize(
-    double leftOffset,
-    double topOffset,
-    double rightOffset,
-    double bottomOffset,
-  ) {
-    minimalRect = Rect.fromLTRB(
-      baseRect.left + leftOffset,
-      baseRect.top + topOffset,
-      baseRect.right + rightOffset,
-      baseRect.bottom + bottomOffset,
-    );
-  }
-
-  NodeCartesianData finish() {
-    return NodeCartesianData(minimalRect);
-  }
 }

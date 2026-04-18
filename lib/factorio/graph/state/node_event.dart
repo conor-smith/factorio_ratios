@@ -5,7 +5,7 @@ class NodeEvent extends MutationEvent {
 
   final Set<NodeEventType> mutations;
 
-  final NodeCartesianData? oldCartesianData, newCartesianData;
+  final NodeGeometry? oldGeometry, newGeometry;
   final ItemIo? oldRequirements, newRequirements;
   final NodeType? oldNodeType, newNodeType;
   final ProductionLine? oldProductionLine, newProductionLine;
@@ -26,14 +26,12 @@ class NodeEvent extends MutationEvent {
   NodeEvent.removeFromGraph(ProdLineNode node)
     : this._(node, {NodeEventType.removedFromGraph});
 
-  NodeEvent.updatePosition(
-    ProdLineNode node,
-    NodeCartesianData newCartesianData,
-  ) : this._(
+  NodeEvent.updateGeometry(ProdLineNode node, NodeGeometry newGeometry)
+    : this._(
         node,
-        {NodeEventType.newPosition},
-        oldCartesianData: node.cartesianData,
-        newCartesianData: newCartesianData,
+        {NodeEventType.updateGeometry},
+        oldGeometry: node.geometry,
+        newGeometry: newGeometry,
       );
 
   NodeEvent.newRequirements(ProdLineNode node, ItemIo newRequirements)
@@ -87,8 +85,8 @@ class NodeEvent extends MutationEvent {
         removedChildOf: {removedParentEdge},
       );
 
-  NodeEvent.tempPosition(ProdLineNode node, NodeCartesianData tempData)
-    : this._(node, {NodeEventType.tempPosition}, newCartesianData: tempData);
+  NodeEvent.tempGeometry(ProdLineNode node, NodeGeometry tempData)
+    : this._(node, {NodeEventType.tempGeometry}, newGeometry: tempData);
 
   factory NodeEvent.combine(List<NodeEvent> orderedEvents) {
     Set<NodeEventType> mutations = {};
@@ -98,8 +96,8 @@ class NodeEvent extends MutationEvent {
     Set<DirectedEdge> newChildOf = {};
     Set<DirectedEdge> removedChildOf = {};
 
-    NodeEvent? oldCartesianEvent, newCartesianEvent;
-    NodeCartesianData? oldCartesianData, newCartesianData;
+    NodeEvent? oldGeometryEvent, newGeometryEvent;
+    NodeGeometry? oldGeometry, newGeometry;
 
     NodeEvent? oldNodeTypeEvent, newNodeTypeEvent;
     NodeType? oldNodeType, newNodeType;
@@ -114,9 +112,9 @@ class NodeEvent extends MutationEvent {
       mutations.addAll(event.mutations);
       for (var mutation in event.mutations) {
         switch (mutation) {
-          case NodeEventType.newPosition:
-            oldCartesianEvent ??= event;
-            newCartesianEvent = event;
+          case NodeEventType.updateGeometry:
+            oldGeometryEvent ??= event;
+            newGeometryEvent = event;
 
           case NodeEventType.newRequirements:
             oldRequirementsEvent ??= event;
@@ -142,17 +140,17 @@ class NodeEvent extends MutationEvent {
           case NodeEventType.removedFromGraph:
             break;
 
-          case NodeEventType.tempPosition:
+          case NodeEventType.tempGeometry:
             throw const GraphException(
-              'Cannot combine temp position node event',
+              'Cannot combine temp geometry node event',
             );
         }
       }
     }
 
-    if (oldCartesianEvent != null) {
-      oldCartesianData = oldCartesianEvent.oldCartesianData;
-      newCartesianData = newCartesianEvent!.newCartesianData;
+    if (oldGeometryEvent != null) {
+      oldGeometry = oldGeometryEvent.oldGeometry;
+      newGeometry = newGeometryEvent!.newGeometry;
     }
 
     if (oldRequirementsEvent != null) {
@@ -180,13 +178,13 @@ class NodeEvent extends MutationEvent {
     return NodeEvent._(
       orderedEvents.first.node,
       mutations,
-      oldCartesianData: oldCartesianData,
+      oldGeometry: oldGeometry,
       oldRequirements: oldRequirements,
       oldNodeType: oldNodeType,
       oldProductionLine: oldProdLine,
       removedParentOf: removedParentOf,
       removedChildOf: removedChildOf,
-      newCartesianData: newCartesianData,
+      newGeometry: newGeometry,
       newRequirements: newRequirements,
       newNodeType: newNodeType,
       newProductionLine: newProdLine,
@@ -199,13 +197,13 @@ class NodeEvent extends MutationEvent {
     this.node,
     Set<NodeEventType> mutations, {
     ItemIo? oldRequirements,
-    this.oldCartesianData,
+    this.oldGeometry,
     this.oldNodeType,
     this.oldProductionLine,
     Set<DirectedEdge> removedParentOf = const {},
     Set<DirectedEdge> removedChildOf = const {},
     ItemIo? newRequirements,
-    this.newCartesianData,
+    this.newGeometry,
     this.newNodeType,
     this.newProductionLine,
     Set<DirectedEdge> newParentOf = const {},
@@ -229,13 +227,13 @@ class NodeEvent extends MutationEvent {
       mutations = Set.unmodifiable(
         toReverse.mutations.map((eventType) => eventType.reverse),
       ),
-      oldCartesianData = toReverse.oldCartesianData,
+      oldGeometry = toReverse.oldGeometry,
       oldRequirements = toReverse.newRequirements,
       oldNodeType = toReverse.newNodeType,
       oldProductionLine = toReverse.newProductionLine,
       removedParentOf = toReverse.newParentOf,
       removedChildOf = toReverse.newChildOf,
-      newCartesianData = toReverse.newCartesianData,
+      newGeometry = toReverse.newGeometry,
       newRequirements = toReverse.oldRequirements,
       newNodeType = toReverse.oldNodeType,
       newProductionLine = toReverse.oldProductionLine,
@@ -246,8 +244,8 @@ class NodeEvent extends MutationEvent {
 }
 
 enum NodeEventType {
-  newPosition,
-  tempPosition,
+  updateGeometry,
+  tempGeometry,
   newRequirements,
   newNodeType,
   newProductionLine,
@@ -257,8 +255,8 @@ enum NodeEventType {
   removedFromGraph;
 
   NodeEventType get reverse => switch (this) {
-    newPosition => newPosition,
-    tempPosition => tempPosition,
+    updateGeometry => updateGeometry,
+    tempGeometry => tempGeometry,
     newRequirements => newRequirements,
     newNodeType => newNodeType,
     newProductionLine => newProductionLine,

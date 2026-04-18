@@ -5,7 +5,7 @@ class GraphEvent extends MutationEvent {
 
   final Set<GraphEventType> mutations;
 
-  final GraphCartesianData? oldCartesianData, newCartesianData;
+  final GraphGeometry? oldGeometry, newGeometry;
   final Set<ProdLineNode> newNodes, removedNodes;
   final Set<DirectedEdge> newEdges, removedEdges;
   final Set<ItemData> newInputs, newOutputs, removedInputs, removedOutputs;
@@ -48,22 +48,20 @@ class GraphEvent extends MutationEvent {
         removedOutputs: {removedOutput},
       );
 
-  GraphEvent.newCartesianData(
-    BaseGraph graph,
-    GraphCartesianData newCartesianData,
-  ) : this._(
-        graph,
-        {GraphEventType.cartesianDataUpdate},
-        oldCartesianData: graph._cartesianData,
-        newCartesianData: newCartesianData,
-      );
-
-  GraphEvent.clearCartesianData(BaseGraph graph)
+  GraphEvent.updateGeometry(BaseGraph graph, GraphGeometry newGeometry)
     : this._(
         graph,
-        {GraphEventType.cartesianDataUpdate},
-        oldCartesianData: graph._cartesianData,
-        newCartesianData: const GraphCartesianData.uninitialised(),
+        {GraphEventType.geometryUpdate},
+        oldGeometry: graph._geometry,
+        newGeometry: newGeometry,
+      );
+
+  GraphEvent.clearGeometry(BaseGraph graph)
+    : this._(
+        graph,
+        {GraphEventType.geometryUpdate},
+        oldGeometry: graph._geometry,
+        newGeometry: const GraphGeometry.uninitialised(),
       );
 
   factory GraphEvent.combine(List<GraphEvent> orderedEvents) {
@@ -79,16 +77,16 @@ class GraphEvent extends MutationEvent {
     Set<ItemData> newOutputs = {};
     Set<ItemData> removedOutputs = {};
 
-    GraphEvent? oldPositionEvent, newPositionEvent;
-    GraphCartesianData? oldCartesianData, newCartesianData;
+    GraphEvent? oldGeometryEvent, newGeometryEvent;
+    GraphGeometry? oldGeometry, newGeometry;
 
     for (var event in orderedEvents) {
       mutations.addAll(event.mutations);
       for (var mutation in event.mutations) {
         switch (mutation) {
-          case GraphEventType.cartesianDataUpdate:
-            oldPositionEvent ??= event;
-            newPositionEvent = event;
+          case GraphEventType.geometryUpdate:
+            oldGeometryEvent ??= event;
+            newGeometryEvent = event;
 
           case GraphEventType.updateNodes:
             newNodes.addAll(event.newNodes);
@@ -109,9 +107,9 @@ class GraphEvent extends MutationEvent {
       }
     }
 
-    if (oldPositionEvent != null) {
-      oldCartesianData = oldPositionEvent.oldCartesianData;
-      newCartesianData = newPositionEvent!.newCartesianData;
+    if (oldGeometryEvent != null) {
+      oldGeometry = oldGeometryEvent.oldGeometry;
+      newGeometry = newGeometryEvent!.newGeometry;
     }
 
     _removedWhereBothContain(newNodes, removedNodes);
@@ -126,24 +124,24 @@ class GraphEvent extends MutationEvent {
       removedEdges: removedEdges,
       removedInputs: removedInputs,
       removedOutputs: removedOutputs,
-      oldCartesianData: oldCartesianData,
+      oldGeometry: oldGeometry,
       newNodes: newNodes,
       newEdges: newEdges,
       newInputs: newInputs,
       newOutputs: newOutputs,
-      newCartesianData: newCartesianData,
+      newGeometry: newGeometry,
     );
   }
 
   GraphEvent._(
     this.graph,
     Set<GraphEventType> mutations, {
-    this.oldCartesianData,
+    this.oldGeometry,
     Set<ProdLineNode> removedNodes = const {},
     Set<DirectedEdge> removedEdges = const {},
     Set<ItemData> removedInputs = const {},
     Set<ItemData> removedOutputs = const {},
-    this.newCartesianData,
+    this.newGeometry,
     Set<ProdLineNode> newNodes = const {},
     Set<DirectedEdge> newEdges = const {},
     Set<ItemData> newInputs = const {},
@@ -163,12 +161,12 @@ class GraphEvent extends MutationEvent {
   GraphEvent._reverse(GraphEvent toReverse)
     : graph = toReverse.graph,
       mutations = toReverse.mutations,
-      oldCartesianData = toReverse.newCartesianData,
+      oldGeometry = toReverse.newGeometry,
       removedNodes = toReverse.newNodes,
       removedEdges = toReverse.newEdges,
       removedInputs = toReverse.newInputs,
       removedOutputs = toReverse.newOutputs,
-      newCartesianData = toReverse.oldCartesianData,
+      newGeometry = toReverse.oldGeometry,
       newNodes = toReverse.removedNodes,
       newEdges = toReverse.removedEdges,
       newInputs = toReverse.removedInputs,
@@ -178,7 +176,7 @@ class GraphEvent extends MutationEvent {
 }
 
 enum GraphEventType {
-  cartesianDataUpdate,
+  geometryUpdate,
   updateNodes,
   updateEdges,
   updateInput,

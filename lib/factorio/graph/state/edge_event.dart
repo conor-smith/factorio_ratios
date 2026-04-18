@@ -7,7 +7,7 @@ class EdgeEvent extends MutationEvent {
 
   final double? oldAmount, newAmount;
 
-  final EdgeCartesianData? oldCartesianData, newCartesianData;
+  final EdgeGeometry? oldGeometry, newGeometry;
 
   final EdgeEvent? original;
   @override
@@ -29,22 +29,16 @@ class EdgeEvent extends MutationEvent {
         newAmount: newAmount,
       );
 
-  EdgeEvent.newCartesianData(
-    DirectedEdge edge,
-    EdgeCartesianData newCartesianData,
-  ) : this._(
+  EdgeEvent.updateGeometry(DirectedEdge edge, EdgeGeometry newGeometry)
+    : this._(
         edge,
-        {EdgeEventType.newCartesianData},
-        oldCartesianData: edge.cartesianData,
-        newCartesianData: newCartesianData,
+        {EdgeEventType.newGeometry},
+        oldGeometry: edge.geometry,
+        newGeometry: newGeometry,
       );
 
-  EdgeEvent.tempCartesianData(
-    DirectedEdge edge,
-    EdgeCartesianData tempCartesianData,
-  ) : this._(edge, {
-        EdgeEventType.tempCartesianData,
-      }, newCartesianData: tempCartesianData);
+  EdgeEvent.tempGeometry(DirectedEdge edge, EdgeGeometry tempGeometry)
+    : this._(edge, {EdgeEventType.tempGeometry}, newGeometry: tempGeometry);
 
   EdgeEvent.clearAmount(DirectedEdge edge)
     : this._(edge, {EdgeEventType.newAmount}, oldAmount: edge.amount);
@@ -55,8 +49,8 @@ class EdgeEvent extends MutationEvent {
     EdgeEvent? oldAmountEvent, newAmountEvent;
     double? oldAmount, newAmount;
 
-    EdgeEvent? oldCartesianEvent, newCartesianEvent;
-    EdgeCartesianData? oldCartesianData, newCartesianData;
+    EdgeEvent? oldGeometryEvent, newGeometryEvent;
+    EdgeGeometry? oldGeometry, newGeometry;
 
     for (var event in orderedEvents) {
       mutations.addAll(event.mutations);
@@ -66,17 +60,17 @@ class EdgeEvent extends MutationEvent {
             oldAmountEvent ??= event;
             newAmountEvent = event;
 
-          case EdgeEventType.newCartesianData:
-            oldCartesianEvent ??= event;
-            newCartesianEvent = event;
+          case EdgeEventType.newGeometry:
+            oldGeometryEvent ??= event;
+            newGeometryEvent = event;
 
           case EdgeEventType.addedToGraph:
           case EdgeEventType.removedFromGraph:
             break;
 
-          case EdgeEventType.tempCartesianData:
+          case EdgeEventType.tempGeometry:
             throw const GraphException(
-              'Cannot combine edge temp position event',
+              'Cannot combine edge temp geometry event',
             );
         }
       }
@@ -91,18 +85,18 @@ class EdgeEvent extends MutationEvent {
       newAmount = newAmountEvent!.newAmount;
     }
 
-    if (oldCartesianEvent != null) {
-      oldCartesianData = oldCartesianEvent.oldCartesianData;
-      newCartesianData = newCartesianEvent!.newCartesianData;
+    if (oldGeometryEvent != null) {
+      oldGeometry = oldGeometryEvent.oldGeometry;
+      newGeometry = newGeometryEvent!.newGeometry;
     }
 
     return EdgeEvent._(
       orderedEvents.first.edge,
       mutations,
       oldAmount: oldAmount,
-      oldCartesianData: oldCartesianData,
+      oldGeometry: oldGeometry,
       newAmount: newAmount,
-      newCartesianData: newCartesianData,
+      newGeometry: newGeometry,
     );
   }
 
@@ -110,9 +104,9 @@ class EdgeEvent extends MutationEvent {
     this.edge,
     Set<EdgeEventType> mutations, {
     this.oldAmount,
-    this.oldCartesianData,
+    this.oldGeometry,
     this.newAmount,
-    this.newCartesianData,
+    this.newGeometry,
   }) : mutations = Set.unmodifiable(mutations),
        isReversed = false,
        original = null;
@@ -123,24 +117,24 @@ class EdgeEvent extends MutationEvent {
         toReverse.mutations.map((eventType) => eventType.reverse),
       ),
       oldAmount = toReverse.newAmount,
-      oldCartesianData = toReverse.newCartesianData,
+      oldGeometry = toReverse.newGeometry,
       newAmount = toReverse.oldAmount,
-      newCartesianData = toReverse.oldCartesianData,
+      newGeometry = toReverse.oldGeometry,
       isReversed = true,
       original = toReverse;
 }
 
 enum EdgeEventType {
   newAmount,
-  newCartesianData,
-  tempCartesianData,
+  newGeometry,
+  tempGeometry,
   addedToGraph,
   removedFromGraph;
 
   EdgeEventType get reverse => switch (this) {
     newAmount => newAmount,
-    newCartesianData => newCartesianData,
-    tempCartesianData => tempCartesianData,
+    newGeometry => newGeometry,
+    tempGeometry => tempGeometry,
     addedToGraph => removedFromGraph,
     removedFromGraph => addedToGraph,
   };

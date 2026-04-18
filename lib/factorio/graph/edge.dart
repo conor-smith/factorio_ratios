@@ -16,15 +16,15 @@ class DirectedEdge with Stateful<EdgeEvent> {
 
   double? _amount;
 
-  EdgeCartesianData _cartesianData;
+  EdgeGeometry _geometry;
 
   /* ---------------- Accessors ---------------- */
   double? get amount => _amount;
   ItemFlowDirection get flowDirection => edgeType.flowDirection;
 
-  EdgeCartesianData get cartesianData => _cartesianData;
-  LineType get lineType => _cartesianData.lineType;
-  List<Line> get lines => _cartesianData.lines;
+  EdgeGeometry get geometry => _geometry;
+  LineType get lineType => _geometry.lineType;
+  List<Line> get lines => _geometry.lines;
 
   bool get active => _active;
 
@@ -38,7 +38,7 @@ class DirectedEdge with Stateful<EdgeEvent> {
     required this.edgeType,
   }) : _eventHistory = parentGraph._eventHistory,
        _amount = initialAmount,
-       _cartesianData = const EdgeCartesianData.uninitialised(),
+       _geometry = const EdgeGeometry.uninitialised(),
        _active = false {
     // TODO - fix up
     // Confirm both parent and child are valid
@@ -98,8 +98,8 @@ class DirectedEdge with Stateful<EdgeEvent> {
         case EdgeEventType.newAmount:
           _amount = event.newAmount;
 
-        case EdgeEventType.newCartesianData:
-          _cartesianData = event.newCartesianData!;
+        case EdgeEventType.newGeometry:
+          _geometry = event.newGeometry!;
 
         case EdgeEventType.addedToGraph:
           _active = true;
@@ -107,9 +107,9 @@ class DirectedEdge with Stateful<EdgeEvent> {
         case EdgeEventType.removedFromGraph:
           _active = false;
 
-        case EdgeEventType.tempCartesianData:
+        case EdgeEventType.tempGeometry:
           throw const MutationException(
-            'Cannot apply event of type tempPosition',
+            'Cannot apply event of type tempGeometry',
           );
       }
     }
@@ -125,9 +125,9 @@ class DirectedEdge with Stateful<EdgeEvent> {
 
   void _shortestLineBetweenNodes() {
     apply(
-      EdgeEvent.newCartesianData(
+      EdgeEvent.updateGeometry(
         this,
-        EdgeCartesianData.shortestPath(Line.shortest(parent.rect, child.rect)),
+        EdgeGeometry.shortestPath(Line.shortest(parent.rect, child.rect)),
       ),
     );
   }
@@ -145,76 +145,4 @@ enum Relationship {
   final ItemFlowDirection flowDirection;
 
   const Relationship(this.flowDirection);
-}
-
-class EdgeCartesianData extends CartesianData {
-  final LineType lineType;
-  // Goes from parent to child
-  final List<Line> lines;
-
-  const EdgeCartesianData.uninitialised()
-    : lineType = LineType.shortestPath,
-      lines = const [Line.uninitialised()],
-      super(Rect.zero);
-
-  EdgeCartesianData.shortestPath(Line line)
-    : lineType = LineType.shortestPath,
-      lines = List.unmodifiable([line]),
-      super(Rect.fromPoints(line.start, line.end));
-}
-
-class _MutableEdgeCartesianData implements EdgeCartesianData {
-  final DirectedEdge edge;
-
-  final NodeCartesianData parentNodeData, childNodeData;
-
-  @override
-  final Rect minimalRect;
-  @override
-  final LineType lineType;
-
-  final List<Line> _baseLines;
-  final List<Line> _transformedLines;
-  @override
-  late final List<Line> lines = UnmodifiableListView(_transformedLines);
-
-  _MutableEdgeCartesianData.from(
-    this.edge,
-    this.parentNodeData,
-    this.childNodeData,
-  ) : minimalRect = edge._cartesianData.minimalRect,
-      lineType = edge.lineType,
-      _baseLines = edge.lines,
-      _transformedLines = List.from(edge.lines);
-
-  void update() {
-    switch (lineType) {
-      case LineType.shortestPath:
-        _transformedLines[1] = Line.shortest(
-          parentNodeData.minimalRect,
-          childNodeData.minimalRect,
-        );
-    }
-  }
-
-  void shiftAllLines(Offset offset) {
-    for (var i = 0; i < _baseLines.length; i++) {
-      _transformedLines[i] = _baseLines[i].shift(offset);
-    }
-  }
-
-  EdgeCartesianData finish() => switch (lineType) {
-    LineType.shortestPath => EdgeCartesianData.shortestPath(_baseLines[0]),
-  };
-}
-
-class Line {
-  final Offset start, end;
-
-  const Line(this.start, this.end);
-  Line.shortest(Rect start, Rect end) : this(start.center, end.center);
-
-  const Line.uninitialised() : this(Offset.zero, Offset.zero);
-
-  Line shift(Offset shift) => Line(start + shift, end + shift);
 }

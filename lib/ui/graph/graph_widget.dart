@@ -20,7 +20,7 @@ class _GraphWidgetState extends State<GraphWidget> {
   void processEvent(GraphEvent event) {
     for (var mutation in event.mutations) {
       switch (mutation) {
-        case GraphEventType.cartesianDataUpdate:
+        case GraphEventType.geometryUpdate:
           resetSize();
 
         case GraphEventType.updateNodes:
