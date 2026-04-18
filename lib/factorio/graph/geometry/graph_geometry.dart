@@ -120,11 +120,9 @@ class _GeometryOperation {
     for (var nodeData in nodeGeometry) {
       nodeData.shift(offset);
     }
-
     for (var edgeData in edgeGeometry) {
       edgeData.shiftAllLines(offset);
     }
-
     for (var edgeData in affectedEdgeGeometry) {
       edgeData.update();
     }

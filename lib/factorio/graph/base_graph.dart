@@ -73,10 +73,6 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   @override
   String get type => 'graph';
 
-  Iterable<Geometry> get allGeometry => _nodes
-      .map<Geometry>((node) => node.geometry)
-      .followedBy(_edges.map((edge) => edge.geometry));
-
   /* --------------- Constructors --------------- */
   BaseGraph.root({this.surface})
     : _parentNode = null,
@@ -145,6 +141,46 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
     }
   }
 
+  List<Geometry> _getAllGeometryData() => _nodes
+      .map<Geometry>((node) => node.geometry)
+      .followedBy(_edges.map((edge) => edge.geometry))
+      .toList();
+
+  // Uses tree structure and heirarchy to determine node positions
+  void treeLayout() {
+    _eventHistory.mutate(() {
+      var nodeHeights = _getNodeHeights(_nodes);
+
+      for (var y = 0; y < nodeHeights.length; y++) {
+        for (var x = 0; x < nodeHeights[y].length; x++) {
+          var node = nodeHeights[y][x];
+
+          var left =
+              x * (ProdLineNode.defaultWidth + ProdLineNode.defaultOffset) +
+              ProdLineNode.defaultOffset;
+          var top =
+              y * (ProdLineNode.defaultHeight + ProdLineNode.defaultOffset) +
+              ProdLineNode.defaultOffset;
+
+          Rect newRect = Rect.fromLTWH(
+            left,
+            top,
+            ProdLineNode.defaultWidth,
+            ProdLineNode.defaultHeight,
+          );
+
+          node.apply(NodeEvent.updateGeometry(node, NodeGeometry(newRect)));
+        }
+      }
+
+      for (var edge in _edges) {
+        edge._shortestLineBetweenNodes();
+      }
+
+      _redoGraphGeometry();
+    });
+  }
+
   void beginMultiNodeDrag(List<ProdLineNode> nodes, List<DirectedEdge> edges) {
     _throwIfGeometricOp();
 
@@ -168,7 +204,7 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
     );
   }
 
-  void _cancelGeometricOp() {
+  void cancelGeometricOp() {
     _throwIfNoGeometricOp();
 
     _geometryOperation!.notifyAllListeners(cancel: true);
@@ -187,21 +223,49 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
           .followedBy(_geometryOperation!.affectedEdgeGeometry)
           .map((data) => EdgeEvent.updateGeometry(data.edge, data.finish()));
 
-      Map<Geometry, Geometry> oldVsNew = {};
+      List<Geometry> removedGeometry = [];
+      List<Geometry> newGeometry = [];
       for (var nodeEvent in nodeEvents) {
         nodeEvent.node.apply(nodeEvent);
-        oldVsNew[nodeEvent.oldGeometry!] = nodeEvent.newGeometry!;
+        removedGeometry.add(nodeEvent.oldGeometry!);
+        newGeometry.add(nodeEvent.newGeometry!);
       }
       for (var edgeEvent in edgeEvents) {
         edgeEvent.edge.apply(edgeEvent);
-        oldVsNew[edgeEvent.oldGeometry!] = edgeEvent.newGeometry!;
+        removedGeometry.add(edgeEvent.oldGeometry!);
+        newGeometry.add(edgeEvent.newGeometry!);
       }
 
-      Geometry?
-      left = _getNewMaxRect(_geometry.left!, oldVsNew, Geometry.leftMost),
-      top = _getNewMaxRect(_geometry.top!, oldVsNew, Geometry.topMost),
-      right = _getNewMaxRect(_geometry.right!, oldVsNew, Geometry.rightMost),
-      bottom = _getNewMaxRect(_geometry.bottom!, oldVsNew, Geometry.bottomMost);
+      var allGeometryData = _getAllGeometryData();
+
+      Geometry? left = _findNewMaxGeometry(
+            allGeometryData,
+            Geometry.leftMost,
+            oldMaxGeometry: _geometry.left,
+            removedGeometry: removedGeometry,
+            newGeometry: newGeometry,
+          ),
+          top = _findNewMaxGeometry(
+            allGeometryData,
+            Geometry.topMost,
+            oldMaxGeometry: _geometry.top,
+            removedGeometry: removedGeometry,
+            newGeometry: newGeometry,
+          ),
+          right = _findNewMaxGeometry(
+            allGeometryData,
+            Geometry.rightMost,
+            oldMaxGeometry: _geometry.right,
+            removedGeometry: removedGeometry,
+            newGeometry: newGeometry,
+          ),
+          bottom = _findNewMaxGeometry(
+            allGeometryData,
+            Geometry.bottomMost,
+            oldMaxGeometry: _geometry.bottom,
+            removedGeometry: removedGeometry,
+            newGeometry: newGeometry,
+          );
 
       if (left != null || top != null || right != null || bottom != null) {
         apply(
@@ -221,32 +285,35 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
     });
   }
 
-  // TODO - Naming here is terrible. Rename it soon
-  Geometry? _getNewMaxRect(
-    Geometry oldGeometry,
-    Map<Geometry, Geometry> oldVsNew,
-    Comparator<Geometry> comparator,
-  ) {
-    if (oldVsNew.containsKey(oldGeometry)) {
-      var allData = allGeometry;
-      var newMax = allGeometry.first;
+  // Must be called after all geometry objects have been updated
+  Geometry? _findNewMaxGeometry(
+    List<Geometry> allCurrentGeometry,
+    Comparator<Geometry> comparator, {
+    Geometry? oldMaxGeometry,
+    List<Geometry> removedGeometry = const [],
+    List<Geometry> newGeometry = const [],
+  }) {
+    Geometry? newMaxGeometry;
 
-      for (var data in allGeometry) {
-        if (comparator(data, newMax) > 0) {
-          newMax = data;
+    if (allCurrentGeometry.isEmpty) {
+      return null;
+    } else if (oldMaxGeometry == null ||
+        removedGeometry.contains(oldMaxGeometry)) {
+      newMaxGeometry = allCurrentGeometry.first;
+      for (var geometry in allCurrentGeometry.skip(1)) {
+        if (comparator(geometry, newMaxGeometry!) > 0) {
+          newMaxGeometry = geometry;
         }
-
-        return newMax;
       }
     } else {
-      for (var data in oldVsNew.values) {
-        if (comparator(data, oldGeometry) > 0) {
-          return data;
+      for (var geometry in newGeometry) {
+        if (comparator(geometry, oldMaxGeometry) > 0) {
+          newMaxGeometry = geometry;
         }
       }
-
-      return null;
     }
+
+    return newMaxGeometry;
   }
 
   // Assumes all positional data objects are invalid
@@ -255,12 +322,12 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
     if (_nodes.isEmpty) {
       apply(GraphEvent.clearGeometry(this));
     } else {
-      var allGeometryData = allGeometry.toList();
+      var allGeometryData = _getAllGeometryData();
 
-      Geometry top = _findNewMaxNode(Geometry.topMost, allGeometryData),
-          left = _findNewMaxNode(Geometry.leftMost, allGeometryData),
-          bottom = _findNewMaxNode(Geometry.bottomMost, allGeometryData),
-          right = _findNewMaxNode(Geometry.rightMost, allGeometryData);
+      Geometry top = _findNewMaxGeometry(allGeometryData, Geometry.topMost)!,
+          left = _findNewMaxGeometry(allGeometryData, Geometry.leftMost)!,
+          bottom = _findNewMaxGeometry(allGeometryData, Geometry.bottomMost)!,
+          right = _findNewMaxGeometry(allGeometryData, Geometry.rightMost)!;
 
       apply(
         GraphEvent.updateGeometry(
@@ -295,41 +362,6 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
       for (var node in nonIoNodes) {
         node.removeFromGraph();
       }
-    });
-  }
-
-  // Uses tree structure and heirarchy to determine node positions
-  void treeLayout() {
-    _eventHistory.mutate(() {
-      var nodeHeights = _getNodeHeights(_nodes);
-
-      for (var y = 0; y < nodeHeights.length; y++) {
-        for (var x = 0; x < nodeHeights[y].length; x++) {
-          var node = nodeHeights[y][x];
-
-          var left =
-              x * (ProdLineNode.defaultWidth + ProdLineNode.defaultOffset) +
-              ProdLineNode.defaultOffset;
-          var top =
-              y * (ProdLineNode.defaultHeight + ProdLineNode.defaultOffset) +
-              ProdLineNode.defaultOffset;
-
-          Rect newRect = Rect.fromLTWH(
-            left,
-            top,
-            ProdLineNode.defaultWidth,
-            ProdLineNode.defaultHeight,
-          );
-
-          node.apply(NodeEvent.updateGeometry(node, NodeGeometry(newRect)));
-        }
-      }
-
-      for (var edge in _edges) {
-        edge._shortestLineBetweenNodes();
-      }
-
-      _redoGraphGeometry();
     });
   }
 
@@ -512,36 +544,6 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
     heightMap.forEach((node, height) => flippedMap[height].add(node));
 
     return flippedMap;
-  }
-
-  Geometry _findNewMaxNode(
-    Comparator<Geometry> maxFunction,
-    List<Geometry> allGeometryData, {
-    Geometry? oldMax,
-    List<Geometry> removedData = const [],
-    List<Geometry> newData = const [],
-  }) {
-    Geometry max;
-
-    if (oldMax == null || removedData.contains(oldMax)) {
-      max = allGeometryData.first;
-
-      for (var data in allGeometryData.skip(1)) {
-        if (maxFunction(max, data) < 0) {
-          max = data;
-        }
-      }
-    } else {
-      max = oldMax;
-
-      for (var data in newData) {
-        if (maxFunction(max, data) < 0) {
-          max = data;
-        }
-      }
-    }
-
-    return max;
   }
 
   // Returns the maximum height
