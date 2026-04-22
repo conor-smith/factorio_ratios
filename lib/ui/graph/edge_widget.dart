@@ -1,4 +1,4 @@
-import 'package:factorio_ratios/factorio/graph.dart';
+import 'package:factorio_ratios/factorio/graph/graph.dart';
 import 'package:flutter/material.dart';
 
 class EdgeWidget extends StatefulWidget {

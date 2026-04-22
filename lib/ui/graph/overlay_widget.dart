@@ -1,6 +1,6 @@
-import 'package:factorio_ratios/factorio/graph.dart';
-import 'package:factorio_ratios/factorio/models.dart';
-import 'package:factorio_ratios/factorio/production_line.dart';
+import 'package:factorio_ratios/factorio/graph/graph.dart';
+import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/ui/factorio_menu.dart';
 import 'package:factorio_ratios/ui/graph/graph_widget.dart';
 import 'package:flutter/material.dart';

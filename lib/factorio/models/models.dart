@@ -5,15 +5,15 @@ import 'dart:math';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:logging/logging.dart';
 
-part 'models/crafting_machines.dart';
-part 'models/group.dart';
-part 'models/icon_data.dart';
-part 'models/item.dart';
-part 'models/other_interfaces.dart';
-part 'models/recipe.dart';
-part 'models/resource.dart';
-part 'models/subgroup.dart';
-part 'models/surface.dart';
+part 'crafting_machines.dart';
+part 'group.dart';
+part 'icon_data.dart';
+part 'item.dart';
+part 'other_interfaces.dart';
+part 'recipe.dart';
+part 'resource.dart';
+part 'subgroup.dart';
+part 'surface.dart';
 
 final Map<String, double> _multipliers = {
   "k": pow(10, 3).toDouble(),

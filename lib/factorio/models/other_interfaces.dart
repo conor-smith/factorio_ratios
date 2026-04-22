@@ -1,4 +1,4 @@
-part of '../models.dart';
+part of 'models.dart';
 
 abstract class Ordered implements Comparable<Ordered> {
   String get name;

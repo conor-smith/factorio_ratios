@@ -1,10 +1,10 @@
 import 'package:factorio_ratios/factorio/factorio.dart';
-import 'package:factorio_ratios/factorio/models.dart';
+import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:flutter/foundation.dart';
 
-part 'production_lines/dynamic_models.dart';
-part 'production_lines/magic_line.dart';
-part 'production_lines/single_recipe.dart';
+part 'dynamic_models.dart';
+part 'magic_line.dart';
+part 'single_recipe.dart';
 
 /*
  * Inputs and outputs must be known before IO is calculated

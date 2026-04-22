@@ -1,4 +1,4 @@
-part of '../production_line.dart';
+part of 'production_line.dart';
 
 typedef ItemIo = Map<ItemData, double>;
 

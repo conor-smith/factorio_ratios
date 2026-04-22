@@ -1,4 +1,4 @@
-part of '../models.dart';
+part of 'models.dart';
 
 class ItemSubgroup extends Ordered {
   final FactorioDatabase factorioDb;

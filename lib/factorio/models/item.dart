@@ -1,4 +1,4 @@
-part of '../models.dart';
+part of 'models.dart';
 
 abstract class Item extends OrderedWithSubgroup {
   static const double _expectedIconSize = 64;

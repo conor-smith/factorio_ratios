@@ -1,4 +1,4 @@
-import 'package:factorio_ratios/factorio/graph.dart';
+import 'package:factorio_ratios/factorio/graph/graph.dart';
 import 'package:factorio_ratios/ui/graph/edge_widget.dart';
 import 'package:factorio_ratios/ui/graph/node_widget.dart';
 import 'package:factorio_ratios/ui/graph/overlay_widget.dart';

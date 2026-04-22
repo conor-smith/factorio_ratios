@@ -1,45 +1,36 @@
-import 'dart:collection';
-import 'dart:ui';
+part of 'graph.dart';
 
-import 'package:factorio_ratios/factorio/factorio.dart';
-import 'package:factorio_ratios/factorio/graph/geometry.dart';
-import 'package:factorio_ratios/factorio/graph/state.dart';
-import 'package:factorio_ratios/factorio/models.dart';
-import 'package:factorio_ratios/factorio/production_line.dart';
-
-/*
- * Maintains a full graph
- * This acts as the state for the application, and the single source of truth
- * 
- * All contained objects are mutateable
- * Mutating state must only be done through specific methods, even within the classes
- * This means that mutations can be rolled back if need be
- * Mutateables are also listenable, and will only notifyListeners when instructed to
- * 
- * As nodes can contain graphs, the entire structure can be thought of as a tree
- * In a tree, there is only one eventHistory object
- * All mutations must be done within eventHistory._mutate(...)
- * An arbitrary number of mutations can occur before committing
- * At commit, all uncommitted events are combined into one single event
- * 
- * The complex nature of the graphs means that updating the state of one object
- * may affect the state of another
- * Eg. Updating nodeType to "output" will result in the node's inputs
- * being added to it's parentGraph's outputs
- * As such, listeners should not be notified until all changes in a transaction
- * are completed
- * 
- * The root graph of a tree will never have requirements
- * This is because requirements determine input and output,
- * and the root graph has nowhere to input or output to
- */
+/// Maintains a full graph
+/// This acts as the state for the application, and the single source of truth
+///
+/// All contained objects are mutateable
+/// Mutating state must only be done through specific methods, even within the classes
+/// This means that mutations can be rolled back if need be
+/// Mutateables are also listenable, and will only notifyListeners when instructed to
+///
+/// As nodes can contain graphs, the entire structure can be thought of as a tree
+/// In a tree, there is only one eventHistory object
+/// All mutations must be done within eventHistory._mutate(...)
+/// An arbitrary number of mutations can occur before committing
+/// At commit, all uncommitted events are combined into one single event
+///
+/// The complex nature of the graphs means that updating the state of one object
+/// may affect the state of another
+/// Eg. Updating nodeType to "output" will result in the node's inputs
+/// being added to it's parentGraph's outputs
+/// As such, listeners should not be notified until all changes in a transaction
+/// are completed
+///
+/// The root graph of a tree will never have requirements
+/// This is because requirements determine input and output,
+/// and the root graph has nowhere to input or output to
 class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   // Stores history of entire tree. Responsible for rollbacks, commits, etc
   // All graphs in a tree must use the same eventHistory object
   static const int _maxSavedEvents = 50; // TODO - Revise this value
 
   /* ------------- Immutable fields ------------- */
-  final EventHistory _eventHistory;
+  final _EventHistory _eventHistory;
 
   final Surface? surface;
 
@@ -84,10 +75,10 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   /* --------------- Constructors --------------- */
   BaseGraph.root({this.surface})
     : _parentNode = null,
-      _eventHistory = EventHistory(_maxSavedEvents),
+      _eventHistory = _EventHistory(_maxSavedEvents),
       _geometry = GraphGeometry.uninitialised;
 
-  BaseGraph._addToTree({this.surface, required EventHistory eventHistory})
+  BaseGraph._addToTree({this.surface, required _EventHistory eventHistory})
     : _eventHistory = eventHistory,
       _geometry = GraphGeometry.uninitialised;
 
@@ -573,379 +564,4 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
       return existingHeight;
     }
   }
-}
-
-class ProdLineNode with Stateful<NodeEvent> {
-  static const double defaultWidth = 100,
-      defaultHeight = 100,
-      defaultOffset = 50,
-      minSideLength = 20,
-      connectionOffset = 8;
-
-  /* ------------- Immutable fields ------------- */
-  final BaseGraph parentGraph;
-  final EventHistory _eventHistory;
-
-  /* -------------- Mutable fields -------------- */
-  // Node type determines how parent valid operations and how parent graph is affected
-  NodeType _nodeType;
-  // True if part of a graph. False otherwise
-  bool _active;
-
-  ProductionLine _line;
-
-  NodeGeometry _geometry;
-
-  // Edges that this node is a parent of
-  final Set<DirectedEdge> _parentOf = {};
-  // Edges that this node is a child of
-  final Set<DirectedEdge> _childOf = {};
-
-  /* ---------------- Accessors ---------------- */
-  late final Set<DirectedEdge> parentOf = UnmodifiableSetView(_parentOf);
-  late final Set<DirectedEdge> childOf = UnmodifiableSetView(_childOf);
-
-  NodeType get nodeType => _nodeType;
-
-  NodeGeometry get geometry => _geometry;
-  Rect get rect => _geometry.minimalRect;
-
-  // Accessors for production line
-  Set<ItemData> get allOutputs => _line.allOutputs;
-  Set<ItemData> get allInputs => _line.allInputs;
-  bool get immutableIo => _line.immutableIo;
-  ItemIo? get totalIoPerSecond => _line.totalIoPerSecond;
-  ItemIo? get requirements => _line.requirements;
-  String get type => _line.type;
-
-  ProductionLine get line => _line;
-
-  @override
-  String toString() => _line.toString();
-
-  /* --------------- Constructors --------------- */
-  ProdLineNode.addToGraph({
-    required this.parentGraph,
-    required NodeType type,
-    required ProductionLine line,
-  }) : _eventHistory = parentGraph._eventHistory,
-       _nodeType = type,
-       _line = line,
-       _geometry = NodeGeometry.uninitialised,
-       _active = false {
-    if (!_verifyNodeTypeAndLine(type, line)) {
-      throw FactorioException(
-        'Nodetype $type is incompatible with production line $line',
-      );
-    }
-
-    parentGraph.apply(GraphEvent.newNode(parentGraph, this));
-    apply(NodeEvent.addToGraph(this));
-
-    if (line is BaseGraph) {
-      line._parentNode = this;
-    }
-  }
-
-  /* ------------- Stateful methods ------------- */
-  @override
-  void apply(NodeEvent event) {
-    _apply(event);
-
-    _eventHistory.addNodeEvent(event);
-  }
-
-  @override
-  void redo(NodeEvent event) {
-    _apply(event);
-  }
-
-  @override
-  void rollback(NodeEvent event) {
-    _apply(event.reversed);
-  }
-
-  void _apply(NodeEvent event) {
-    _eventHistory.checkIfMutationPermitted();
-
-    for (var mutationEvent in event.mutations) {
-      switch (mutationEvent) {
-        case NodeEventType.updateGeometry:
-          _geometry = event.newGeometry!;
-
-        case NodeEventType.newRequirements:
-          if (event.newRequirements == null) {
-            _line.clearRequirements();
-          } else {
-            _line.update(event.newRequirements!);
-          }
-
-        case NodeEventType.newNodeType:
-          _nodeType = event.newNodeType!;
-
-        case NodeEventType.newProductionLine:
-          _line = event.newProductionLine!;
-
-          if (_line is BaseGraph) {
-            (_line as BaseGraph)._parentNode = this;
-          }
-
-        case NodeEventType.parentOfUpdate:
-          _parentOf.removeAll(event.removedParentOf);
-          _parentOf.addAll(event.newParentOf);
-
-        case NodeEventType.childOfUpdate:
-          _childOf.removeAll(event.removedChildOf);
-          _childOf.addAll(event.newChildOf);
-
-        case NodeEventType.addedToGraph:
-          _active = true;
-
-        case NodeEventType.removedFromGraph:
-          _active = false;
-
-        case NodeEventType.tempGeometry:
-          throw const MutationException(
-            'Cannot apply event of type tempGeometry',
-          );
-      }
-    }
-  }
-
-  /* ----------- Geometry Operations ----------- */
-  void beginDragging() {
-    parentGraph.beginMultiNodeDrag([this], const []);
-  }
-
-  void beginResize(RectPoint selectedPoint) {
-    parentGraph.beginMultiNodeResize([this], this, selectedPoint);
-  }
-
-  void drag(Offset offset) {
-    parentGraph._throwIfNoGeometricOp();
-    parentGraph._geometryOperation!.drag(offset);
-  }
-
-  void resize({
-    double leftOffset = 0,
-    double topOffset = 0,
-    double rightOffset = 0,
-    double bottomOffset = 0,
-  }) {
-    parentGraph._throwIfNoGeometricOp();
-    parentGraph._geometryOperation!.resizeNodes(
-      leftOffset,
-      topOffset,
-      rightOffset,
-      bottomOffset,
-    );
-  }
-
-  void finishDragOrResize() {}
-
-  /* ------------- All other logic ------------- */
-  void removeFromGraph() {
-    parentGraph.apply(GraphEvent.removeNode(parentGraph, this));
-    for (var edge in [...parentOf, ...childOf]) {
-      edge.removeFromGraph();
-    }
-    apply(NodeEvent.removeFromGraph(this));
-  }
-
-  List<DirectedEdge> findRelationships(ProdLineNode other) => parentOf
-      .where((childEdge) => childEdge.child == other)
-      .followedBy(_childOf.where((parentEdge) => parentEdge.parent == other))
-      .toList();
-
-  bool _verifyNodeTypeAndLine(
-    NodeType nodeType,
-    ProductionLine line,
-  ) => switch (nodeType) {
-    NodeType.consumer || NodeType.disposal || NodeType.output =>
-      line.immutableIo && line.allOutputs.isEmpty && line.allInputs.isNotEmpty,
-    NodeType.producer || NodeType.input =>
-      line.immutableIo && line.allOutputs.isNotEmpty && line.allInputs.isEmpty,
-    NodeType.productionLine => true,
-  };
-}
-
-class DirectedEdge with Stateful<EdgeEvent> {
-  /* ------------- Immutable fields ------------- */
-  final BaseGraph parentGraph;
-  final EventHistory _eventHistory;
-
-  final ProdLineNode parent;
-  final ProdLineNode child;
-  final ItemData item;
-
-  final Relationship edgeType;
-
-  /* -------------- Mutable fields -------------- */
-  bool _active;
-
-  double? _amount;
-
-  EdgeGeometry _geometry;
-
-  /* ---------------- Accessors ---------------- */
-  double? get amount => _amount;
-  ItemFlowDirection get flowDirection => edgeType.flowDirection;
-
-  EdgeGeometry get geometry => _geometry;
-  LineType get lineType => _geometry.lineType;
-  List<Line> get lines => _geometry.lines;
-
-  bool get active => _active;
-
-  /* --------------- Constructors --------------- */
-  DirectedEdge.addToGraph({
-    required this.parentGraph,
-    required this.item,
-    required this.parent,
-    required this.child,
-    double? initialAmount,
-    required this.edgeType,
-  }) : _eventHistory = parentGraph._eventHistory,
-       _amount = initialAmount,
-       _geometry = EdgeGeometry.uninitialised,
-       _active = false {
-    // TODO - fix up
-    // Confirm both parent and child are valid
-    if (parentGraph != parent.parentGraph || parentGraph != child.parentGraph) {
-      throw const FactorioException(
-        'Cannot connect two nodes from different graphs',
-      );
-    } else if (parent.parentOf.contains(this)) {
-      throw const FactorioException('Cannot create duplicate edge');
-    }
-
-    // Ensure no loops are created
-    // TODO - Allow loops
-    Set<ProdLineNode> visitedNodes = {};
-    List<ProdLineNode> nodesToVisit = child.parentOf
-        .map((edge) => edge.child)
-        .toList();
-    while (nodesToVisit.isNotEmpty) {
-      ProdLineNode node = nodesToVisit.removeLast();
-      if (node == parent) {
-        throw const FactorioException('Cannot create loop');
-      } else if (!visitedNodes.contains(node)) {
-        visitedNodes.add(node);
-        nodesToVisit.addAll(node.parentOf.map((edge) => edge.child));
-      }
-    }
-
-    parentGraph.apply(GraphEvent.newEdge(parentGraph, this));
-    parent.apply(NodeEvent.newChildEdge(parent, this));
-    child.apply(NodeEvent.newParentEdge(child, this));
-    apply(EdgeEvent.addToGraph(this));
-  }
-
-  /* ------------- Stateful methods ------------- */
-  @override
-  void apply(EdgeEvent event) {
-    _apply(event);
-
-    _eventHistory.addEdgeEvent(event);
-  }
-
-  @override
-  void redo(EdgeEvent event) {
-    _apply(event);
-  }
-
-  @override
-  void rollback(EdgeEvent event) {
-    _apply(event.reversed);
-  }
-
-  void _apply(EdgeEvent event) {
-    _eventHistory.checkIfMutationPermitted();
-
-    for (var mutationEvent in event.mutations) {
-      switch (mutationEvent) {
-        case EdgeEventType.newAmount:
-          _amount = event.newAmount;
-
-        case EdgeEventType.newGeometry:
-          _geometry = event.newGeometry!;
-
-        case EdgeEventType.addedToGraph:
-          _active = true;
-
-        case EdgeEventType.removedFromGraph:
-          _active = false;
-
-        case EdgeEventType.tempGeometry:
-          throw const MutationException(
-            'Cannot apply event of type tempGeometry',
-          );
-      }
-    }
-  }
-
-  /* ------------- All other logic ------------- */
-  void removeFromGraph() {
-    parentGraph.apply(GraphEvent.removeEdge(parentGraph, this));
-    parent.apply(NodeEvent.removeChildEdge(parent, this));
-    child.apply(NodeEvent.removeParentEdge(child, this));
-    apply(EdgeEvent.removeFromGraph(this));
-  }
-
-  void _shortestLineBetweenNodes() {
-    apply(EdgeEvent.updateGeometry(this, EdgeGeometry.shortestPath(this)));
-  }
-}
-
-enum NodeType {
-  consumer(allowsInput: true, allowsOutput: false, isIo: false),
-  disposal(allowsInput: true, allowsOutput: false, isIo: false),
-  producer(allowsInput: false, allowsOutput: true, isIo: false),
-  input(allowsInput: false, allowsOutput: true, isIo: true),
-  output(allowsInput: true, allowsOutput: false, isIo: true),
-  productionLine(allowsInput: true, allowsOutput: true, isIo: false);
-
-  final bool allowsInput;
-  final bool allowsOutput;
-  final bool isIo;
-
-  const NodeType({
-    required this.allowsInput,
-    required this.allowsOutput,
-    required this.isIo,
-  });
-
-  bool canChangeTo(NodeType changeTo) =>
-      this == changeTo ||
-      switch (this) {
-        consumer => const {output, productionLine, disposal}.contains(changeTo),
-        disposal => const {output, productionLine, producer}.contains(changeTo),
-        producer => const {input, productionLine}.contains(changeTo),
-        input => false,
-        output => false,
-        productionLine => false,
-      };
-}
-
-// TODO - Add more linetypes
-enum LineType { shortestPath }
-
-enum ItemFlowDirection { parentToChild, childToParent }
-
-enum Relationship {
-  requestItems(ItemFlowDirection.childToParent),
-  acceptExcess(ItemFlowDirection.parentToChild);
-
-  final ItemFlowDirection flowDirection;
-
-  const Relationship(this.flowDirection);
-}
-
-class GraphException implements Exception {
-  final String message;
-
-  const GraphException(this.message);
-
-  @override
-  String toString() => 'GraphException: $message';
 }

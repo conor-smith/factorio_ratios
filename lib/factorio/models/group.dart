@@ -1,4 +1,4 @@
-part of '../models.dart';
+part of 'models.dart';
 
 class ItemGroup extends Ordered implements HasIcon {
   static const double _expectedIconSize = 128;

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:factorio_ratios/factorio/models.dart';
+import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/ui/graph/overlay_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
