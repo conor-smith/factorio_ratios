@@ -18,6 +18,8 @@ class CraftingMachine {
   final List<String> craftingCategories;
   final List<String> allowedEffects;
 
+  late final bool needsFuel = energySource is BurnerEnergySource;
+
   late final List<Recipe> recipes = List.unmodifiable(
     craftingCategories
         .map(

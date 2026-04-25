@@ -28,6 +28,29 @@ final Map<String, double> _multipliers = {
   "Q": pow(10, 30).toDouble(),
 };
 
+enum Effects {
+  consumption('consumption', minMultiplier: 0.2),
+  productivity('productivity', minMultiplier: 1, maxMultiplier: 3),
+  speed('speed', minMultiplier: 0.2),
+  pollution('pollution'),
+  quality('quality', defaultMultiplier: 0);
+
+  final String name;
+  final double defaultMultiplier;
+  final double minMultiplier;
+  final double maxMultiplier;
+
+  const Effects(
+    this.name, {
+    this.defaultMultiplier = 1,
+    this.minMultiplier = double.negativeInfinity,
+    this.maxMultiplier = double.infinity,
+  });
+
+  @override
+  String toString() => name;
+}
+
 /*
  * All entities (items, recipes, etc) are created from the JSON output from `factorio --dump-data`
  * Once instantiated, the database and all entities within it are immutable
@@ -301,39 +324,31 @@ class FactorioDatabase {
     itemMap.forEach((name, item) {
       try {
         if (item is SolidItem) {
-          SolidItem solidItem = item;
-
-          if (solidItem._burnResultString != null) {
-            Item burntResult = itemMap[solidItem._burnResultString]!;
-            solidItem.burntResult = burntResult;
+          if (item._burnResultString != null) {
+            Item burntResult = itemMap[item._burnResultString]!;
             burntResults.update(
               burntResult,
-              (items) => items..add(solidItem),
-              ifAbsent: () => [solidItem],
+              (items) => items..add(item),
+              ifAbsent: () => [item],
             );
-          } else {
-            solidItem.burntResult = null;
           }
 
-          if (solidItem._spoilResultString != null) {
-            Item spoilResult = itemMap[solidItem._spoilResultString]!;
-            solidItem.spoilResult = spoilResult;
+          if (item._spoilResultString != null) {
+            Item spoilResult = itemMap[item._spoilResultString]!;
             spoilResults.update(
               spoilResult,
-              (items) => items..add(solidItem),
-              ifAbsent: () => [solidItem],
+              (items) => items..add(item),
+              ifAbsent: () => [item],
             );
-          } else {
-            solidItem.spoilResult = null;
           }
 
-          if (solidItem.fuelCategory != null) {
-            String category = solidItem.fuelCategory!;
+          if (item.fuelCategory != null) {
+            String category = item.fuelCategory!;
 
             fuelCategoryToItems.update(
               category,
-              (items) => items..add(solidItem),
-              ifAbsent: () => [solidItem],
+              (items) => items..add(item),
+              ifAbsent: () => [item],
             );
           }
         }

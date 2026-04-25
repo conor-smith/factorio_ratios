@@ -75,13 +75,15 @@ class SolidItem extends Item {
   final double? fuelEmissionsMultiplier;
 
   final String? _spoilResultString;
-  late final Item? spoilResult;
+  late final Item? spoilResult = _spoilResultString != null ? factorioDb.itemMap[_spoilResultString]! : null;
   late final List<Item> producedFromSpoiling = UnmodifiableListView(
     factorioDb._spoilResults[this] ?? const [],
   );
 
   final String? _burnResultString;
-  late final Item? burntResult;
+  late final Item? burntResult = _burnResultString != null
+      ? factorioDb.itemMap[_burnResultString]!
+      : null;
   late final List<Item> producedFromBurning = UnmodifiableListView(
     factorioDb._burnResults[this] ?? const [],
   );

@@ -1,9 +1,9 @@
 part of 'models.dart';
 
 class Recipe extends OrderedWithSubgroup {
-  static const double _expectedIconSize = 64;
-  static const double _defaultScale =
-      (_expectedIconSize / 2) / _expectedIconSize;
+  static const double _expectedIconSize = 64,
+      _defaultScale = (_expectedIconSize / 2) / _expectedIconSize,
+      defaultEnergyRequired = 0.5;
 
   final FactorioDatabase factorioDb;
 
@@ -36,13 +36,12 @@ class Recipe extends OrderedWithSubgroup {
   final bool allowPollution;
   final bool allowQuality;
 
-  final List<RecipeItem> ingredients;
-  final List<RecipeItem> results;
+  final List<RecipeIngredient> ingredients;
+  final List<RecipeProduct> results;
   final List<SurfaceCondition> surfaceConditions;
 
   late final Item? mainProduct = _determineMainProduct();
   late final String localisedName = _getLocalisedName();
-  late final Map<Item, double> itemIo = _determineItemIo();
 
   late final List<CraftingMachine> craftingMachines = List.unmodifiable(
     categories
@@ -112,24 +111,25 @@ class Recipe extends OrderedWithSubgroup {
 
     // Empty ingredients are serialised as "{}" in json rather than null or "[]"
     // As such, a factory method is needed
-    late List<RecipeItem> ingredients;
+    late List<RecipeIngredient> ingredients;
     var rawIngredients = json['ingredients'] ?? const [];
     if (rawIngredients is List) {
       ingredients = List.unmodifiable(
         rawIngredients.map(
-          (ingredientJson) => RecipeItem.fromJson(factorioDb, ingredientJson),
+          (ingredientJson) =>
+              RecipeIngredient.fromJson(factorioDb, ingredientJson),
         ),
       );
     } else {
       ingredients = const [];
     }
 
-    late List<RecipeItem> results;
+    late List<RecipeProduct> results;
     var rawResults = json['results'] ?? const [];
     if (rawResults is List) {
       results = List.unmodifiable(
         rawResults.map(
-          (resultJson) => RecipeItem.fromJson(factorioDb, resultJson),
+          (resultJson) => RecipeProduct.fromJson(factorioDb, resultJson),
         ),
       );
     } else {
@@ -152,9 +152,14 @@ class Recipe extends OrderedWithSubgroup {
       mainProduct: json['main_product'],
       subgroup: json['subgroup'],
       icons: IconData.fromTopLevelJson(json, Recipe._expectedIconSize),
-      energyRequired: json['energy_required']?.toDouble() ?? 0.5,
-      maximumProductivity: json['maximum_productivity']?.toDouble() ?? 3,
-      emissionsMultiplier: json['emissions_multiplier']?.toDouble() ?? 1,
+      energyRequired:
+          json['energy_required']?.toDouble() ?? defaultEnergyRequired,
+      maximumProductivity:
+          json['maximum_productivity']?.toDouble() ??
+          Effects.productivity.maxMultiplier,
+      emissionsMultiplier:
+          json['emissions_multiplier']?.toDouble() ??
+          Effects.pollution.defaultMultiplier,
       enabled: json['enabled'] ?? true,
       allowConsumption: json['allow_consumption'] ?? true,
       allowSpeed: json['allow_speed'] ?? true,
@@ -193,34 +198,13 @@ class Recipe extends OrderedWithSubgroup {
     return mainProduct?.localisedName ??
         '${name[0].toUpperCase()}${name.substring(1).replaceAll('-', ' ')}';
   }
-
-  Map<Item, double> _determineItemIo() {
-    Map<Item, double> io = {};
-
-    for (var ingredient in ingredients) {
-      io[ingredient.item] = -ingredient.amount;
-    }
-
-    for (var result in results) {
-      double amount = result.amount * result.probability;
-      io.update(
-        result.item,
-        (existingAmount) => existingAmount + amount,
-        ifAbsent: () => amount,
-      );
-    }
-
-    return Map.unmodifiable(io);
-  }
 }
 
-class RecipeItem {
+abstract class RecipeItem {
   final FactorioDatabase factorioDb;
 
   final String _name;
   final String type;
-  final double amount;
-  final double probability;
 
   late final Item item = factorioDb.itemMap[_name]!;
 
@@ -228,17 +212,85 @@ class RecipeItem {
     required this.factorioDb,
     required String name,
     required this.type,
-    required this.amount,
-    required this.probability,
   }) : _name = name;
+}
 
-  factory RecipeItem.fromJson(FactorioDatabase factorioDb, Map json) =>
-      RecipeItem._(
+class RecipeIngredient extends RecipeItem {
+  final double? _jsonMinimumTemperature;
+  final double? _jsonMaximumTemperature;
+
+  final double amount;
+  final double? temperature;
+  late final double? minimumTemperature =
+      _jsonMinimumTemperature ??
+      (type == 'fluid' ? (item as FluidItem).defaultTemperature : null);
+  late final double? maximumTemperature =
+      _jsonMaximumTemperature ??
+      (type == 'fluid' ? (item as FluidItem).defaultTemperature : null);
+
+  RecipeIngredient._({
+    required super.factorioDb,
+    required super.name,
+    required super.type,
+    required this.amount,
+    required this.temperature,
+    required double? minimumTemperature,
+    required double? maximumTemperature,
+  }) : _jsonMinimumTemperature = minimumTemperature,
+       _jsonMaximumTemperature = maximumTemperature,
+       super._();
+
+  factory RecipeIngredient.fromJson(FactorioDatabase factorioDb, Map json) =>
+      RecipeIngredient._(
         factorioDb: factorioDb,
         name: json['name'],
         type: json['type'],
-        amount: json['amount'].toDouble(),
+        amount: json['amount']?.toDouble(),
+        temperature: json['temperature']?.toDouble(),
+        minimumTemperature: json['maximum_temperature']?.toDouble(),
+        maximumTemperature: json['minimum_temperature']?.toDouble(),
+      );
+}
+
+class RecipeProduct extends RecipeItem {
+  final double? amount;
+  final double? amountMin;
+  final double? amountMax;
+  final double probability;
+  final double ignoredByProductivity;
+
+  final double extraCountFraction;
+  final double percentSpoiled;
+
+  final double temperature;
+
+  RecipeProduct._({
+    required super.factorioDb,
+    required super.name,
+    required super.type,
+    required this.amount,
+    required this.amountMin,
+    required this.amountMax,
+    required this.probability,
+    required this.ignoredByProductivity,
+    required this.extraCountFraction,
+    required this.percentSpoiled,
+    required this.temperature,
+  }) : super._();
+
+  factory RecipeProduct.fromJson(FactorioDatabase factorioDb, Map json) =>
+      RecipeProduct._(
+        factorioDb: factorioDb,
+        name: json['name'],
+        type: json['type'],
+        amount: json['amount']?.toDouble(),
+        amountMin: json['amount_min']?.toDouble(),
+        amountMax: json['amount_max']?.toDouble(),
         probability: json['probability']?.toDouble() ?? 1,
+        ignoredByProductivity: json['ignored_by_productivity']?.toDouble() ?? 0,
+        extraCountFraction: json['extra_count_fraction']?.toDouble() ?? 0,
+        percentSpoiled: json['percent_spoiled']?.toDouble() ?? 0,
+        temperature: json['temperature'],
       );
 }
 
