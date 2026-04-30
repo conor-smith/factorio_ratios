@@ -60,7 +60,11 @@ class IoLine extends ProductionLine<IoLineIo> {
   }) {
     verifyConstraintsAndIo(inputConstraints, inputConstraints);
 
+    ItemIo netIo = Map.from(outputConstraints);
+    inputConstraints.forEach((item, value) => netIo[item] = -value);
+
     return IoLineIo(
+      netIo: netIo,
       inputConstraints: inputConstraints,
       outputConstraints: outputConstraints,
     );
@@ -68,11 +72,9 @@ class IoLine extends ProductionLine<IoLineIo> {
 }
 
 class IoLineIo extends ProductionLineIo {
-  IoLineIo({super.inputConstraints, super.outputConstraints})
-    : super(
-        netIo: Map.from(outputConstraints)
-          ..addAll(
-            Map.from(inputConstraints)..updateAll((item, value) => -value),
-          ),
-      );
+  IoLineIo({
+    required super.netIo,
+    required super.inputConstraints,
+    required super.outputConstraints,
+  });
 }

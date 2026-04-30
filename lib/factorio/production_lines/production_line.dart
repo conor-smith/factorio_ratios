@@ -4,6 +4,7 @@ import 'package:factorio_ratios/factorio/models/models.dart';
 
 part 'magic_line.dart';
 part 'single_recipe.dart';
+part 'single_machine.dart';
 
 /// Represents a single production line
 /// A production line is anything capable of inputting or outputting items
@@ -93,15 +94,12 @@ abstract class ProductionLineIo {
   final Map<String, double> pollution;
 
   ProductionLineIo({
-    required ItemIo netIo,
-    ItemIo inputConstraints = const {},
-    ItemIo outputConstraints = const {},
+    required this.netIo,
+    this.inputConstraints = const {},
+    this.outputConstraints = const {},
     this.electricPowerConsumption = 0,
-    Map<String, double> pollution = const {},
-  }) : netIo = Map.unmodifiable(netIo),
-       inputConstraints = Map.unmodifiable(inputConstraints),
-       outputConstraints = Map.unmodifiable(outputConstraints),
-       pollution = Map.unmodifiable(pollution);
+    this.pollution = const {},
+  });
 }
 
 class ProductionLineException extends FactorioException {
