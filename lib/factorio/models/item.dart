@@ -75,7 +75,9 @@ class SolidItem extends Item {
   final double? fuelEmissionsMultiplier;
 
   final String? _spoilResultString;
-  late final Item? spoilResult = _spoilResultString != null ? factorioDb.itemMap[_spoilResultString]! : null;
+  late final Item? spoilResult = _spoilResultString != null
+      ? factorioDb.itemMap[_spoilResultString]!
+      : null;
   late final List<Item> producedFromSpoiling = UnmodifiableListView(
     factorioDb._spoilResults[this] ?? const [],
   );
@@ -133,7 +135,7 @@ class FluidItem extends Item {
   final double defaultTemperature;
   final double heatCapacity;
   final double maxTemperature;
-  final double emissionsMultipler;
+  final double emissionsMultiplier;
 
   FluidItem._({
     required super.factorioDb,
@@ -148,7 +150,7 @@ class FluidItem extends Item {
     required this.defaultTemperature,
     required this.heatCapacity,
     required this.maxTemperature,
-    required this.emissionsMultipler,
+    required this.emissionsMultiplier,
   }) : super._();
 
   factory FluidItem.fromJson(FactorioDatabase factorioDb, Map json) =>
@@ -167,6 +169,6 @@ class FluidItem extends Item {
         maxTemperature:
             json['max_temperature']?.toDouble() ??
             json['default_temperature'].toDouble(),
-        emissionsMultipler: json['emissions_multiplier']?.toDouble() ?? 1,
+        emissionsMultiplier: json['emissions_multiplier']?.toDouble() ?? 1,
       );
 }

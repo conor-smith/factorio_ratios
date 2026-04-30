@@ -91,12 +91,20 @@ class InGameRecipeIngredient implements RecipeIngredient {
   final RecipeIngredient internalRecipeIngredient;
   final int quality;
 
-  InGameRecipeIngredient(this.internalRecipeIngredient, this.quality);
+  @override
+  final InGameItem item;
+
+  InGameRecipeIngredient(this.internalRecipeIngredient, this.quality)
+    : item = InGameItem(
+        internalRecipeIngredient.item,
+        quality: quality,
+        temperature:
+            internalRecipeIngredient.temperature ??
+            internalRecipeIngredient.minimumTemperature,
+      );
 
   @override
   FactorioDatabase get factorioDb => internalRecipeIngredient.factorioDb;
-  @override
-  Item get item => internalRecipeIngredient.item;
   @override
   double get amount => internalRecipeIngredient.amount;
   @override

@@ -94,12 +94,15 @@ abstract class ProductionLineIo {
   final Map<String, double> pollution;
 
   ProductionLineIo({
-    required this.netIo,
-    this.inputConstraints = const {},
-    this.outputConstraints = const {},
+    required ItemIo netIo,
+    ItemIo inputConstraints = const {},
+    ItemIo outputConstraints = const {},
     this.electricPowerConsumption = 0,
-    this.pollution = const {},
-  });
+    Map<String, double> pollution = const {},
+  }) : netIo = Map.unmodifiable(netIo),
+       inputConstraints = Map.unmodifiable(inputConstraints),
+       outputConstraints = Map.unmodifiable(outputConstraints),
+       pollution = Map.unmodifiable(pollution);
 }
 
 class ProductionLineException extends FactorioException {

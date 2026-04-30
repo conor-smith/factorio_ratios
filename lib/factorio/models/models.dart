@@ -37,15 +37,30 @@ enum Effects {
 
   final String name;
   final double defaultMultiplier;
+
   final double minMultiplier;
   final double maxMultiplier;
+
+  final double minBonus;
+  final double maxBonus;
 
   const Effects(
     this.name, {
     this.defaultMultiplier = 1,
     this.minMultiplier = double.negativeInfinity,
     this.maxMultiplier = double.infinity,
-  });
+  }) : minBonus = minMultiplier - defaultMultiplier,
+       maxBonus = maxMultiplier - defaultMultiplier;
+
+  double bonusOrBound(double bonus) {
+    if (bonus > maxBonus) {
+      return maxBonus;
+    } else if (bonus < minBonus) {
+      return minBonus;
+    } else {
+      return bonus;
+    }
+  }
 
   @override
   String toString() => name;

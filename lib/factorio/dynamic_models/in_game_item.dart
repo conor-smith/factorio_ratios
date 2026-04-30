@@ -54,6 +54,7 @@ abstract class InGameItem implements Item {
   String toString() => name;
 }
 
+// TODO - Add spoilage
 class SolidItemWithQuality extends InGameItem implements SolidItem {
   @override
   final SolidItem internalItem;
@@ -114,7 +115,7 @@ class FluidItemWithTemp extends InGameItem implements FluidItem {
   @override
   double get defaultTemperature => internalItem.defaultTemperature;
   @override
-  double get emissionsMultipler => internalItem.emissionsMultipler;
+  double get emissionsMultiplier => internalItem.emissionsMultiplier;
   @override
   double get heatCapacity => internalItem.heatCapacity;
   @override
