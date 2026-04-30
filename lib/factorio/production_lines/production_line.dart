@@ -45,21 +45,19 @@ abstract mixin class ProductionLine<T extends ProductionLineIo> {
   ItemIo? get netIoRatios;
 
   /// [inputConstraints] and [outputConstraints] are given in items per minute
-  T calculate(ItemIo inputConstraints, ItemIo outputConstraints);
+  T calculate({ItemIo inputConstraints, ItemIo outputConstraints});
 
-  void verifyConstraintsAndIo({
-    ItemIo inputConstraints = const {},
-    ItemIo outputConstraints = const {},
-  }) {
+  void verifyConstraintsAndIo(
+    ItemIo inputConstraints,
+    ItemIo outputConstraints,
+  ) {
     inputConstraints.forEach((input, constraint) {
       if (constraint <= 0) {
         throw ProductionLineException(
-          this,
           'Input constraint $input had value $constraint',
         );
       } else if (!allInputs.contains(input)) {
         throw ProductionLineException(
-          this,
           'Input constraint $input is not a valid input',
         );
       }
@@ -68,12 +66,10 @@ abstract mixin class ProductionLine<T extends ProductionLineIo> {
     outputConstraints.forEach((output, constraint) {
       if (constraint <= 0) {
         throw ProductionLineException(
-          this,
           'Output constraint $output had value $constraint',
         );
       } else if (!allInputs.contains(output)) {
         throw ProductionLineException(
-          this,
           'Output constraint $output is not a valid input',
         );
       }
@@ -97,18 +93,19 @@ abstract class ProductionLineIo {
   final Map<String, double> pollution;
 
   ProductionLineIo({
-    required this.netIo,
-    this.inputConstraints = const {},
-    this.outputConstraints = const {},
+    required ItemIo netIo,
+    ItemIo inputConstraints = const {},
+    ItemIo outputConstraints = const {},
     this.electricPowerConsumption = 0,
-    this.pollution = const {},
-  });
+    Map<String, double> pollution = const {},
+  }) : netIo = Map.unmodifiable(netIo),
+       inputConstraints = Map.unmodifiable(inputConstraints),
+       outputConstraints = Map.unmodifiable(outputConstraints),
+       pollution = Map.unmodifiable(pollution);
 }
 
 class ProductionLineException extends FactorioException {
-  final ProductionLine source;
-
-  ProductionLineException(this.source, super.message);
+  ProductionLineException(super.message);
 
   @override
   String toString() => 'ProductionLineException: $message';

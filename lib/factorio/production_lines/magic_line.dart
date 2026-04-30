@@ -1,71 +1,78 @@
 part of 'production_line.dart';
 
-// Acts as a "magic" line, consuming / producing all requirements with no buildings
-// Used to represent natural resources or disposal
-class IoLine extends ProductionLine {
-  ItemIo? _requirements;
+/// Represents a 'magic' line that consumes / produces items at no cost
+/// Inputs and outputs are decided at creation and cannot be changed
+class IoLine extends ProductionLine<IoLineIo> {
   @override
-  final Set<ItemData> allInputs;
+  final Set<InGameItem> allInputs;
   @override
-  final Set<ItemData> allOutputs;
+  final Set<InGameItem> allOutputs;
   @override
-  bool get immutableIo => true;
+  final String name;
+  @override
+  final List<IconData>? icon;
 
-  // requirements and totalIOPerSecond point are all the same values
-  @override
-  ItemIo? get requirements => _requirements;
-  @override
-  ItemIo? get totalIoPerSecond => _requirements;
+  IoLine({
+    required this.name,
+    Set<InGameItem> allInputs = const {},
+    Set<InGameItem> allOutputs = const {},
+    this.icon,
+  }) : allInputs = Set.unmodifiable(allInputs),
+       allOutputs = Set.unmodifiable(allOutputs) {
+    if (allInputs.isEmpty && allOutputs.isEmpty) {
+      throw ProductionLineException('No input or output specified for IO line');
+    }
+
+    var itemsInIAndO = allOutputs
+        .where((item) => allInputs.contains(item))
+        .toList();
+
+    if (itemsInIAndO.isNotEmpty) {
+      String itemsString = itemsInIAndO.map((item) => item.name).join(', ');
+      throw ProductionLineException(
+        'The following items were present in both input and output: $itemsString',
+      );
+    }
+  }
+
+  IoLine.singleItemProducer(InGameItem item)
+    : allInputs = const {},
+      allOutputs = Set.unmodifiable({item}),
+      name = '${item.name} producer',
+      icon = item.icons;
+
+  IoLine.singleItemConsumer(InGameItem item)
+    : allInputs = Set.unmodifiable({item}),
+      allOutputs = const {},
+      name = '${item.name} consumer',
+      icon = item.icons;
+
   @override
   String get type => 'io';
 
-  IoLine({Set<ItemData> inputs = const {}, Set<ItemData> outputs = const {}})
-    : allInputs = Set.unmodifiable(inputs),
-      allOutputs = Set.unmodifiable(outputs) {
-    if (allInputs.isEmpty && allOutputs.isEmpty) {
-      throw const FactorioException('Cannot create a IO line with no IO');
-    }
-  }
+  @override
+  ItemIo? get netIoRatios => null;
 
   @override
-  void update(ItemIo newRequirements) {
-    super.update(newRequirements);
+  IoLineIo calculate({
+    ItemIo inputConstraints = const {},
+    ItemIo outputConstraints = const {},
+  }) {
+    verifyConstraintsAndIo(inputConstraints, inputConstraints);
 
-    // For IO line specifically, all io must be given a requirement
-    var allIo = {...allInputs, ...allOutputs};
-    for (var io in allIo) {
-      if (!newRequirements.containsKey(io)) {
-        throw FactorioException('Input/output amount for "$io" not specified');
-      }
-    }
-
-    _requirements = Map.unmodifiable(newRequirements);
+    return IoLineIo(
+      inputConstraints: inputConstraints,
+      outputConstraints: outputConstraints,
+    );
   }
+}
 
-  @override
-  void clearRequirements() {
-    _requirements = null;
-  }
-
-  @override
-  String toString() {
-    var inputs = allInputs;
-    var outputs = allOutputs;
-
-    if (inputs.isEmpty && outputs.isNotEmpty) {
-      return _convertItemSetToString(outputs);
-    } else if (inputs.isNotEmpty && outputs.isEmpty) {
-      return _convertItemSetToString(inputs);
-    } else if (inputs.isNotEmpty && outputs.isNotEmpty) {
-      var inputsString = _convertItemSetToString(inputs);
-      var outputsString = _convertItemSetToString(outputs);
-      return 'Inputs: $inputsString\nOutputs: $outputsString';
-    } else {
-      return '';
-    }
-  }
-
-  String _convertItemSetToString(Set<ItemData> items) {
-    return items.map((item) => item.toString()).reduce((s1, s2) => '$s1, $s2');
-  }
+class IoLineIo extends ProductionLineIo {
+  IoLineIo({super.inputConstraints, super.outputConstraints})
+    : super(
+        netIo: Map.from(outputConstraints)
+          ..addAll(
+            Map.from(inputConstraints)..updateAll((item, value) => -value),
+          ),
+      );
 }

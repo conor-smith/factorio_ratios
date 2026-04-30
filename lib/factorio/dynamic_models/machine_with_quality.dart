@@ -3,9 +3,13 @@ part of 'dynamic_models.dart';
 class CraftingMachineWithQuality implements CraftingMachine {
   // TODO - Quality effects
   final CraftingMachine internalMachine;
-  final int quality;
 
-  const CraftingMachineWithQuality(this.internalMachine, this.quality);
+  final int quality;
+  @override
+  final String name;
+
+  CraftingMachineWithQuality(this.internalMachine, [this.quality = 1])
+    : name = internalMachine.name + (quality == 1 ? '' : ': Q$quality');
 
   @override
   double get energyUsage => internalMachine.energyUsage;
@@ -28,7 +32,8 @@ class CraftingMachineWithQuality implements CraftingMachine {
   @override
   int get moduleSlots => internalMachine.moduleSlots;
   @override
-  String get name => internalMachine.name;
-  @override
   List<Recipe> get recipes => internalMachine.recipes;
+
+  @override
+  String toString() => name;
 }

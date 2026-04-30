@@ -9,7 +9,8 @@ abstract class InGameItem implements Item {
     if (item is SolidItem) {
       return SolidItemWithQuality(item, quality);
     } else {
-      return FluidItemWithTemp(item as FluidItem, temperature);
+      item = item as FluidItem;
+      return FluidItemWithTemp(item, temperature ?? item.defaultTemperature);
     }
   }
 
@@ -35,13 +36,7 @@ abstract class InGameItem implements Item {
   bool get hidden => internalItem.hidden;
 
   @override
-  List<IconData>? get icons => internalItem.icons;
-
-  @override
   String get localisedName => internalItem.localisedName;
-
-  @override
-  String get name => internalItem.name;
 
   @override
   String get order => internalItem.order;
@@ -54,17 +49,24 @@ abstract class InGameItem implements Item {
 
   @override
   String get type => internalItem.type;
+
+  @override
+  String toString() => name;
 }
 
 class SolidItemWithQuality extends InGameItem implements SolidItem {
   @override
   final SolidItem internalItem;
   final int quality;
+
+  @override
+  final String name;
   @override
   final List<IconData>? icons;
 
   SolidItemWithQuality(this.internalItem, [this.quality = 1])
-    : icons = _verifyQualityAndUpdateIcon(internalItem.icons, quality),
+    : name = internalItem.name + (quality == 1 ? '' : ': Q$quality'),
+      icons = _verifyQualityAndUpdateIcon(internalItem.icons, quality),
       super._();
 
   @override
@@ -92,9 +94,6 @@ class SolidItemWithQuality extends InGameItem implements SolidItem {
 
   @override
   int get hashCode => internalItem.hashCode + quality;
-
-  @override
-  String toString() => 'item: $internalItem, quality: $quality';
 }
 
 class FluidItemWithTemp extends InGameItem implements FluidItem {
@@ -102,9 +101,15 @@ class FluidItemWithTemp extends InGameItem implements FluidItem {
   final FluidItem internalItem;
   final double temperature;
 
-  FluidItemWithTemp(this.internalItem, [double? temperature])
-    : temperature = temperature ?? internalItem.defaultTemperature,
+  @override
+  final String name;
+
+  FluidItemWithTemp(this.internalItem, this.temperature)
+    : name = '${internalItem.name}: T$temperature',
       super._();
+
+  @override
+  List<IconData>? get icons => internalItem.icons;
 
   @override
   double get defaultTemperature => internalItem.defaultTemperature;
@@ -123,7 +128,4 @@ class FluidItemWithTemp extends InGameItem implements FluidItem {
 
   @override
   int get hashCode => internalItem.hashCode + temperature.ceil();
-
-  @override
-  String toString() => 'fluid: $internalItem, temperature: $temperature';
 }

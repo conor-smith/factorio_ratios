@@ -5,6 +5,8 @@ class RecipeWithQuality implements Recipe {
   final int quality;
 
   @override
+  final String name;
+  @override
   final List<InGameRecipeIngredient> ingredients;
   @override
   final List<InGameRecipeProduct> results;
@@ -14,7 +16,8 @@ class RecipeWithQuality implements Recipe {
   final InGameItem? mainProduct;
 
   RecipeWithQuality(this.internalRecipe, [this.quality = 1])
-    : icons = _verifyQualityAndUpdateIcon(internalRecipe.icons, quality),
+    : name = internalRecipe.name + (quality == 1 ? '' : ': Q$quality'),
+      icons = _verifyQualityAndUpdateIcon(internalRecipe.icons, quality),
       mainProduct = internalRecipe.mainProduct != null
           ? InGameItem(internalRecipe.mainProduct!)
           : null,
@@ -62,8 +65,6 @@ class RecipeWithQuality implements Recipe {
   @override
   double get maximumProductivity => internalRecipe.maximumProductivity;
   @override
-  String get name => internalRecipe.name;
-  @override
   String get order => internalRecipe.order;
   @override
   ItemSubgroup? get subgroup => internalRecipe.subgroup;
@@ -83,7 +84,7 @@ class RecipeWithQuality implements Recipe {
   int get hashCode => internalRecipe.hashCode + quality;
 
   @override
-  String toString() => 'recipe: $internalRecipe, quality: $quality';
+  String toString() => name;
 }
 
 class InGameRecipeIngredient implements RecipeIngredient {
