@@ -106,6 +106,7 @@ class FactorioDatabase {
   late final Map<String, List<Recipe>> _craftingCategoryToRecipes;
   late final Map<String, List<CraftingMachine>> _craftingCategoryToMachines;
   late final Map<String, List<SolidItem>> _fuelCategoryToItems;
+  late final Map<String, List<SolidItem>> _placeResult;
   late final Map<Item, List<SolidItem>> _spoilResults;
   late final Map<Item, List<SolidItem>> _burnResults;
   late final Map<Item, List<Recipe>> _producedBy;
@@ -279,6 +280,7 @@ class FactorioDatabase {
     Map<Item, List<SolidItem>> burntResults = {};
     Map<Item, List<Recipe>> consumedBy = {};
     Map<Item, List<Recipe>> producedBy = {};
+    Map<String, List<SolidItem>> placeResult = {};
 
     recipeMap.forEach((name, recipe) {
       try {
@@ -357,6 +359,14 @@ class FactorioDatabase {
             );
           }
 
+          if (item._placeResultString != null) {
+            placeResult.update(
+              item._placeResultString,
+              (items) => items..add(item),
+              ifAbsent: () => [item],
+            );
+          }
+
           if (item.fuelCategory != null) {
             String category = item.fuelCategory!;
 
@@ -378,6 +388,7 @@ class FactorioDatabase {
 
     _craftingCategoryToRecipes = Map.unmodifiable(craftingCategoryToRecipes);
     _craftingCategoryToMachines = Map.unmodifiable(craftingCategoryToMachines);
+    _placeResult = Map.unmodifiable(placeResult);
     _fuelCategoryToItems = Map.unmodifiable(fuelCategoryToItems);
     _spoilResults = Map.unmodifiable(spoilResults);
     _burnResults = Map.unmodifiable(burntResults);

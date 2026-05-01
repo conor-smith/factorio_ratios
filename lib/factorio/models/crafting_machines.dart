@@ -1,12 +1,25 @@
 part of 'models.dart';
 
-class CraftingMachine {
+class CraftingMachine extends OrderedWithSubgroup {
   // TODO - Quality effects on module and energy usage
-  // TODO - Create relationship with item used to place craftingMachine
+  static const double _expectedIconSize = 64,
+      _defaultScale = (_expectedIconSize / 2) / _expectedIconSize;
 
   final FactorioDatabase factorioDb;
 
+  @override
   final String name;
+  @override
+  late final String order = _orderString ?? item?.order ?? '';
+  @override
+  late final ItemSubgroup? subgroup = _determineSubGroup();
+  @override
+  late final List<IconData>? icons = _icons ?? item?.icons;
+  @override
+  double get expectedIconSize => _expectedIconSize;
+  @override
+  double get defaultScale => _defaultScale;
+
   final String localisedName;
   final double craftingSpeed;
   final double energyUsage;
@@ -18,7 +31,13 @@ class CraftingMachine {
   final List<String> craftingCategories;
   final List<String> allowedEffects;
 
+  final String? _orderString;
+  final String? _subgroupString;
+  final List<IconData>? _icons;
+
   late final bool needsFuel = energySource is BurnerEnergySource;
+
+  late final Item? item = factorioDb._placeResult[name]?[0];
 
   late final List<Recipe> recipes = List.unmodifiable(
     craftingCategories
@@ -33,6 +52,8 @@ class CraftingMachine {
   CraftingMachine._({
     required this.factorioDb,
     required this.name,
+    required String? order,
+    required String? subgroup,
     required this.localisedName,
     required this.craftingSpeed,
     required this.energyUsage,
@@ -41,7 +62,10 @@ class CraftingMachine {
     required this.effectReceiver,
     required this.craftingCategories,
     required this.allowedEffects,
-  });
+    required List<IconData>? icons,
+  }) : _orderString = order,
+       _subgroupString = subgroup,
+       _icons = icons;
 
   factory CraftingMachine.fromJson(FactorioDatabase factorioDb, Map json) {
     List<String> allowedEffects = const [];
@@ -57,6 +81,8 @@ class CraftingMachine {
     return CraftingMachine._(
       factorioDb: factorioDb,
       name: json['name'],
+      order: json['order'],
+      subgroup: json['subgroup'],
       localisedName: Item._getLocalisedName(json), // TODO - proper localisation
       craftingSpeed: json['crafting_speed'].toDouble(),
       energyUsage: energyUsage,
@@ -73,7 +99,16 @@ class CraftingMachine {
         json['crafting_categories'] as List,
       ).cast(),
       allowedEffects: allowedEffects,
+      icons: IconData.fromTopLevelJson(json, CraftingMachine._expectedIconSize),
     );
+  }
+
+  ItemSubgroup? _determineSubGroup() {
+    if (_subgroupString != null) {
+      return factorioDb.itemSubgroupMap[_subgroupString]!;
+    } else {
+      return item?.subgroup;
+    }
   }
 
   @override

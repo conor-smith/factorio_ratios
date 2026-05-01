@@ -74,6 +74,8 @@ class SolidItem extends Item {
   final String? fuelCategory;
   final double? fuelEmissionsMultiplier;
 
+  final String? _placeResultString;
+
   final String? _spoilResultString;
   late final Item? spoilResult = _spoilResultString != null
       ? factorioDb.itemMap[_spoilResultString]!
@@ -104,9 +106,11 @@ class SolidItem extends Item {
     required this.spoilTicks,
     required this.fuelCategory,
     required this.fuelEmissionsMultiplier,
+    required String? placeResultString,
     required String? spoilResultString,
     required String? burntResultString,
-  }) : _spoilResultString = spoilResultString,
+  }) : _placeResultString = placeResultString,
+       _spoilResultString = spoilResultString,
        _burnResultString = burntResultString,
        super._();
 
@@ -126,6 +130,7 @@ class SolidItem extends Item {
         fuelCategory: json['fuel_category'],
         fuelEmissionsMultiplier:
             json['fuel_emissions_multiplier']?.toDouble() ?? 1,
+        placeResultString: json['place_result'],
         spoilResultString: json['spoil_result'],
         burntResultString: json['burnt_result'],
       );

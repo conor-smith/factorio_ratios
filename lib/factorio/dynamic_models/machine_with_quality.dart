@@ -7,9 +7,14 @@ class CraftingMachineWithQuality implements CraftingMachine {
   final int quality;
   @override
   final String name;
+  @override
+  final InGameItem? item;
 
   CraftingMachineWithQuality(this.internalMachine, [this.quality = 1])
-    : name = internalMachine.name + (quality == 1 ? '' : ': Q$quality');
+    : name = internalMachine.name + (quality == 1 ? '' : ': Q$quality'),
+      item = internalMachine.item != null
+          ? InGameItem(internalMachine.item!, quality: quality)
+          : null;
 
   @override
   double get energyUsage => internalMachine.energyUsage;
@@ -33,6 +38,18 @@ class CraftingMachineWithQuality implements CraftingMachine {
   int get moduleSlots => internalMachine.moduleSlots;
   @override
   List<Recipe> get recipes => internalMachine.recipes;
+  @override
+  int compareTo(Ordered other) => internalMachine.compareTo(other);
+  @override
+  double get defaultScale => internalMachine.defaultScale;
+  @override
+  double get expectedIconSize => internalMachine.expectedIconSize;
+  @override
+  List<IconData>? get icons => internalMachine.icons;
+  @override
+  String get order => internalMachine.order;
+  @override
+  ItemSubgroup? get subgroup => internalMachine.subgroup;
 
   @override
   String toString() => name;
