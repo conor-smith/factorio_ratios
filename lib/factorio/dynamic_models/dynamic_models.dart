@@ -1,5 +1,7 @@
+import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 
+part 'display_data.dart';
 part 'in_game_item.dart';
 part 'recipe_with_quality.dart';
 part 'machine_with_quality.dart';
