@@ -30,7 +30,7 @@ final Map<String, double> _multipliers = {
 
 enum Effects {
   consumption('consumption', minMultiplier: 0.2),
-  productivity('productivity', minMultiplier: 1, maxMultiplier: 3),
+  productivity('productivity', minMultiplier: 1),
   speed('speed', minMultiplier: 0.2),
   pollution('pollution'),
   quality('quality', defaultMultiplier: 0);

@@ -6,6 +6,8 @@ part of 'dynamic_models.dart';
 ///
 /// In the value is of type MapEntry`<DisplayData, DisplayData>`,
 /// The key and value objects are not permitted to have children of their own
+///
+/// It is assumed that lists of display data are displayed in reverse (highest index first)
 class DisplayData {
   /// Contains type information about value
   final DisplayDataType type;
@@ -58,6 +60,16 @@ class DisplayData {
   DisplayData.icon(HasIcon value, [Iterable<DisplayData> children = const []])
     : this._(DisplayDataType.hasIcon, value, children);
 
+  DisplayData.iconAndString(
+    HasIcon icon,
+    String string, [
+    Iterable<DisplayData> children = const [],
+  ]) : this._(
+         DisplayDataType.hasIconAndString,
+         MapEntry(icon, string),
+         children,
+       );
+
   DisplayData.percent(double value, [Iterable<DisplayData> children = const []])
     : this._(DisplayDataType.percent, value, children);
 
@@ -66,6 +78,11 @@ class DisplayData {
 
   DisplayData.joules(double value, [Iterable<DisplayData> children = const []])
     : this._(DisplayDataType.joules, value, children);
+
+  DisplayData.multiplier(
+    double value, [
+    Iterable<DisplayData> children = const [],
+  ]) : this._(DisplayDataType.multiplier, value, children);
 
   DisplayData.keyValuePair(
     DisplayData key,
@@ -133,9 +150,15 @@ enum DisplayDataType {
   /// Value is a HasIcon object
   hasIcon,
 
+  // Value is of type MapEntry<HasIcon, String>
+  hasIconAndString,
+
   /// Value is a number, but should be displayed as a percentage
   /// Eg. a value of 1.6 should be displayed as 160%
   percent,
+
+  // Value is a number, and is explicitly used as a multiplier
+  multiplier,
 
   /// Value is a number representing wattage, and should be displayed as such
   /// eg. a value of 1,500 should be displayed as 1.5kW
