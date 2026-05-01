@@ -36,8 +36,8 @@ class ProdLineNode with Stateful<NodeEvent> {
   Rect get rect => _geometry.minimalRect;
 
   // Accessors for production line
-  Set<ItemData> get allOutputs => _line.allOutputs;
-  Set<ItemData> get allInputs => _line.allInputs;
+  Set<ItemData> get allOutputs => _line.netOutputs;
+  Set<ItemData> get allInputs => _line.netInputs;
   bool get immutableIo => _line.immutableIo;
   ItemIo? get totalIoPerSecond => _line.totalIoPerSecond;
   ItemIo? get requirements => _line.requirements;
@@ -187,9 +187,9 @@ class ProdLineNode with Stateful<NodeEvent> {
     ProductionLine line,
   ) => switch (nodeType) {
     NodeType.consumer || NodeType.disposal || NodeType.output =>
-      line.immutableIo && line.allOutputs.isEmpty && line.allInputs.isNotEmpty,
+      line.immutableIo && line.netOutputs.isEmpty && line.netInputs.isNotEmpty,
     NodeType.producer || NodeType.input =>
-      line.immutableIo && line.allOutputs.isNotEmpty && line.allInputs.isEmpty,
+      line.immutableIo && line.netOutputs.isNotEmpty && line.netInputs.isEmpty,
     NodeType.productionLine => true,
   };
 }

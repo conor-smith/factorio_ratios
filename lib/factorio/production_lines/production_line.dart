@@ -16,14 +16,22 @@ part 'single_machine.dart';
 /// even if doing so means producing an excess of one
 /// The same rule applies to input constraints
 ///
-/// A call to [calculate] must not have an effect on [allInputs], [allOutputs], or [netIoRatios]
+/// A call to [calculate] must not have any effect on [netInputs], [netOutputs], [netInputRatios], or [netOutputRatios]
 /// This means that all of these values must be determined independantly
 ///
-/// [allInputs] and [allOutputs] must not share any items
+/// [netInputs] and [netOutputs] must not share any items
 /// This means that only net IO is taken into account when determining input and output sets
 /// Eg. The kovarex process consumes 40 U-235, and 5 U-238 to produce 41 U-235 and 2 U-238
 /// This means the net IO of this recipe consumes 3 U-238 to produce 1 U-235
 /// As such, a production line representing this would have input {U-238} and output {U-235}
+///
+/// In some scenarios, it is possible to calculate the input / output ratios
+/// before any constraints are passed
+/// If this is the case, both [netInputRatios] and [netOutputRatios] will be populate
+/// The smallest value in inputs or outputs will be set to 1
+/// All other values across both maps will be calculated relative to this
+/// This field must be calculated independently of [calculate]
+/// If this isn't possible, these fields will be null
 abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   /// Used in [toString]
   String get name;
@@ -34,16 +42,11 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   /// Used in displays
   List<IconData>? get icon;
 
-  Set<InGameItem> get allOutputs;
-  Set<InGameItem> get allInputs;
+  Set<InGameItem> get netOutputs;
+  Set<InGameItem> get netInputs;
 
-  /// Represents IO as a set of ratios,
-  /// The value closest to 0 will be set to 1 or -1 respectively
-  /// depending upon whether it's an input or output
-  ///
-  /// Calculating this must be done independently of [calculate]
-  /// If this is not possible, then the value will be null
-  ItemIo? get netIoRatios;
+  ItemIo? get netOutputRatios;
+  ItemIo? get netInputRatios;
 
   /// [inputConstraints] and [outputConstraints] are given in items per minute
   T calculate({ItemIo inputConstraints, ItemIo outputConstraints});
@@ -57,7 +60,7 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
         throw ProductionLineException(
           'Input constraint $input had value $constraint',
         );
-      } else if (!allInputs.contains(input)) {
+      } else if (!netInputs.contains(input)) {
         throw ProductionLineException(
           'Input constraint $input is not a valid input',
         );
@@ -69,7 +72,7 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
         throw ProductionLineException(
           'Output constraint $output had value $constraint',
         );
-      } else if (!allInputs.contains(output)) {
+      } else if (!netInputs.contains(output)) {
         throw ProductionLineException(
           'Output constraint $output is not a valid input',
         );
@@ -85,17 +88,16 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
 ///
 /// Only the displayData should be displayed to an end user
 /// All other fiels, both here and in inherited classes,
-/// exists for utility reasons - to be used in further equations / operations
+/// should exist for utility reasons - to be used in further equations / operations
+/// 
+/// All [ItemIo] fieds are given in items per minute
 abstract class ProductionLineIoData {
   /// DisplayData for end user
   /// No data in here should be used for math or further operations
   /// If any useful data exists, it should be made it's own field
   final List<DisplayData> displayData;
 
-  /// Given in items per minute
   final ItemIo netOutput;
-
-  /// Given in items per minute
   final ItemIo netInput;
 
   final ItemIo inputConstraints;

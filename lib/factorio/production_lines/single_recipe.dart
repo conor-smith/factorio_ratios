@@ -5,9 +5,9 @@ class SingleRecipeLine extends ProductionLine {
   double _machineAmount;
 
   @override
-  final Set<ItemData> allInputs;
+  final Set<ItemData> netInputs;
   @override
-  final Set<ItemData> allOutputs;
+  final Set<ItemData> netOutputs;
   @override
   bool get immutableIo => true;
 
@@ -24,12 +24,12 @@ class SingleRecipeLine extends ProductionLine {
   double get machineAmount => _machineAmount;
 
   SingleRecipeLine(this.production)
-    : allInputs = Set.unmodifiable(
+    : netInputs = Set.unmodifiable(
         production.totalIoPerSecond.entries
             .where((entry) => entry.value < 0)
             .map((entry) => entry.key),
       ),
-      allOutputs = Set.unmodifiable(
+      netOutputs = Set.unmodifiable(
         production.totalIoPerSecond.entries
             .where((entry) => entry.value > 0)
             .map((entry) => entry.key),

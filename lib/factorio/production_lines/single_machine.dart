@@ -150,16 +150,9 @@ class ProductionLineCraftingMachine {
 }
 
 class SingleCraftingMachineIo {
-  final double finalCraftingSpeed;
-  final double baseCraftingSpeed;
+  final double powerConsumption;
+  final Map<String, double> pollution;
 
-  final double finalPowerConsumption;
-  final double basePowerConsumption;
-
-  final Map<String, double> finalPollution;
-  final Map<String, double> basePollution;
-
-  final double recipesPerSecond;
   final ItemIo recipeInput;
   final ItemIo recipeOutput;
   final ItemIo fuelInput;

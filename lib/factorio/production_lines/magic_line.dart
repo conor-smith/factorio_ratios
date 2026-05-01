@@ -4,9 +4,9 @@ part of 'production_line.dart';
 /// Inputs and outputs are decided at creation and cannot be changed
 class IoLine extends ProductionLine<IoLineIoData> {
   @override
-  final Set<InGameItem> allInputs;
+  final Set<InGameItem> netInputs;
   @override
-  final Set<InGameItem> allOutputs;
+  final Set<InGameItem> netOutputs;
   @override
   final String name;
   @override
@@ -14,17 +14,17 @@ class IoLine extends ProductionLine<IoLineIoData> {
 
   IoLine({
     required this.name,
-    Set<InGameItem> allInputs = const {},
-    Set<InGameItem> allOutputs = const {},
+    Set<InGameItem> netInputs = const {},
+    Set<InGameItem> netOutputs = const {},
     this.icon,
-  }) : allInputs = Set.unmodifiable(allInputs),
-       allOutputs = Set.unmodifiable(allOutputs) {
-    if (allInputs.isEmpty && allOutputs.isEmpty) {
+  }) : netInputs = Set.unmodifiable(netInputs),
+       netOutputs = Set.unmodifiable(netOutputs) {
+    if (netInputs.isEmpty && netOutputs.isEmpty) {
       throw ProductionLineException('No input or output specified for IO line');
     }
 
-    var itemsInIAndO = allOutputs
-        .where((item) => allInputs.contains(item))
+    var itemsInIAndO = netOutputs
+        .where((item) => netInputs.contains(item))
         .toList();
 
     if (itemsInIAndO.isNotEmpty) {
@@ -36,14 +36,14 @@ class IoLine extends ProductionLine<IoLineIoData> {
   }
 
   IoLine.singleItemProducer(InGameItem item)
-    : allInputs = const {},
-      allOutputs = Set.unmodifiable({item}),
+    : netInputs = const {},
+      netOutputs = Set.unmodifiable({item}),
       name = '${item.name} producer',
       icon = item.icons;
 
   IoLine.singleItemConsumer(InGameItem item)
-    : allInputs = Set.unmodifiable({item}),
-      allOutputs = const {},
+    : netInputs = Set.unmodifiable({item}),
+      netOutputs = const {},
       name = '${item.name} consumer',
       icon = item.icons;
 
@@ -51,7 +51,9 @@ class IoLine extends ProductionLine<IoLineIoData> {
   String get type => 'io';
 
   @override
-  ItemIo? get netIoRatios => null;
+  ItemIo? get netOutputRatios => null;
+  @override
+  ItemIo? get netInputRatios => null;
 
   @override
   IoLineIoData calculate({
@@ -60,8 +62,8 @@ class IoLine extends ProductionLine<IoLineIoData> {
   }) {
     verifyConstraintsAndIo(inputConstraints, inputConstraints);
 
-    if (inputConstraints.length != allInputs.length ||
-        outputConstraints.length != allOutputs.length) {
+    if (inputConstraints.length != netInputs.length ||
+        outputConstraints.length != netOutputs.length) {
       throw ProductionLineException(
         'Must specify a constraint for every input / output of IO line',
       );
