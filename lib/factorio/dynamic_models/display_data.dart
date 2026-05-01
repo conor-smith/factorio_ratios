@@ -14,44 +14,82 @@ class DisplayData {
 
   final List<DisplayData> children;
 
-  DisplayData.string(String value, [List<DisplayData> children = const []])
+  DisplayData.netInput(ItemIo itemIo)
+    : this.string('Net Input', _convertToSortedDisplayData(itemIo));
+
+  DisplayData.netOutput(ItemIo itemIo)
+    : this.string('Net Output', _convertToSortedDisplayData(itemIo));
+
+  DisplayData.pollution(Map<String, double> pollution)
+    : this.string(
+        'Pollution',
+        _sortMapAndReturnEntries(pollution).map(
+          (entry) => DisplayData._(
+            DisplayDataType.keyValueNoArrow,
+            MapEntry(
+              DisplayData.string(entry.key),
+              DisplayData.number(entry.value),
+            ),
+          ),
+        ),
+      );
+
+  DisplayData.powerConsumption(
+    double value, [
+    List<DisplayData> children = const [],
+  ]) : this._(
+         DisplayDataType.keyValueNoArrow,
+         MapEntry(
+           DisplayData.string('Power Consumption'),
+           DisplayData.wattage(value),
+         ),
+         children,
+       );
+
+  DisplayData.string(String value, [Iterable<DisplayData> children = const []])
     : this._(DisplayDataType.string, value, children);
 
-  DisplayData.number(num value, [List<DisplayData> children = const []])
+  DisplayData.number(num value, [Iterable<DisplayData> children = const []])
     : this._(DisplayDataType.number, value, children);
 
-  DisplayData.boolean(bool value, [List<DisplayData> children = const []])
+  DisplayData.boolean(bool value, [Iterable<DisplayData> children = const []])
     : this._(DisplayDataType.boolean, value, children);
 
-  DisplayData.icon(HasIcon value, [List<DisplayData> children = const []])
+  DisplayData.icon(HasIcon value, [Iterable<DisplayData> children = const []])
     : this._(DisplayDataType.hasIcon, value, children);
 
-  DisplayData.percent(double value, [List<DisplayData> children = const []])
+  DisplayData.percent(double value, [Iterable<DisplayData> children = const []])
     : this._(DisplayDataType.percent, value, children);
+
+  DisplayData.wattage(double value, [Iterable<DisplayData> children = const []])
+    : this._(DisplayDataType.wattage, value, children);
+
+  DisplayData.joules(double value, [Iterable<DisplayData> children = const []])
+    : this._(DisplayDataType.joules, value, children);
 
   DisplayData.keyValuePair(
     DisplayData key,
     DisplayData value, [
-    List<DisplayData> children = const [],
+    Iterable<DisplayData> children = const [],
   ]) : this._mapEntry(DisplayDataType.keyValueKeyArrow, key, value, children);
 
   DisplayData.keyValuePairWithValueArrow(
     DisplayData key,
     DisplayData value, [
-    List<DisplayData> children = const [],
+    Iterable<DisplayData> children = const [],
   ]) : this._mapEntry(DisplayDataType.keyValueValueArrow, key, value, children);
 
   DisplayData.keyValuePairWithKeyArrow(
     DisplayData key,
     DisplayData value, [
-    List<DisplayData> children = const [],
+    Iterable<DisplayData> children = const [],
   ]) : this._mapEntry(DisplayDataType.keyValueKeyArrow, key, value, children);
 
   DisplayData._mapEntry(
     this.type,
     DisplayData key,
     DisplayData value,
-    List<DisplayData> children,
+    Iterable<DisplayData> children,
   ) : value = MapEntry(key, value),
       children = List.unmodifiable(children) {
     if (key.children.isNotEmpty || value.children.isNotEmpty) {
@@ -61,8 +99,25 @@ class DisplayData {
     }
   }
 
-  DisplayData._(this.type, this.value, List<DisplayData> children)
-    : children = List.unmodifiable(children);
+  DisplayData._(
+    this.type,
+    this.value, [
+    Iterable<DisplayData> children = const [],
+  ]) : children = List.unmodifiable(children);
+
+  static Iterable<DisplayData> _convertToSortedDisplayData(ItemIo itemIo) {
+    var sortedEntries = _sortMapAndReturnEntries(itemIo);
+
+    return sortedEntries.map(
+      (entry) => DisplayData._(
+        DisplayDataType.keyValueKeyArrow,
+        MapEntry(DisplayData.icon(entry.key), DisplayData.number(entry.value)),
+      ),
+    );
+  }
+
+  @override
+  String toString() => value.toString();
 }
 
 enum DisplayDataType {
@@ -82,6 +137,14 @@ enum DisplayDataType {
   /// Eg. a value of 1.6 should be displayed as 160%
   percent,
 
+  /// Value is a number representing wattage, and should be displayed as such
+  /// eg. a value of 1,500 should be displayed as 1.5kW
+  wattage,
+
+  /// Value is a number representing joules, and should be displayed as such
+  /// eg. a value of 1,500 should be displayed as 1.5kJ
+  joules,
+
   /// value is a map entry, with key and value both being DisplayData instances
   /// Data should be displayed simply as key: value
   keyValueNoArrow,
@@ -93,4 +156,13 @@ enum DisplayDataType {
   /// value is a map entry, with key and value both being DisplayData instances
   /// Data should be displayed simply as key <- value
   keyValueKeyArrow,
+}
+
+List<MapEntry<K, V>> _sortMapAndReturnEntries<K extends Comparable, V>(
+  Map<K, V> map,
+) {
+  var entries = map.entries.toList(growable: false);
+  entries.sort((entry1, entry2) => entry1.key.compareTo(entry2));
+
+  return entries;
 }
