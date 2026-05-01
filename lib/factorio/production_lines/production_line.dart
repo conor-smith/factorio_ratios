@@ -24,7 +24,7 @@ part 'single_machine.dart';
 /// Eg. The kovarex process consumes 40 U-235, and 5 U-238 to produce 41 U-235 and 2 U-238
 /// This means the net IO of this recipe consumes 3 U-238 to produce 1 U-235
 /// As such, a production line representing this would have input {U-238} and output {U-235}
-abstract mixin class ProductionLine<T extends ProductionLineIo> {
+abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   /// Used in [toString]
   String get name;
 
@@ -81,9 +81,22 @@ abstract mixin class ProductionLine<T extends ProductionLineIo> {
   String toString() => name;
 }
 
-abstract class ProductionLineIo {
+/// Represents a line output given a set of constraints
+///
+/// Only the displayData should be displayed to an end user
+/// All other fiels, both here and in inherited classes,
+/// exists for utility reasons - to be used in further equations / operations
+abstract class ProductionLineIoData {
+  /// DisplayData for end user
+  /// No data in here should be used for math or further operations
+  /// If any useful data exists, it should be made it's own field
+  final List<DisplayData> displayData;
+
   /// Given in items per minute
-  final ItemIo netIo;
+  final ItemIo netOutput;
+
+  /// Given in items per minute
+  final ItemIo netInput;
 
   final ItemIo inputConstraints;
   final ItemIo outputConstraints;
@@ -93,13 +106,17 @@ abstract class ProductionLineIo {
   /// Given in pollution per minute
   final Map<String, double> pollution;
 
-  ProductionLineIo({
-    required ItemIo netIo,
+  ProductionLineIoData({
+    required List<DisplayData> displayData,
+    required ItemIo netOutput,
+    required ItemIo netInput,
     ItemIo inputConstraints = const {},
     ItemIo outputConstraints = const {},
     this.electricPowerConsumption = 0,
     Map<String, double> pollution = const {},
-  }) : netIo = Map.unmodifiable(netIo),
+  }) : displayData = List.unmodifiable(displayData),
+       netInput = Map.unmodifiable(netInput),
+       netOutput = Map.unmodifiable(netOutput),
        inputConstraints = Map.unmodifiable(inputConstraints),
        outputConstraints = Map.unmodifiable(outputConstraints),
        pollution = Map.unmodifiable(pollution);

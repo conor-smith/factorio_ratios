@@ -2,7 +2,7 @@ part of 'production_line.dart';
 
 /// Represents a 'magic' line that consumes / produces items at no cost
 /// Inputs and outputs are decided at creation and cannot be changed
-class IoLine extends ProductionLine<IoLineIo> {
+class IoLine extends ProductionLine<IoLineIoData> {
   @override
   final Set<InGameItem> allInputs;
   @override
@@ -54,26 +54,37 @@ class IoLine extends ProductionLine<IoLineIo> {
   ItemIo? get netIoRatios => null;
 
   @override
-  IoLineIo calculate({
+  IoLineIoData calculate({
     ItemIo inputConstraints = const {},
     ItemIo outputConstraints = const {},
   }) {
     verifyConstraintsAndIo(inputConstraints, inputConstraints);
 
-    ItemIo netIo = Map.from(outputConstraints);
-    inputConstraints.forEach((item, value) => netIo[item] = -value);
+    if (inputConstraints.length != allInputs.length ||
+        outputConstraints.length != allOutputs.length) {
+      throw ProductionLineException(
+        'Must specify a constraint for every input / output of IO line',
+      );
+    }
 
-    return IoLineIo(
-      netIo: netIo,
+    return IoLineIoData(
+      displayData: [
+        DisplayData.netOutput(outputConstraints),
+        DisplayData.netInput(inputConstraints),
+      ],
+      netInput: inputConstraints,
+      netOutput: outputConstraints,
       inputConstraints: inputConstraints,
       outputConstraints: outputConstraints,
     );
   }
 }
 
-class IoLineIo extends ProductionLineIo {
-  IoLineIo({
-    required super.netIo,
+class IoLineIoData extends ProductionLineIoData {
+  IoLineIoData({
+    required super.displayData,
+    required super.netInput,
+    required super.netOutput,
     required super.inputConstraints,
     required super.outputConstraints,
   });
