@@ -176,23 +176,25 @@ class ProductionLineCraftingMachine {
 
     if (dataList.isEmpty) {
       // No bonus to apply
-      return _BonusAndDisplayData(0.0, const []);
+      return _BonusAndDisplayData(0.0);
     } else if (!_internalMachine.allowedEffects.contains(
       Effects.productivity.name,
     )) {
-      return _BonusAndDisplayData(0.0, [
+      return _BonusAndDisplayData(
+        0.0,
         DisplayData.iconAndString(
           _internalMachine,
           'does not allow productivity bonus',
         ),
-      ]);
+      );
     } else if (!(_recipe?.allowProductivity ?? true)) {
-      return _BonusAndDisplayData(0.0, [
+      return _BonusAndDisplayData(
+        0.0,
         DisplayData.iconAndString(
           _recipe!,
           'does not allow productivity bonus',
         ),
-      ]);
+      );
     } else {
       var totalProdBonus = machineBaseProdBonus;
       dataList.add(
@@ -223,7 +225,14 @@ class ProductionLineCraftingMachine {
       }
 
       dataList = dataList.reversed.toList();
-      return _BonusAndDisplayData(finalProdBonus, dataList);
+      return _BonusAndDisplayData(
+        finalProdBonus,
+        DisplayData.keyValuePair(
+          DisplayData.string('Productivity Bonus'),
+          DisplayData.percent(finalProdBonus),
+          dataList,
+        ),
+      );
     }
   }
 
@@ -243,18 +252,20 @@ class ProductionLineCraftingMachine {
 
     if (dataList.isEmpty) {
       // No bonus to apply
-      return _BonusAndDisplayData(0.0, const []);
+      return _BonusAndDisplayData(0.0);
     } else if (!_internalMachine.allowedEffects.contains(Effects.speed.name)) {
-      return _BonusAndDisplayData(0.0, [
+      return _BonusAndDisplayData(
+        0.0,
         DisplayData.iconAndString(
           _internalMachine,
           'does not allow speed bonus',
         ),
-      ]);
+      );
     } else if (!(_recipe?.allowSpeed ?? true)) {
-      return _BonusAndDisplayData(0.0, [
+      return _BonusAndDisplayData(
+        0.0,
         DisplayData.iconAndString(_recipe!, 'does not allow speed bonus'),
-      ]);
+      );
     } else {
       var totalSpeedBonus = machineBaseSpeedBonus;
       dataList.add(
@@ -275,7 +286,14 @@ class ProductionLineCraftingMachine {
         );
       }
 
-      return _BonusAndDisplayData(finalSpeedBonus, dataList);
+      return _BonusAndDisplayData(
+        finalSpeedBonus,
+        DisplayData.keyValuePair(
+          DisplayData.string('Speed Bonus'),
+          DisplayData.percent(finalSpeedBonus),
+          dataList,
+        ),
+      );
     }
   }
 
@@ -295,20 +313,22 @@ class ProductionLineCraftingMachine {
 
     if (dataList.isEmpty) {
       // No bonus to apply
-      return _BonusAndDisplayData(0.0, const []);
+      return _BonusAndDisplayData(0.0);
     } else if (!_internalMachine.allowedEffects.contains(
       Effects.consumption.name,
     )) {
-      return _BonusAndDisplayData(0.0, [
+      return _BonusAndDisplayData(
+        0.0,
         DisplayData.iconAndString(
           _internalMachine,
           'does not allow consumption bonus',
         ),
-      ]);
+      );
     } else if (!(_recipe?.allowConsumption ?? true)) {
-      return _BonusAndDisplayData(0.0, [
+      return _BonusAndDisplayData(
+        0.0,
         DisplayData.iconAndString(_recipe!, 'does not allow consumption bonus'),
-      ]);
+      );
     } else {
       var totalConBonus = machineBaseConBonus;
       dataList.add(
@@ -329,7 +349,14 @@ class ProductionLineCraftingMachine {
         );
       }
 
-      return _BonusAndDisplayData(finalConBonus, dataList);
+      return _BonusAndDisplayData(
+        finalConBonus,
+        DisplayData.keyValuePair(
+          DisplayData.string('Consumption Bonus'),
+          DisplayData.percent(finalConBonus),
+          dataList,
+        ),
+      );
     }
   }
 
@@ -385,20 +412,22 @@ class ProductionLineCraftingMachine {
 
     if (bonusDataList.isEmpty) {
       // No bonus to apply
-      return _BonusAndDisplayData(0.0, const []);
+      return _BonusAndDisplayData(0.0);
     } else if (!_internalMachine.allowedEffects.contains(
       Effects.pollution.name,
     )) {
-      return _BonusAndDisplayData(0.0, [
+      return _BonusAndDisplayData(
+        0.0,
         DisplayData.iconAndString(
           _internalMachine,
           'does not allow pollution bonus',
         ),
-      ]);
+      );
     } else if (!(_recipe?.allowPollution ?? true)) {
-      return _BonusAndDisplayData(0.0, [
+      return _BonusAndDisplayData(
+        0.0,
         DisplayData.iconAndString(_recipe!, 'does not allow pollution bonus'),
-      ]);
+      );
     } else {
       var totalPollBonus = machineBasePollBonus;
 
@@ -425,7 +454,14 @@ class ProductionLineCraftingMachine {
 
       var finalPollBonus =
           (totalPollMultiplier * totalPollBonus) + totalPollMultiplier - 1;
-      return _BonusAndDisplayData(finalPollBonus, bonusDataList);
+      return _BonusAndDisplayData(
+        finalPollBonus,
+        DisplayData.keyValuePair(
+          DisplayData.string('Pollution Bonus'),
+          DisplayData.percent(finalPollBonus),
+          bonusDataList,
+        ),
+      );
     }
   }
 }
@@ -461,7 +497,7 @@ class SingleCraftingMachineIo {
 
 class _BonusAndDisplayData {
   final double bonus;
-  final List<DisplayData> displayData;
+  final DisplayData? displayData;
 
-  const _BonusAndDisplayData(this.bonus, this.displayData);
+  const _BonusAndDisplayData(this.bonus, [this.displayData]);
 }
