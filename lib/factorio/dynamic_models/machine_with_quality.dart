@@ -50,6 +50,8 @@ class InGameMachine implements CraftingMachine {
   String get order => internalMachine.order;
   @override
   ItemSubgroup? get subgroup => internalMachine.subgroup;
+  @override
+  List<Item> get fuelItems => internalMachine.fuelItems;
 
   @override
   bool operator ==(Object other) =>

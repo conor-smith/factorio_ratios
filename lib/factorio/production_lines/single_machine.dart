@@ -19,25 +19,6 @@ class ProductionLineCraftingMachine {
   final List<DisplayData> pollutionData;
   final List<DisplayData> consumptionData;
 
-  ProductionLineCraftingMachine._({
-    required this.craftingMachine,
-    required this.productivityBonus,
-    required this.speedBonus,
-    required this.pollutionBonus,
-    required this.consumptionBonus,
-    required this.finalCraftingSpeed,
-    required Map<String, double> finalEmissions,
-    required this.finalPowerConsumption,
-    required List<DisplayData> productivityData,
-    required List<DisplayData> speedData,
-    required List<DisplayData> pollutionData,
-    required List<DisplayData> consumptionData,
-  }) : finalEmissions = Map.unmodifiable(finalEmissions),
-       productivityData = List.unmodifiable(productivityData),
-       speedData = List.unmodifiable(speedData),
-       pollutionData = List.unmodifiable(speedData),
-       consumptionData = List.unmodifiable(consumptionData);
-
   factory ProductionLineCraftingMachine(InGameMachine machine) {
     var productivityBonus = _calculateFinalProductivityBonus(machine);
     var speedBonus = _calculateFinalSpeedBonus(machine);
@@ -65,6 +46,25 @@ class ProductionLineCraftingMachine {
     );
   }
 
+  ProductionLineCraftingMachine._({
+    required this.craftingMachine,
+    required this.productivityBonus,
+    required this.speedBonus,
+    required this.pollutionBonus,
+    required this.consumptionBonus,
+    required this.finalCraftingSpeed,
+    required Map<String, double> finalEmissions,
+    required this.finalPowerConsumption,
+    required List<DisplayData> productivityData,
+    required List<DisplayData> speedData,
+    required List<DisplayData> pollutionData,
+    required List<DisplayData> consumptionData,
+  }) : finalEmissions = Map.unmodifiable(finalEmissions),
+       productivityData = List.unmodifiable(productivityData),
+       speedData = List.unmodifiable(speedData),
+       pollutionData = List.unmodifiable(speedData),
+       consumptionData = List.unmodifiable(consumptionData);
+
   @override
   bool operator ==(Object other) =>
       super == other ||
@@ -73,177 +73,314 @@ class ProductionLineCraftingMachine {
 
   @override
   int get hashCode => craftingMachine.hashCode + 10;
+
+  @override
+  String toString() => craftingMachine.toString();
 }
 
-_ValueAndDisplayData<double> _calculateFinalProductivityBonus(
-  InGameMachine machine,
-) {
+// TODO - account for surface
+ValueAndDisplayData<double> _calculateFinalProductivityBonus(
+  InGameMachine machine, {
+  Surface? surface,
+  InGameRecipe? recipe,
+}) {
+  double totalBonus = 0.0;
   List<DisplayData> dataList = [];
 
   var machineBaseProdBonus = machine.effectReceiver.baseEffect.productivity;
   if (machineBaseProdBonus != 0.0) {
+    totalBonus += machineBaseProdBonus;
+
     dataList.add(
       DisplayData.keyValuePair(
-        DisplayData.iconAndString(machine, 'Base Productivity Bonus'),
-        DisplayData.percent(machineBaseProdBonus),
+        key: DisplayData.iconAndString(
+          icon: machine,
+          string: 'Base Productivity Bonus',
+        ),
+        value: DisplayData.percent(machineBaseProdBonus),
       ),
     );
   }
 
-  if (dataList.isNotEmpty &&
-      !machine.allowedEffects.contains(Effects.productivity.name)) {
-    return _ValueAndDisplayData(0.0, [
-      DisplayData.iconAndString(machine, 'does not allow productivity bonus'),
+  if (dataList.isEmpty) {
+    return ValueAndDisplayData(0.0, const []);
+  } else if (!machine.allowedEffects.contains(Effects.productivity.name)) {
+    return ValueAndDisplayData(0.0, [
+      DisplayData.iconAndString(
+        icon: machine,
+        string: 'does not allow productivity bonus',
+      ),
+    ]);
+  } else if (recipe != null && !recipe.allowProductivity) {
+    return ValueAndDisplayData(0.0, [
+      DisplayData.iconAndString(
+        icon: recipe,
+        string: 'does not allow productivity bonus',
+      ),
     ]);
   } else {
-    var totalProdBonus = machineBaseProdBonus;
     dataList.add(
       DisplayData.keyValuePair(
-        DisplayData.string('Total Productivity Bonus'),
-        DisplayData.number(totalProdBonus),
+        key: DisplayData.string('Total Productivity Bonus'),
+        value: DisplayData.percent(totalBonus),
       ),
     );
 
-    var finalProdBonus = totalProdBonus;
+    var finalProdBonus = totalBonus;
     if (finalProdBonus < Effects.productivity.minBonus) {
       finalProdBonus = Effects.productivity.minBonus;
       dataList.add(
         DisplayData.keyValuePair(
-          DisplayData.string('Minimum Productivity Bonus'),
-          DisplayData.percent(finalProdBonus),
+          key: DisplayData.string('Minimum Productivity Bonus'),
+          value: DisplayData.percent(finalProdBonus),
         ),
       );
     }
 
     dataList = dataList.reversed.toList();
-    return _ValueAndDisplayData(finalProdBonus, dataList);
+    return ValueAndDisplayData(finalProdBonus, dataList);
   }
 }
 
-_ValueAndDisplayData<double> _calculateFinalSpeedBonus(InGameMachine machine) {
+// TODO - account for surface
+ValueAndDisplayData<double> _calculateFinalSpeedBonus(
+  InGameMachine machine, {
+  Surface? surface,
+  InGameRecipe? recipe,
+}) {
+  var totalBonus = 0.0;
   List<DisplayData> dataList = [];
 
   var machineBaseSpeedBonus = machine.effectReceiver.baseEffect.speed;
   if (machineBaseSpeedBonus != 0.0) {
+    totalBonus += machineBaseSpeedBonus;
+
     dataList.add(
       DisplayData.keyValuePair(
-        DisplayData.iconAndString(machine, 'Base Speed Bonus'),
-        DisplayData.percent(machineBaseSpeedBonus),
+        key: DisplayData.iconAndString(
+          icon: machine,
+          string: 'Base Speed Bonus',
+        ),
+        value: DisplayData.percent(machineBaseSpeedBonus),
       ),
     );
   }
 
-  if (dataList.isNotEmpty &&
-      !machine.allowedEffects.contains(Effects.speed.name)) {
-    return _ValueAndDisplayData(0.0, [
-      DisplayData.iconAndString(machine, 'does not allow speed bonus'),
+  if (dataList.isEmpty) {
+    return ValueAndDisplayData(0.0, const []);
+  } else if (!machine.allowedEffects.contains(Effects.speed.name)) {
+    return ValueAndDisplayData(0.0, [
+      DisplayData.iconAndString(
+        icon: machine,
+        string: 'does not allow speed bonus',
+      ),
+    ]);
+  } else if (recipe != null && !recipe.allowSpeed) {
+    return ValueAndDisplayData(0.0, [
+      DisplayData.iconAndString(
+        icon: recipe,
+        string: 'does not allow speed bonus',
+      ),
     ]);
   } else {
-    var totalSpeedBonus = machineBaseSpeedBonus;
     dataList.add(
       DisplayData.keyValuePair(
-        DisplayData.string('Total Speed Bonus'),
-        DisplayData.number(totalSpeedBonus),
+        key: DisplayData.string('Total Speed Bonus'),
+        value: DisplayData.percent(totalBonus),
       ),
     );
 
-    var finalSpeedBonus = totalSpeedBonus;
+    var finalSpeedBonus = totalBonus;
     if (finalSpeedBonus < Effects.speed.minBonus) {
       finalSpeedBonus = Effects.speed.minBonus;
       dataList.add(
         DisplayData.keyValuePair(
-          DisplayData.string('Minimum Speed Bonus'),
-          DisplayData.percent(finalSpeedBonus),
+          key: DisplayData.string('Minimum Speed Bonus'),
+          value: DisplayData.percent(finalSpeedBonus),
         ),
       );
     }
 
-    return _ValueAndDisplayData(finalSpeedBonus, dataList);
+    return ValueAndDisplayData(finalSpeedBonus, dataList);
   }
 }
 
-_ValueAndDisplayData<double> _calculateFinalConsumptionBonus(
-  InGameMachine machine,
-) {
+ValueAndDisplayData<double> _calculateFinalConsumptionBonus(
+  InGameMachine machine, {
+  Surface? surface,
+  Recipe? recipe,
+}) {
+  var totalBonus = 0.0;
   List<DisplayData> dataList = [];
 
   var machineBaseConBonus = machine.effectReceiver.baseEffect.consumption;
   if (machineBaseConBonus != 0.0) {
+    totalBonus += machineBaseConBonus;
+
     dataList.add(
       DisplayData.keyValuePair(
-        DisplayData.iconAndString(machine, 'Base Consumption Bonus'),
-        DisplayData.percent(machineBaseConBonus),
+        key: DisplayData.iconAndString(
+          icon: machine,
+          string: 'Base Consumption Bonus',
+        ),
+        value: DisplayData.percent(machineBaseConBonus),
       ),
     );
   }
 
-  if (dataList.isNotEmpty &&
-      !machine.allowedEffects.contains(Effects.consumption.name)) {
-    return _ValueAndDisplayData(0.0, [
-      DisplayData.iconAndString(machine, 'does not allow consumption bonus'),
+  if (dataList.isEmpty) {
+    return ValueAndDisplayData(0.0, const []);
+  } else if (!machine.allowedEffects.contains(Effects.consumption.name)) {
+    return ValueAndDisplayData(0.0, [
+      DisplayData.iconAndString(
+        icon: machine,
+        string: 'does not allow consumption bonus',
+      ),
+    ]);
+  } else if (recipe != null && !recipe.allowConsumption) {
+    return ValueAndDisplayData(0.0, [
+      DisplayData.iconAndString(
+        icon: recipe,
+        string: 'does not allow consumption bonus',
+      ),
     ]);
   } else {
-    var totalConBonus = machineBaseConBonus;
     dataList.add(
       DisplayData.keyValuePair(
-        DisplayData.string('Total Consumption Bonus'),
-        DisplayData.percent(totalConBonus),
+        key: DisplayData.string('Total Consumption Bonus'),
+        value: DisplayData.percent(totalBonus),
       ),
     );
 
-    var finalConBonus = totalConBonus;
+    var finalConBonus = totalBonus;
     if (finalConBonus < Effects.consumption.minBonus) {
       finalConBonus = Effects.consumption.minBonus;
       dataList.add(
         DisplayData.keyValuePair(
-          DisplayData.string('Minimum Consumption Bonus'),
-          DisplayData.percent(finalConBonus),
+          key: DisplayData.string('Minimum Consumption Bonus'),
+          value: DisplayData.percent(finalConBonus),
         ),
       );
     }
 
-    return _ValueAndDisplayData(finalConBonus, dataList);
+    return ValueAndDisplayData(finalConBonus, dataList);
   }
 }
 
-_ValueAndDisplayData<double> _calculateFinalPollutionBonus(
-  InGameMachine machine,
-) {
-  List<DisplayData> dataList = [];
+ValueAndDisplayData<double> _calculateFinalPollutionBonus(
+  InGameMachine machine, {
+  Surface? surface,
+  Recipe? recipe,
+  InGameItem? fuel,
+}) {
+  var totalBonus = 0.0;
+  var multiplierProduct = 1.0;
+
+  List<DisplayData> bonusDataList = [];
+  List<DisplayData> multiplierDataList = [];
 
   var machineBasePollBonus = machine.effectReceiver.baseEffect.speed;
   if (machineBasePollBonus != 0.0) {
-    dataList.add(
+    totalBonus += machineBasePollBonus;
+
+    bonusDataList.add(
       DisplayData.keyValuePair(
-        DisplayData.iconAndString(machine, 'Base Pollution Bonus'),
-        DisplayData.percent(machineBasePollBonus),
+        key: DisplayData.iconAndString(
+          icon: machine,
+          string: 'Base Pollution Bonus',
+        ),
+        value: DisplayData.percent(machineBasePollBonus),
       ),
     );
   }
 
-  if (dataList.isNotEmpty &&
-      !machine.allowedEffects.contains(Effects.pollution.name)) {
-    return _ValueAndDisplayData(0.0, [
-      DisplayData.iconAndString(machine, 'does not allow pollution bonus'),
+  if (fuel is InGameSolidItem? &&
+      (fuel?.fuelEmissionsMultiplier ?? 1.0) != 1.0) {
+    var fuelEmissionsMultiplier = fuel!.fuelEmissionsMultiplier!;
+    multiplierProduct *= fuelEmissionsMultiplier;
+
+    multiplierDataList.add(
+      DisplayData.keyValuePair(
+        key: DisplayData.iconAndString(
+          icon: fuel,
+          string: 'Fuel Emission Multiplier',
+        ),
+        value: DisplayData.multiplier(fuelEmissionsMultiplier),
+      ),
+    );
+  }
+
+  var multiplierFluids = (recipe?.ingredients ?? const [])
+      .map((ingredient) => ingredient.item)
+      .followedBy([fuel].nonNulls)
+      .whereType<InGameFluidItem>()
+      .where((fluid) => fluid.emissionsMultiplier != 1.0)
+      .toSet();
+  if (multiplierFluids.isNotEmpty) {
+    var fluidEmissionsMultiplier = multiplierFluids.fold(
+      1.0,
+      (multiplier, fluid) => multiplier * fluid.emissionsMultiplier,
+    );
+    multiplierProduct *= fluidEmissionsMultiplier;
+
+    var sortedFluids = multiplierFluids.toList()..sort();
+    multiplierDataList.add(
+      DisplayData.keyValuePair(
+        key: DisplayData.string('Input Emission Multipliers'),
+        value: DisplayData.rowAlignedRight([
+          DisplayData.string('Product:'),
+          DisplayData.multiplier(fluidEmissionsMultiplier),
+        ]),
+        children: sortedFluids.map(
+          (fluid) => DisplayData.keyValuePair(
+            key: DisplayData.icon(fluid),
+            value: DisplayData.multiplier(fluid.emissionsMultiplier),
+          ),
+        ),
+      ),
+    );
+  }
+
+  if (bonusDataList.isEmpty && multiplierDataList.isEmpty) {
+    return ValueAndDisplayData(0.0, const []);
+  } else if (!machine.allowedEffects.contains(Effects.pollution.name)) {
+    return ValueAndDisplayData(0.0, [
+      DisplayData.iconAndString(
+        icon: machine,
+        string: 'does not allow pollution bonus',
+      ),
+    ]);
+  } else if (recipe != null && !recipe.allowPollution) {
+    return ValueAndDisplayData(0.0, [
+      DisplayData.iconAndString(
+        icon: recipe,
+        string: 'does not allow pollution bonus',
+      ),
     ]);
   } else {
-    var totalPollBonus = machineBasePollBonus;
+    var finalDataList = [];
 
-    dataList.add(
-      DisplayData.keyValuePair(
-        DisplayData.string('Total Pollution Bonus'),
-        DisplayData.number(totalPollBonus),
-      ),
-    );
+    if (multiplierDataList.isNotEmpty) {
+      finalDataList.add(
+        DisplayData.keyValuePair(
+          key: DisplayData.string('Pollution Multiplier Product'),
+          value: DisplayData.multiplier(multiplierProduct),
+          children: multiplierDataList,
+        ),
+      );
+    }
 
-    var finalPollBonus = totalPollBonus;
-    return _ValueAndDisplayData(finalPollBonus, dataList);
+    if (bonusDataList.isNotEmpty) {
+      finalDataList.add(
+        DisplayData.keyValuePair(
+          key: DisplayData.string('Total Pollution Bonus'),
+          value: DisplayData.percent(totalBonus),
+          children: bonusDataList,
+        ),
+      );
+    }
+
+    var finalPollBonus = (totalBonus * multiplierProduct) + multiplierProduct - 1;
+    return ValueAndDisplayData(finalPollBonus, bonusDataList);
   }
-}
-
-class _ValueAndDisplayData<T> {
-  final T value;
-  final List<DisplayData> displayData;
-
-  const _ValueAndDisplayData(this.value, this.displayData);
 }

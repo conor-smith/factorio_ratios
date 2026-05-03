@@ -17,90 +17,90 @@ class DisplayData {
   final List<DisplayData> children;
 
   DisplayData.netInput(ItemIo itemIo)
-    : this.string('Net Input', convertToSortedDisplayData(itemIo));
+    : this.string('Net Input', children: convertToSortedDisplayData(itemIo));
 
   DisplayData.netOutput(ItemIo itemIo)
-    : this.string('Net Output', convertToSortedDisplayData(itemIo));
-
-  DisplayData.pollution(Map<String, double> pollution)
-    : this.string(
-        'Pollution',
-        _sortMapAndReturnEntries(pollution).map(
-          (entry) => DisplayData._(
-            DisplayDataType.keyValueNoArrow,
-            MapEntry(
-              DisplayData.string(entry.key),
-              DisplayData.number(entry.value),
-            ),
-          ),
-        ),
-      );
+    : this.string('Net Output', children: convertToSortedDisplayData(itemIo));
 
   DisplayData.powerConsumption(
     double value, [
     List<DisplayData> children = const [],
   ]) : this._(
-         DisplayDataType.keyValueNoArrow,
+         DisplayDataType.keyValue,
          MapEntry(
            DisplayData.string('Power Consumption'),
            DisplayData.wattage(value),
          ),
-         children,
+         children: children,
        );
 
-  DisplayData.string(String value, [Iterable<DisplayData> children = const []])
-    : this._(DisplayDataType.string, value, children);
+  DisplayData.string(String value, {Iterable<DisplayData> children = const []})
+    : this._(DisplayDataType.string, value, children: children);
 
-  DisplayData.number(num value, [Iterable<DisplayData> children = const []])
-    : this._(DisplayDataType.number, value, children);
+  DisplayData.number(num value, {Iterable<DisplayData> children = const []})
+    : this._(DisplayDataType.number, value, children: children);
 
-  DisplayData.boolean(bool value, [Iterable<DisplayData> children = const []])
-    : this._(DisplayDataType.boolean, value, children);
+  DisplayData.boolean(bool value, {Iterable<DisplayData> children = const []})
+    : this._(DisplayDataType.boolean, value, children: children);
 
-  DisplayData.icon(HasIcon value, [Iterable<DisplayData> children = const []])
-    : this._(DisplayDataType.hasIcon, value, children);
+  DisplayData.icon(HasIcon value, {Iterable<DisplayData> children = const []})
+    : this._(DisplayDataType.hasIcon, value, children: children);
 
-  DisplayData.iconAndString(
-    HasIcon icon,
-    String string, [
+  DisplayData.rowAlignedLeft(
+    Iterable<DisplayData> row, {
     Iterable<DisplayData> children = const [],
-  ]) : this._(
-         DisplayDataType.hasIconAndString,
-         MapEntry(icon, string),
-         children,
-       );
+  }) : this._row(DisplayDataType.rowAlignedLeft, row, children);
 
-  DisplayData.percent(double value, [Iterable<DisplayData> children = const []])
-    : this._(DisplayDataType.percent, value, children);
+  DisplayData.rowAlignedCentre(
+    Iterable<DisplayData> row, {
+    Iterable<DisplayData> children = const [],
+  }) : this._row(DisplayDataType.rowAlignedCentre, row, children);
 
-  DisplayData.wattage(double value, [Iterable<DisplayData> children = const []])
-    : this._(DisplayDataType.wattage, value, children);
+  DisplayData.rowAlignedRight(
+    Iterable<DisplayData> row, {
+    Iterable<DisplayData> children = const [],
+  }) : this._row(DisplayDataType.rowAlignedRight, row, children);
 
-  DisplayData.joules(double value, [Iterable<DisplayData> children = const []])
-    : this._(DisplayDataType.joules, value, children);
+  DisplayData.iconAndString({
+    required HasIcon icon,
+    required String string,
+    Iterable<DisplayData> children = const [],
+  }) : this._(DisplayDataType.rowAlignedLeft, [
+         icon,
+         string,
+       ], children: children);
+
+  DisplayData.percent(double value, {Iterable<DisplayData> children = const []})
+    : this._(DisplayDataType.percent, value, children: children);
+
+  DisplayData.wattage(double value, {Iterable<DisplayData> children = const []})
+    : this._(DisplayDataType.wattage, value, children: children);
+
+  DisplayData.joules(double value, {Iterable<DisplayData> children = const []})
+    : this._(DisplayDataType.joules, value, children: children);
 
   DisplayData.multiplier(
-    double value, [
+    double value, {
     Iterable<DisplayData> children = const [],
-  ]) : this._(DisplayDataType.multiplier, value, children);
+  }) : this._(DisplayDataType.multiplier, value, children: children);
 
-  DisplayData.keyValuePair(
-    DisplayData key,
-    DisplayData value, [
+  DisplayData.keyValuePair({
+    required DisplayData key,
+    required DisplayData value,
     Iterable<DisplayData> children = const [],
-  ]) : this._mapEntry(DisplayDataType.keyValueKeyArrow, key, value, children);
+  }) : this._mapEntry(DisplayDataType.keyValueLeftArrow, key, value, children);
 
-  DisplayData.keyValuePairRightArrow(
-    DisplayData key,
-    DisplayData value, [
+  DisplayData.keyValuePairRightArrow({
+    required DisplayData key,
+    required DisplayData value,
     Iterable<DisplayData> children = const [],
-  ]) : this._mapEntry(DisplayDataType.keyValueValueArrow, key, value, children);
+  }) : this._mapEntry(DisplayDataType.keyValueRightArrow, key, value, children);
 
-  DisplayData.keyValuePairWithKeyArrow(
-    DisplayData key,
-    DisplayData value, [
+  DisplayData.keyValuePairLeftArrow({
+    required DisplayData key,
+    required DisplayData value,
     Iterable<DisplayData> children = const [],
-  ]) : this._mapEntry(DisplayDataType.keyValueKeyArrow, key, value, children);
+  }) : this._mapEntry(DisplayDataType.keyValueLeftArrow, key, value, children);
 
   DisplayData._mapEntry(
     this.type,
@@ -116,18 +116,33 @@ class DisplayData {
     }
   }
 
+  DisplayData._row(
+    this.type,
+    Iterable<DisplayData> columns,
+    Iterable<DisplayData> children,
+  ) : value = List.unmodifiable(columns),
+      children = List.unmodifiable(children) {
+    for (var column in columns) {
+      if (column.children.isNotEmpty) {
+        throw FactorioException(
+          'DisplayData objects in row are not permitted to have children',
+        );
+      }
+    }
+  }
+
   DisplayData._(
     this.type,
-    this.value, [
+    this.value, {
     Iterable<DisplayData> children = const [],
-  ]) : children = List.unmodifiable(children);
+  }) : children = List.unmodifiable(children);
 
   static Iterable<DisplayData> convertToSortedDisplayData(ItemIo itemIo) {
     var sortedEntries = _sortMapAndReturnEntries(itemIo);
 
     return sortedEntries.map(
       (entry) => DisplayData._(
-        DisplayDataType.keyValueKeyArrow,
+        DisplayDataType.keyValueLeftArrow,
         MapEntry(DisplayData.icon(entry.key), DisplayData.number(entry.value)),
       ),
     );
@@ -168,17 +183,29 @@ enum DisplayDataType {
   /// eg. a value of 1,500 should be displayed as 1.5kJ
   joules,
 
+  /// Value is a list of DisplayData objects to be represented as a row
+  /// Columns are to be aligned left
+  rowAlignedLeft,
+
+  /// Value is a list of DisplayData objects to be represented as a row
+  /// Columns are evenly spaced out
+  rowAlignedCentre,
+
+  /// Value is a list of DisplayData objects to be represented as a row
+  /// Columns are to be aligned right
+  rowAlignedRight,
+
   /// value is a map entry, with key and value both being DisplayData instances
   /// Data should be displayed simply as key: value
-  keyValueNoArrow,
+  keyValue,
 
   /// value is a map entry, with key and value both being DisplayData instances
   /// Data should be displayed simply as key -> value
-  keyValueValueArrow,
+  keyValueRightArrow,
 
   /// value is a map entry, with key and value both being DisplayData instances
   /// Data should be displayed simply as key <- value
-  keyValueKeyArrow,
+  keyValueLeftArrow,
 }
 
 List<MapEntry<K, V>> _sortMapAndReturnEntries<K extends Comparable, V>(

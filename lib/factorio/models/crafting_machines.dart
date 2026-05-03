@@ -36,6 +36,11 @@ class CraftingMachine extends OrderedWithSubgroup {
   final List<IconData>? _icons;
 
   late final bool needsFuel = energySource is BurnerEnergySource;
+  late final List<Item> fuelItems = switch (energySource.type) {
+    EnergySourceType.burner => (energySource as BurnerEnergySource).fuelItems,
+    EnergySourceType.fluid => throw UnimplementedError(),
+    _ => const [],
+  };
 
   late final Item? item = factorioDb._placeResult[name]?[0];
 

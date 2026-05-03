@@ -2,7 +2,7 @@ part of 'production_line.dart';
 
 /// Represents a 'magic' line that consumes / produces items at no cost
 /// Inputs and outputs are decided at creation and cannot be changed
-class IoLine extends ProductionLine<IoLineIoData> {
+class IoLine with ProductionLine<IoLineIoData> {
   @override
   final Set<InGameItem> netInputs;
   @override
@@ -11,6 +11,14 @@ class IoLine extends ProductionLine<IoLineIoData> {
   final String name;
   @override
   final List<IconData>? icon;
+
+  @override
+  String get type => 'io';
+
+  @override
+  ItemIo? get netOutputRatios => null;
+  @override
+  ItemIo? get netInputRatios => null;
 
   IoLine({
     required this.name,
@@ -46,14 +54,6 @@ class IoLine extends ProductionLine<IoLineIoData> {
       netOutputs = const {},
       name = '${item.name} consumer',
       icon = item.icons;
-
-  @override
-  String get type => 'io';
-
-  @override
-  ItemIo? get netOutputRatios => null;
-  @override
-  ItemIo? get netInputRatios => null;
 
   @override
   IoLineIoData calculate({

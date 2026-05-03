@@ -32,7 +32,7 @@ part 'single_machine.dart';
 /// All other values across both maps will be calculated relative to this
 /// This field must be calculated independently of [calculate]
 /// If this isn't possible, these fields will be null
-abstract mixin class ProductionLine<T extends ProductionLineIoData> {
+mixin ProductionLine<T extends ProductionLineIoData> {
   /// Used in [toString]
   String get name;
 
@@ -89,7 +89,7 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
 /// Only the displayData should be displayed to an end user
 /// All other fiels, both here and in inherited classes,
 /// should exist for utility reasons - to be used in further equations / operations
-/// 
+///
 /// All [ItemIo] fieds are given in items per minute
 abstract class ProductionLineIoData {
   /// DisplayData for end user
@@ -129,4 +129,11 @@ class ProductionLineException extends FactorioException {
 
   @override
   String toString() => 'ProductionLineException: $message';
+}
+
+class ValueAndDisplayData<T> {
+  final T value;
+  final List<DisplayData> displayData;
+
+  const ValueAndDisplayData(this.value, this.displayData);
 }
