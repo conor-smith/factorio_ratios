@@ -1,6 +1,6 @@
 part of 'dynamic_models.dart';
 
-class RecipeWithQuality implements Recipe {
+class InGameRecipe implements Recipe {
   final Recipe internalRecipe;
   final int quality;
 
@@ -15,7 +15,7 @@ class RecipeWithQuality implements Recipe {
   @override
   final InGameItem? mainProduct;
 
-  RecipeWithQuality(this.internalRecipe, [this.quality = 1])
+  InGameRecipe(this.internalRecipe, [this.quality = 1])
     : name = internalRecipe.name + (quality == 1 ? '' : ': Q$quality'),
       icons = _verifyQualityAndUpdateIcon(internalRecipe.icons, quality),
       mainProduct = internalRecipe.mainProduct != null
@@ -76,7 +76,7 @@ class RecipeWithQuality implements Recipe {
 
   @override
   bool operator ==(Object other) =>
-      other is RecipeWithQuality &&
+      other is InGameRecipe &&
       internalRecipe == other.internalRecipe &&
       quality == other.quality;
 
@@ -117,10 +117,10 @@ class InGameRecipeIngredient implements RecipeIngredient {
   String get type => internalRecipeIngredient.type;
 
   bool matches(InGameItem item) {
-    if (item is SolidItemWithQuality) {
+    if (item is InGameSolidItem) {
       return item.internalItem == item && item.quality == quality;
     } else {
-      item = item as FluidItemWithTemp;
+      item = item as InGameFluidItem;
 
       return item.internalItem == item && temperature != null
           ? item.temperature == temperature!

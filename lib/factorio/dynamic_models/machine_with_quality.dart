@@ -1,6 +1,6 @@
 part of 'dynamic_models.dart';
 
-class CraftingMachineWithQuality implements CraftingMachine {
+class InGameMachine implements CraftingMachine {
   // TODO - Quality effects
   final CraftingMachine internalMachine;
 
@@ -10,7 +10,7 @@ class CraftingMachineWithQuality implements CraftingMachine {
   @override
   final InGameItem? item;
 
-  CraftingMachineWithQuality(this.internalMachine, [this.quality = 1])
+  InGameMachine(this.internalMachine, [this.quality = 1])
     : name = internalMachine.name + (quality == 1 ? '' : ': Q$quality'),
       item = internalMachine.item != null
           ? InGameItem(internalMachine.item!, quality: quality)

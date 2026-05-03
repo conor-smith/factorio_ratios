@@ -7,10 +7,10 @@ abstract class InGameItem implements Item {
 
   factory InGameItem(Item item, {int quality = 1, double? temperature}) {
     if (item is SolidItem) {
-      return SolidItemWithQuality(item, quality);
+      return InGameSolidItem(item, quality);
     } else {
       item = item as FluidItem;
-      return FluidItemWithTemp(item, temperature ?? item.defaultTemperature);
+      return InGameFluidItem(item, temperature ?? item.defaultTemperature);
     }
   }
 
@@ -55,7 +55,7 @@ abstract class InGameItem implements Item {
 }
 
 // TODO - Add spoilage
-class SolidItemWithQuality extends InGameItem implements SolidItem {
+class InGameSolidItem extends InGameItem implements SolidItem {
   @override
   final SolidItem internalItem;
   final int quality;
@@ -65,7 +65,7 @@ class SolidItemWithQuality extends InGameItem implements SolidItem {
   @override
   final List<IconData>? icons;
 
-  SolidItemWithQuality(this.internalItem, [this.quality = 1])
+  InGameSolidItem(this.internalItem, [this.quality = 1])
     : name = internalItem.name + (quality == 1 ? '' : ': Q$quality'),
       icons = _verifyQualityAndUpdateIcon(internalItem.icons, quality),
       super._();
@@ -89,7 +89,7 @@ class SolidItemWithQuality extends InGameItem implements SolidItem {
 
   @override
   bool operator ==(Object other) =>
-      other is SolidItemWithQuality &&
+      other is InGameSolidItem &&
       internalItem == other.internalItem &&
       quality == other.quality;
 
@@ -97,7 +97,7 @@ class SolidItemWithQuality extends InGameItem implements SolidItem {
   int get hashCode => internalItem.hashCode + quality;
 }
 
-class FluidItemWithTemp extends InGameItem implements FluidItem {
+class InGameFluidItem extends InGameItem implements FluidItem {
   @override
   final FluidItem internalItem;
   final double temperature;
@@ -105,7 +105,7 @@ class FluidItemWithTemp extends InGameItem implements FluidItem {
   @override
   final String name;
 
-  FluidItemWithTemp(this.internalItem, this.temperature)
+  InGameFluidItem(this.internalItem, this.temperature)
     : name = '${internalItem.name}: T$temperature',
       super._();
 
@@ -123,7 +123,7 @@ class FluidItemWithTemp extends InGameItem implements FluidItem {
 
   @override
   bool operator ==(Object other) =>
-      other is FluidItemWithTemp &&
+      other is InGameFluidItem &&
       internalItem == other.internalItem &&
       temperature == other.temperature;
 

@@ -3,7 +3,7 @@ part of 'production_line.dart';
 /// Represents a single machine
 class ProductionLineCraftingMachine {
   // TODO - modules
-  final CraftingMachineWithQuality craftingMachine;
+  final InGameMachine craftingMachine;
 
   final double productivityBonus;
   final double speedBonus;
@@ -38,7 +38,7 @@ class ProductionLineCraftingMachine {
        pollutionData = List.unmodifiable(speedData),
        consumptionData = List.unmodifiable(consumptionData);
 
-  factory ProductionLineCraftingMachine(CraftingMachineWithQuality machine) {
+  factory ProductionLineCraftingMachine(InGameMachine machine) {
     var productivityBonus = _calculateFinalProductivityBonus(machine);
     var speedBonus = _calculateFinalSpeedBonus(machine);
     var consumptionBonus = _calculateFinalConsumptionBonus(machine);
@@ -67,7 +67,7 @@ class ProductionLineCraftingMachine {
 }
 
 _ValueAndDisplayData<double> _calculateFinalProductivityBonus(
-  CraftingMachineWithQuality machine,
+  InGameMachine machine,
 ) {
   List<DisplayData> dataList = [];
 
@@ -111,9 +111,7 @@ _ValueAndDisplayData<double> _calculateFinalProductivityBonus(
   }
 }
 
-_ValueAndDisplayData<double> _calculateFinalSpeedBonus(
-  CraftingMachineWithQuality machine,
-) {
+_ValueAndDisplayData<double> _calculateFinalSpeedBonus(InGameMachine machine) {
   List<DisplayData> dataList = [];
 
   var machineBaseSpeedBonus = machine.effectReceiver.baseEffect.speed;
@@ -156,7 +154,7 @@ _ValueAndDisplayData<double> _calculateFinalSpeedBonus(
 }
 
 _ValueAndDisplayData<double> _calculateFinalConsumptionBonus(
-  CraftingMachineWithQuality machine,
+  InGameMachine machine,
 ) {
   List<DisplayData> dataList = [];
 
@@ -200,7 +198,7 @@ _ValueAndDisplayData<double> _calculateFinalConsumptionBonus(
 }
 
 _ValueAndDisplayData<double> _calculateFinalPollutionBonus(
-  CraftingMachineWithQuality machine,
+  InGameMachine machine,
 ) {
   List<DisplayData> dataList = [];
 
