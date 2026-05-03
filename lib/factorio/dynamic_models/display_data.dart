@@ -17,10 +17,10 @@ class DisplayData {
   final List<DisplayData> children;
 
   DisplayData.netInput(ItemIo itemIo)
-    : this.string('Net Input', _convertToSortedDisplayData(itemIo));
+    : this.string('Net Input', convertToSortedDisplayData(itemIo));
 
   DisplayData.netOutput(ItemIo itemIo)
-    : this.string('Net Output', _convertToSortedDisplayData(itemIo));
+    : this.string('Net Output', convertToSortedDisplayData(itemIo));
 
   DisplayData.pollution(Map<String, double> pollution)
     : this.string(
@@ -90,7 +90,7 @@ class DisplayData {
     Iterable<DisplayData> children = const [],
   ]) : this._mapEntry(DisplayDataType.keyValueKeyArrow, key, value, children);
 
-  DisplayData.keyValuePairWithValueArrow(
+  DisplayData.keyValuePairRightArrow(
     DisplayData key,
     DisplayData value, [
     Iterable<DisplayData> children = const [],
@@ -122,7 +122,7 @@ class DisplayData {
     Iterable<DisplayData> children = const [],
   ]) : children = List.unmodifiable(children);
 
-  static Iterable<DisplayData> _convertToSortedDisplayData(ItemIo itemIo) {
+  static Iterable<DisplayData> convertToSortedDisplayData(ItemIo itemIo) {
     var sortedEntries = _sortMapAndReturnEntries(itemIo);
 
     return sortedEntries.map(
