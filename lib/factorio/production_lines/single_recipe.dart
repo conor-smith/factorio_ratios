@@ -114,14 +114,14 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
     ItemIo machineTotalOutput = {};
     for (var product in recipe.results) {
       var amountPerCycle =
-          product.amount ?? ((product.amountMax! + product.amountMin!) / 2);
+          product.amount ?? (product.amountMax! + product.amountMin!) / 2;
 
       var productivityBonusPerCycle =
           (amountPerCycle - product.ignoredByProductivity) *
           productivityBonus.value;
-      amountPerCycle += productivityBonusPerCycle > 0
-          ? productivityBonusPerCycle
-          : 0;
+      if (productivityBonusPerCycle > 0) {
+        amountPerCycle += productivityBonusPerCycle;
+      }
 
       amountPerCycle *= product.probability;
       amountPerCycle += product.extraCountFraction;
@@ -241,31 +241,68 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
     ItemIo inputConstraints = const {},
     ItemIo outputConstraints = const {},
   }) {
-    // TODO: implement calculate
-    throw UnimplementedError();
+    verifyConstraintsAndIo(inputConstraints, outputConstraints);
+
+    var machineCount = 0.0;
+
+    inputConstraints.forEach((input, constraint) {
+      var newMachineCount = constraint / machineNetInput[input]!;
+
+      if (newMachineCount > machineCount) {
+        machineCount = newMachineCount;
+      }
+    });
+
+    outputConstraints.forEach((output, constraint) {
+      var newMachineCount = constraint / machineNetOutput[output]!;
+
+      if (newMachineCount > machineCount) {
+        machineCount = newMachineCount;
+      }
+    });
+
+    var electricPowerConsumption =
+        craftingMachine.energySource.type == EnergySourceType.electric
+        ? finalPowerConsumption * machineCount
+        : 0.0;
+
+    return SingleRecipeLineIo(
+      inputConstraints: inputConstraints,
+      outputConstraints: outputConstraints,
+      machineCount: machineCount,
+      totalCyclesPerMinute: cyclesPerMinute,
+      netInput: _multiplyMap(machineNetInput, machineCount),
+      netOutput: _multiplyMap(machineNetOutput, machineCount),
+      totalInput: _multiplyMap(machineTotalInput, machineCount),
+      totalOutput: _multiplyMap(machineTotalOutput, machineCount),
+      electricPowerConsumption: electricPowerConsumption,
+      pollution: _multiplyMap(finalEmissions, machineCount),
+    );
   }
 }
 
 class SingleRecipeLineIo extends ProductionLineIoData {
   final double machineCount;
+  final double totalCyclesPerMinute;
 
   final ItemIo totalInput;
   final ItemIo totalOutput;
-  final Set<InGameItem> potentialSpoilage;
 
   SingleRecipeLineIo({
     required super.inputConstraints,
     required super.outputConstraints,
     required this.machineCount,
+    required this.totalCyclesPerMinute,
     required super.netInput,
     required super.netOutput,
     required ItemIo totalInput,
     required ItemIo totalOutput,
-    required Set<InGameItem> potentialSpoilage,
     required super.electricPowerConsumption,
     required super.pollution,
-    required super.displayData,
+    super.displayData,
   }) : totalInput = Map.unmodifiable(totalInput),
-       totalOutput = Map.unmodifiable(totalOutput),
-       potentialSpoilage = Set.unmodifiable(potentialSpoilage);
+       totalOutput = Map.unmodifiable(totalOutput);
 }
+
+Map<K, double> _multiplyMap<K>(Map<K, double> toMultiply, double multiplier) =>
+    toMultiply.map((key, value) => MapEntry(key, value * multiplier));

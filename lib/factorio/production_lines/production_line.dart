@@ -109,13 +109,13 @@ abstract class ProductionLineIoData {
   final Map<String, double> pollution;
 
   ProductionLineIoData({
-    required List<DisplayData> displayData,
     required ItemIo netOutput,
     required ItemIo netInput,
     ItemIo inputConstraints = const {},
     ItemIo outputConstraints = const {},
     this.electricPowerConsumption = 0,
     Map<String, double> pollution = const {},
+    List<DisplayData> displayData = const [],
   }) : displayData = List.unmodifiable(displayData),
        netInput = Map.unmodifiable(netInput),
        netOutput = Map.unmodifiable(netOutput),
