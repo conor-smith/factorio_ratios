@@ -30,6 +30,8 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   final ItemIo machineTotalInput;
   final ItemIo machineTotalOutput;
 
+  final Map<InGameItem, InGameItem> potentialSpoilage;
+
   factory SingleRecipeLine(
     ProductionLineCraftingMachine plMachine,
     InGameRecipe recipe, {
@@ -128,7 +130,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
     }
     if (fuel is InGameSolidItem? && fuel?.burntResult != null) {
       machineTotalOutput.update(
-        InGameItem(fuel!.burntResult!),
+        fuel!.burntResult!,
         (amount) => amount + fuelConsumed,
         ifAbsent: () => fuelConsumed,
       );
@@ -160,6 +162,14 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
       (item, amount) => MapEntry(item, amount / smallestValue),
     );
 
+    Map<InGameItem, InGameItem> potentialSpoilage = Map.fromEntries(
+      machineNetInputs.keys
+          .followedBy(machineNetOutputs.keys)
+          .whereType<InGameSolidItem>()
+          .where((item) => item.spoilResult != null)
+          .map((item) => MapEntry(item, item.spoilResult!)),
+    );
+
     return SingleRecipeLine._(
       craftingMachine: craftingMachine,
       productivityBonus: productivityBonus.value,
@@ -185,6 +195,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
       machineNetOutput: machineNetOutputs,
       machineTotalInput: machineTotalInput,
       machineTotalOutput: machineTotalOutput,
+      potentialSpoilage: potentialSpoilage,
     );
   }
 
@@ -213,6 +224,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
     required ItemIo machineNetOutput,
     required ItemIo machineTotalInput,
     required ItemIo machineTotalOutput,
+    required Map<InGameItem, InGameItem> potentialSpoilage,
   }) : netInputs = Set.unmodifiable(netInputs),
        netOutputs = Set.unmodifiable(netOutputs),
        netInputRatios = Map.unmodifiable(netInputRatios),
@@ -221,6 +233,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
        machineNetOutput = Map.unmodifiable(machineNetOutput),
        machineTotalInput = Map.unmodifiable(machineTotalInput),
        machineTotalOutput = Map.unmodifiable(machineTotalOutput),
+       potentialSpoilage = Map.unmodifiable(potentialSpoilage),
        super._();
 
   @override

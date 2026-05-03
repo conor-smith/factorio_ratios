@@ -6,7 +6,9 @@ abstract class InGameItem implements Item {
   InGameItem._();
 
   factory InGameItem(Item item, {int quality = 1, double? temperature}) {
-    if (item is SolidItem) {
+    if (item is InGameItem) {
+      return item;
+    } else if (item is SolidItem) {
       return InGameSolidItem(item, quality);
     } else {
       item = item as FluidItem;
@@ -65,15 +67,22 @@ class InGameSolidItem extends InGameItem implements SolidItem {
   @override
   final List<IconData>? icons;
 
+  @override
+  final InGameItem? spoilResult;
+  @override
+  final InGameItem? burntResult;
+
   InGameSolidItem(this.internalItem, [this.quality = 1])
     : name = internalItem.name + (quality == 1 ? '' : ': Q$quality'),
       icons = _verifyQualityAndUpdateIcon(internalItem.icons, quality),
+      spoilResult = internalItem.spoilResult != null
+          ? InGameItem(internalItem.spoilResult!)
+          : null,
+      burntResult = internalItem.burntResult != null
+          ? InGameItem(internalItem.burntResult!)
+          : null,
       super._();
 
-  @override
-  Item? get burntResult => internalItem.burntResult;
-  @override
-  Item? get spoilResult => internalItem.spoilResult;
   @override
   String? get fuelCategory => internalItem.fuelCategory;
   @override

@@ -10,7 +10,15 @@ class InGameMachine implements CraftingMachine {
   @override
   final InGameItem? item;
 
-  InGameMachine(this.internalMachine, [this.quality = 1])
+  factory InGameMachine(CraftingMachine internalMachine, [int quality = 1]) {
+    if(internalMachine is InGameMachine) {
+      return internalMachine;
+    } else {
+      return InGameMachine._(internalMachine, quality);
+    }
+  }
+
+  InGameMachine._(this.internalMachine, this.quality)
     : name = internalMachine.name + (quality == 1 ? '' : ': Q$quality'),
       item = internalMachine.item != null
           ? InGameItem(internalMachine.item!, quality: quality)

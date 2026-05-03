@@ -15,7 +15,15 @@ class InGameRecipe implements Recipe {
   @override
   final InGameItem? mainProduct;
 
-  InGameRecipe(this.internalRecipe, [this.quality = 1])
+  factory InGameRecipe(Recipe internalRecipe, [int quality = 1]) {
+    if (internalRecipe is InGameRecipe) {
+      return internalRecipe;
+    } else {
+      return InGameRecipe._(internalRecipe, quality);
+    }
+  }
+
+  InGameRecipe._(this.internalRecipe, this.quality)
     : name = internalRecipe.name + (quality == 1 ? '' : ': Q$quality'),
       icons = _verifyQualityAndUpdateIcon(internalRecipe.icons, quality),
       mainProduct = internalRecipe.mainProduct != null
