@@ -64,6 +64,15 @@ class ProductionLineCraftingMachine {
       pollutionData: pollutionBonus.displayData,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      super == other ||
+      other is ProductionLineCraftingMachine &&
+          craftingMachine == other.craftingMachine;
+
+  @override
+  int get hashCode => craftingMachine.hashCode + 10;
 }
 
 _ValueAndDisplayData<double> _calculateFinalProductivityBonus(

@@ -89,9 +89,10 @@ class InGameSolidItem extends InGameItem implements SolidItem {
 
   @override
   bool operator ==(Object other) =>
+      super == other ||
       other is InGameSolidItem &&
-      internalItem == other.internalItem &&
-      quality == other.quality;
+          internalItem == other.internalItem &&
+          quality == other.quality;
 
   @override
   int get hashCode => internalItem.hashCode + quality;
@@ -123,9 +124,10 @@ class InGameFluidItem extends InGameItem implements FluidItem {
 
   @override
   bool operator ==(Object other) =>
+      super == other ||
       other is InGameFluidItem &&
-      internalItem == other.internalItem &&
-      temperature == other.temperature;
+          internalItem == other.internalItem &&
+          temperature == other.temperature;
 
   @override
   int get hashCode => internalItem.hashCode + temperature.ceil();

@@ -1,8 +1,11 @@
 part of 'production_line.dart';
 
 class SingleRecipeLine extends ProductionLine {
-  final ImmutableModuledMachineAndRecipe production;
-  double _machineAmount;
+  final ProductionLineCraftingMachine machine;
+  final InGameRecipe recipe;
+
+  final Surface? surface;
+  final 
 
   @override
   final Set<ItemData> netInputs;

@@ -76,9 +76,10 @@ class InGameRecipe implements Recipe {
 
   @override
   bool operator ==(Object other) =>
+      super == other ||
       other is InGameRecipe &&
-      internalRecipe == other.internalRecipe &&
-      quality == other.quality;
+          internalRecipe == other.internalRecipe &&
+          quality == other.quality;
 
   @override
   int get hashCode => internalRecipe.hashCode + quality;

@@ -52,5 +52,15 @@ class InGameMachine implements CraftingMachine {
   ItemSubgroup? get subgroup => internalMachine.subgroup;
 
   @override
+  bool operator ==(Object other) =>
+      super == other ||
+      other is InGameMachine &&
+          internalMachine == other.internalMachine &&
+          quality == other.quality;
+
+  @override
+  int get hashCode => internalMachine.hashCode + quality;
+
+  @override
   String toString() => name;
 }
