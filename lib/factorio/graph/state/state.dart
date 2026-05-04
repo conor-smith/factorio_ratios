@@ -1,3 +1,4 @@
+import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/graph/graph.dart';
 import 'package:factorio_ratios/factorio/graph/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';

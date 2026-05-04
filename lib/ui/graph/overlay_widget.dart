@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 
 class OverlayWidget extends StatefulWidget {
   final FactorioDatabase db;
-  final BaseGraph topGraph;
+  final PlanetBase topGraph;
 
   final List<CraftingMachine> sortedMachines;
   final Map<Surface, SurfaceProperties> surfacePropertiesMap;
@@ -24,7 +24,7 @@ class OverlayWidget extends StatefulWidget {
 
   factory OverlayWidget.createFromDb({Key? key, required FactorioDatabase db}) {
     // TODO - Top graph should have no surface
-    BaseGraph topGraph = BaseGraph.root(surface: db.surfaceMap['nauvis']!);
+    PlanetBase topGraph = PlanetBase.root(surface: db.surfaceMap['nauvis']!);
 
     List<CraftingMachine> sortedMachines = db.craftingMachineMap.values
         .toList();
@@ -83,9 +83,9 @@ class OverlayWidget extends StatefulWidget {
 }
 
 class _OverlayWidgetState extends State<OverlayWidget> {
-  final Map<BaseGraph, GraphWidget> graphWidgets = {};
+  final Map<PlanetBase, GraphWidget> graphWidgets = {};
 
-  BaseGraph get activeGraph => widget.updateNotifier._activeGraph;
+  PlanetBase get activeGraph => widget.updateNotifier._activeGraph;
   ProdLineNode? get activeNode => widget.updateNotifier._activeNode;
   bool get selectionMenuActive => widget.updateNotifier._selectionMenuActive;
 
@@ -152,12 +152,12 @@ class SurfaceProperties {
 }
 
 class OverlayStateNotifier extends ChangeNotifier {
-  BaseGraph _activeGraph;
+  PlanetBase _activeGraph;
   ProdLineNode? _activeNode;
   bool _selectionMenuActive;
 
   OverlayStateNotifier({
-    required BaseGraph activeGraph,
+    required PlanetBase activeGraph,
     ProdLineNode? activeNode,
     bool selectionMenuActive = false,
   }) : _selectionMenuActive = selectionMenuActive,
@@ -169,7 +169,7 @@ class OverlayStateNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateActiveGraph(BaseGraph newGraph) {
+  void updateActiveGraph(PlanetBase newGraph) {
     if (_activeGraph != newGraph) {
       _selectionMenuActive = false;
       _activeNode = null;

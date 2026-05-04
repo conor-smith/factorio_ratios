@@ -2,12 +2,12 @@ part of 'graph.dart';
 
 class DirectedEdge with Stateful<EdgeEvent> {
   /* ------------- Immutable fields ------------- */
-  final BaseGraph parentGraph;
+  final PlanetBase parentGraph;
   final _EventHistory _eventHistory;
 
   final ProdLineNode parent;
   final ProdLineNode child;
-  final ItemData item;
+  final InGameItem item;
 
   final Relationship edgeType;
 
@@ -36,7 +36,7 @@ class DirectedEdge with Stateful<EdgeEvent> {
     required this.child,
     double? initialAmount,
     required this.edgeType,
-  }) : _eventHistory = parentGraph._eventHistory,
+  }) : _eventHistory = parentGraph._history,
        _amount = initialAmount,
        _geometry = EdgeGeometry.uninitialised,
        _active = false {

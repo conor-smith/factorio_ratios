@@ -34,19 +34,6 @@ class NodeEvent extends MutationEvent {
         newGeometry: newGeometry,
       );
 
-  NodeEvent.newRequirements(ProdLineNode node, ItemIo newRequirements)
-    : this._(
-        node,
-        {NodeEventType.newRequirements},
-        oldRequirements: node.requirements,
-        newRequirements: newRequirements,
-      );
-
-  NodeEvent.clearRequirements(ProdLineNode node)
-    : this._(node, {
-        NodeEventType.newRequirements,
-      }, oldRequirements: node.requirements);
-
   NodeEvent.newType(ProdLineNode node, NodeType newType)
     : this._(
         node,

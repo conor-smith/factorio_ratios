@@ -8,7 +8,7 @@ class ProdLineNode with Stateful<NodeEvent> {
       connectionOffset = 8;
 
   /* ------------- Immutable fields ------------- */
-  final BaseGraph parentGraph;
+  final PlanetBase parentGraph;
   final _EventHistory _eventHistory;
 
   /* -------------- Mutable fields -------------- */
@@ -22,9 +22,11 @@ class ProdLineNode with Stateful<NodeEvent> {
   NodeGeometry _geometry;
 
   // Edges that this node is a parent of
-  final Set<DirectedEdge> _parentOf = {};
+  Set<DirectedEdge> _parentOf = const {};
   // Edges that this node is a child of
-  final Set<DirectedEdge> _childOf = {};
+  Set<DirectedEdge> _childOf = const {};
+
+  ProductionLineIo? _ioData;
 
   /* ---------------- Accessors ---------------- */
   late final Set<DirectedEdge> parentOf = UnmodifiableSetView(_parentOf);
@@ -36,14 +38,15 @@ class ProdLineNode with Stateful<NodeEvent> {
   Rect get rect => _geometry.minimalRect;
 
   // Accessors for production line
-  Set<ItemData> get allOutputs => _line.inputItems;
-  Set<ItemData> get allInputs => _line.outputItems;
-  bool get immutableIo => _line.immutableIo;
-  ItemIo? get totalIoPerSecond => _line.totalIoPerSecond;
-  ItemIo? get requirements => _line.requirements;
+  Set<InGameItem> get inputItems => _line.inputItems;
+  Set<InGameItem> get outputItems => _line.outputItems;
+  ItemIo? get inputRatios => _line.inputRatios;
+  ItemIo? get outputRatios => _line.outputRatios;
   String get type => _line.type;
+  String get name => _line.name;
 
   ProductionLine get line => _line;
+  ProductionLineIo? get ioData => _ioData;
 
   @override
   String toString() => _line.toString();
@@ -53,7 +56,7 @@ class ProdLineNode with Stateful<NodeEvent> {
     required this.parentGraph,
     required NodeType type,
     required ProductionLine line,
-  }) : _eventHistory = parentGraph._eventHistory,
+  }) : _eventHistory = parentGraph._history,
        _nodeType = type,
        _line = line,
        _geometry = NodeGeometry.uninitialised,
@@ -66,10 +69,6 @@ class ProdLineNode with Stateful<NodeEvent> {
 
     parentGraph.apply(GraphEvent.newNode(parentGraph, this));
     apply(NodeEvent.addToGraph(this));
-
-    if (line is BaseGraph) {
-      line._parentNode = this;
-    }
   }
 
   /* ------------- Stateful methods ------------- */
@@ -91,50 +90,50 @@ class ProdLineNode with Stateful<NodeEvent> {
   }
 
   void _apply(NodeEvent event) {
-    _eventHistory.checkIfMutationPermitted();
+    // _eventHistory.checkIfMutationPermitted();
 
-    for (var mutationEvent in event.mutations) {
-      switch (mutationEvent) {
-        case NodeEventType.updateGeometry:
-          _geometry = event.newGeometry!;
+    // for (var mutationEvent in event.mutations) {
+    //   switch (mutationEvent) {
+    //     case NodeEventType.updateGeometry:
+    //       _geometry = event.newGeometry!;
 
-        case NodeEventType.newRequirements:
-          if (event.newRequirements == null) {
-            _line.clearRequirements();
-          } else {
-            _line.update(event.newRequirements!);
-          }
+    //     case NodeEventType.newRequirements:
+    //       if (event.newRequirements == null) {
+    //         _line.clearRequirements();
+    //       } else {
+    //         _line.update(event.newRequirements!);
+    //       }
 
-        case NodeEventType.newNodeType:
-          _nodeType = event.newNodeType!;
+    //     case NodeEventType.newNodeType:
+    //       _nodeType = event.newNodeType!;
 
-        case NodeEventType.newProductionLine:
-          _line = event.newProductionLine!;
+    //     case NodeEventType.newProductionLine:
+    //       _line = event.newProductionLine!;
 
-          if (_line is BaseGraph) {
-            (_line as BaseGraph)._parentNode = this;
-          }
+    //       if (_line is PlanetBase) {
+    //         (_line as PlanetBase)._parentNode = this;
+    //       }
 
-        case NodeEventType.parentOfUpdate:
-          _parentOf.removeAll(event.removedParentOf);
-          _parentOf.addAll(event.newParentOf);
+    //     case NodeEventType.parentOfUpdate:
+    //       _parentOf.removeAll(event.removedParentOf);
+    //       _parentOf.addAll(event.newParentOf);
 
-        case NodeEventType.childOfUpdate:
-          _childOf.removeAll(event.removedChildOf);
-          _childOf.addAll(event.newChildOf);
+    //     case NodeEventType.childOfUpdate:
+    //       _childOf.removeAll(event.removedChildOf);
+    //       _childOf.addAll(event.newChildOf);
 
-        case NodeEventType.addedToGraph:
-          _active = true;
+    //     case NodeEventType.addedToGraph:
+    //       _active = true;
 
-        case NodeEventType.removedFromGraph:
-          _active = false;
+    //     case NodeEventType.removedFromGraph:
+    //       _active = false;
 
-        case NodeEventType.tempGeometry:
-          throw const MutationException(
-            'Cannot apply event of type tempGeometry',
-          );
-      }
-    }
+    //     case NodeEventType.tempGeometry:
+    //       throw const MutationException(
+    //         'Cannot apply event of type tempGeometry',
+    //       );
+    //   }
+    // }
   }
 
   /* ----------- Geometry Operations ----------- */
@@ -185,11 +184,11 @@ class ProdLineNode with Stateful<NodeEvent> {
   bool _verifyNodeTypeAndLine(NodeType nodeType, ProductionLine line) =>
       switch (nodeType) {
         NodeType.consumer || NodeType.disposal || NodeType.output =>
-          line.immutableIo &&
+          line.isImmutable &&
               line.inputItems.isEmpty &&
               line.outputItems.isNotEmpty,
         NodeType.producer || NodeType.input =>
-          line.immutableIo &&
+          line.isImmutable &&
               line.inputItems.isNotEmpty &&
               line.outputItems.isEmpty,
         NodeType.productionLine => true,

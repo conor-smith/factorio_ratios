@@ -14,6 +14,8 @@ class IoLine with ProductionLine<IoLineIoData> {
 
   @override
   String get type => 'io';
+  @override
+  bool get isImmutable => true;
 
   @override
   ItemIo? get outputRatios => null;
@@ -82,7 +84,7 @@ class IoLine with ProductionLine<IoLineIoData> {
   }
 }
 
-class IoLineIoData extends ProductionLineIoData {
+class IoLineIoData extends ProductionLineIo {
   IoLineIoData({
     required super.displayData,
     required super.netInput,

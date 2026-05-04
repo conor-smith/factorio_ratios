@@ -1,18 +1,13 @@
 part of 'graph.dart';
 
-/// Maintains a full graph
-/// This acts as the state for the application, and the single source of truth
+/// Represents a single base / collections of production lines on a single planet surface
+/// There may be multiple bases per surface
+/// A base may also contain nodes that belong to a different surface
 ///
 /// All contained objects are mutateable
 /// Mutating state must only be done through specific methods, even within the classes
 /// This means that mutations can be rolled back if need be
 /// Mutateables are also listenable, and will only notifyListeners when instructed to
-///
-/// As nodes can contain graphs, the entire structure can be thought of as a tree
-/// In a tree, there is only one eventHistory object
-/// All mutations must be done within eventHistory._mutate(...)
-/// An arbitrary number of mutations can occur before committing
-/// At commit, all uncommitted events are combined into one single event
 ///
 /// The complex nature of the graphs means that updating the state of one object
 /// may affect the state of another
@@ -20,34 +15,35 @@ part of 'graph.dart';
 /// being added to it's parentGraph's outputs
 /// As such, listeners should not be notified until all changes in a transaction
 /// are completed
-///
-/// The root graph of a tree will never have requirements
-/// This is because requirements determine input and output,
-/// and the root graph has nowhere to input or output to
-class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
-  // Stores history of entire tree. Responsible for rollbacks, commits, etc
-  // All graphs in a tree must use the same eventHistory object
-  static const int _maxSavedEvents = 50; // TODO - Revise this value
-
+class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   /* ------------- Immutable fields ------------- */
-  final _EventHistory _eventHistory;
+  final FactorioBase globalData;
+
+  // For convenience
+  _EventHistory get _history => globalData._history;
 
   final Surface? surface;
+  final _SurfaceProperties? _surfaceProperties;
 
-  // Used to track position in tree. Should only be set once
-  ProdLineNode? _parentNode;
+  @override
+  bool get isImmutable => false;
 
   /* -------------- Mutable fields -------------- */
+  // These are mutable lists rather than immutable ones as that was easier
+  // to work with in the frontend
   final Set<ProdLineNode> _nodes = {};
   final Set<DirectedEdge> _edges = {};
 
-  final Set<ItemData> _allInputs = {};
-  final Set<ItemData> _allOutputs = {};
+  ItemIo? _inputRatios = const {};
+  ItemIo? _outputRatios = const {};
 
-  ItemIo? _requirements;
-  ItemIo? _totalIoPerSecond;
+  String _name;
+
+  Set<InGameItem> _inputItems = const {};
+  Set<InGameItem> _outputItems = const {};
 
   GraphGeometry _geometry;
+  GeometryOperation? _geometryOperation;
 
   /* ---------------- Accessors ---------------- */
   late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
@@ -56,38 +52,51 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   GraphGeometry get geometry => _geometry;
 
   @override
-  late final Set<ItemData> outputItems = UnmodifiableSetView(_allInputs);
-  @override
-  late final Set<ItemData> inputItems = UnmodifiableSetView(_allOutputs);
+  String get name => _name;
 
   @override
-  ItemIo? get requirements => _requirements;
+  Set<InGameItem> get outputItems => _outputItems;
   @override
-  ItemIo? get totalIoPerSecond => _totalIoPerSecond;
+  Set<InGameItem> get inputItems => _inputItems;
 
   @override
-  bool get immutableIo => false;
+  ItemIo? get inputRatios => _inputRatios;
+  @override
+  ItemIo? get outputRatios => _outputRatios;
+
   @override
   String get type => 'graph';
 
-  GeometryOperation? _geometryOperation;
+  @override
+  List<IconData>? get icon => surface?.icons;
 
   /* --------------- Constructors --------------- */
-  BaseGraph.root({this.surface})
-    : _parentNode = null,
-      _eventHistory = _EventHistory(_maxSavedEvents),
-      _geometry = GraphGeometry.uninitialised;
+  PlanetBase._root({
+    required this.globalData,
+    this.surface,
+    String? name,
+    _SurfaceProperties? surfaceProperties,
+  }) : _surfaceProperties = surfaceProperties,
+       _name = name ?? surface?.name ?? '',
+       _geometry = GraphGeometry.uninitialised;
 
-  BaseGraph._addToTree({this.surface, required _EventHistory eventHistory})
-    : _eventHistory = eventHistory,
-      _geometry = GraphGeometry.uninitialised;
+  /* ---------- Production Line Methods ---------- */
+
+  @override
+  PlanetBaseIo calculate({
+    ItemIo inputConstraints = const {},
+    ItemIo outputConstraints = const {},
+  }) {
+    // TODO
+    throw UnimplementedError();
+  }
 
   /* ------------- Stateful methods ------------- */
   @override
   void apply(GraphEvent event) {
     _apply(event);
 
-    _eventHistory.addGraphEvent(event);
+    _history.addGraphEvent(event);
   }
 
   @override
@@ -101,7 +110,7 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   }
 
   void _apply(GraphEvent event) {
-    _eventHistory.checkIfMutationPermitted();
+    _history.checkIfMutationPermitted();
 
     for (var mutationType in event.mutations) {
       switch (mutationType) {
@@ -147,7 +156,7 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
 
   // Uses tree structure and heirarchy to determine node positions
   void treeLayout() {
-    _eventHistory.mutate(() {
+    _history.mutate(() {
       var nodeHeights = _getNodeHeights(_nodes);
 
       for (var y = 0; y < nodeHeights.length; y++) {
@@ -204,9 +213,9 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   }
 
   void _finishGeometricOp() {
-    _throwIfNoGeometricOp();
+    // _throwIfNoGeometricOp();
 
-    // _eventHistory.mutate(() {
+    // _history.mutate(() {
     //   var nodeEvents = _geometryOperation!.nodeGeometry
     //       .map((data) => NodeEvent.updateGeometry(data.node, data.finish()))
     //       .toList();
@@ -331,24 +340,10 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   }
 
   /* ------------- All other logic ------------- */
-  @override
-  void update(ItemIo newRequirements) {
-    super.update(newRequirements);
-
-    // TODO
-  }
-
-  // Only clears output nodes and direct children
-  // Does not clear consumer nodes
-  @override
-  void clearRequirements() {
-    // TODO
-  }
-
   // Will not clear input and output nodes
   void clearAllNodes() {
     // TODO - Create new nodes to supply remaining IO nodes
-    _eventHistory.mutate(() {
+    _history.mutate(() {
       var nonIoNodes = _nodes.where((node) => !node.nodeType.isIo).toList();
 
       for (var node in nonIoNodes) {
@@ -357,166 +352,166 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
     });
   }
 
-  void addConsumerNodeAndTree(
-    ItemData itemData,
-    List<CraftingMachine> sortedMachines,
-    List<Recipe> recipes,
-    List<ItemData> resources,
-    List<ItemData> availableFuels,
-  ) {
-    // Return if consumer node already exists
-    if (_nodes.any(
-      (node) =>
-          node.nodeType == NodeType.consumer &&
-          node.allInputs.contains(itemData),
-    )) {
-      return;
-    }
+  // void addConsumerNodeAndTree(
+  //   ItemData itemData,
+  //   List<CraftingMachine> sortedMachines,
+  //   List<Recipe> recipes,
+  //   List<ItemData> resources,
+  //   List<ItemData> availableFuels,
+  // ) {
+  //   // Return if consumer node already exists
+  //   if (_nodes.any(
+  //     (node) =>
+  //         node.nodeType == NodeType.consumer &&
+  //         node.allInputs.contains(itemData),
+  //   )) {
+  //     return;
+  //   }
 
-    _eventHistory.mutate(() {
-      var newConsumerNode = ProdLineNode.addToGraph(
-        parentGraph: this,
-        type: NodeType.consumer,
-        line: IoLine(inputs: {itemData}),
-      );
+  //   _history.mutate(() {
+  //     var newConsumerNode = ProdLineNode.addToGraph(
+  //       parentGraph: this,
+  //       type: NodeType.consumer,
+  //       line: IoLine(inputs: {itemData}),
+  //     );
 
-      // TODO - Cache this somehow
-      Map<ItemData, List<ProdLineNode>> producers = {};
-      for (var node in _nodes) {
-        for (var output in node.allOutputs) {
-          producers.update(
-            output,
-            (pNodes) => pNodes..add(node),
-            ifAbsent: () => [node],
-          );
-        }
-      }
+  //     // TODO - Cache this somehow
+  //     Map<ItemData, List<ProdLineNode>> producers = {};
+  //     for (var node in _nodes) {
+  //       for (var output in node.allOutputs) {
+  //         producers.update(
+  //           output,
+  //           (pNodes) => pNodes..add(node),
+  //           ifAbsent: () => [node],
+  //         );
+  //       }
+  //     }
 
-      _createRecipeTree(
-        newConsumerNode,
-        sortedMachines,
-        recipes,
-        resources,
-        availableFuels,
-        producers,
-      );
+  //     _createRecipeTree(
+  //       newConsumerNode,
+  //       sortedMachines,
+  //       recipes,
+  //       resources,
+  //       availableFuels,
+  //       producers,
+  //     );
 
-      // TODO - Don't use treeLayout for everything
-      treeLayout();
-    });
-  }
+  //     // TODO - Don't use treeLayout for everything
+  //     treeLayout();
+  //   });
+  // }
 
-  void _createRecipeTree(
-    ProdLineNode parentNode,
-    List<CraftingMachine> sortedMachines,
-    List<Recipe> recipes,
-    List<ItemData> resources,
-    List<ItemData> availableFuels,
-    Map<ItemData, List<ProdLineNode>> producers,
-  ) {
-    for (var input in parentNode.allInputs) {
-      var childNode = producers[input]?.first;
+  // void _createRecipeTree(
+  //   ProdLineNode parentNode,
+  //   List<CraftingMachine> sortedMachines,
+  //   List<Recipe> recipes,
+  //   List<ItemData> resources,
+  //   List<ItemData> availableFuels,
+  //   Map<ItemData, List<ProdLineNode>> producers,
+  // ) {
+  //   for (var input in parentNode.allInputs) {
+  //     var childNode = producers[input]?.first;
 
-      if (childNode == null) {
-        childNode =
-            _createResourceNode(input, resources) ??
-            _createRecipeNode(input, sortedMachines, recipes, availableFuels) ??
-            _createProducerNode(input);
+  //     if (childNode == null) {
+  //       childNode =
+  //           _createResourceNode(input, resources) ??
+  //           _createRecipeNode(input, sortedMachines, recipes, availableFuels) ??
+  //           _createProducerNode(input);
 
-        producers[input] = [childNode];
+  //       producers[input] = [childNode];
 
-        _createRecipeTree(
-          childNode,
-          sortedMachines,
-          recipes,
-          resources,
-          availableFuels,
-          producers,
-        );
-      }
+  //       _createRecipeTree(
+  //         childNode,
+  //         sortedMachines,
+  //         recipes,
+  //         resources,
+  //         availableFuels,
+  //         producers,
+  //       );
+  //     }
 
-      if (!childNode.parentOf.any((edge) => edge.child == childNode)) {
-        DirectedEdge.addToGraph(
-          parentGraph: this,
-          item: input,
-          parent: parentNode,
-          child: childNode,
-          edgeType: Relationship.requestItems,
-        );
-      }
-    }
-  }
+  //     if (!childNode.parentOf.any((edge) => edge.child == childNode)) {
+  //       DirectedEdge.addToGraph(
+  //         parentGraph: this,
+  //         item: input,
+  //         parent: parentNode,
+  //         child: childNode,
+  //         edgeType: Relationship.requestItems,
+  //       );
+  //     }
+  //   }
+  // }
 
-  ProdLineNode? _createResourceNode(
-    ItemData itemData,
-    List<ItemData> resources,
-  ) {
-    if (resources.contains(itemData)) {
-      return ProdLineNode.addToGraph(
-        parentGraph: this,
-        type: NodeType.producer,
-        line: IoLine(outputs: {itemData}),
-      );
-    } else {
-      return null;
-    }
-  }
+  // ProdLineNode? _createResourceNode(
+  //   ItemData itemData,
+  //   List<ItemData> resources,
+  // ) {
+  //   if (resources.contains(itemData)) {
+  //     return ProdLineNode.addToGraph(
+  //       parentGraph: this,
+  //       type: NodeType.producer,
+  //       line: IoLine(outputs: {itemData}),
+  //     );
+  //   } else {
+  //     return null;
+  //   }
+  // }
 
-  ProdLineNode? _createRecipeNode(
-    ItemData itemData,
-    List<CraftingMachine> sortedMachines,
-    List<Recipe> recipes,
-    List<ItemData> availableFuels,
-  ) {
-    // TODO - account for null surface
-    var producerRecipe = recipes
-        .where(
-          (recipe) =>
-              itemData.item.producedBy.contains(recipe) &&
-              (recipe.itemIo[itemData.item] ?? -1) > 0,
-        )
-        .firstOrNull;
+  // ProdLineNode? _createRecipeNode(
+  //   ItemData itemData,
+  //   List<CraftingMachine> sortedMachines,
+  //   List<Recipe> recipes,
+  //   List<ItemData> availableFuels,
+  // ) {
+  //   // TODO - account for null surface
+  //   var producerRecipe = recipes
+  //       .where(
+  //         (recipe) =>
+  //             itemData.item.producedBy.contains(recipe) &&
+  //             (recipe.itemIo[itemData.item] ?? -1) > 0,
+  //       )
+  //       .firstOrNull;
 
-    if (producerRecipe != null) {
-      // If recipe exists, create production line node
-      var fastestMachine = sortedMachines.firstWhere(
-        (machine) => machine.recipes.contains(producerRecipe),
-      );
+  //   if (producerRecipe != null) {
+  //     // If recipe exists, create production line node
+  //     var fastestMachine = sortedMachines.firstWhere(
+  //       (machine) => machine.recipes.contains(producerRecipe),
+  //     );
 
-      ItemData? fuel;
-      if (fastestMachine.energySource.type == EnergySourceType.burner) {
-        BurnerEnergySource energySource =
-            fastestMachine.energySource as BurnerEnergySource;
+  //     ItemData? fuel;
+  //     if (fastestMachine.energySource.type == EnergySourceType.burner) {
+  //       BurnerEnergySource energySource =
+  //           fastestMachine.energySource as BurnerEnergySource;
 
-        // TODO - Account for surfaces without available fuel
-        fuel = availableFuels.firstWhere(
-          (fuel) => energySource.fuelItems.contains(fuel.item),
-        );
-      }
+  //       // TODO - Account for surfaces without available fuel
+  //       fuel = availableFuels.firstWhere(
+  //         (fuel) => energySource.fuelItems.contains(fuel.item),
+  //       );
+  //     }
 
-      return ProdLineNode.addToGraph(
-        parentGraph: this,
-        type: NodeType.productionLine,
-        line: SingleRecipeLine(
-          MutableModuledMachineAndRecipe(
-            craftingMachine: fastestMachine,
-            recipe: producerRecipe,
-            fuel: fuel,
-          ).makeImmutable(),
-        ),
-      );
-    } else {
-      return null;
-    }
-  }
+  //     return ProdLineNode.addToGraph(
+  //       parentGraph: this,
+  //       type: NodeType.productionLine,
+  //       line: SingleRecipeLine(
+  //         MutableModuledMachineAndRecipe(
+  //           craftingMachine: fastestMachine,
+  //           recipe: producerRecipe,
+  //           fuel: fuel,
+  //         ).makeImmutable(),
+  //       ),
+  //     );
+  //   } else {
+  //     return null;
+  //   }
+  // }
 
-  ProdLineNode _createProducerNode(ItemData itemData) {
-    return ProdLineNode.addToGraph(
-      parentGraph: this,
-      type: NodeType.producer,
-      line: IoLine(outputs: {itemData}),
-    );
-  }
+  // ProdLineNode _createProducerNode(ItemData itemData) {
+  //   return ProdLineNode.addToGraph(
+  //     parentGraph: this,
+  //     type: NodeType.producer,
+  //     line: IoLine(outputs: {itemData}),
+  //   );
+  // }
 
   List<List<ProdLineNode>> _getNodeHeights(Iterable<ProdLineNode> nodes) {
     Map<ProdLineNode, int> heightMap = {};
@@ -564,4 +559,16 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
       return existingHeight;
     }
   }
+}
+
+class PlanetBaseIo extends ProductionLineIo {
+  PlanetBaseIo({
+    required super.inputConstraints,
+    required super.outputConstraints,
+    required super.netOutput,
+    required super.netInput,
+    required super.electricPowerConsumption,
+    required super.pollution,
+    super.displayData,
+  });
 }

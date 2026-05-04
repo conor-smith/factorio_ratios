@@ -32,7 +32,7 @@ part 'single_machine.dart';
 /// All other values across both maps will be calculated relative to this
 /// This field must be calculated independently of [calculate]
 /// If this isn't possible, these fields will be null
-mixin ProductionLine<T extends ProductionLineIoData> {
+mixin ProductionLine<T extends ProductionLineIo> {
   /// Used in [toString]
   String get name;
 
@@ -47,6 +47,8 @@ mixin ProductionLine<T extends ProductionLineIoData> {
 
   ItemIo? get outputRatios;
   ItemIo? get inputRatios;
+
+  bool get isImmutable;
 
   /// [inputConstraints] and [outputConstraints] are given in items per minute
   T calculate({ItemIo inputConstraints, ItemIo outputConstraints});
@@ -91,7 +93,7 @@ mixin ProductionLine<T extends ProductionLineIoData> {
 /// should exist for utility reasons - to be used in further equations / operations
 ///
 /// All [ItemIo] fieds are given in items per minute
-abstract class ProductionLineIoData {
+abstract class ProductionLineIo {
   /// DisplayData for end user
   /// No data in here should be used for math or further operations
   /// If any useful data exists, it should be made it's own field
@@ -108,7 +110,7 @@ abstract class ProductionLineIoData {
   /// Given in pollution per minute
   final Map<String, double> pollution;
 
-  ProductionLineIoData({
+  ProductionLineIo({
     required ItemIo netOutput,
     required ItemIo netInput,
     ItemIo inputConstraints = const {},
@@ -125,7 +127,7 @@ abstract class ProductionLineIoData {
 }
 
 class ProductionLineException extends FactorioException {
-  ProductionLineException(super.message);
+  const ProductionLineException(super.message);
 
   @override
   String toString() => 'ProductionLineException: $message';

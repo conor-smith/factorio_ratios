@@ -2,14 +2,14 @@ part of 'state.dart';
 
 /// Represents a single, reversible
 class GraphEvent extends MutationEvent {
-  final BaseGraph graph;
+  final PlanetBase graph;
 
   final Set<GraphEventType> mutations;
 
   final GraphGeometry? oldGeometry, newGeometry;
   final Set<ProdLineNode> newNodes, removedNodes;
   final Set<DirectedEdge> newEdges, removedEdges;
-  final Set<ItemData> newInputs, newOutputs, removedInputs, removedOutputs;
+  final Set<InGameItem> newInputs, newOutputs, removedInputs, removedOutputs;
 
   final GraphEvent? original;
   @override
@@ -17,39 +17,39 @@ class GraphEvent extends MutationEvent {
   @override
   late final GraphEvent reversed = original ?? GraphEvent._reverse(this);
 
-  GraphEvent.newNode(BaseGraph graph, ProdLineNode newNode)
+  GraphEvent.newNode(PlanetBase graph, ProdLineNode newNode)
     : this._(graph, {GraphEventType.updateNodes}, newNodes: {newNode});
 
-  GraphEvent.removeNode(BaseGraph graph, ProdLineNode removedNode)
+  GraphEvent.removeNode(PlanetBase graph, ProdLineNode removedNode)
     : this._(graph, {GraphEventType.updateNodes}, removedNodes: {removedNode});
 
-  GraphEvent.newEdge(BaseGraph graph, DirectedEdge newEdge)
+  GraphEvent.newEdge(PlanetBase graph, DirectedEdge newEdge)
     : this._(graph, {GraphEventType.updateEdges}, newEdges: {newEdge});
 
-  GraphEvent.removeEdge(BaseGraph graph, DirectedEdge removedEdge)
+  GraphEvent.removeEdge(PlanetBase graph, DirectedEdge removedEdge)
     : this._(graph, {GraphEventType.updateEdges}, removedEdges: {removedEdge});
 
-  GraphEvent.newInput(BaseGraph graph, ItemData newInput)
+  GraphEvent.newInput(PlanetBase graph, InGameItem newInput)
     : this._(graph, {GraphEventType.updateInput}, newInputs: {newInput});
 
-  GraphEvent.removeInput(BaseGraph graph, ItemData removedInput)
+  GraphEvent.removeInput(PlanetBase graph, InGameItem removedInput)
     : this._(
         graph,
         {GraphEventType.updateInput},
         removedInputs: {removedInput},
       );
 
-  GraphEvent.newOutput(BaseGraph graph, ItemData newOutput)
+  GraphEvent.newOutput(PlanetBase graph, InGameItem newOutput)
     : this._(graph, {GraphEventType.updateOutput}, newOutputs: {newOutput});
 
-  GraphEvent.removeOutput(BaseGraph graph, ItemData removedOutput)
+  GraphEvent.removeOutput(PlanetBase graph, InGameItem removedOutput)
     : this._(
         graph,
         {GraphEventType.updateOutput},
         removedOutputs: {removedOutput},
       );
 
-  GraphEvent.updateGeometry(BaseGraph graph, GraphGeometry newGeometry)
+  GraphEvent.updateGeometry(PlanetBase graph, GraphGeometry newGeometry)
     : this._(
         graph,
         {GraphEventType.geometryUpdate},
@@ -57,7 +57,7 @@ class GraphEvent extends MutationEvent {
         newGeometry: newGeometry,
       );
 
-  GraphEvent.clearGeometry(BaseGraph graph)
+  GraphEvent.clearGeometry(PlanetBase graph)
     : this._(
         graph,
         {GraphEventType.geometryUpdate},
@@ -73,10 +73,10 @@ class GraphEvent extends MutationEvent {
     Set<DirectedEdge> newEdges = {};
     Set<DirectedEdge> removedEdges = {};
 
-    Set<ItemData> newInputs = {};
-    Set<ItemData> removedInputs = {};
-    Set<ItemData> newOutputs = {};
-    Set<ItemData> removedOutputs = {};
+    Set<InGameItem> newInputs = {};
+    Set<InGameItem> removedInputs = {};
+    Set<InGameItem> newOutputs = {};
+    Set<InGameItem> removedOutputs = {};
 
     GraphEvent? oldGeometryEvent, newGeometryEvent;
     GraphGeometry? oldGeometry, newGeometry;
@@ -140,13 +140,13 @@ class GraphEvent extends MutationEvent {
     this.oldGeometry,
     Set<ProdLineNode> removedNodes = const {},
     Set<DirectedEdge> removedEdges = const {},
-    Set<ItemData> removedInputs = const {},
-    Set<ItemData> removedOutputs = const {},
+    Set<InGameItem> removedInputs = const {},
+    Set<InGameItem> removedOutputs = const {},
     this.newGeometry,
     Set<ProdLineNode> newNodes = const {},
     Set<DirectedEdge> newEdges = const {},
-    Set<ItemData> newInputs = const {},
-    Set<ItemData> newOutputs = const {},
+    Set<InGameItem> newInputs = const {},
+    Set<InGameItem> newOutputs = const {},
   }) : mutations = Set.unmodifiable(mutations),
        removedNodes = Set.unmodifiable(removedNodes),
        removedEdges = Set.unmodifiable(removedEdges),

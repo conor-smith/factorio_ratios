@@ -12,6 +12,8 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   String get name => recipe.name;
   @override
   List<IconData>? get icon => recipe.icons;
+  @override
+  bool get isImmutable => true;
 
   @override
   final Set<InGameItem> outputItems;
@@ -281,7 +283,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   }
 }
 
-class SingleRecipeLineIo extends ProductionLineIoData {
+class SingleRecipeLineIo extends ProductionLineIo {
   final double machineCount;
   final double totalCyclesPerMinute;
 

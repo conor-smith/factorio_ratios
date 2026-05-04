@@ -68,6 +68,12 @@ class Recipe extends OrderedWithSubgroup {
     ),
   );
 
+  /// This that this recipe only has one output
+  /// and that the inputs of this recipe do not contain this output
+  late final bool isSimple =
+      results.length == 1 &&
+      ingredients.every((ingredient) => ingredient._name != results[0]._name);
+
   Recipe._({
     required this.factorioDb,
     required this.name,
