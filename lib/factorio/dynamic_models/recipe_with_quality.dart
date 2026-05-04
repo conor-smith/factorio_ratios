@@ -40,6 +40,19 @@ class InGameRecipe implements Recipe {
         ),
       );
 
+  // Ensure that recipes of different quality are separated
+  @override
+  int compareTo(Ordered other) {
+    if (other is InGameRecipe) {
+      if (quality > other.quality) {
+        return -1;
+      } else if (quality < other.quality) {
+        return 1;
+      }
+    }
+    return internalRecipe.compareTo(other);
+  }
+
   @override
   bool get allowConsumption => internalRecipe.allowConsumption;
   @override
@@ -52,8 +65,6 @@ class InGameRecipe implements Recipe {
   bool get allowSpeed => internalRecipe.allowSpeed;
   @override
   List<String> get categories => internalRecipe.categories;
-  @override
-  int compareTo(Ordered other) => internalRecipe.compareTo(other);
   @override
   List<CraftingMachine> get craftingMachines => internalRecipe.craftingMachines;
   @override

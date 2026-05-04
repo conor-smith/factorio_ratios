@@ -83,6 +83,19 @@ class InGameSolidItem extends InGameItem implements SolidItem {
           : null,
       super._();
 
+  // Ensure that items of different quality are separated
+  @override
+  int compareTo(Ordered other) {
+    if (other is InGameSolidItem) {
+      if (quality > other.quality) {
+        return -1;
+      } else if (quality < other.quality) {
+        return 1;
+      }
+    }
+    return super.compareTo(other);
+  }
+
   @override
   String? get fuelCategory => internalItem.fuelCategory;
   @override
@@ -118,6 +131,16 @@ class InGameFluidItem extends InGameItem implements FluidItem {
   InGameFluidItem(this.internalItem, this.temperature)
     : name = '${internalItem.name}: T$temperature',
       super._();
+
+  // Ensure that fluids of different temperature are sorted
+  @override
+  int compareTo(Ordered other) {
+    if (other is InGameFluidItem && internalItem == other.internalItem) {
+      return temperature.compareTo(other.temperature);
+    } else {
+      return super.compareTo(other);
+    }
+  }
 
   @override
   List<IconData>? get icons => internalItem.icons;

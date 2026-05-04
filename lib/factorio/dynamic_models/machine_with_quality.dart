@@ -11,7 +11,7 @@ class InGameMachine implements CraftingMachine {
   final InGameItem? item;
 
   factory InGameMachine(CraftingMachine internalMachine, [int quality = 1]) {
-    if(internalMachine is InGameMachine) {
+    if (internalMachine is InGameMachine) {
       return internalMachine;
     } else {
       return InGameMachine._(internalMachine, quality);
@@ -23,6 +23,19 @@ class InGameMachine implements CraftingMachine {
       item = internalMachine.item != null
           ? InGameItem(internalMachine.item!, quality: quality)
           : null;
+
+  // Ensure that machines of different quality are separated
+  @override
+  int compareTo(Ordered other) {
+    if (other is InGameMachine) {
+      if (quality > other.quality) {
+        return -1;
+      } else if (quality < other.quality) {
+        return 1;
+      }
+    }
+    return internalMachine.compareTo(other);
+  }
 
   @override
   double get energyUsage => internalMachine.energyUsage;
@@ -46,8 +59,6 @@ class InGameMachine implements CraftingMachine {
   int get moduleSlots => internalMachine.moduleSlots;
   @override
   List<Recipe> get recipes => internalMachine.recipes;
-  @override
-  int compareTo(Ordered other) => internalMachine.compareTo(other);
   @override
   double get defaultScale => internalMachine.defaultScale;
   @override
