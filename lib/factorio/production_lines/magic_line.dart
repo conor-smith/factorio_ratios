@@ -4,9 +4,9 @@ part of 'production_line.dart';
 /// Inputs and outputs are decided at creation and cannot be changed
 class IoLine with ProductionLine<IoLineIoData> {
   @override
-  final Set<InGameItem> netInputs;
+  final Set<InGameItem> outputItems;
   @override
-  final Set<InGameItem> netOutputs;
+  final Set<InGameItem> inputItems;
   @override
   final String name;
   @override
@@ -16,17 +16,17 @@ class IoLine with ProductionLine<IoLineIoData> {
   String get type => 'io';
 
   @override
-  ItemIo? get netOutputRatios => null;
+  ItemIo? get outputRatios => null;
   @override
-  ItemIo? get netInputRatios => null;
+  ItemIo? get inputRatios => null;
 
   IoLine({
     required this.name,
     Set<InGameItem> netInputs = const {},
     Set<InGameItem> netOutputs = const {},
     this.icon,
-  }) : netInputs = Set.unmodifiable(netInputs),
-       netOutputs = Set.unmodifiable(netOutputs) {
+  }) : outputItems = Set.unmodifiable(netInputs),
+       inputItems = Set.unmodifiable(netOutputs) {
     if (netInputs.isEmpty && netOutputs.isEmpty) {
       throw ProductionLineException('No input or output specified for IO line');
     }
@@ -44,14 +44,14 @@ class IoLine with ProductionLine<IoLineIoData> {
   }
 
   IoLine.singleItemProducer(InGameItem item)
-    : netInputs = const {},
-      netOutputs = Set.unmodifiable({item}),
+    : outputItems = const {},
+      inputItems = Set.unmodifiable({item}),
       name = '${item.name} producer',
       icon = item.icons;
 
   IoLine.singleItemConsumer(InGameItem item)
-    : netInputs = Set.unmodifiable({item}),
-      netOutputs = const {},
+    : outputItems = Set.unmodifiable({item}),
+      inputItems = const {},
       name = '${item.name} consumer',
       icon = item.icons;
 
@@ -62,8 +62,8 @@ class IoLine with ProductionLine<IoLineIoData> {
   }) {
     verifyConstraintsAndIo(inputConstraints, inputConstraints);
 
-    if (inputConstraints.length != netInputs.length ||
-        outputConstraints.length != netOutputs.length) {
+    if (inputConstraints.length != outputItems.length ||
+        outputConstraints.length != inputItems.length) {
       throw ProductionLineException(
         'Must specify a constraint for every input / output of IO line',
       );

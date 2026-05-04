@@ -14,16 +14,16 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   List<IconData>? get icon => recipe.icons;
 
   @override
-  final Set<InGameItem> netInputs;
+  final Set<InGameItem> outputItems;
   @override
-  final Set<InGameItem> netOutputs;
+  final Set<InGameItem> inputItems;
 
   @override
-  final ItemIo netInputRatios;
+  final ItemIo inputRatios;
   @override
-  final ItemIo netOutputRatios;
+  final ItemIo outputRatios;
 
-  final double cyclesPerMinute;
+  final double machineCyclesPerMinute;
 
   final ItemIo machineNetInput;
   final ItemIo machineNetOutput;
@@ -177,8 +177,8 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
       pollutionBonus: pollutionBonus.value,
       consumptionBonus: consumptionBonus.value,
       finalCraftingSpeed: finalCraftingSpeed,
-      finalEmissions: finalEmissions,
-      finalPowerConsumption: finalPowerConsumption,
+      singleMachineEmissions: finalEmissions,
+      singleMachineConsumption: finalPowerConsumption,
       productivityData: productivityBonus.displayData,
       speedData: speedBonus.displayData,
       pollutionData: pollutionBonus.displayData,
@@ -186,11 +186,11 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
       recipe: recipe,
       surface: surface,
       fuel: fuel,
-      netInputs: machineNetInputs.keys,
-      netOutputs: machineNetOutputs.keys,
-      netInputRatios: machineNetInputRatios,
-      netOutputRatios: machineNetOutputRatios,
-      cyclesPerMinute: cyclesPerMinute,
+      inputItems: machineNetInputs.keys,
+      outputItems: machineNetOutputs.keys,
+      inputRatios: machineNetInputRatios,
+      outputRatios: machineNetOutputRatios,
+      machineCyclesPerMinute: cyclesPerMinute,
       machineNetInput: machineNetInputs,
       machineNetOutput: machineNetOutputs,
       machineTotalInput: machineTotalInput,
@@ -209,26 +209,26 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
     required super.pollutionBonus,
     required super.consumptionBonus,
     required super.finalCraftingSpeed,
-    required super.finalEmissions,
-    required super.finalPowerConsumption,
+    required super.singleMachineEmissions,
+    required super.singleMachineConsumption,
     required super.productivityData,
     required super.speedData,
     required super.pollutionData,
     required super.consumptionData,
-    required Iterable<InGameItem> netInputs,
-    required Iterable<InGameItem> netOutputs,
-    required ItemIo netInputRatios,
-    required ItemIo netOutputRatios,
-    required this.cyclesPerMinute,
+    required Iterable<InGameItem> inputItems,
+    required Iterable<InGameItem> outputItems,
+    required ItemIo inputRatios,
+    required ItemIo outputRatios,
+    required this.machineCyclesPerMinute,
     required ItemIo machineNetInput,
     required ItemIo machineNetOutput,
     required ItemIo machineTotalInput,
     required ItemIo machineTotalOutput,
     required Map<InGameItem, InGameItem> potentialSpoilage,
-  }) : netInputs = Set.unmodifiable(netInputs),
-       netOutputs = Set.unmodifiable(netOutputs),
-       netInputRatios = Map.unmodifiable(netInputRatios),
-       netOutputRatios = Map.unmodifiable(netOutputRatios),
+  }) : outputItems = Set.unmodifiable(inputItems),
+       inputItems = Set.unmodifiable(outputItems),
+       inputRatios = Map.unmodifiable(inputRatios),
+       outputRatios = Map.unmodifiable(outputRatios),
        machineNetInput = Map.unmodifiable(machineNetInput),
        machineNetOutput = Map.unmodifiable(machineNetOutput),
        machineTotalInput = Map.unmodifiable(machineTotalInput),
@@ -263,20 +263,20 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
 
     var electricPowerConsumption =
         craftingMachine.energySource.type == EnergySourceType.electric
-        ? finalPowerConsumption * machineCount
+        ? singleMachineConsumption * machineCount
         : 0.0;
 
     return SingleRecipeLineIo(
       inputConstraints: inputConstraints,
       outputConstraints: outputConstraints,
       machineCount: machineCount,
-      totalCyclesPerMinute: cyclesPerMinute,
+      totalCyclesPerMinute: machineCyclesPerMinute,
       netInput: _multiplyMap(machineNetInput, machineCount),
       netOutput: _multiplyMap(machineNetOutput, machineCount),
       totalInput: _multiplyMap(machineTotalInput, machineCount),
       totalOutput: _multiplyMap(machineTotalOutput, machineCount),
       electricPowerConsumption: electricPowerConsumption,
-      pollution: _multiplyMap(finalEmissions, machineCount),
+      pollution: _multiplyMap(singleMachineEmissions, machineCount),
     );
   }
 }

@@ -56,9 +56,9 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
   GraphGeometry get geometry => _geometry;
 
   @override
-  late final Set<ItemData> netInputs = UnmodifiableSetView(_allInputs);
+  late final Set<ItemData> outputItems = UnmodifiableSetView(_allInputs);
   @override
-  late final Set<ItemData> netOutputs = UnmodifiableSetView(_allOutputs);
+  late final Set<ItemData> inputItems = UnmodifiableSetView(_allOutputs);
 
   @override
   ItemIo? get requirements => _requirements;
@@ -117,12 +117,12 @@ class BaseGraph extends ProductionLine with Stateful<GraphEvent> {
           _edges.addAll(event.newEdges);
 
         case GraphEventType.updateInput:
-          netInputs.removeAll(event.removedInputs);
-          netInputs.addAll(event.newInputs);
+          outputItems.removeAll(event.removedInputs);
+          outputItems.addAll(event.newInputs);
 
         case GraphEventType.updateOutput:
-          netOutputs.removeAll(event.removedOutputs);
-          netOutputs.addAll(event.newOutputs);
+          inputItems.removeAll(event.removedOutputs);
+          inputItems.addAll(event.newOutputs);
       }
     }
   }

@@ -36,8 +36,8 @@ class ProdLineNode with Stateful<NodeEvent> {
   Rect get rect => _geometry.minimalRect;
 
   // Accessors for production line
-  Set<ItemData> get allOutputs => _line.netOutputs;
-  Set<ItemData> get allInputs => _line.netInputs;
+  Set<ItemData> get allOutputs => _line.inputItems;
+  Set<ItemData> get allInputs => _line.outputItems;
   bool get immutableIo => _line.immutableIo;
   ItemIo? get totalIoPerSecond => _line.totalIoPerSecond;
   ItemIo? get requirements => _line.requirements;
@@ -182,16 +182,18 @@ class ProdLineNode with Stateful<NodeEvent> {
       .followedBy(_childOf.where((parentEdge) => parentEdge.parent == other))
       .toList();
 
-  bool _verifyNodeTypeAndLine(
-    NodeType nodeType,
-    ProductionLine line,
-  ) => switch (nodeType) {
-    NodeType.consumer || NodeType.disposal || NodeType.output =>
-      line.immutableIo && line.netOutputs.isEmpty && line.netInputs.isNotEmpty,
-    NodeType.producer || NodeType.input =>
-      line.immutableIo && line.netOutputs.isNotEmpty && line.netInputs.isEmpty,
-    NodeType.productionLine => true,
-  };
+  bool _verifyNodeTypeAndLine(NodeType nodeType, ProductionLine line) =>
+      switch (nodeType) {
+        NodeType.consumer || NodeType.disposal || NodeType.output =>
+          line.immutableIo &&
+              line.inputItems.isEmpty &&
+              line.outputItems.isNotEmpty,
+        NodeType.producer || NodeType.input =>
+          line.immutableIo &&
+              line.inputItems.isNotEmpty &&
+              line.outputItems.isEmpty,
+        NodeType.productionLine => true,
+      };
 }
 
 enum NodeType {

@@ -11,8 +11,8 @@ class ProductionLineCraftingMachine {
   final double consumptionBonus;
 
   final double finalCraftingSpeed;
-  final double finalPowerConsumption;
-  final Map<String, double> finalEmissions;
+  final double singleMachineConsumption;
+  final Map<String, double> singleMachineEmissions;
 
   final List<DisplayData> productivityData;
   final List<DisplayData> speedData;
@@ -25,7 +25,7 @@ class ProductionLineCraftingMachine {
     var consumptionBonus = _calculateFinalConsumptionBonus(machine);
     var pollutionBonus = _calculateFinalPollutionBonus(machine);
 
-    var finalEmissions = machine.energySource.emissionsPerMinute.map(
+    var emissions = machine.energySource.emissionsPerMinute.map(
       (pollution, amount) =>
           MapEntry(pollution, amount * (1 + pollutionBonus.value)),
     );
@@ -37,8 +37,9 @@ class ProductionLineCraftingMachine {
       consumptionBonus: consumptionBonus.value,
       pollutionBonus: pollutionBonus.value,
       finalCraftingSpeed: machine.craftingSpeed * (1 + speedBonus.value),
-      finalPowerConsumption: machine.energyUsage * (1 + consumptionBonus.value),
-      finalEmissions: finalEmissions,
+      singleMachineConsumption:
+          machine.energyUsage * (1 + consumptionBonus.value),
+      singleMachineEmissions: emissions,
       productivityData: productivityBonus.displayData,
       speedData: speedBonus.displayData,
       consumptionData: consumptionBonus.displayData,
@@ -53,13 +54,13 @@ class ProductionLineCraftingMachine {
     required this.pollutionBonus,
     required this.consumptionBonus,
     required this.finalCraftingSpeed,
-    required Map<String, double> finalEmissions,
-    required this.finalPowerConsumption,
+    required Map<String, double> singleMachineEmissions,
+    required this.singleMachineConsumption,
     required List<DisplayData> productivityData,
     required List<DisplayData> speedData,
     required List<DisplayData> pollutionData,
     required List<DisplayData> consumptionData,
-  }) : finalEmissions = Map.unmodifiable(finalEmissions),
+  }) : singleMachineEmissions = Map.unmodifiable(singleMachineEmissions),
        productivityData = List.unmodifiable(productivityData),
        speedData = List.unmodifiable(speedData),
        pollutionData = List.unmodifiable(speedData),
@@ -380,7 +381,8 @@ ValueAndDisplayData<double> _calculateFinalPollutionBonus(
       );
     }
 
-    var finalPollBonus = (totalBonus * multiplierProduct) + multiplierProduct - 1;
+    var finalPollBonus =
+        (totalBonus * multiplierProduct) + multiplierProduct - 1;
     return ValueAndDisplayData(finalPollBonus, bonusDataList);
   }
 }

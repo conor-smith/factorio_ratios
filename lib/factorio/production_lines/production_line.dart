@@ -16,10 +16,10 @@ part 'single_machine.dart';
 /// even if doing so means producing an excess of one
 /// The same rule applies to input constraints
 ///
-/// A call to [calculate] must not have any effect on [netInputs], [netOutputs], [netInputRatios], or [netOutputRatios]
-/// This means that all of these values must be determined independantly
+/// A call to [calculate] must not have any effect on [outputItems], [inputItems], [inputRatios], or [outputRatios]
+/// This means that all of these values must be determined independently
 ///
-/// [netInputs] and [netOutputs] must not share any items
+/// [outputItems] and [inputItems] must not share any items
 /// This means that only net IO is taken into account when determining input and output sets
 /// Eg. The kovarex process consumes 40 U-235, and 5 U-238 to produce 41 U-235 and 2 U-238
 /// This means the net IO of this recipe consumes 3 U-238 to produce 1 U-235
@@ -27,7 +27,7 @@ part 'single_machine.dart';
 ///
 /// In some scenarios, it is possible to calculate the input / output ratios
 /// before any constraints are passed
-/// If this is the case, both [netInputRatios] and [netOutputRatios] will be populate
+/// If this is the case, both [inputRatios] and [outputRatios] will be populate
 /// The smallest value in inputs or outputs will be set to 1
 /// All other values across both maps will be calculated relative to this
 /// This field must be calculated independently of [calculate]
@@ -42,11 +42,11 @@ mixin ProductionLine<T extends ProductionLineIoData> {
   /// Used in displays
   List<IconData>? get icon;
 
-  Set<InGameItem> get netOutputs;
-  Set<InGameItem> get netInputs;
+  Set<InGameItem> get inputItems;
+  Set<InGameItem> get outputItems;
 
-  ItemIo? get netOutputRatios;
-  ItemIo? get netInputRatios;
+  ItemIo? get outputRatios;
+  ItemIo? get inputRatios;
 
   /// [inputConstraints] and [outputConstraints] are given in items per minute
   T calculate({ItemIo inputConstraints, ItemIo outputConstraints});
@@ -60,7 +60,7 @@ mixin ProductionLine<T extends ProductionLineIoData> {
         throw ProductionLineException(
           'Input constraint $input had value $constraint',
         );
-      } else if (!netInputs.contains(input)) {
+      } else if (!outputItems.contains(input)) {
         throw ProductionLineException(
           'Input constraint $input is not a valid input',
         );
@@ -72,7 +72,7 @@ mixin ProductionLine<T extends ProductionLineIoData> {
         throw ProductionLineException(
           'Output constraint $output had value $constraint',
         );
-      } else if (!netInputs.contains(output)) {
+      } else if (!outputItems.contains(output)) {
         throw ProductionLineException(
           'Output constraint $output is not a valid input',
         );
