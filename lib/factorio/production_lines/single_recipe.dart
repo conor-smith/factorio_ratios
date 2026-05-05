@@ -11,7 +11,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   @override
   String get name => recipe.name;
   @override
-  List<IconData>? get icon => recipe.icons;
+  HasIcon get icon => recipe;
   @override
   bool get isImmutable => true;
 

@@ -10,7 +10,7 @@ class IoLine with ProductionLine<IoLineIoData> {
   @override
   final String name;
   @override
-  final List<IconData>? icon;
+  final HasIcon? icon;
 
   @override
   String get type => 'io';
@@ -49,13 +49,13 @@ class IoLine with ProductionLine<IoLineIoData> {
     : outputItems = const {},
       inputItems = Set.unmodifiable({item}),
       name = '${item.name} producer',
-      icon = item.icons;
+      icon = item;
 
   IoLine.singleItemConsumer(InGameItem item)
     : outputItems = Set.unmodifiable({item}),
       inputItems = const {},
       name = '${item.name} consumer',
-      icon = item.icons;
+      icon = item;
 
   @override
   IoLineIoData calculate({

@@ -123,15 +123,10 @@ class GraphEvent extends MutationEvent {
     Set<GraphEventType> mutations = {};
 
     GraphEvent? oldNodeEvent, newNodeEvent;
-
     GraphEvent? oldEdgeEvent, newEdgeEvent;
-
     GraphEvent? oldInputEvent, newInputEvent;
-
     GraphEvent? oldOutputEvent, newOutputEvent;
-
     GraphEvent? oldRatiosEvent, newRatiosEvent;
-
     GraphEvent? oldGeometryEvent, newGeometryEvent;
 
     for (var event in orderedEvents) {

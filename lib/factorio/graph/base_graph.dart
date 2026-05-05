@@ -30,10 +30,12 @@ part of 'graph.dart';
 /// Only nodes with no parents can set their own constraints.
 ///
 /// [inputRatios] and [outputRatios] can only be calculated when
-/// * There exists an unbroken, single directional chain of parent and children nodes with
-/// known IO ratios between all existing output and input nodes
-/// * This chain starts with only one production line node
-/// * No internal nodes have any requirements beyond those provided to them by parents
+/// * There exists at least one unbroken, single directional path of parent and
+/// children nodes linking every input and output node
+/// * Every one of these paths at some point passes through though a single
+/// node with known IO ratios
+/// * There are no producer or consumer nodes connected to any of these paths
+/// which might affect the outcome
 ///
 /// All contained objects are muteable.
 /// Mutating state must only be done through specific methods, even within the classes.
@@ -110,7 +112,7 @@ class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   ItemIo? get outputRatios => _outputRatios;
 
   @override
-  List<IconData>? get icon => surface?.icons;
+  HasIcon? get icon => surface;
 
   @override
   PlanetBaseIo calculate({
@@ -158,8 +160,6 @@ class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
 
       return;
     }
-
-    // TODO - Calculate ratios
   }
 
   /* ------------- Stateful methods ------------- */

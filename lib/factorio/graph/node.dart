@@ -1,6 +1,18 @@
 part of 'graph.dart';
 
-/// Represents a single node in the graph
+/// Represents a single node in the graph.
+///
+/// Every node contains a [ProductionLine] object in the [line] field.
+/// This production line can be swapped as the user sees fit.
+/// The exact kinds of production lines permitted is limited by the [nodeType] field,
+/// which also specifies the nodes allowed relationships and other behaviour.
+///
+/// To represent actual IO, the node caches the [ProductionLineIo] produces by [line]
+/// in the [ioData] field.
+/// As a [ProductionLine] already has a known set of inputs and outputs before
+/// [ProductionLine.calculate] is called, we do not need to determine IO to
+/// build the graph. As such, [ioData] and the [DirectedEdge.amount] field
+/// of all child edges will be null until
 class ProdLineNode with Stateful<NodeEvent> {
   static const double defaultWidth = 100,
       defaultHeight = 100,
@@ -9,45 +21,27 @@ class ProdLineNode with Stateful<NodeEvent> {
       connectionOffset = 8;
 
   final PlanetBase parentGraph;
-  final _EventHistory _eventHistory;
-
-  // Node type determines how parent valid operations and how parent graph is affected
   final NodeType nodeType;
-  // True if part of a graph. False otherwise
-  bool _active;
 
+  _EventHistory get _history => parentGraph._history;
+  bool _active;
   ProductionLine _line;
 
   ItemIo? _inputConstraints, _outputConstraints;
-  ItemIo? get inputConstraints => _inputConstraints;
-  ItemIo? get outputConstraints => _outputConstraints;
 
   NodeGeometry _geometry;
 
-  // Edges that this node is a parent of
-  final Set<DirectedEdge> _parentOf = {};
-  // Edges that this node is a child of
-  final Set<DirectedEdge> _childOf = {};
+  final List<DirectedEdge> _parentOf;
+  final List<DirectedEdge> _childOf;
 
   ProductionLineIo? _ioData;
 
   /* ---------------- Accessors ---------------- */
-  late final Set<DirectedEdge> parentOf = UnmodifiableSetView(_parentOf);
-  late final Set<DirectedEdge> childOf = UnmodifiableSetView(_childOf);
+  List<DirectedEdge> get parentOf => _parentOf;
+  List<DirectedEdge> get childOf => _childOf;
 
   NodeGeometry get geometry => _geometry;
   Rect get rect => _geometry.minimalRect;
-
-  // Accessors for production line
-  Set<InGameItem> get inputItems => _line.inputItems;
-  Set<InGameItem> get outputItems => _line.outputItems;
-  ItemIo? get inputRatios => _line.inputRatios;
-  ItemIo? get outputRatios => _line.outputRatios;
-  String get type => _line.type;
-  String get name => _line.name;
-
-  ProductionLine get line => _line;
-  ProductionLineIo? get ioData => _ioData;
 
   @override
   String toString() => _line.toString();
@@ -55,16 +49,16 @@ class ProdLineNode with Stateful<NodeEvent> {
   /* --------------- Constructors --------------- */
   ProdLineNode.addToGraph({
     required this.parentGraph,
-    required NodeType type,
+    required this.nodeType,
     required ProductionLine line,
-  }) : _eventHistory = parentGraph._history,
-       _nodeType = type,
-       _line = line,
+  }) : _line = line,
+       _childOf = const [],
+       _parentOf = const [],
        _geometry = NodeGeometry.uninitialised,
        _active = false {
-    if (!_verifyNodeTypeAndLine(type, line)) {
+    if (!_verifyNodeTypeAndLine(nodeType, line)) {
       throw FactorioException(
-        'Nodetype $type is incompatible with production line $line',
+        'Nodetype $nodeType is incompatible with production line $line',
       );
     }
 
@@ -72,12 +66,27 @@ class ProdLineNode with Stateful<NodeEvent> {
     apply(NodeEvent.addToGraph(this));
   }
 
+  /* ------------ Production Line ------------ */
+  ProductionLine get line => _line;
+
+  Set<InGameItem> get inputItems => _line.inputItems;
+  Set<InGameItem> get outputItems => _line.outputItems;
+  ItemIo? get inputRatios => _line.inputRatios;
+  ItemIo? get outputRatios => _line.outputRatios;
+  String get productionLineType => _line.type;
+  String get productionLineName => _line.name;
+
+  ItemIo? get inputConstraints => _inputConstraints;
+  ItemIo? get outputConstraints => _outputConstraints;
+
+  ProductionLineIo? get ioData => _ioData;
+
   /* ------------- Stateful methods ------------- */
   @override
   void apply(NodeEvent event) {
     _apply(event);
 
-    _eventHistory.addNodeEvent(event);
+    _history.addNodeEvent(event);
   }
 
   @override
@@ -198,14 +207,24 @@ class ProdLineNode with Stateful<NodeEvent> {
 
 /// Specifies node behaviour
 enum NodeType {
-  /// A node that
+  /// Only consumes with no output. Consumer nodes are special as they cannot
+  /// have parents and are permitted to set their own constraints.
   consumer(allowsInput: true, allowsOutput: false, isIo: false),
 
-  /// Same as [consumer], but
+  /// Similar to [consumer], but only exists to represent disposal of excess items
+  /// being produced by other nodes. Can only have parents, not children
   disposal(allowsInput: true, allowsOutput: false, isIo: false),
+
+  /// Can only produce items with no input
   producer(allowsInput: false, allowsOutput: true, isIo: false),
+
+  /// Represents an input to a graph
   input(allowsInput: false, allowsOutput: true, isIo: true),
+
+  /// Represents an output to a graph
   output(allowsInput: true, allowsOutput: false, isIo: true),
+
+  /// Represents a production line. Cannot set it's own constraints
   productionLine(allowsInput: true, allowsOutput: true, isIo: false);
 
   final bool allowsInput;
