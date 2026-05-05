@@ -1,74 +1,79 @@
 part of 'graph.dart';
 
-/// Represents a single base / collections of production lines on a single planet surface
-/// There may be multiple bases per surface
-/// A base may also contain nodes that belong to a different surface
+/// Represents a single base / collections of production lines on a single planet surface.
+/// There may be multiple bases per surface.
+/// A base may also contain nodes that belong to a different surface.
 ///
-/// All contained objects are mutateable
-/// Mutating state must only be done through specific methods, even within the classes
-/// This means that mutations can be rolled back if need be
-/// Mutateables are also listenable, and will only notifyListeners when instructed to
+/// Ultimately represents a graph with several [nodes] connected by directed [edges].
+/// If this base is contained within a node of a parent graph, inputs and outputs
+/// are given by [nodes] of type [NodeType.input] or [NodeType.output].
+/// Input and output nodes are not production lines themselves.
+/// They merely represent an entry point for inputs or an endpoint for outputs
+/// of other production lines.
+///
+/// Every edge has a parent and a child.
+/// However, it should be known that the parent isn't necessarily the consumer
+/// of the child's outputs.
+/// Rather, relationships are determined by which node can set restraints on another.
+/// While the majority of parents will be consumers of their children's outputs,
+/// there are certain scenarios the parent is a producer.
+///
+/// Eg. In the actual game of factorio, producing molten iron from lava also produces stone.
+/// If this stone is not disposed of, the production line backs up and iron cannot
+/// be produced.
+/// In this application, this would be represented by an edge of type
+/// [Relationship.acceptExcess], sending excess stone to another node and setting
+/// an input constraint.
+///
+/// When [calculate] is called, the constraints placed on each node is determined
+/// by the sum of all requirements of its parents.
+/// Only nodes with no parents can set their own constraints.
+///
+/// [inputRatios] and [outputRatios] can only be calculated when
+/// * There exists an unbroken, single directional chain of parent and children nodes with
+/// known IO ratios between all existing output and input nodes
+/// * This chain starts with only one production line node
+/// * No internal nodes have any requirements beyond those provided to them by parents
+///
+/// All contained objects are muteable.
+/// Mutating state must only be done through specific methods, even within the classes.
+/// This means that mutations can be rolled back if need be.
+/// Mutateables are also listenable, and will only notifyListeners when instructed to.
+///
+/// This class is also a mutable production line.
+/// While [inputItems], [outputItems], [inputRatios] and [outputRatios] are not updated
+/// by [calculate], additional nodes may be created to handle excess output of nodes.
 ///
 /// The complex nature of the graphs means that updating the state of one object
-/// may affect the state of another
+/// may affect the state of another.
 /// Eg. Updating nodeType to "output" will result in the node's inputs
-/// being added to it's parentGraph's outputs
+/// being added to it's parentGraph's outputs.
 /// As such, listeners should not be notified until all changes in a transaction
-/// are completed
+/// are completed.
 class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
-  /* ------------- Immutable fields ------------- */
   final FactorioBase globalData;
 
-  // For convenience
   _EventHistory get _history => globalData._history;
 
   final Surface? surface;
   final _SurfaceProperties? _surfaceProperties;
 
-  @override
-  bool get isImmutable => false;
-
-  /* -------------- Mutable fields -------------- */
-  // These are mutable lists rather than immutable ones as that was easier
-  // to work with in the frontend
-  final Set<ProdLineNode> _nodes = {};
-  final Set<DirectedEdge> _edges = {};
-
-  ItemIo? _inputRatios = const {};
-  ItemIo? _outputRatios = const {};
+  List<ProdLineNode> _nodes;
+  List<DirectedEdge> _edges;
 
   String _name;
-
-  Set<InGameItem> _inputItems = const {};
-  Set<InGameItem> _outputItems = const {};
+  Set<InGameItem> _inputItems;
+  Set<InGameItem> _outputItems;
+  ItemIo? _inputRatios;
+  ItemIo? _outputRatios;
 
   GraphGeometry _geometry;
   GeometryOperation? _geometryOperation;
 
-  /* ---------------- Accessors ---------------- */
-  late final List<ProdLineNode> nodes = UnmodifiableListView(_nodes);
-  late final List<DirectedEdge> edges = UnmodifiableListView(_edges);
+  List<ProdLineNode> get nodes => _nodes;
+  List<DirectedEdge> get edges => _edges;
 
   GraphGeometry get geometry => _geometry;
-
-  @override
-  String get name => _name;
-
-  @override
-  Set<InGameItem> get outputItems => _outputItems;
-  @override
-  Set<InGameItem> get inputItems => _inputItems;
-
-  @override
-  ItemIo? get inputRatios => _inputRatios;
-  @override
-  ItemIo? get outputRatios => _outputRatios;
-
-  @override
-  String get type => 'graph';
-
-  @override
-  List<IconData>? get icon => surface?.icons;
 
   /* --------------- Constructors --------------- */
   PlanetBase._root({
@@ -78,9 +83,34 @@ class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
     _SurfaceProperties? surfaceProperties,
   }) : _surfaceProperties = surfaceProperties,
        _name = name ?? surface?.name ?? '',
-       _geometry = GraphGeometry.uninitialised;
+       _geometry = GraphGeometry.uninitialised,
+       _nodes = const [],
+       _edges = const [],
+       _inputItems = const {},
+       _outputItems = const {},
+       _inputRatios = const {},
+       _outputRatios = const {};
 
-  /* ---------- Production Line Methods ---------- */
+  /* ------------ Production Line ------------ */
+  @override
+  String get name => _name;
+  @override
+  String get type => 'graph';
+  @override
+  bool get isImmutable => false;
+
+  @override
+  Set<InGameItem> get inputItems => _inputItems;
+  @override
+  Set<InGameItem> get outputItems => _outputItems;
+
+  @override
+  ItemIo? get inputRatios => _inputRatios;
+  @override
+  ItemIo? get outputRatios => _outputRatios;
+
+  @override
+  List<IconData>? get icon => surface?.icons;
 
   @override
   PlanetBaseIo calculate({
@@ -89,6 +119,47 @@ class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   }) {
     // TODO
     throw UnimplementedError();
+  }
+
+  void _calculateIoRatios() {
+    var ioNodes = _nodes.where((node) => node.nodeType.isIo).toList();
+
+    if (ioNodes.isEmpty) {
+      // Perform an additional check to see if update actually needs to happen
+      if (_inputRatios == null ||
+          _inputRatios!.isNotEmpty ||
+          _outputRatios!.isNotEmpty) {
+        _history.mutate(() {
+          apply(
+            GraphEvent.newIoRatios(
+              this,
+              newInputRatios: const {},
+              newOutputRatios: const {},
+            ),
+          );
+        });
+      }
+
+      return;
+    }
+
+    var directChildren = ioNodes
+        .map((node) => node._parentOf.map((edge) => edge.child))
+        .expand((children) => children)
+        .toSet();
+
+    if (directChildren.length != 1) {
+      // Perform an additional check to see if update actually needs to happen
+      if (_inputRatios != null) {
+        _history.mutate(() {
+          apply(GraphEvent.clearGeometry(this));
+        });
+      }
+
+      return;
+    }
+
+    // TODO - Calculate ratios
   }
 
   /* ------------- Stateful methods ------------- */
@@ -114,24 +185,24 @@ class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
 
     for (var mutationType in event.mutations) {
       switch (mutationType) {
-        case GraphEventType.geometryUpdate:
-          _geometry = event.newGeometry!;
-
         case GraphEventType.updateNodes:
-          _nodes.removeAll(event.removedNodes);
-          _nodes.addAll(event.newNodes);
+          _nodes = event.newNodes!;
 
         case GraphEventType.updateEdges:
-          _edges.removeAll(event.removedEdges);
-          _edges.addAll(event.newEdges);
+          _edges = event.newEdges!;
 
         case GraphEventType.updateInput:
-          outputItems.removeAll(event.removedInputs);
-          outputItems.addAll(event.newInputs);
+          _inputItems = event.newInputs!;
 
         case GraphEventType.updateOutput:
-          inputItems.removeAll(event.removedOutputs);
-          inputItems.addAll(event.newOutputs);
+          _outputItems = event.newOutputs!;
+
+        case GraphEventType.updateRatios:
+          _inputRatios = event.newInputRatios;
+          _outputRatios = event.newOutputRatios;
+
+        case GraphEventType.geometryUpdate:
+          _geometry = event.newGeometry!;
       }
     }
   }

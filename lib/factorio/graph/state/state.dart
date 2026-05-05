@@ -7,13 +7,12 @@ part 'edge_event.dart';
 part 'graph_event.dart';
 part 'node_event.dart';
 
-
 /// A stateful class can only have it's internal state be meaningfully modified
 /// by applying a MutationEvent
-/// 
+///
 /// Said mutationEvents can also be rolled back and redone, completely restoring
 /// a previously existing state
-/// 
+///
 /// A stateful object can be listened to
 /// The object may update listeners with events as required
 abstract mixin class Stateful<T extends MutationEvent> {
@@ -62,3 +61,12 @@ void _removedWhereBothContain(Set set1, Set set2) {
     }
   }
 }
+
+Map<K, V>? _unmodifiableOrNullMap<K, V>(Map<K, V>? collection) =>
+    collection != null ? Map.unmodifiable(collection) : null;
+
+Set<T>? _unmodifiableOrNullSet<T>(Iterable<T>? collection) =>
+    collection != null ? Set.unmodifiable(collection) : null;
+
+List<T>? _unmodifiableOrNullList<T>(Iterable<T>? collection) =>
+    collection != null ? List.unmodifiable(collection) : null;

@@ -1,15 +1,18 @@
 part of 'state.dart';
 
-/// Represents a single, reversible
 class GraphEvent extends MutationEvent {
   final PlanetBase graph;
 
   final Set<GraphEventType> mutations;
 
+  final List<ProdLineNode>? oldNodes, newNodes;
+  final List<DirectedEdge>? oldEdges, newEdges;
   final GraphGeometry? oldGeometry, newGeometry;
-  final Set<ProdLineNode> newNodes, removedNodes;
-  final Set<DirectedEdge> newEdges, removedEdges;
-  final Set<InGameItem> newInputs, newOutputs, removedInputs, removedOutputs;
+  final Set<InGameItem>? oldInputs, oldOutputs, newInputs, newOutputs;
+  final ItemIo? oldInputRatios,
+      oldOutputRatios,
+      newInputRatios,
+      newOutputRatios;
 
   final GraphEvent? original;
   @override
@@ -17,36 +20,87 @@ class GraphEvent extends MutationEvent {
   @override
   late final GraphEvent reversed = original ?? GraphEvent._reverse(this);
 
+  List<ProdLineNode> get addedNodes => newNodes == null
+      ? const []
+      : newNodes!.where((node) => !oldNodes!.contains(node)).toList();
+  List<ProdLineNode> get removedNodes => oldNodes == null
+      ? const []
+      : oldNodes!.where((node) => !newNodes!.contains(node)).toList();
+
+  List<DirectedEdge> get addedEdges => newEdges == null
+      ? const []
+      : newEdges!.where((edge) => !oldEdges!.contains(edge)).toList();
+  List<DirectedEdge> get removedEdges => oldEdges == null
+      ? const []
+      : oldEdges!.where((edge) => !newEdges!.contains(edge)).toList();
+
   GraphEvent.newNode(PlanetBase graph, ProdLineNode newNode)
-    : this._(graph, {GraphEventType.updateNodes}, newNodes: {newNode});
-
-  GraphEvent.removeNode(PlanetBase graph, ProdLineNode removedNode)
-    : this._(graph, {GraphEventType.updateNodes}, removedNodes: {removedNode});
-
-  GraphEvent.newEdge(PlanetBase graph, DirectedEdge newEdge)
-    : this._(graph, {GraphEventType.updateEdges}, newEdges: {newEdge});
-
-  GraphEvent.removeEdge(PlanetBase graph, DirectedEdge removedEdge)
-    : this._(graph, {GraphEventType.updateEdges}, removedEdges: {removedEdge});
-
-  GraphEvent.newInput(PlanetBase graph, InGameItem newInput)
-    : this._(graph, {GraphEventType.updateInput}, newInputs: {newInput});
-
-  GraphEvent.removeInput(PlanetBase graph, InGameItem removedInput)
     : this._(
         graph,
-        {GraphEventType.updateInput},
-        removedInputs: {removedInput},
+        const {GraphEventType.updateNodes},
+        newNodes: [...graph.nodes, newNode],
       );
 
-  GraphEvent.newOutput(PlanetBase graph, InGameItem newOutput)
-    : this._(graph, {GraphEventType.updateOutput}, newOutputs: {newOutput});
+  GraphEvent.removeNode(PlanetBase graph, ProdLineNode removedNode)
+    : this._(graph, const {
+        GraphEventType.updateNodes,
+      }, newNodes: List.from(graph.nodes)..remove(removedNode));
 
-  GraphEvent.removeOutput(PlanetBase graph, InGameItem removedOutput)
+  GraphEvent.newEdge(PlanetBase graph, DirectedEdge newEdge)
     : this._(
         graph,
-        {GraphEventType.updateOutput},
-        removedOutputs: {removedOutput},
+        const {GraphEventType.updateEdges},
+        newEdges: [...graph.edges, newEdge],
+      );
+
+  GraphEvent.removeEdge(PlanetBase graph, DirectedEdge removedEdge)
+    : this._(graph, const {
+        GraphEventType.updateEdges,
+      }, newEdges: List.from(graph.edges)..remove(removedEdge));
+
+  GraphEvent.newInput(PlanetBase graph, InGameItem newInput)
+    : this._(
+        graph,
+        const {GraphEventType.updateInput},
+        newInputs: [...graph.inputItems, newInput],
+      );
+
+  GraphEvent.removeInput(PlanetBase graph, InGameItem removedInput)
+    : this._(graph, const {
+        GraphEventType.updateInput,
+      }, newInputs: List.from(graph.inputItems)..remove(removedInput));
+
+  GraphEvent.newOutput(PlanetBase graph, InGameItem newOutput)
+    : this._(
+        graph,
+        const {GraphEventType.updateOutput},
+        newOutputs: [...graph.outputItems, newOutput],
+      );
+
+  GraphEvent.removeOutput(PlanetBase graph, InGameItem removedOutput)
+    : this._(graph, const {
+        GraphEventType.updateOutput,
+      }, newOutputs: List.from(graph.outputItems)..remove(removedOutput));
+
+  GraphEvent.newIoRatios(
+    PlanetBase graph, {
+    required ItemIo newInputRatios,
+    required ItemIo newOutputRatios,
+  }) : this._(
+         graph,
+         {GraphEventType.updateRatios},
+         oldInputRatios: graph.inputRatios,
+         oldOutputRatios: graph.outputRatios,
+         newInputRatios: newInputRatios,
+         newOutputRatios: newOutputRatios,
+       );
+
+  GraphEvent.clearIoRatios(PlanetBase graph)
+    : this._(
+        graph,
+        {GraphEventType.updateRatios},
+        oldInputRatios: graph.inputRatios,
+        oldOutputRatios: graph.outputRatios,
       );
 
   GraphEvent.updateGeometry(PlanetBase graph, GraphGeometry newGeometry)
@@ -68,110 +122,113 @@ class GraphEvent extends MutationEvent {
   factory GraphEvent.combine(List<GraphEvent> orderedEvents) {
     Set<GraphEventType> mutations = {};
 
-    Set<ProdLineNode> newNodes = {};
-    Set<ProdLineNode> removedNodes = {};
-    Set<DirectedEdge> newEdges = {};
-    Set<DirectedEdge> removedEdges = {};
+    GraphEvent? oldNodeEvent, newNodeEvent;
 
-    Set<InGameItem> newInputs = {};
-    Set<InGameItem> removedInputs = {};
-    Set<InGameItem> newOutputs = {};
-    Set<InGameItem> removedOutputs = {};
+    GraphEvent? oldEdgeEvent, newEdgeEvent;
+
+    GraphEvent? oldInputEvent, newInputEvent;
+
+    GraphEvent? oldOutputEvent, newOutputEvent;
+
+    GraphEvent? oldRatiosEvent, newRatiosEvent;
 
     GraphEvent? oldGeometryEvent, newGeometryEvent;
-    GraphGeometry? oldGeometry, newGeometry;
 
     for (var event in orderedEvents) {
       mutations.addAll(event.mutations);
       for (var mutation in event.mutations) {
         switch (mutation) {
+          case GraphEventType.updateNodes:
+            oldNodeEvent ??= event;
+            newNodeEvent = event;
+
+          case GraphEventType.updateEdges:
+            oldEdgeEvent ??= event;
+            newEdgeEvent = event;
+
+          case GraphEventType.updateInput:
+            oldInputEvent ??= event;
+            newInputEvent = event;
+
+          case GraphEventType.updateOutput:
+            oldOutputEvent ??= event;
+            newOutputEvent = event;
+
+          case GraphEventType.updateRatios:
+            oldRatiosEvent ??= event;
+            newRatiosEvent = event;
+
           case GraphEventType.geometryUpdate:
             oldGeometryEvent ??= event;
             newGeometryEvent = event;
-
-          case GraphEventType.updateNodes:
-            newNodes.addAll(event.newNodes);
-            removedNodes.addAll(event.removedNodes);
-
-          case GraphEventType.updateEdges:
-            newEdges.addAll(event.newEdges);
-            removedEdges.addAll(event.removedEdges);
-
-          case GraphEventType.updateInput:
-            newInputs.addAll(event.newInputs);
-            removedInputs.addAll(event.removedInputs);
-
-          case GraphEventType.updateOutput:
-            newOutputs.addAll(event.newOutputs);
-            removedOutputs.addAll(event.removedOutputs);
         }
       }
     }
 
-    if (oldGeometryEvent != null) {
-      oldGeometry = oldGeometryEvent.oldGeometry;
-      newGeometry = newGeometryEvent!.newGeometry;
-    }
-
-    _removedWhereBothContain(newNodes, removedNodes);
-    _removedWhereBothContain(newEdges, removedEdges);
-    _removedWhereBothContain(newInputs, removedInputs);
-    _removedWhereBothContain(newOutputs, removedOutputs);
-
     return GraphEvent._(
       orderedEvents.first.graph,
       mutations,
-      removedNodes: removedNodes,
-      removedEdges: removedEdges,
-      removedInputs: removedInputs,
-      removedOutputs: removedOutputs,
-      oldGeometry: oldGeometry,
-      newNodes: newNodes,
-      newEdges: newEdges,
-      newInputs: newInputs,
-      newOutputs: newOutputs,
-      newGeometry: newGeometry,
+      oldNodes: oldNodeEvent?.oldNodes,
+      oldEdges: oldEdgeEvent?.oldEdges,
+      oldInputs: oldInputEvent?.oldInputs,
+      oldOutputs: oldOutputEvent?.oldOutputs,
+      oldInputRatios: oldRatiosEvent?.oldInputRatios,
+      oldOutputRatios: oldRatiosEvent?.oldOutputRatios,
+      oldGeometry: oldGeometryEvent?.oldGeometry,
+      newNodes: newNodeEvent?.newNodes,
+      newEdges: newEdgeEvent?.newEdges,
+      newInputs: newInputEvent?.newInputs,
+      newOutputs: newOutputEvent?.newOutputs,
+      newInputRatios: newRatiosEvent?.newInputRatios,
+      newOutputRatios: newRatiosEvent?.newOutputRatios,
+      newGeometry: newGeometryEvent?.newGeometry,
     );
   }
 
   GraphEvent._(
     this.graph,
-    Set<GraphEventType> mutations, {
+    Iterable<GraphEventType> mutations, {
+    this.oldNodes,
+    this.oldEdges,
+    this.oldInputs,
+    this.oldOutputs,
+    this.oldInputRatios,
+    this.oldOutputRatios,
     this.oldGeometry,
-    Set<ProdLineNode> removedNodes = const {},
-    Set<DirectedEdge> removedEdges = const {},
-    Set<InGameItem> removedInputs = const {},
-    Set<InGameItem> removedOutputs = const {},
+    Iterable<ProdLineNode>? newNodes,
+    Iterable<DirectedEdge>? newEdges,
+    Iterable<InGameItem>? newInputs,
+    Iterable<InGameItem>? newOutputs,
+    ItemIo? newInputRatios,
+    ItemIo? newOutputRatios,
     this.newGeometry,
-    Set<ProdLineNode> newNodes = const {},
-    Set<DirectedEdge> newEdges = const {},
-    Set<InGameItem> newInputs = const {},
-    Set<InGameItem> newOutputs = const {},
   }) : mutations = Set.unmodifiable(mutations),
-       removedNodes = Set.unmodifiable(removedNodes),
-       removedEdges = Set.unmodifiable(removedEdges),
-       removedInputs = Set.unmodifiable(removedInputs),
-       removedOutputs = Set.unmodifiable(removedOutputs),
-       newNodes = Set.unmodifiable(newNodes),
-       newEdges = Set.unmodifiable(newEdges),
-       newInputs = Set.unmodifiable(newInputs),
-       newOutputs = Set.unmodifiable(newOutputs),
+       newNodes = _unmodifiableOrNullList(newNodes),
+       newEdges = _unmodifiableOrNullList(newEdges),
+       newInputs = _unmodifiableOrNullSet(newInputs),
+       newOutputs = _unmodifiableOrNullSet(newOutputs),
+       newInputRatios = _unmodifiableOrNullMap(newInputRatios),
+       newOutputRatios = _unmodifiableOrNullMap(newOutputRatios),
        isReversed = false,
        original = null;
 
   GraphEvent._reverse(GraphEvent toReverse)
     : graph = toReverse.graph,
       mutations = toReverse.mutations,
+      oldNodes = toReverse.newNodes,
+      oldEdges = toReverse.newEdges,
+      oldInputs = toReverse.newInputs,
+      oldOutputs = toReverse.newOutputs,
+      oldInputRatios = toReverse.oldInputRatios,
+      oldOutputRatios = toReverse.oldOutputRatios,
       oldGeometry = toReverse.newGeometry,
-      removedNodes = toReverse.newNodes,
-      removedEdges = toReverse.newEdges,
-      removedInputs = toReverse.newInputs,
-      removedOutputs = toReverse.newOutputs,
+      newNodes = toReverse.oldNodes,
+      newEdges = toReverse.oldEdges,
+      newInputs = toReverse.oldInputs,
+      newOutputs = toReverse.oldOutputs,
+      newInputRatios = toReverse.oldInputRatios,
+      newOutputRatios = toReverse.oldOutputRatios,
       newGeometry = toReverse.oldGeometry,
-      newNodes = toReverse.removedNodes,
-      newEdges = toReverse.removedEdges,
-      newInputs = toReverse.removedInputs,
-      newOutputs = toReverse.removedOutputs,
       isReversed = true,
       original = toReverse;
 }
@@ -182,4 +239,5 @@ enum GraphEventType {
   updateEdges,
   updateInput,
   updateOutput,
+  updateRatios,
 }

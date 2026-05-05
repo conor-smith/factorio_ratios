@@ -1,5 +1,6 @@
 part of 'graph.dart';
 
+/// Represents a single node in the graph
 class ProdLineNode with Stateful<NodeEvent> {
   static const double defaultWidth = 100,
       defaultHeight = 100,
@@ -7,32 +8,32 @@ class ProdLineNode with Stateful<NodeEvent> {
       minSideLength = 20,
       connectionOffset = 8;
 
-  /* ------------- Immutable fields ------------- */
   final PlanetBase parentGraph;
   final _EventHistory _eventHistory;
 
-  /* -------------- Mutable fields -------------- */
   // Node type determines how parent valid operations and how parent graph is affected
-  NodeType _nodeType;
+  final NodeType nodeType;
   // True if part of a graph. False otherwise
   bool _active;
 
   ProductionLine _line;
 
+  ItemIo? _inputConstraints, _outputConstraints;
+  ItemIo? get inputConstraints => _inputConstraints;
+  ItemIo? get outputConstraints => _outputConstraints;
+
   NodeGeometry _geometry;
 
   // Edges that this node is a parent of
-  Set<DirectedEdge> _parentOf = const {};
+  final Set<DirectedEdge> _parentOf = {};
   // Edges that this node is a child of
-  Set<DirectedEdge> _childOf = const {};
+  final Set<DirectedEdge> _childOf = {};
 
   ProductionLineIo? _ioData;
 
   /* ---------------- Accessors ---------------- */
   late final Set<DirectedEdge> parentOf = UnmodifiableSetView(_parentOf);
   late final Set<DirectedEdge> childOf = UnmodifiableSetView(_childOf);
-
-  NodeType get nodeType => _nodeType;
 
   NodeGeometry get geometry => _geometry;
   Rect get rect => _geometry.minimalRect;
@@ -195,8 +196,12 @@ class ProdLineNode with Stateful<NodeEvent> {
       };
 }
 
+/// Specifies node behaviour
 enum NodeType {
+  /// A node that
   consumer(allowsInput: true, allowsOutput: false, isIo: false),
+
+  /// Same as [consumer], but
   disposal(allowsInput: true, allowsOutput: false, isIo: false),
   producer(allowsInput: false, allowsOutput: true, isIo: false),
   input(allowsInput: false, allowsOutput: true, isIo: true),
@@ -212,15 +217,4 @@ enum NodeType {
     required this.allowsOutput,
     required this.isIo,
   });
-
-  bool canChangeTo(NodeType changeTo) =>
-      this == changeTo ||
-      switch (this) {
-        consumer => const {output, productionLine, disposal}.contains(changeTo),
-        disposal => const {output, productionLine, producer}.contains(changeTo),
-        producer => const {input, productionLine}.contains(changeTo),
-        input => false,
-        output => false,
-        productionLine => false,
-      };
 }
