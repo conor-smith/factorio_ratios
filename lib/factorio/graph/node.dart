@@ -12,7 +12,7 @@ part of 'graph.dart';
 /// As a [ProductionLine] already has a known set of inputs and outputs before
 /// [ProductionLine.calculate] is called, we do not need to determine IO to
 /// build the graph. As such, [ioData] and the [DirectedEdge.amount] field
-/// of all child edges will be null until
+/// of all child edges will be null until [calculateIoAndUpdateChildren] is called
 class ProdLineNode with Stateful<NodeEvent> {
   static const double defaultWidth = 100,
       defaultHeight = 100,
@@ -80,6 +80,42 @@ class ProdLineNode with Stateful<NodeEvent> {
   ItemIo? get outputConstraints => _outputConstraints;
 
   ProductionLineIo? get ioData => _ioData;
+
+  /// Calculates constraints either based on sum of parent nodes requirements,
+  /// or uses [inputConstraints] and [outputConstraints]
+  void calculateIoAndUpdateChildren() {
+    _history.mutate(() {
+      ItemIo inputConstraints = {};
+      ItemIo outputConstraints = {};
+
+      Map<Item, List<DirectedEdge>> parentInputEdges = {};
+
+      for (var parentEdge in _childOf) {
+        var amount = parentEdge._amount ?? 0.0;
+
+        if (parentEdge.flowDirection == ItemFlowDirection.childToParent) {
+          outputConstraints.update(
+            parentEdge.item,
+            (sum) => sum += amount,
+            ifAbsent: () => amount,
+          );
+        } else {
+          inputConstraints.update(
+            parentEdge.item,
+            (sum) => sum += amount,
+            ifAbsent: () => amount,
+          );
+        }
+
+        var newIo = _line.calculate(
+          inputConstraints: inputConstraints,
+          outputConstraints: outputConstraints,
+        );
+
+        apply(NodeEvent.newIo(this, newIo));
+      }
+    });
+  }
 
   /* ------------- Stateful methods ------------- */
   @override

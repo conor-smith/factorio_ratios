@@ -47,10 +47,8 @@ class EdgeEvent extends MutationEvent {
     Set<EdgeEventType> mutations = {};
 
     EdgeEvent? oldAmountEvent, newAmountEvent;
-    double? oldAmount, newAmount;
 
     EdgeEvent? oldGeometryEvent, newGeometryEvent;
-    EdgeGeometry? oldGeometry, newGeometry;
 
     for (var event in orderedEvents) {
       mutations.addAll(event.mutations);
@@ -80,23 +78,13 @@ class EdgeEvent extends MutationEvent {
       mutations.removeAll(EdgeEventType.creationEvents);
     }
 
-    if (oldAmountEvent != null) {
-      oldAmount = oldAmountEvent.oldAmount;
-      newAmount = newAmountEvent!.newAmount;
-    }
-
-    if (oldGeometryEvent != null) {
-      oldGeometry = oldGeometryEvent.oldGeometry;
-      newGeometry = newGeometryEvent!.newGeometry;
-    }
-
     return EdgeEvent._(
       orderedEvents.first.edge,
       mutations,
-      oldAmount: oldAmount,
-      oldGeometry: oldGeometry,
-      newAmount: newAmount,
-      newGeometry: newGeometry,
+      oldAmount: oldAmountEvent?.oldAmount,
+      oldGeometry: oldGeometryEvent?.oldGeometry,
+      newAmount: newAmountEvent?.newAmount,
+      newGeometry: newGeometryEvent?.newGeometry,
     );
   }
 

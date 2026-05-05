@@ -5,6 +5,7 @@ class NodeEvent extends MutationEvent {
 
   final Set<NodeEventType> mutations;
 
+  final ProductionLineIo? oldIo, newIo;
   final NodeGeometry? oldGeometry, newGeometry;
   final ProductionLine? oldProductionLine, newProductionLine;
   final List<DirectedEdge>? oldChildOf, oldParentOf, newChildOf, newParentOf;
@@ -54,6 +55,17 @@ class NodeEvent extends MutationEvent {
         newProductionLine: newProductionLine,
       );
 
+  NodeEvent.newIo(ProdLineNode node, ProductionLineIo newIo)
+    : this._(
+        node,
+        const {NodeEventType.updateIo},
+        oldIo: node.ioData,
+        newIo: newIo,
+      );
+
+  NodeEvent.clearIo(ProdLineNode node)
+    : this._(node, const {NodeEventType.updateIo}, oldIo: node.ioData);
+
   NodeEvent.newChildEdge(ProdLineNode node, DirectedEdge newChildEdge)
     : this._(
         node,
@@ -93,6 +105,7 @@ class NodeEvent extends MutationEvent {
     Set<NodeEventType> mutations = {};
 
     NodeEvent? oldGeometryEvent, newGeometryEvent;
+    NodeEvent? oldIoEvent, newIoEvent;
     NodeEvent? oldConstraintsEvent, newConstraintsEvent;
     NodeEvent? oldProdLineEvent, newProdLineEvent;
     NodeEvent? oldParentOfEvent, newParentOfEvent;
@@ -105,6 +118,10 @@ class NodeEvent extends MutationEvent {
           case NodeEventType.updateGeometry:
             oldGeometryEvent ??= event;
             newGeometryEvent = event;
+
+          case NodeEventType.updateIo:
+            oldIoEvent ??= event;
+            newIoEvent = event;
 
           case NodeEventType.updateConstraints:
             oldConstraintsEvent ??= event;
@@ -142,12 +159,14 @@ class NodeEvent extends MutationEvent {
       orderedEvents.first.node,
       mutations,
       oldGeometry: oldGeometryEvent?.oldGeometry,
+      oldIo: oldIoEvent?.oldIo,
       oldProductionLine: oldProdLineEvent?.oldProductionLine,
       oldInputConstraints: oldConstraintsEvent?.oldInputConstraints,
       oldOutputConstraints: oldConstraintsEvent?.oldOutputConstraints,
       oldParentOf: oldParentOfEvent?.oldParentOf,
       oldChildOf: oldChildOfEvent?.oldChildOf,
       newGeometry: newGeometryEvent?.newGeometry,
+      newIo: newIoEvent?.newIo,
       newProductionLine: newProdLineEvent?.newProductionLine,
       newInputConstraints: newConstraintsEvent?.newInputConstraints,
       newOutputConstraints: newConstraintsEvent?.newOutputConstraints,
@@ -159,6 +178,7 @@ class NodeEvent extends MutationEvent {
   NodeEvent._(
     this.node,
     Set<NodeEventType> mutations, {
+    this.oldIo,
     this.oldProductionLine,
     this.oldInputConstraints,
     this.oldOutputConstraints,
@@ -166,6 +186,7 @@ class NodeEvent extends MutationEvent {
     this.oldParentOf,
     this.oldGeometry,
     this.newProductionLine,
+    this.newIo,
     ItemIo? newInputConstraints,
     ItemIo? newOutputConstraints,
     Iterable<DirectedEdge>? newParentOf,
@@ -184,12 +205,14 @@ class NodeEvent extends MutationEvent {
       mutations = Set.unmodifiable(
         toReverse.mutations.map((eventType) => eventType.reverse),
       ),
+      oldIo = toReverse.newIo,
       oldGeometry = toReverse.newGeometry,
       oldInputConstraints = toReverse.newInputConstraints,
       oldOutputConstraints = toReverse.newOutputConstraints,
       oldProductionLine = toReverse.newProductionLine,
       oldParentOf = toReverse.newParentOf,
       oldChildOf = toReverse.newChildOf,
+      newIo = toReverse.oldIo,
       newGeometry = toReverse.oldGeometry,
       newInputConstraints = toReverse.oldInputConstraints,
       newOutputConstraints = toReverse.oldOutputConstraints,
@@ -203,6 +226,7 @@ class NodeEvent extends MutationEvent {
 enum NodeEventType {
   updateGeometry,
   tempGeometry,
+  updateIo,
   updateConstraints,
   newProductionLine,
   parentOfUpdate,
@@ -213,6 +237,7 @@ enum NodeEventType {
   NodeEventType get reverse => switch (this) {
     updateGeometry => updateGeometry,
     tempGeometry => tempGeometry,
+    updateIo => updateIo,
     updateConstraints => updateConstraints,
     newProductionLine => newProductionLine,
     parentOfUpdate => parentOfUpdate,
