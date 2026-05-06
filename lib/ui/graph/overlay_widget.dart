@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 
 class OverlayWidget extends StatefulWidget {
   final FactorioDatabase db;
-  final PlanetBase topGraph;
+  final PlanetBaseGraph topGraph;
 
   final List<CraftingMachine> sortedMachines;
   final Map<Surface, SurfaceProperties> surfacePropertiesMap;
@@ -24,7 +24,9 @@ class OverlayWidget extends StatefulWidget {
 
   factory OverlayWidget.createFromDb({Key? key, required FactorioDatabase db}) {
     // TODO - Top graph should have no surface
-    PlanetBase topGraph = PlanetBase.root(surface: db.surfaceMap['nauvis']!);
+    PlanetBaseGraph topGraph = PlanetBaseGraph.root(
+      surface: db.surfaceMap['nauvis']!,
+    );
 
     List<CraftingMachine> sortedMachines = db.craftingMachineMap.values
         .toList();
@@ -83,9 +85,9 @@ class OverlayWidget extends StatefulWidget {
 }
 
 class _OverlayWidgetState extends State<OverlayWidget> {
-  final Map<PlanetBase, GraphWidget> graphWidgets = {};
+  final Map<PlanetBaseGraph, GraphWidget> graphWidgets = {};
 
-  PlanetBase get activeGraph => widget.updateNotifier._activeGraph;
+  PlanetBaseGraph get activeGraph => widget.updateNotifier._activeGraph;
   ProdLineNode? get activeNode => widget.updateNotifier._activeNode;
   bool get selectionMenuActive => widget.updateNotifier._selectionMenuActive;
 
@@ -152,12 +154,12 @@ class SurfaceProperties {
 }
 
 class OverlayStateNotifier extends ChangeNotifier {
-  PlanetBase _activeGraph;
+  PlanetBaseGraph _activeGraph;
   ProdLineNode? _activeNode;
   bool _selectionMenuActive;
 
   OverlayStateNotifier({
-    required PlanetBase activeGraph,
+    required PlanetBaseGraph activeGraph,
     ProdLineNode? activeNode,
     bool selectionMenuActive = false,
   }) : _selectionMenuActive = selectionMenuActive,
@@ -169,7 +171,7 @@ class OverlayStateNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateActiveGraph(PlanetBase newGraph) {
+  void updateActiveGraph(PlanetBaseGraph newGraph) {
     if (_activeGraph != newGraph) {
       _selectionMenuActive = false;
       _activeNode = null;

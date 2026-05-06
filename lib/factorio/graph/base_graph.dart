@@ -4,26 +4,25 @@ part of 'graph.dart';
 /// There may be multiple bases per surface.
 /// A base may also contain nodes that belong to a different surface.
 ///
-/// Ultimately represents a graph with several [nodes] connected by directed [edges].
-/// If this base is contained within a node of a parent graph, inputs and outputs
-/// are given by [nodes] of type [NodeType.input] or [NodeType.output].
-/// Input and output nodes are not production lines themselves.
-/// They merely represent an entry point for inputs or an endpoint for outputs
-/// of other production lines.
+/// This class ultimately represents a directed graph.
+/// Nodes are of type [ProdLineNode] and can be accessed via [nodes].
+/// Edges are of type [DirectedEdge] and can be accessed via [edges].
+/// An edge represents a flow of items from one node to another.
+/// For every item flow between 2 nodes, there may only be one edge per item.
 ///
-/// Every edge has a parent and a child.
-/// However, it should be known that the parent isn't necessarily the consumer
-/// of the child's outputs.
-/// Rather, relationships are determined by which node can set restraints on another.
-/// While the majority of parents will be consumers of their children's outputs,
-/// there are certain scenarios the parent is a producer.
+/// There are certain in game production lines that require a loop. Eg.
+/// Producing nutrients via bioflux and using those nutrients to produce bioflux.
+/// As such, loops are permitted, with a small caveat.
+/// There exists 2 kinds of edges as given by [DirectedEdge.edgeType] -
+/// [Relationship.requestItems] and [Relationship.acceptExcess].
+/// While a loop of edges with [Relationship.requestItems] is permitted to exist,
+/// edge of type [Relationship.acceptExcess] must not connect back to the graph
+/// in a way that forms a loop.
+/// For more information on what these relationships mean, see [DirectedEdge].
 ///
-/// Eg. In the actual game of factorio, producing molten iron from lava also produces stone.
-/// If this stone is not disposed of, the production line backs up and iron cannot
-/// be produced.
-/// In this application, this would be represented by an edge of type
-/// [Relationship.acceptExcess], sending excess stone to another node and setting
-/// an input constraint.
+/// This class does use the [ProductionLine] mixin. As such, [inputItems] and
+/// [outputItems] are determined by nodes of type [NodeType.input] and [NodeType.output].
+/// For each input / output, only one input or output node may exist.
 ///
 /// When [calculate] is called, the constraints placed on each node is determined
 /// by the sum of all requirements of its parents.
@@ -37,22 +36,25 @@ part of 'graph.dart';
 /// * There are no producer or consumer nodes connected to any of these paths
 /// which might affect the outcome
 ///
-/// All contained objects are muteable.
-/// Mutating state must only be done through specific methods, even within the classes.
-/// This means that mutations can be rolled back if need be.
-/// Mutateables are also listenable, and will only notifyListeners when instructed to.
-///
 /// This class is also a mutable production line.
 /// While [inputItems], [outputItems], [inputRatios] and [outputRatios] are not updated
 /// by [calculate], additional nodes may be created to handle excess output of nodes.
 ///
+/// This object also uses the [Stateful] mixin, as does [ProdLineNode] and [DirectedEdge].
+/// State update can only be done via [apply], [rollback], and [redo], and even then,
+/// restrictions are put in place to ensure that only internal calls to these methods
+/// will work. Any other calls will result in a [MutationException] being thrown.
+/// This is to ensure tight control over internal state.
+///
 /// The complex nature of the graphs means that updating the state of one object
 /// may affect the state of another.
-/// Eg. Updating nodeType to "output" will result in the node's inputs
-/// being added to it's parentGraph's outputs.
-/// As such, listeners should not be notified until all changes in a transaction
+/// As such, listeners are not notified until all changes in a transaction
 /// are completed.
-class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
+/// Eg. If a particular operation results in multiple new nodes being added,
+/// listeners will only receive one update containing all new nodes, rather than
+/// one update for each node.
+class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
+  // TODO - support loops
   final FactorioBase globalData;
 
   _EventHistory get _history => globalData._history;
@@ -78,7 +80,7 @@ class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   Map<InGameItem, Map<NodeType, List<ProdLineNode>>>? _cachedItemProductionMap;
 
   /* --------------- Constructors --------------- */
-  PlanetBase._root({
+  PlanetBaseGraph._root({
     required this.globalData,
     this.surface,
     String? name,
@@ -144,20 +146,20 @@ class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
     _populateNodeDataCache();
 
     _history.mutate(() {
-      for (var rootNode in _cachedRootNodes!) {
-        switch (rootNode.nodeType) {
-          case NodeType.consumer:
-            // TODO: Handle this case.
-            throw UnimplementedError();
+      // for (var rootNode in _cachedRootNodes!) {
+      //   switch (rootNode.nodeType) {
+      //     case NodeType.consumer:
+      //       // TODO: Handle this case.
+      //       throw UnimplementedError();
 
-          case NodeType.input:
-            // TODO: Handle this case.
-            throw UnimplementedError();
-          case NodeType.output:
-            // TODO: Handle this case.
-            throw UnimplementedError();
-        }
-      }
+      //     case NodeType.input:
+      //       // TODO: Handle this case.
+      //       throw UnimplementedError();
+      //     case NodeType.output:
+      //       // TODO: Handle this case.
+      //       throw UnimplementedError();
+      //   }
+      // }
     });
 
     // TODO

@@ -1,7 +1,7 @@
 part of 'state.dart';
 
 class GraphEvent extends MutationEvent {
-  final PlanetBase graph;
+  final PlanetBaseGraph graph;
 
   final Set<GraphEventType> mutations;
 
@@ -43,56 +43,56 @@ class GraphEvent extends MutationEvent {
           ? const []
           : oldEdges!.where((edge) => !newEdges!.contains(edge)).toList());
 
-  GraphEvent.newNode(PlanetBase graph, ProdLineNode newNode)
+  GraphEvent.newNode(PlanetBaseGraph graph, ProdLineNode newNode)
     : this._(
         graph,
         const {GraphEventType.updateNodes},
         newNodes: [...graph.nodes, newNode],
       );
 
-  GraphEvent.removeNode(PlanetBase graph, ProdLineNode removedNode)
+  GraphEvent.removeNode(PlanetBaseGraph graph, ProdLineNode removedNode)
     : this._(graph, const {
         GraphEventType.updateNodes,
       }, newNodes: List.from(graph.nodes)..remove(removedNode));
 
-  GraphEvent.newEdge(PlanetBase graph, DirectedEdge newEdge)
+  GraphEvent.newEdge(PlanetBaseGraph graph, DirectedEdge newEdge)
     : this._(
         graph,
         const {GraphEventType.updateEdges},
         newEdges: [...graph.edges, newEdge],
       );
 
-  GraphEvent.removeEdge(PlanetBase graph, DirectedEdge removedEdge)
+  GraphEvent.removeEdge(PlanetBaseGraph graph, DirectedEdge removedEdge)
     : this._(graph, const {
         GraphEventType.updateEdges,
       }, newEdges: List.from(graph.edges)..remove(removedEdge));
 
-  GraphEvent.newInput(PlanetBase graph, InGameItem newInput)
+  GraphEvent.newInput(PlanetBaseGraph graph, InGameItem newInput)
     : this._(
         graph,
         const {GraphEventType.updateInput},
         newInputs: [...graph.inputItems, newInput],
       );
 
-  GraphEvent.removeInput(PlanetBase graph, InGameItem removedInput)
+  GraphEvent.removeInput(PlanetBaseGraph graph, InGameItem removedInput)
     : this._(graph, const {
         GraphEventType.updateInput,
       }, newInputs: List.from(graph.inputItems)..remove(removedInput));
 
-  GraphEvent.newOutput(PlanetBase graph, InGameItem newOutput)
+  GraphEvent.newOutput(PlanetBaseGraph graph, InGameItem newOutput)
     : this._(
         graph,
         const {GraphEventType.updateOutput},
         newOutputs: [...graph.outputItems, newOutput],
       );
 
-  GraphEvent.removeOutput(PlanetBase graph, InGameItem removedOutput)
+  GraphEvent.removeOutput(PlanetBaseGraph graph, InGameItem removedOutput)
     : this._(graph, const {
         GraphEventType.updateOutput,
       }, newOutputs: List.from(graph.outputItems)..remove(removedOutput));
 
   GraphEvent.newIoRatios(
-    PlanetBase graph, {
+    PlanetBaseGraph graph, {
     required ItemIo newInputRatios,
     required ItemIo newOutputRatios,
   }) : this._(
@@ -104,7 +104,7 @@ class GraphEvent extends MutationEvent {
          newOutputRatios: newOutputRatios,
        );
 
-  GraphEvent.clearIoRatios(PlanetBase graph)
+  GraphEvent.clearIoRatios(PlanetBaseGraph graph)
     : this._(
         graph,
         {GraphEventType.updateRatios},
@@ -112,7 +112,7 @@ class GraphEvent extends MutationEvent {
         oldOutputRatios: graph.outputRatios,
       );
 
-  GraphEvent.updateGeometry(PlanetBase graph, GraphGeometry newGeometry)
+  GraphEvent.updateGeometry(PlanetBaseGraph graph, GraphGeometry newGeometry)
     : this._(
         graph,
         {GraphEventType.geometryUpdate},
@@ -120,7 +120,7 @@ class GraphEvent extends MutationEvent {
         newGeometry: newGeometry,
       );
 
-  GraphEvent.clearGeometry(PlanetBase graph)
+  GraphEvent.clearGeometry(PlanetBaseGraph graph)
     : this._(
         graph,
         {GraphEventType.geometryUpdate},

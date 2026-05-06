@@ -5,7 +5,7 @@ import 'package:factorio_ratios/ui/graph/overlay_widget.dart';
 import 'package:flutter/material.dart';
 
 class GraphWidget extends StatefulWidget {
-  final PlanetBase graph;
+  final PlanetBaseGraph graph;
 
   const GraphWidget({super.key, required this.graph});
 

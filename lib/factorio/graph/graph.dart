@@ -25,7 +25,7 @@ class FactorioBase {
   final FactorioDatabase factorioDb;
   final _EventHistory _history;
 
-  late final PlanetBase rootGraph;
+  late final PlanetBaseGraph rootGraph;
   final Map<Surface, _SurfaceProperties> _surfaceProperties;
 
   FactorioBase(this.factorioDb)
@@ -48,7 +48,7 @@ class FactorioBase {
     var nauvis = factorioDb.surfaceMap['nauvis']!;
 
     // TODO - Top graph should have no surface
-    rootGraph = PlanetBase._root(
+    rootGraph = PlanetBaseGraph._root(
       globalData: this,
       surface: nauvis,
       surfaceProperties: _surfaceProperties[nauvis]!,

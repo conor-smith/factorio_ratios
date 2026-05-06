@@ -1,8 +1,23 @@
 part of 'graph.dart';
 
+/// Represents a flow of items between two [ProdLineNode] objects in the graph.
+///
+/// Every edge has a [parent] and a [child].
+/// However, it should be known that parent isn't necessarily the consumer
+/// of the child's outputs.
+/// Rather, relationships are determined by which node can set constraints on the other.
+/// While the majority of parents will be consumers of their children's outputs,
+/// there are certain scenarios the parent is a producer.
+///
+/// Eg. In the actual game of factorio, producing molten iron from lava also produces stone.
+/// If this stone is not disposed of, the production line backs up and iron cannot
+/// be produced.
+/// In this application, this would be represented by an edge of type
+/// [Relationship.acceptExcess], sending excess stone to another node and setting
+/// an input constraint.
 class DirectedEdge with Stateful<EdgeEvent> {
   /* ------------- Immutable fields ------------- */
-  final PlanetBase parentGraph;
+  final PlanetBaseGraph parentGraph;
   final _EventHistory _eventHistory;
 
   final ProdLineNode parent;

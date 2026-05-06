@@ -20,7 +20,7 @@ class ProdLineNode with Stateful<NodeEvent> {
       minSideLength = 20,
       connectionOffset = 8;
 
-  final PlanetBase parentGraph;
+  final PlanetBaseGraph parentGraph;
   final NodeType nodeType;
 
   _EventHistory get _history => parentGraph._history;
@@ -48,7 +48,7 @@ class ProdLineNode with Stateful<NodeEvent> {
 
   /* --------------- Constructors --------------- */
   /// While this creates a node, it does not add it to the graph.
-  /// That must be done via [PlanetBase.addNewNode]
+  /// That must be done via [PlanetBaseGraph.addNewNode]
   ProdLineNode({
     required this.parentGraph,
     required this.nodeType,

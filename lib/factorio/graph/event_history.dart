@@ -19,7 +19,7 @@ class _EventHistory {
   Set<Stateful> delayedEventOperations = {};
 
   // Uncommitted events
-  Map<PlanetBase, List<GraphEvent>> _uGraphEvents;
+  Map<PlanetBaseGraph, List<GraphEvent>> _uGraphEvents;
   Map<ProdLineNode, List<NodeEvent>> _uNodeEvents;
   Map<DirectedEdge, List<EdgeEvent>> _uEdgeEvents;
 
@@ -120,7 +120,7 @@ class _EventHistory {
 }
 
 class _UpdateEvent {
-  final Map<PlanetBase, GraphEvent> graphEvents;
+  final Map<PlanetBaseGraph, GraphEvent> graphEvents;
   final Map<ProdLineNode, NodeEvent> nodeEvents;
   final Map<DirectedEdge, EdgeEvent> edgeEvents;
 
@@ -130,7 +130,7 @@ class _UpdateEvent {
         ..addAll(edgeEvents);
 
   _UpdateEvent(
-    Map<PlanetBase, List<GraphEvent>> graphEvents,
+    Map<PlanetBaseGraph, List<GraphEvent>> graphEvents,
     Map<ProdLineNode, List<NodeEvent>> nodeEvents,
     Map<DirectedEdge, List<EdgeEvent>> edgeEvents,
   ) : graphEvents = graphEvents.map(
