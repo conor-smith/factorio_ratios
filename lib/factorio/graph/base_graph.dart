@@ -121,14 +121,44 @@ class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   @override
   HasIcon? get icon => surface;
 
+  /// Calls [ProdLineNode.calculateAndCache] on all relevant input and output nodes
+  /// using [inputConstraints] and [outputConstraints].
+  /// Also applies [ProdLineNode.internalInputConstraints] and
+  /// [ProdLineNode.internalOutputConstraints] on all consumer nodes.
+  ///
+  /// From there, the data in [ProdLineNode.ioData] is used to determine the
+  /// constraints on all subsequent children and grandchildren nodes recursively
+  /// until all affected descendants have their own [ProdLineNode.ioData] fields
+  /// appropriately updated.
+  ///
+  /// If at any point, a node has an input or output not satisfied, they will
+  /// be connected to first node of type [NodeType.disposal] or [NodeType.producer]
+  /// that satisfies this requirement. If none exists, a new node will be created
   @override
   PlanetBaseIo calculate({
     ItemIo inputConstraints = const {},
     ItemIo outputConstraints = const {},
   }) {
+    verifyConstraintsAndIo(inputConstraints, outputConstraints);
+
     _populateNodeDataCache();
 
-    var orderUpdate = _getNodeHeights(_cachedRootNodes!);
+    _history.mutate(() {
+      for (var rootNode in _cachedRootNodes!) {
+        switch (rootNode.nodeType) {
+          case NodeType.consumer:
+            // TODO: Handle this case.
+            throw UnimplementedError();
+
+          case NodeType.input:
+            // TODO: Handle this case.
+            throw UnimplementedError();
+          case NodeType.output:
+            // TODO: Handle this case.
+            throw UnimplementedError();
+        }
+      }
+    });
 
     // TODO
     throw UnimplementedError();

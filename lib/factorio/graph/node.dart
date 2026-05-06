@@ -47,7 +47,9 @@ class ProdLineNode with Stateful<NodeEvent> {
   String toString() => _productionLine.toString();
 
   /* --------------- Constructors --------------- */
-  ProdLineNode.addToGraph({
+  /// While this creates a node, it does not add it to the graph.
+  /// That must be done via [PlanetBase.addNewNode]
+  ProdLineNode({
     required this.parentGraph,
     required this.nodeType,
     required ProductionLine line,
@@ -61,9 +63,6 @@ class ProdLineNode with Stateful<NodeEvent> {
         'Nodetype $nodeType is incompatible with production line $line',
       );
     }
-
-    parentGraph.apply(GraphEvent.newNode(parentGraph, this));
-    apply(NodeEvent.addToGraph(this));
   }
 
   /* ------------ Production Line ------------ */
