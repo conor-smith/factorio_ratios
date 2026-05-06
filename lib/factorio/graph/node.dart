@@ -76,6 +76,10 @@ class ProdLineNode with Stateful<NodeEvent> {
   String get productionLineType => _productionLine.type;
   String get productionLineName => _productionLine.name;
 
+  /// Returns true if [internalInputConstraints] and [internalOutputConstraints]
+  /// are set
+  bool get hasInternalConstraints => _internalInputConstraints != null;
+
   /// Can only be populated via [setInternalConstraints] if this node has no children
   ItemIo? get internalInputConstraints => _internalInputConstraints;
 

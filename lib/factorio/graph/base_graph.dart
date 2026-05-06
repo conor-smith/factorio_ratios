@@ -72,10 +72,10 @@ class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   GraphGeometry _geometry;
   GeometryOperation? _geometryOperation;
 
-  List<ProdLineNode> get nodes => _nodes;
-  List<DirectedEdge> get edges => _edges;
-
-  GraphGeometry get geometry => _geometry;
+  bool _hasCachedNodeData = false;
+  List<ProdLineNode>? _cachedRootNodes;
+  Map<InGameItem, Map<NodeType, List<ProdLineNode>>>? _cachedItemConsumptionMap;
+  Map<InGameItem, Map<NodeType, List<ProdLineNode>>>? _cachedItemProductionMap;
 
   /* --------------- Constructors --------------- */
   PlanetBase._root({
@@ -92,6 +92,13 @@ class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
        _outputItems = const {},
        _inputRatios = const {},
        _outputRatios = const {};
+
+  /* ------- Node and Edge Operations ------- */
+  /// Full list of all nodes currently in graph
+  List<ProdLineNode> get nodes => _nodes;
+
+  /// Full list of all edges currently in graph
+  List<DirectedEdge> get edges => _edges;
 
   /* ------------ Production Line ------------ */
   @override
@@ -119,10 +126,61 @@ class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
     ItemIo inputConstraints = const {},
     ItemIo outputConstraints = const {},
   }) {
+    _populateNodeDataCache();
+
+    var orderUpdate = _getNodeHeights(_cachedRootNodes!);
+
     // TODO
     throw UnimplementedError();
   }
 
+  void _populateNodeDataCache() {
+    if (!_hasCachedNodeData) {
+      _cachedRootNodes = _nodes
+          .where(
+            (node) =>
+                (node.nodeType.isIo && node._childOf.isEmpty) ||
+                (node.nodeType == NodeType.consumer &&
+                    node.hasInternalConstraints),
+          )
+          .toList();
+
+      _cachedItemConsumptionMap = {};
+      _cachedItemProductionMap = {};
+      for (var node in _nodes) {
+        for (var input in node.inputItems) {
+          _cachedItemConsumptionMap!.putIfAbsent(input, () => {});
+
+          _cachedItemConsumptionMap![input]!.update(
+            node.nodeType,
+            (nodes) => nodes..add(node),
+            ifAbsent: () => [node],
+          );
+        }
+
+        for (var output in node.outputItems) {
+          _cachedItemProductionMap!.putIfAbsent(output, () => {});
+
+          _cachedItemProductionMap![output]!.update(
+            node.nodeType,
+            (nodes) => nodes..add(node),
+            ifAbsent: () => [node],
+          );
+        }
+      }
+
+      _hasCachedNodeData = true;
+    }
+  }
+
+  void _clearNodeDataCache() {
+    _cachedRootNodes = null;
+    _cachedItemConsumptionMap = null;
+    _cachedItemProductionMap = null;
+    _hasCachedNodeData = false;
+  }
+
+  // TODO
   void _calculateIoRatios() {
     var ioNodes = _nodes.where((node) => node.nodeType.isIo).toList();
 
@@ -208,6 +266,8 @@ class PlanetBase with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   }
 
   /* ----------- Geometry Operations ----------- */
+  GraphGeometry get geometry => _geometry;
+
   void _throwIfNoGeometricOp() {
     if (_geometryOperation == null) {
       throw const GraphException('No geometry operation taking place');
