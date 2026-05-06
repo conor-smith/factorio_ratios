@@ -14,25 +14,34 @@ class GraphEvent extends MutationEvent {
       newInputRatios,
       newOutputRatios;
 
-  final GraphEvent? original;
+  final GraphEvent? _original;
   @override
   final bool isReversed;
   @override
-  late final GraphEvent reversed = original ?? GraphEvent._reverse(this);
+  late final GraphEvent reversed = _original ?? GraphEvent._reverse(this);
 
-  List<ProdLineNode> get addedNodes => newNodes == null
-      ? const []
-      : newNodes!.where((node) => !oldNodes!.contains(node)).toList();
-  List<ProdLineNode> get removedNodes => oldNodes == null
-      ? const []
-      : oldNodes!.where((node) => !newNodes!.contains(node)).toList();
+  // These are useful for the UI
+  late final List<ProdLineNode> addedNodes =
+      _original?.removedNodes ??
+      (newNodes == null
+          ? const []
+          : newNodes!.where((node) => !oldNodes!.contains(node)).toList());
+  List<ProdLineNode> get removedNodes =>
+      _original?.addedNodes ??
+      (oldNodes == null
+          ? const []
+          : oldNodes!.where((node) => !newNodes!.contains(node)).toList());
 
-  List<DirectedEdge> get addedEdges => newEdges == null
-      ? const []
-      : newEdges!.where((edge) => !oldEdges!.contains(edge)).toList();
-  List<DirectedEdge> get removedEdges => oldEdges == null
-      ? const []
-      : oldEdges!.where((edge) => !newEdges!.contains(edge)).toList();
+  List<DirectedEdge> get addedEdges =>
+      _original?.removedEdges ??
+      (newEdges == null
+          ? const []
+          : newEdges!.where((edge) => !oldEdges!.contains(edge)).toList());
+  List<DirectedEdge> get removedEdges =>
+      _original?.addedEdges ??
+      (oldEdges == null
+          ? const []
+          : oldEdges!.where((edge) => !newEdges!.contains(edge)).toList());
 
   GraphEvent.newNode(PlanetBase graph, ProdLineNode newNode)
     : this._(
@@ -205,7 +214,7 @@ class GraphEvent extends MutationEvent {
        newInputRatios = _unmodifiableOrNullMap(newInputRatios),
        newOutputRatios = _unmodifiableOrNullMap(newOutputRatios),
        isReversed = false,
-       original = null;
+       _original = null;
 
   GraphEvent._reverse(GraphEvent toReverse)
     : graph = toReverse.graph,
@@ -225,7 +234,7 @@ class GraphEvent extends MutationEvent {
       newOutputRatios = toReverse.oldOutputRatios,
       newGeometry = toReverse.oldGeometry,
       isReversed = true,
-      original = toReverse;
+      _original = toReverse;
 }
 
 enum GraphEventType {

@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'dart:ui';
 
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
@@ -13,15 +12,15 @@ part 'edge.dart';
 part 'event_history.dart';
 part 'node.dart';
 
-/// This object represents the entire base, and is the single source of truth for the app
-/// Stores all event history, default recipes, and any global data
+/// This object represents the entire base, and is the single source of truth for the app.
+/// Stores all event history, default recipes, and any global data.
 ///
-/// Creates a single PlanetBase to act as the root base
-/// As a planetBase is a production line, a node can itself contain a planetBase object
-/// This creates a tree structure
-/// Every planetBase object will have reference to this object
+/// Creates a single PlanetBase to act as the [rootGraph].
+/// As a planetBase is a production line, a node can itself contain a planetBase object.
+/// This creates a tree structure.
+/// Every planetBase object will have reference to this object.
 ///
-/// The root PlanetBase cannot have input or output nodes
+/// [rootGraph] cannot have input or output nodes.
 class FactorioBase {
   final FactorioDatabase factorioDb;
   final _EventHistory _history;

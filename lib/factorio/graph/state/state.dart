@@ -53,15 +53,6 @@ class MutationException implements Exception {
   String toString() => 'MutationException: $message';
 }
 
-void _removedWhereBothContain(Set set1, Set set2) {
-  for (var item in List.from(set1)) {
-    if (set2.contains(item)) {
-      set1.remove(item);
-      set2.remove(item);
-    }
-  }
-}
-
 Map<K, V>? _unmodifiableOrNullMap<K, V>(Map<K, V>? collection) =>
     collection != null ? Map.unmodifiable(collection) : null;
 

@@ -2,17 +2,17 @@ part of 'graph.dart';
 
 /// Represents a single node in the graph.
 ///
-/// Every node contains a [ProductionLine] object in the [line] field.
+/// Every node contains a [ProductionLine] object in the [productionLine] field.
 /// This production line can be swapped as the user sees fit.
 /// The exact kinds of production lines permitted is limited by the [nodeType] field,
 /// which also specifies the nodes allowed relationships and other behaviour.
 ///
-/// To represent actual IO, the node caches the [ProductionLineIo] produces by [line]
+/// To represent actual IO, the node caches the [ProductionLineIo] produces by [productionLine]
 /// in the [ioData] field.
 /// As a [ProductionLine] already has a known set of inputs and outputs before
 /// [ProductionLine.calculate] is called, we do not need to determine IO to
 /// build the graph. As such, [ioData] and the [DirectedEdge.amount] field
-/// of all child edges will be null until [calculateIoAndUpdateChildren] is called
+/// of all child edges will be null until [calculateAndCache] is called
 class ProdLineNode with Stateful<NodeEvent> {
   static const double defaultWidth = 100,
       defaultHeight = 100,
@@ -25,14 +25,14 @@ class ProdLineNode with Stateful<NodeEvent> {
 
   _EventHistory get _history => parentGraph._history;
   bool _active;
-  ProductionLine _line;
+  ProductionLine _productionLine;
 
-  ItemIo? _inputConstraints, _outputConstraints;
+  ItemIo? _internalInputConstraints, _internalOutputConstraints;
 
   NodeGeometry _geometry;
 
-  final List<DirectedEdge> _parentOf;
-  final List<DirectedEdge> _childOf;
+  List<DirectedEdge> _parentOf;
+  List<DirectedEdge> _childOf;
 
   ProductionLineIo? _ioData;
 
@@ -44,14 +44,14 @@ class ProdLineNode with Stateful<NodeEvent> {
   Rect get rect => _geometry.minimalRect;
 
   @override
-  String toString() => _line.toString();
+  String toString() => _productionLine.toString();
 
   /* --------------- Constructors --------------- */
   ProdLineNode.addToGraph({
     required this.parentGraph,
     required this.nodeType,
     required ProductionLine line,
-  }) : _line = line,
+  }) : _productionLine = line,
        _childOf = const [],
        _parentOf = const [],
        _geometry = NodeGeometry.uninitialised,
@@ -67,54 +67,63 @@ class ProdLineNode with Stateful<NodeEvent> {
   }
 
   /* ------------ Production Line ------------ */
-  ProductionLine get line => _line;
+  ProductionLine get productionLine => _productionLine;
 
-  Set<InGameItem> get inputItems => _line.inputItems;
-  Set<InGameItem> get outputItems => _line.outputItems;
-  ItemIo? get inputRatios => _line.inputRatios;
-  ItemIo? get outputRatios => _line.outputRatios;
-  String get productionLineType => _line.type;
-  String get productionLineName => _line.name;
+  Set<InGameItem> get inputItems => _productionLine.inputItems;
+  Set<InGameItem> get outputItems => _productionLine.outputItems;
+  ItemIo? get inputRatios => _productionLine.inputRatios;
+  ItemIo? get outputRatios => _productionLine.outputRatios;
+  String get productionLineType => _productionLine.type;
+  String get productionLineName => _productionLine.name;
 
-  ItemIo? get inputConstraints => _inputConstraints;
-  ItemIo? get outputConstraints => _outputConstraints;
+  /// Can only be populated via [setInternalConstraints] if this node has no children
+  ItemIo? get internalInputConstraints => _internalInputConstraints;
+
+  /// Can only be populated via [setInternalConstraints] if this node has no children
+  ItemIo? get internalOutputConstraints => _internalOutputConstraints;
 
   ProductionLineIo? get ioData => _ioData;
 
-  /// Calculates constraints either based on sum of parent nodes requirements,
-  /// or uses [inputConstraints] and [outputConstraints]
-  void calculateIoAndUpdateChildren() {
+  /// Apply constraints to [productionLine] and cache output to [ioData].
+  /// DOES NOT affect [internalInputConstraints] or [internalOutputConstraints].
+  /// Constraints are saved in the [ioData] field itself
+  void calculateAndCache({
+    ItemIo inputConstraints = const {},
+    ItemIo outputConstraints = const {},
+  }) {
     _history.mutate(() {
-      ItemIo inputConstraints = {};
-      ItemIo outputConstraints = {};
+      var newIo = _productionLine.calculate(
+        inputConstraints: inputConstraints,
+        outputConstraints: outputConstraints,
+      );
 
-      Map<Item, List<DirectedEdge>> parentInputEdges = {};
+      apply(NodeEvent.newIo(this, newIo));
+    });
+  }
 
-      for (var parentEdge in _childOf) {
-        var amount = parentEdge._amount ?? 0.0;
+  /// Sets [internalInputConstraints] and [internalOutputConstraints] but does
+  /// not actually actually call [calculateAndCache]. That must be done independently
+  void setInternalConstraints({
+    ItemIo inputConstraints = const {},
+    ItemIo outputConstraints = const {},
+  }) {
+    _productionLine.verifyConstraintsAndIo(inputConstraints, outputConstraints);
 
-        if (parentEdge.flowDirection == ItemFlowDirection.childToParent) {
-          outputConstraints.update(
-            parentEdge.item,
-            (sum) => sum += amount,
-            ifAbsent: () => amount,
-          );
-        } else {
-          inputConstraints.update(
-            parentEdge.item,
-            (sum) => sum += amount,
-            ifAbsent: () => amount,
-          );
-        }
+    if (_childOf.isNotEmpty) {
+      throw GraphException(
+        'Cannot set internal constraints on node $this, as it has parents',
+      );
+    }
 
-        var newIo = _line.calculate(
+    _history.mutate(
+      () => apply(
+        NodeEvent.newInternalConstraints(
+          this,
           inputConstraints: inputConstraints,
           outputConstraints: outputConstraints,
-        );
-
-        apply(NodeEvent.newIo(this, newIo));
-      }
-    });
+        ),
+      ),
+    );
   }
 
   /* ------------- Stateful methods ------------- */
@@ -136,50 +145,47 @@ class ProdLineNode with Stateful<NodeEvent> {
   }
 
   void _apply(NodeEvent event) {
-    // _eventHistory.checkIfMutationPermitted();
+    _history.checkIfMutationPermitted();
 
-    // for (var mutationEvent in event.mutations) {
-    //   switch (mutationEvent) {
-    //     case NodeEventType.updateGeometry:
-    //       _geometry = event.newGeometry!;
+    if (!_active && !event.mutations.contains(NodeEventType.addedToGraph)) {
+      throw GraphException(
+        'Node $this is not active and cannot have changes applied',
+      );
+    }
 
-    //     case NodeEventType.newRequirements:
-    //       if (event.newRequirements == null) {
-    //         _line.clearRequirements();
-    //       } else {
-    //         _line.update(event.newRequirements!);
-    //       }
+    for (var mutationEvent in event.mutations) {
+      switch (mutationEvent) {
+        case NodeEventType.updateGeometry:
+          _geometry = event.newGeometry!;
 
-    //     case NodeEventType.newNodeType:
-    //       _nodeType = event.newNodeType!;
+        case NodeEventType.updateIo:
+          _ioData = event.newIo;
 
-    //     case NodeEventType.newProductionLine:
-    //       _line = event.newProductionLine!;
+        case NodeEventType.updateConstraints:
+          _internalInputConstraints = event.newInputConstraints;
+          _internalOutputConstraints = event.newOutputConstraints;
 
-    //       if (_line is PlanetBase) {
-    //         (_line as PlanetBase)._parentNode = this;
-    //       }
+        case NodeEventType.newProductionLine:
+          _productionLine = event.newProductionLine!;
 
-    //     case NodeEventType.parentOfUpdate:
-    //       _parentOf.removeAll(event.removedParentOf);
-    //       _parentOf.addAll(event.newParentOf);
+        case NodeEventType.parentOfUpdate:
+          _parentOf = event.newParentOf!;
 
-    //     case NodeEventType.childOfUpdate:
-    //       _childOf.removeAll(event.removedChildOf);
-    //       _childOf.addAll(event.newChildOf);
+        case NodeEventType.childOfUpdate:
+          _childOf = event.newChildOf!;
 
-    //     case NodeEventType.addedToGraph:
-    //       _active = true;
+        case NodeEventType.addedToGraph:
+          _active = true;
 
-    //     case NodeEventType.removedFromGraph:
-    //       _active = false;
+        case NodeEventType.removedFromGraph:
+          _active = false;
 
-    //     case NodeEventType.tempGeometry:
-    //       throw const MutationException(
-    //         'Cannot apply event of type tempGeometry',
-    //       );
-    //   }
-    // }
+        case NodeEventType.tempGeometry:
+          throw const MutationException(
+            'Cannot apply event of type tempGeometry',
+          );
+      }
+    }
   }
 
   /* ----------- Geometry Operations ----------- */
@@ -244,14 +250,15 @@ class ProdLineNode with Stateful<NodeEvent> {
 /// Specifies node behaviour
 enum NodeType {
   /// Only consumes with no output. Consumer nodes are special as they cannot
-  /// have parents and are permitted to set their own constraints.
+  /// have parents and are permitted to set their own constraints via
+  /// [ProdLineNode.internalInputConstraints] and [ProdLineNode.internalOutputConstraints]
   consumer(allowsInput: true, allowsOutput: false, isIo: false),
 
   /// Similar to [consumer], but only exists to represent disposal of excess items
   /// being produced by other nodes. Can only have parents, not children
   disposal(allowsInput: true, allowsOutput: false, isIo: false),
 
-  /// Can only produce items with no input
+  /// Can only have outputs but no inputs
   producer(allowsInput: false, allowsOutput: true, isIo: false),
 
   /// Represents an input to a graph

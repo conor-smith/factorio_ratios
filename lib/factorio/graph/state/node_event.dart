@@ -51,7 +51,7 @@ class NodeEvent extends MutationEvent {
   ) : this._(
         node,
         const {NodeEventType.newProductionLine},
-        oldProductionLine: node.line,
+        oldProductionLine: node.productionLine,
         newProductionLine: newProductionLine,
       );
 
@@ -65,6 +65,27 @@ class NodeEvent extends MutationEvent {
 
   NodeEvent.clearIo(ProdLineNode node)
     : this._(node, const {NodeEventType.updateIo}, oldIo: node.ioData);
+
+  NodeEvent.newInternalConstraints(
+    ProdLineNode node, {
+    ItemIo inputConstraints = const {},
+    ItemIo outputConstraints = const {},
+  }) : this._(
+         node,
+         const {NodeEventType.updateConstraints},
+         oldInputConstraints: node.internalInputConstraints,
+         oldOutputConstraints: node.internalOutputConstraints,
+         newInputConstraints: inputConstraints,
+         newOutputConstraints: outputConstraints,
+       );
+
+  NodeEvent.clearInternalConstraints(ProdLineNode node)
+    : this._(
+        node,
+        const {NodeEventType.updateConstraints},
+        oldInputConstraints: node.internalInputConstraints,
+        oldOutputConstraints: node.internalOutputConstraints,
+      );
 
   NodeEvent.newChildEdge(ProdLineNode node, DirectedEdge newChildEdge)
     : this._(
