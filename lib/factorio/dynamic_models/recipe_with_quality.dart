@@ -92,6 +92,8 @@ class InGameRecipe implements Recipe {
       internalRecipe.surfaceConditions;
   @override
   List<Surface> get surfaces => internalRecipe.surfaces;
+  @override
+  bool get isSimple => internalRecipe.isSimple;
 
   @override
   bool operator ==(Object other) =>

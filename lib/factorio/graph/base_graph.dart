@@ -74,11 +74,6 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   GraphGeometry _geometry;
   GeometryOperation? _geometryOperation;
 
-  bool _hasCachedNodeData = false;
-  List<ProdLineNode>? _cachedRootNodes;
-  Map<InGameItem, Map<NodeType, List<ProdLineNode>>>? _cachedItemConsumptionMap;
-  Map<InGameItem, Map<NodeType, List<ProdLineNode>>>? _cachedItemProductionMap;
-
   /* --------------- Constructors --------------- */
   PlanetBaseGraph._root({
     required this.globalData,
@@ -143,8 +138,6 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   }) {
     verifyConstraintsAndIo(inputConstraints, outputConstraints);
 
-    _populateNodeDataCache();
-
     _history.mutate(() {
       // for (var rootNode in _cachedRootNodes!) {
       //   switch (rootNode.nodeType) {
@@ -164,52 +157,6 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
 
     // TODO
     throw UnimplementedError();
-  }
-
-  void _populateNodeDataCache() {
-    if (!_hasCachedNodeData) {
-      _cachedRootNodes = _nodes
-          .where(
-            (node) =>
-                (node.nodeType.isIo && node._childOf.isEmpty) ||
-                (node.nodeType == NodeType.consumer &&
-                    node.hasInternalConstraints),
-          )
-          .toList();
-
-      _cachedItemConsumptionMap = {};
-      _cachedItemProductionMap = {};
-      for (var node in _nodes) {
-        for (var input in node.inputItems) {
-          _cachedItemConsumptionMap!.putIfAbsent(input, () => {});
-
-          _cachedItemConsumptionMap![input]!.update(
-            node.nodeType,
-            (nodes) => nodes..add(node),
-            ifAbsent: () => [node],
-          );
-        }
-
-        for (var output in node.outputItems) {
-          _cachedItemProductionMap!.putIfAbsent(output, () => {});
-
-          _cachedItemProductionMap![output]!.update(
-            node.nodeType,
-            (nodes) => nodes..add(node),
-            ifAbsent: () => [node],
-          );
-        }
-      }
-
-      _hasCachedNodeData = true;
-    }
-  }
-
-  void _clearNodeDataCache() {
-    _cachedRootNodes = null;
-    _cachedItemConsumptionMap = null;
-    _cachedItemProductionMap = null;
-    _hasCachedNodeData = false;
   }
 
   // TODO
