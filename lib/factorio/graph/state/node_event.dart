@@ -8,7 +8,7 @@ class NodeEvent extends MutationEvent {
   final ProductionLineIo? oldIo, newIo;
   final NodeGeometry? oldGeometry, newGeometry;
   final ProductionLine? oldProductionLine, newProductionLine;
-  final List<DirectedEdge>? oldChildOf, oldParentOf, newChildOf, newParentOf;
+  final List<DirectedEdge>? oldParents, oldChildren, newParents, newChildren;
   final ItemIo? oldInputConstraints,
       oldOutputConstraints,
       newInputConstraints,
@@ -28,13 +28,13 @@ class NodeEvent extends MutationEvent {
         node,
         const {
           NodeEventType.removedFromGraph,
-          NodeEventType.parentOfUpdate,
-          NodeEventType.childOfUpdate,
+          NodeEventType.childrenUpdate,
+          NodeEventType.parentsUpdate,
         },
-        oldParentOf: node.parentOf,
-        oldChildOf: node.childOf,
-        newParentOf: const [],
-        newChildOf: const [],
+        oldChildren: node.children,
+        oldParents: node.parents,
+        newChildren: const [],
+        newParents: const [],
       );
 
   NodeEvent.updateGeometry(ProdLineNode node, NodeGeometry newGeometry)
@@ -90,33 +90,33 @@ class NodeEvent extends MutationEvent {
   NodeEvent.newChildEdge(ProdLineNode node, DirectedEdge newChildEdge)
     : this._(
         node,
-        const {NodeEventType.parentOfUpdate},
-        oldParentOf: node.parentOf,
-        newParentOf: [...node.parentOf, newChildEdge],
+        const {NodeEventType.childrenUpdate},
+        oldChildren: node.children,
+        newChildren: [...node.children, newChildEdge],
       );
 
   NodeEvent.newParentEdge(ProdLineNode node, DirectedEdge newParentEdge)
     : this._(
         node,
-        const {NodeEventType.childOfUpdate},
-        oldChildOf: node.childOf,
-        newChildOf: [...node.childOf, newParentEdge],
+        const {NodeEventType.parentsUpdate},
+        oldParents: node.parents,
+        newParents: [...node.parents, newParentEdge],
       );
 
   NodeEvent.removeChildEdge(ProdLineNode node, DirectedEdge removedChildEdge)
     : this._(
         node,
-        const {NodeEventType.parentOfUpdate},
-        oldParentOf: node.parentOf,
-        newParentOf: List.from(node.parentOf)..remove(removedChildEdge),
+        const {NodeEventType.childrenUpdate},
+        oldChildren: node.children,
+        newChildren: List.from(node.children)..remove(removedChildEdge),
       );
 
   NodeEvent.removeParentEdge(ProdLineNode node, DirectedEdge removedParentEdge)
     : this._(
         node,
-        const {NodeEventType.childOfUpdate},
-        oldChildOf: node.childOf,
-        newChildOf: List.from(node.childOf)..remove(removedParentEdge),
+        const {NodeEventType.parentsUpdate},
+        oldParents: node.parents,
+        newParents: List.from(node.parents)..remove(removedParentEdge),
       );
 
   NodeEvent.tempGeometry(ProdLineNode node, NodeGeometry tempData)
@@ -129,8 +129,8 @@ class NodeEvent extends MutationEvent {
     NodeEvent? oldIoEvent, newIoEvent;
     NodeEvent? oldConstraintsEvent, newConstraintsEvent;
     NodeEvent? oldProdLineEvent, newProdLineEvent;
-    NodeEvent? oldParentOfEvent, newParentOfEvent;
-    NodeEvent? oldChildOfEvent, newChildOfEvent;
+    NodeEvent? oldChildrenEvent, newChildrenEvent;
+    NodeEvent? oldParentsEvent, newParentsEvent;
 
     for (var event in orderedEvents) {
       mutations.addAll(event.mutations);
@@ -152,13 +152,13 @@ class NodeEvent extends MutationEvent {
             oldProdLineEvent ??= event;
             newProdLineEvent = event;
 
-          case NodeEventType.parentOfUpdate:
-            oldParentOfEvent ??= event;
-            newParentOfEvent = event;
+          case NodeEventType.childrenUpdate:
+            oldChildrenEvent ??= event;
+            newChildrenEvent = event;
 
-          case NodeEventType.childOfUpdate:
-            oldChildOfEvent ??= event;
-            newChildOfEvent = event;
+          case NodeEventType.parentsUpdate:
+            oldParentsEvent ??= event;
+            newParentsEvent = event;
 
           case NodeEventType.addedToGraph:
           case NodeEventType.removedFromGraph:
@@ -184,15 +184,15 @@ class NodeEvent extends MutationEvent {
       oldProductionLine: oldProdLineEvent?.oldProductionLine,
       oldInputConstraints: oldConstraintsEvent?.oldInputConstraints,
       oldOutputConstraints: oldConstraintsEvent?.oldOutputConstraints,
-      oldParentOf: oldParentOfEvent?.oldParentOf,
-      oldChildOf: oldChildOfEvent?.oldChildOf,
+      oldChildren: oldChildrenEvent?.oldChildren,
+      oldParents: oldParentsEvent?.oldParents,
       newGeometry: newGeometryEvent?.newGeometry,
       newIo: newIoEvent?.newIo,
       newProductionLine: newProdLineEvent?.newProductionLine,
       newInputConstraints: newConstraintsEvent?.newInputConstraints,
       newOutputConstraints: newConstraintsEvent?.newOutputConstraints,
-      newParentOf: newParentOfEvent?.newParentOf,
-      newChildOf: newChildOfEvent?.newChildOf,
+      newChildren: newChildrenEvent?.newChildren,
+      newParents: newParentsEvent?.newParents,
     );
   }
 
@@ -203,21 +203,21 @@ class NodeEvent extends MutationEvent {
     this.oldProductionLine,
     this.oldInputConstraints,
     this.oldOutputConstraints,
-    this.oldChildOf,
-    this.oldParentOf,
+    this.oldParents,
+    this.oldChildren,
     this.oldGeometry,
     this.newProductionLine,
     this.newIo,
     ItemIo? newInputConstraints,
     ItemIo? newOutputConstraints,
-    Iterable<DirectedEdge>? newParentOf,
-    Iterable<DirectedEdge>? newChildOf,
+    Iterable<DirectedEdge>? newChildren,
+    Iterable<DirectedEdge>? newParents,
     this.newGeometry,
   }) : mutations = Set.unmodifiable(mutations),
        newInputConstraints = _unmodifiableOrNullMap(newInputConstraints),
        newOutputConstraints = _unmodifiableOrNullMap(newOutputConstraints),
-       newParentOf = _unmodifiableOrNullList(newParentOf),
-       newChildOf = _unmodifiableOrNullList(newChildOf),
+       newChildren = _unmodifiableOrNullList(newChildren),
+       newParents = _unmodifiableOrNullList(newParents),
        isReversed = false,
        original = null;
 
@@ -231,15 +231,15 @@ class NodeEvent extends MutationEvent {
       oldInputConstraints = toReverse.newInputConstraints,
       oldOutputConstraints = toReverse.newOutputConstraints,
       oldProductionLine = toReverse.newProductionLine,
-      oldParentOf = toReverse.newParentOf,
-      oldChildOf = toReverse.newChildOf,
+      oldChildren = toReverse.newChildren,
+      oldParents = toReverse.newParents,
       newIo = toReverse.oldIo,
       newGeometry = toReverse.oldGeometry,
       newInputConstraints = toReverse.oldInputConstraints,
       newOutputConstraints = toReverse.oldOutputConstraints,
       newProductionLine = toReverse.oldProductionLine,
-      newParentOf = toReverse.oldParentOf,
-      newChildOf = toReverse.oldChildOf,
+      newChildren = toReverse.oldChildren,
+      newParents = toReverse.oldParents,
       isReversed = true,
       original = toReverse;
 }
@@ -250,8 +250,8 @@ enum NodeEventType {
   updateIo,
   updateConstraints,
   newProductionLine,
-  parentOfUpdate,
-  childOfUpdate,
+  childrenUpdate,
+  parentsUpdate,
   addedToGraph,
   removedFromGraph;
 
@@ -261,8 +261,8 @@ enum NodeEventType {
     updateIo => updateIo,
     updateConstraints => updateConstraints,
     newProductionLine => newProductionLine,
-    parentOfUpdate => parentOfUpdate,
-    childOfUpdate => childOfUpdate,
+    childrenUpdate => childrenUpdate,
+    parentsUpdate => parentsUpdate,
     addedToGraph => removedFromGraph,
     removedFromGraph => addedToGraph,
   };

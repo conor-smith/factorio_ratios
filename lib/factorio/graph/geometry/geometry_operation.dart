@@ -28,7 +28,7 @@ class GeometryOperation {
 
     for (var node in nodes) {
       nodeData[node] = _MutableNodeGeometry.from(node);
-      affectedEdges.addAll([...node.parentOf, ...node.childOf]);
+      affectedEdges.addAll([...node.children, ...node.parents]);
     }
 
     affectedEdges.removeAll(edges);
@@ -64,7 +64,7 @@ class GeometryOperation {
         var newBaseRect = selectedNode.rect.shift(offset);
         nodeData[node] = _MutableNodeGeometry.from(node, baseRect: newBaseRect);
       }
-      affectedEdges.addAll([...node.parentOf, ...node.childOf]);
+      affectedEdges.addAll([...node.children, ...node.parents]);
     }
 
     var affectedEdgeData = _buildEdgeData(affectedEdges, nodeData);

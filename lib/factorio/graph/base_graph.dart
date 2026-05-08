@@ -74,6 +74,59 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   GraphGeometry _geometry;
   GeometryOperation? _geometryOperation;
 
+  bool _hasCachedData = false;
+  Map<NodeType, Map<InGameItem, List<ProdLineNode>>>? _cachedNodeInputIndex;
+  Map<NodeType, Map<InGameItem, List<ProdLineNode>>>? _cachedNodeOutputIndex;
+
+  void _buildNodeCache() {
+    if (!_hasCachedData) {
+      _cachedNodeInputIndex = {};
+      _cachedNodeOutputIndex = {};
+
+      for (var node in _nodes) {
+        for (var nodeInput in node.inputItems) {
+          _cachedNodeInputIndex!.update(
+            node.nodeType,
+            (itemNodeMap) => itemNodeMap
+              ..update(
+                nodeInput,
+                (nodeList) => nodeList..add(node),
+                ifAbsent: () => [node],
+              ),
+            ifAbsent: () => {
+              nodeInput: [node],
+            },
+          );
+        }
+
+        for (var nodeOutput in node.outputItems) {
+          _cachedNodeOutputIndex!.update(
+            node.nodeType,
+            (itemNodeMap) => itemNodeMap
+              ..update(
+                nodeOutput,
+                (nodeList) => nodeList..add(node),
+                ifAbsent: () => [node],
+              ),
+            ifAbsent: () => {
+              nodeOutput: [node],
+            },
+          );
+        }
+      }
+
+      _hasCachedData = true;
+    }
+  }
+
+  void _clearNodeCache() {
+    if (_hasCachedData) {
+      _cachedNodeInputIndex = null;
+      _cachedNodeOutputIndex = null;
+      _hasCachedData = false;
+    }
+  }
+
   /* --------------- Constructors --------------- */
   PlanetBaseGraph._root({
     required this.globalData,
@@ -136,27 +189,340 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
     ItemIo inputConstraints = const {},
     ItemIo outputConstraints = const {},
   }) {
+    // TODO - This method assumes the graph is already 100% verified
     verifyConstraintsAndIo(inputConstraints, outputConstraints);
 
+    PlanetBaseIo? io;
     _history.mutate(() {
-      // for (var rootNode in _cachedRootNodes!) {
-      //   switch (rootNode.nodeType) {
-      //     case NodeType.consumer:
-      //       // TODO: Handle this case.
-      //       throw UnimplementedError();
+      _buildNodeCache();
 
-      //     case NodeType.input:
-      //       // TODO: Handle this case.
-      //       throw UnimplementedError();
-      //     case NodeType.output:
-      //       // TODO: Handle this case.
-      //       throw UnimplementedError();
-      //   }
-      // }
+      Map<ProdLineNode, _IOConstraints> rootNodeConstraints = {};
+
+      inputConstraints.forEach((item, amount) {
+        var inputNode = _cachedNodeOutputIndex![NodeType.input]![item]!.first;
+
+        rootNodeConstraints.update(
+          inputNode,
+          (nodeConstraints) =>
+              nodeConstraints..outputConstraints[item] = amount,
+          ifAbsent: () => _IOConstraints(outputConstraints: {item: amount}),
+        );
+      });
+
+      outputConstraints.forEach((item, amount) {
+        var outputNode = _cachedNodeOutputIndex![NodeType.output]![item]!.first;
+
+        rootNodeConstraints.update(
+          outputNode,
+          (nodeConstraints) => nodeConstraints..inputConstraints[item] = amount,
+          ifAbsent: () => _IOConstraints(inputConstraints: {item: amount}),
+        );
+      });
+
+      // Add consumer nodes to rootNodeConstraints graph
+      (_cachedNodeInputIndex![NodeType.consumer] ?? const {}).values
+          .expand((nodes) => nodes)
+          .where((node) => node.hasInternalConstraints)
+          .forEach(
+            (consumerNode) =>
+                rootNodeConstraints[consumerNode] = _IOConstraints(
+                  inputConstraints: consumerNode.internalInputConstraints,
+                  outputConstraints: consumerNode.internalOutputConstraints,
+                ),
+          );
+
+      Set<ProdLineNode> solvedNodes = {};
+      Map<ProdLineNode, _IOConstraints> unfulfilledIo = {};
+      for (var rootNode in rootNodeConstraints.keys) {
+        _determineIoAndApplyToChildren(
+          solvedNodes,
+          rootNodeConstraints,
+          unfulfilledIo,
+          rootNode,
+        );
+      }
+
+      if (unfulfilledIo.isNotEmpty) {
+        Map<InGameItem, ProdLineNode> disposalNodes = Map.from(
+          _cachedNodeInputIndex![NodeType.disposal] ?? {},
+        );
+        Map<InGameItem, ProdLineNode> producerNodes = Map.from(
+          _cachedNodeOutputIndex![NodeType.producer] ?? {},
+        );
+
+        List<ProdLineNode> nodesToUpdate = [];
+
+        unfulfilledIo.forEach((node, nodeIo) {
+          nodeIo.inputConstraints.forEach((unfulfilledInput, amount) {
+            ProdLineNode producerNode;
+            if (producerNodes.containsKey(unfulfilledInput)) {
+              producerNode = producerNodes[unfulfilledInput]!;
+            } else {
+              producerNode = ProdLineNode(
+                parentGraph: this,
+                nodeType: NodeType.producer,
+                line: IoLine(
+                  name: unfulfilledInput.name,
+                  netOutputs: {unfulfilledInput},
+                ),
+              );
+
+              producerNodes[unfulfilledInput] = producerNode;
+
+              apply(GraphEvent.newNode(this, producerNode));
+            }
+            nodesToUpdate.add(producerNode);
+
+            var newEdge = DirectedEdge(
+              parentGraph: this,
+              item: unfulfilledInput,
+              parent: node,
+              child: producerNode,
+              edgeType: Relationship.requestItems,
+              initialAmount: amount,
+            );
+
+            apply(GraphEvent.newEdge(this, newEdge));
+          });
+
+          nodeIo.outputConstraints.forEach((unfulfilledOutput, amount) {
+            ProdLineNode disposalNode;
+            if (disposalNodes.containsKey(unfulfilledOutput)) {
+              disposalNode = disposalNodes[unfulfilledOutput]!;
+            } else {
+              disposalNode = ProdLineNode(
+                parentGraph: this,
+                nodeType: NodeType.disposal,
+                line: IoLine(
+                  name: unfulfilledOutput.name,
+                  netInputs: {unfulfilledOutput},
+                ),
+              );
+
+              disposalNodes[unfulfilledOutput] = disposalNode;
+
+              apply(GraphEvent.newNode(this, disposalNode));
+            }
+            nodesToUpdate.add(disposalNode);
+
+            var newEdge = DirectedEdge(
+              parentGraph: this,
+              item: unfulfilledOutput,
+              parent: node,
+              child: disposalNode,
+              edgeType: Relationship.acceptExcess,
+              initialAmount: amount,
+            );
+
+            apply(GraphEvent.newEdge(this, newEdge));
+          });
+
+          for (var node in nodesToUpdate) {
+            // TODO - make this into it's own method somewhere
+            for (var edge in node._parents) {
+              var edgeAmount = edge._amount ?? 0.0;
+
+              if (edgeAmount > 0) {
+                if (edge.flowDirection == ItemFlowDirection.childToParent) {
+                  outputConstraints.update(
+                    edge.item,
+                    (amount) => amount + edgeAmount,
+                    ifAbsent: () => edgeAmount,
+                  );
+                } else {
+                  inputConstraints.update(
+                    edge.item,
+                    (amount) => amount + edgeAmount,
+                    ifAbsent: () => edgeAmount,
+                  );
+                }
+              }
+            }
+          }
+        });
+      }
+
+      ItemIo finalInput = {};
+      ItemIo finalOutput = {};
+      Map<String, double> finalPollution = {};
+      double finalPowerConsumption = 0.0;
+
+      for (var node in nodes) {
+        switch (node.nodeType) {
+          case NodeType.input:
+            finalInput.addAll(node.ioData?.netOutput ?? const {});
+          case NodeType.output:
+            finalOutput.addAll(node.ioData?.netInput ?? const {});
+          default:
+            finalPowerConsumption +=
+                (node.ioData?.electricPowerConsumption ?? 0.0);
+            (node.ioData?.emissions ?? const {}).forEach(
+              (emission, amount) => finalPollution.update(
+                emission,
+                (currentAmount) => currentAmount + amount,
+                ifAbsent: () => amount,
+              ),
+            );
+        }
+      }
+
+      io = PlanetBaseIo(
+        inputConstraints: inputConstraints,
+        outputConstraints: outputConstraints,
+        netOutput: finalOutput,
+        netInput: finalInput,
+        electricPowerConsumption: finalPowerConsumption,
+        pollution: finalPollution,
+      );
     });
 
-    // TODO
-    throw UnimplementedError();
+    return io!;
+  }
+
+  // Solves nodes using depth first traversal
+  void _determineIoAndApplyToChildren(
+    Set<ProdLineNode> solvedNodes,
+    Map<ProdLineNode, _IOConstraints> rootNodeConstraints,
+    Map<ProdLineNode, _IOConstraints> unfulfilledIo,
+    ProdLineNode nodeToSolve,
+  ) {
+    // TODO - handle loops
+
+    // If node IO has already been determined
+    if (solvedNodes.contains(nodeToSolve)) {
+      return;
+    }
+
+    // If node has no constraints and no parents, leave unsolved
+    if (nodeToSolve.parents.isEmpty &&
+        !rootNodeConstraints.containsKey(nodeToSolve)) {
+      solvedNodes.add(nodeToSolve);
+
+      if (nodeToSolve._ioData != null) {
+        nodeToSolve.apply(NodeEvent.clearIo(nodeToSolve));
+      }
+      for (var childEdge in nodeToSolve.children) {
+        if (childEdge._amount != null) {
+          childEdge.apply(EdgeEvent.clearAmount(childEdge));
+        }
+      }
+
+      return;
+    }
+
+    // Determine constraints from sum of parent edge amounts, or root node constraints
+    ItemIo inputConstraints, outputConstraints;
+    if (rootNodeConstraints.containsKey(nodeToSolve)) {
+      inputConstraints = rootNodeConstraints[nodeToSolve]!.inputConstraints;
+      outputConstraints = rootNodeConstraints[nodeToSolve]!.outputConstraints;
+    } else {
+      inputConstraints = {};
+      outputConstraints = {};
+
+      for (var edge in nodeToSolve._parents) {
+        // Solve parent if not already solved
+        if (!solvedNodes.contains(edge.parent)) {
+          _determineIoAndApplyToChildren(
+            solvedNodes,
+            rootNodeConstraints,
+            unfulfilledIo,
+            edge.parent,
+          );
+        }
+
+        var edgeAmount = edge._amount ?? 0.0;
+
+        if (edgeAmount > 0) {
+          if (edge.flowDirection == ItemFlowDirection.childToParent) {
+            outputConstraints.update(
+              edge.item,
+              (amount) => amount + edgeAmount,
+              ifAbsent: () => edgeAmount,
+            );
+          } else {
+            inputConstraints.update(
+              edge.item,
+              (amount) => amount + edgeAmount,
+              ifAbsent: () => edgeAmount,
+            );
+          }
+        }
+      }
+    }
+
+    ProductionLineIo newIoData;
+    if (nodeToSolve._ioData != null &&
+        _compareItemIo(
+          nodeToSolve._ioData!.inputConstraints,
+          inputConstraints,
+        ) &&
+        _compareItemIo(
+          nodeToSolve._ioData!.outputConstraints,
+          outputConstraints,
+        )) {
+      // If constraints are similar enough to last time, no need to calculate again
+      newIoData = nodeToSolve.ioData!;
+    } else {
+      newIoData = nodeToSolve._productionLine.calculate(
+        inputConstraints: inputConstraints,
+        outputConstraints: outputConstraints,
+      );
+
+      nodeToSolve.apply(NodeEvent.newIo(nodeToSolve, newIoData));
+    }
+
+    nodeToSolve._buildEdgeCache();
+
+    newIoData.netInput.forEach((inputItem, amount) {
+      var childInputEdge =
+          (nodeToSolve._cachedInputEdges![inputItem] ?? const [])
+              .where((edge) => edge.edgeType == Relationship.requestItems)
+              .firstOrNull;
+
+      var requiredInput = amount - (inputConstraints[inputItem] ?? 0.0).abs();
+      requiredInput = requiredInput > 0.001 ? requiredInput : 0.0;
+
+      if (childInputEdge != null) {
+        childInputEdge.apply(
+          EdgeEvent.newAmount(childInputEdge, requiredInput),
+        );
+      } else if (requiredInput > 0) {
+        unfulfilledIo.update(
+          nodeToSolve,
+          (ioConstraints) =>
+              ioConstraints..inputConstraints[inputItem] = requiredInput,
+          ifAbsent: () =>
+              _IOConstraints(inputConstraints: {inputItem: requiredInput}),
+        );
+      }
+    });
+
+    newIoData.netOutput.forEach((outputItem, amount) {
+      var childOutputEdge =
+          (nodeToSolve._cachedInputEdges![outputItem] ?? const [])
+              .where((edge) => edge.edgeType == Relationship.acceptExcess)
+              .firstOrNull;
+
+      var requiredOutput =
+          amount - (outputConstraints[outputItem] ?? 0.0).abs();
+      requiredOutput = requiredOutput > 0.001 ? requiredOutput : 0.0;
+
+      if (childOutputEdge != null) {
+        childOutputEdge.apply(
+          EdgeEvent.newAmount(childOutputEdge, requiredOutput),
+        );
+      } else if (requiredOutput > 0) {
+        unfulfilledIo.update(
+          nodeToSolve,
+          (ioConstraints) =>
+              ioConstraints..outputConstraints[outputItem] = requiredOutput,
+          ifAbsent: () =>
+              _IOConstraints(outputConstraints: {outputItem: requiredOutput}),
+        );
+      }
+    });
+
+    solvedNodes.add(nodeToSolve);
   }
 
   // TODO
@@ -183,7 +549,7 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
     }
 
     var directChildren = ioNodes
-        .map((node) => node._parentOf.map((edge) => edge.child))
+        .map((node) => node._children.map((edge) => edge.child))
         .expand((children) => children)
         .toSet();
 
@@ -205,16 +571,24 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
     _apply(event);
 
     _history.addGraphEvent(event);
+
+    if (event.mutations.contains(GraphEventType.updateNodes)) {
+      _clearNodeCache();
+    }
   }
 
   @override
   void redo(GraphEvent event) {
     _apply(event);
+
+    _clearNodeCache();
   }
 
   @override
   void rollback(GraphEvent event) {
     _apply(event.reversed);
+
+    _clearNodeCache();
   }
 
   void _apply(GraphEvent event) {
@@ -654,7 +1028,7 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
       heightMap[node] = currentHeight;
       int maxHeight = currentHeight;
 
-      for (var edge in node.parentOf) {
+      for (var edge in node.children) {
         int newMax = _getDescendantsHeight(
           edge.child,
           heightMap,
@@ -682,3 +1056,25 @@ class PlanetBaseIo extends ProductionLineIo {
     super.displayData,
   });
 }
+
+// TODO - Move to production_line.dart
+class _IOConstraints {
+  final ItemIo inputConstraints;
+  final ItemIo outputConstraints;
+
+  _IOConstraints({ItemIo? inputConstraints, ItemIo? outputConstraints})
+    : inputConstraints = inputConstraints ?? {},
+      outputConstraints = outputConstraints ?? {};
+}
+
+// TODO - Move to production_line.dart
+bool _compareItemIo(ItemIo io1, ItemIo io2) =>
+    io1 == io2 ||
+    (io1.length == io2.length &&
+        io1.entries.every((entry) {
+          var io2Value = io2[entry.key];
+
+          return io2Value != null &&
+              (io2Value == entry.value ||
+                  (entry.value - io2Value).abs() < 0.001);
+        }));

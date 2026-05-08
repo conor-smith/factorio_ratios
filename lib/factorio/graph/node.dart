@@ -31,14 +31,18 @@ class ProdLineNode with Stateful<NodeEvent> {
 
   NodeGeometry _geometry;
 
-  List<DirectedEdge> _parentOf;
-  List<DirectedEdge> _childOf;
+  List<DirectedEdge> _children;
+  List<DirectedEdge> _parents;
 
   ProductionLineIo? _ioData;
 
+  bool _hasCachedData = false;
+  Map<InGameItem, List<DirectedEdge>>? _cachedInputEdges;
+  Map<InGameItem, List<DirectedEdge>>? _cachedOutputEdges;
+
   /* ---------------- Accessors ---------------- */
-  List<DirectedEdge> get parentOf => _parentOf;
-  List<DirectedEdge> get childOf => _childOf;
+  List<DirectedEdge> get children => _children;
+  List<DirectedEdge> get parents => _parents;
 
   NodeGeometry get geometry => _geometry;
   Rect get rect => _geometry.minimalRect;
@@ -54,14 +58,64 @@ class ProdLineNode with Stateful<NodeEvent> {
     required this.nodeType,
     required ProductionLine line,
   }) : _productionLine = line,
-       _childOf = const [],
-       _parentOf = const [],
+       _parents = const [],
+       _children = const [],
        _geometry = NodeGeometry.uninitialised,
        _active = false {
     if (!_verifyNodeTypeAndLine(nodeType, line)) {
       throw FactorioException(
         'Nodetype $nodeType is incompatible with production line $line',
       );
+    }
+  }
+
+  /* ----------------- Cache ----------------- */
+  void _buildEdgeCache() {
+    if (!_hasCachedData) {
+      _cachedInputEdges = {};
+      _cachedOutputEdges = {};
+
+      for (var childEdge in children) {
+        if (childEdge.flowDirection == ItemFlowDirection.childToParent) {
+          _cachedInputEdges!.update(
+            childEdge.item,
+            (edges) => edges..add(childEdge),
+            ifAbsent: () => [childEdge],
+          );
+        } else {
+          _cachedOutputEdges!.update(
+            childEdge.item,
+            (edges) => edges..add(childEdge),
+            ifAbsent: () => [childEdge],
+          );
+        }
+      }
+
+      for (var parentEdge in parents) {
+        if (parentEdge.flowDirection == ItemFlowDirection.childToParent) {
+          _cachedOutputEdges!.update(
+            parentEdge.item,
+            (edges) => edges..add(parentEdge),
+            ifAbsent: () => [parentEdge],
+          );
+        } else {
+          _cachedInputEdges!.update(
+            parentEdge.item,
+            (edges) => edges..add(parentEdge),
+            ifAbsent: () => [parentEdge],
+          );
+        }
+      }
+
+      _hasCachedData = true;
+    }
+  }
+
+  void _clearEdgeCache() {
+    if (_hasCachedData) {
+      _cachedInputEdges = null;
+      _cachedOutputEdges = null;
+      _hasCachedData = false;
     }
   }
 
@@ -112,7 +166,7 @@ class ProdLineNode with Stateful<NodeEvent> {
   }) {
     _productionLine.verifyConstraintsAndIo(inputConstraints, outputConstraints);
 
-    if (_childOf.isNotEmpty) {
+    if (_parents.isNotEmpty) {
       throw GraphException(
         'Cannot set internal constraints on node $this, as it has parents',
       );
@@ -135,16 +189,31 @@ class ProdLineNode with Stateful<NodeEvent> {
     _apply(event);
 
     _history.addNodeEvent(event);
+
+    if (event.mutations.contains(NodeEventType.parentsUpdate) ||
+        event.mutations.contains(NodeEventType.childrenUpdate)) {
+      _clearEdgeCache();
+    }
+
+    if (event.mutations.contains(NodeEventType.newProductionLine)) {
+      parentGraph._clearNodeCache();
+    }
   }
 
   @override
   void redo(NodeEvent event) {
     _apply(event);
+
+    _clearEdgeCache();
+    parentGraph._clearNodeCache();
   }
 
   @override
   void rollback(NodeEvent event) {
     _apply(event.reversed);
+
+    _clearEdgeCache();
+    parentGraph._clearNodeCache();
   }
 
   void _apply(NodeEvent event) {
@@ -171,11 +240,11 @@ class ProdLineNode with Stateful<NodeEvent> {
         case NodeEventType.newProductionLine:
           _productionLine = event.newProductionLine!;
 
-        case NodeEventType.parentOfUpdate:
-          _parentOf = event.newParentOf!;
+        case NodeEventType.childrenUpdate:
+          _children = event.newChildren!;
 
-        case NodeEventType.childOfUpdate:
-          _childOf = event.newChildOf!;
+        case NodeEventType.parentsUpdate:
+          _parents = event.newParents!;
 
         case NodeEventType.addedToGraph:
           _active = true;
@@ -225,15 +294,15 @@ class ProdLineNode with Stateful<NodeEvent> {
   /* ------------- All other logic ------------- */
   void removeFromGraph() {
     parentGraph.apply(GraphEvent.removeNode(parentGraph, this));
-    for (var edge in [...parentOf, ...childOf]) {
+    for (var edge in [...children, ...parents]) {
       edge.removeFromGraph();
     }
     apply(NodeEvent.removeFromGraph(this));
   }
 
-  List<DirectedEdge> findRelationships(ProdLineNode other) => parentOf
+  List<DirectedEdge> findRelationships(ProdLineNode other) => children
       .where((childEdge) => childEdge.child == other)
-      .followedBy(_childOf.where((parentEdge) => parentEdge.parent == other))
+      .followedBy(_parents.where((parentEdge) => parentEdge.parent == other))
       .toList();
 
   bool _verifyNodeTypeAndLine(NodeType nodeType, ProductionLine line) =>

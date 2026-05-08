@@ -44,7 +44,7 @@ class DirectedEdge with Stateful<EdgeEvent> {
   bool get active => _active;
 
   /* --------------- Constructors --------------- */
-  DirectedEdge.addToGraph({
+  DirectedEdge({
     required this.parentGraph,
     required this.item,
     required this.parent,
@@ -61,14 +61,14 @@ class DirectedEdge with Stateful<EdgeEvent> {
       throw const FactorioException(
         'Cannot connect two nodes from different graphs',
       );
-    } else if (parent.parentOf.contains(this)) {
+    } else if (parent.children.contains(this)) {
       throw const FactorioException('Cannot create duplicate edge');
     }
 
     // Ensure no loops are created
     // TODO - Allow loops
     Set<ProdLineNode> visitedNodes = {};
-    List<ProdLineNode> nodesToVisit = child.parentOf
+    List<ProdLineNode> nodesToVisit = child.children
         .map((edge) => edge.child)
         .toList();
     while (nodesToVisit.isNotEmpty) {
@@ -77,7 +77,7 @@ class DirectedEdge with Stateful<EdgeEvent> {
         throw const FactorioException('Cannot create loop');
       } else if (!visitedNodes.contains(node)) {
         visitedNodes.add(node);
-        nodesToVisit.addAll(node.parentOf.map((edge) => edge.child));
+        nodesToVisit.addAll(node.children.map((edge) => edge.child));
       }
     }
 
