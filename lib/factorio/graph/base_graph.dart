@@ -55,6 +55,7 @@ part of 'graph.dart';
 /// one update for each node.
 class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   // TODO - support loops
+  // TODO - Allow for multiple nodes producing the same item
   final FactorioBase globalData;
 
   _EventHistory get _history => globalData._history;
@@ -149,6 +150,134 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
 
   /// Full list of all edges currently in graph
   List<DirectedEdge> get edges => _edges;
+
+  /* ------------ User Operations ------------ */
+
+  void addConsumerNodeAndTree(InGameItem item) {
+    // Return if consumer node already exists
+    if (_nodes.any(
+      (node) =>
+          node.nodeType == NodeType.consumer && node.inputItems.contains(item),
+    )) {
+      return;
+    } else if (surface == null) {
+      throw GraphException('Cannot build node tree on graph with no surface');
+    }
+
+    _history.mutate(() {
+      _buildNodeCache();
+
+      // Creating these two maps so we don't need to completely rebuild the cache for every new node
+      // TODO - Account for multiple producers of a single item
+      Map<InGameItem, ProdLineNode> producers = {};
+      for (var node in _nodes) {
+        for (var nodeOutput in node.outputItems) {
+          producers[nodeOutput] = node;
+        }
+      }
+
+      var newConsumerNode = ProdLineNode(
+        parentGraph: this,
+        nodeType: NodeType.consumer,
+        line: IoLine(name: '$item consumer', netInputs: {item}),
+      );
+      apply(GraphEvent.newNode(this, newConsumerNode));
+
+      // TODO - Don't use treeLayout for everything
+      treeLayout();
+    });
+  }
+
+  void _createRecipeTree(
+    ProdLineNode parentNode,
+    Map<InGameItem, ProdLineNode> producers,
+  ) {
+    for (var input in parentNode.inputItems) {
+      var producerNode = producers[input];
+
+      if (producerNode == null) {
+        producerNode =
+            _createResourceNode(input) ??
+            _createRecipeNode(input,) ??
+            _createProducerNode(input);
+        
+        apply(GraphEvent.newNode(this, producerNode));
+        producers[input] = producerNode;
+
+        _createRecipeTree(
+          producerNode,
+          producers,
+        );
+      }
+
+      
+    }
+  }
+
+  ProdLineNode? _createResourceNode(InGameItem item) {
+    // TODO - Appropriate resource extraction production line
+    if (_surfaceProperties!.resources.contains(item)) {
+      return ProdLineNode(
+        parentGraph: this,
+        nodeType: NodeType.productionLine,
+        line: IoLine(name: '$item resource', netOutputs: {item}),
+      );
+    } else {
+      return null;
+    }
+  }
+
+  ProdLineNode? _createRecipeNode(InGameItem item) {
+    // TODO - account for null surface
+    var producerRecipe = _surfaceProperties!.defaultRecipes
+        .where((recipe) => item.internalItem.producedBy.contains(recipe))
+        .firstOrNull;
+
+    if (producerRecipe != null) {
+      // If recipe exists, create production line node
+      var fastestMachine = globalData.sortedMachines.firstWhere(
+        (machine) => machine.recipes.contains(producerRecipe),
+      );
+
+      InGameSolidItem? fuel;
+      if (fastestMachine.energySource.type == EnergySourceType.burner) {
+        BurnerEnergySource energySource =
+            fastestMachine.energySource as BurnerEnergySource;
+
+        fuel = _surfaceProperties.availableSolidFuels
+            .where(
+              (surfaceFuel) =>
+                  energySource.fuelItems.contains(surfaceFuel.internalItem),
+            )
+            .firstOrNull;
+
+        fuel ??= InGameSolidItem(energySource.fuelItems.first);
+      }
+
+      var recipeQuality = item is InGameSolidItem ? item.quality : 1;
+
+      return ProdLineNode(
+        parentGraph: this,
+        nodeType: NodeType.productionLine,
+        line: SingleRecipeLine(
+          ProductionLineCraftingMachine(fastestMachine),
+          InGameRecipe(producerRecipe, recipeQuality),
+          surface: surface,
+          fuel: fuel,
+        ),
+      );
+    } else {
+      return null;
+    }
+  }
+
+  ProdLineNode _createProducerNode(InGameItem item) {
+    return ProdLineNode(
+      parentGraph: this,
+      nodeType: NodeType.producer,
+      line: IoLine(name: '$item producer', netOutputs: {item}),
+    );
+  }
 
   /* ------------ Production Line ------------ */
   @override
@@ -835,167 +964,6 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
       }
     });
   }
-
-  // void addConsumerNodeAndTree(
-  //   ItemData itemData,
-  //   List<CraftingMachine> sortedMachines,
-  //   List<Recipe> recipes,
-  //   List<ItemData> resources,
-  //   List<ItemData> availableFuels,
-  // ) {
-  //   // Return if consumer node already exists
-  //   if (_nodes.any(
-  //     (node) =>
-  //         node.nodeType == NodeType.consumer &&
-  //         node.allInputs.contains(itemData),
-  //   )) {
-  //     return;
-  //   }
-
-  //   _history.mutate(() {
-  //     var newConsumerNode = ProdLineNode.addToGraph(
-  //       parentGraph: this,
-  //       type: NodeType.consumer,
-  //       line: IoLine(inputs: {itemData}),
-  //     );
-
-  //     // TODO - Cache this somehow
-  //     Map<ItemData, List<ProdLineNode>> producers = {};
-  //     for (var node in _nodes) {
-  //       for (var output in node.allOutputs) {
-  //         producers.update(
-  //           output,
-  //           (pNodes) => pNodes..add(node),
-  //           ifAbsent: () => [node],
-  //         );
-  //       }
-  //     }
-
-  //     _createRecipeTree(
-  //       newConsumerNode,
-  //       sortedMachines,
-  //       recipes,
-  //       resources,
-  //       availableFuels,
-  //       producers,
-  //     );
-
-  //     // TODO - Don't use treeLayout for everything
-  //     treeLayout();
-  //   });
-  // }
-
-  // void _createRecipeTree(
-  //   ProdLineNode parentNode,
-  //   List<CraftingMachine> sortedMachines,
-  //   List<Recipe> recipes,
-  //   List<ItemData> resources,
-  //   List<ItemData> availableFuels,
-  //   Map<ItemData, List<ProdLineNode>> producers,
-  // ) {
-  //   for (var input in parentNode.allInputs) {
-  //     var childNode = producers[input]?.first;
-
-  //     if (childNode == null) {
-  //       childNode =
-  //           _createResourceNode(input, resources) ??
-  //           _createRecipeNode(input, sortedMachines, recipes, availableFuels) ??
-  //           _createProducerNode(input);
-
-  //       producers[input] = [childNode];
-
-  //       _createRecipeTree(
-  //         childNode,
-  //         sortedMachines,
-  //         recipes,
-  //         resources,
-  //         availableFuels,
-  //         producers,
-  //       );
-  //     }
-
-  //     if (!childNode.parentOf.any((edge) => edge.child == childNode)) {
-  //       DirectedEdge.addToGraph(
-  //         parentGraph: this,
-  //         item: input,
-  //         parent: parentNode,
-  //         child: childNode,
-  //         edgeType: Relationship.requestItems,
-  //       );
-  //     }
-  //   }
-  // }
-
-  // ProdLineNode? _createResourceNode(
-  //   ItemData itemData,
-  //   List<ItemData> resources,
-  // ) {
-  //   if (resources.contains(itemData)) {
-  //     return ProdLineNode.addToGraph(
-  //       parentGraph: this,
-  //       type: NodeType.producer,
-  //       line: IoLine(outputs: {itemData}),
-  //     );
-  //   } else {
-  //     return null;
-  //   }
-  // }
-
-  // ProdLineNode? _createRecipeNode(
-  //   ItemData itemData,
-  //   List<CraftingMachine> sortedMachines,
-  //   List<Recipe> recipes,
-  //   List<ItemData> availableFuels,
-  // ) {
-  //   // TODO - account for null surface
-  //   var producerRecipe = recipes
-  //       .where(
-  //         (recipe) =>
-  //             itemData.item.producedBy.contains(recipe) &&
-  //             (recipe.itemIo[itemData.item] ?? -1) > 0,
-  //       )
-  //       .firstOrNull;
-
-  //   if (producerRecipe != null) {
-  //     // If recipe exists, create production line node
-  //     var fastestMachine = sortedMachines.firstWhere(
-  //       (machine) => machine.recipes.contains(producerRecipe),
-  //     );
-
-  //     ItemData? fuel;
-  //     if (fastestMachine.energySource.type == EnergySourceType.burner) {
-  //       BurnerEnergySource energySource =
-  //           fastestMachine.energySource as BurnerEnergySource;
-
-  //       // TODO - Account for surfaces without available fuel
-  //       fuel = availableFuels.firstWhere(
-  //         (fuel) => energySource.fuelItems.contains(fuel.item),
-  //       );
-  //     }
-
-  //     return ProdLineNode.addToGraph(
-  //       parentGraph: this,
-  //       type: NodeType.productionLine,
-  //       line: SingleRecipeLine(
-  //         MutableModuledMachineAndRecipe(
-  //           craftingMachine: fastestMachine,
-  //           recipe: producerRecipe,
-  //           fuel: fuel,
-  //         ).makeImmutable(),
-  //       ),
-  //     );
-  //   } else {
-  //     return null;
-  //   }
-  // }
-
-  // ProdLineNode _createProducerNode(ItemData itemData) {
-  //   return ProdLineNode.addToGraph(
-  //     parentGraph: this,
-  //     type: NodeType.producer,
-  //     line: IoLine(outputs: {itemData}),
-  //   );
-  // }
 
   List<List<ProdLineNode>> _getNodeHeights(Iterable<ProdLineNode> nodes) {
     Map<ProdLineNode, int> heightMap = {};

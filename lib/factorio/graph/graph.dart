@@ -28,6 +28,8 @@ class FactorioBase {
   late final PlanetBaseGraph rootGraph;
   final Map<Surface, _SurfaceProperties> _surfaceProperties;
 
+  final List<InGameMachine> sortedMachines;
+
   FactorioBase(this.factorioDb)
     : _history = _EventHistory(20),
       _surfaceProperties = factorioDb.surfaceMap.map(
@@ -44,6 +46,15 @@ class FactorioBase {
                 .map((solidItem) => InGameSolidItem(solidItem)),
           ),
         ),
+      ),
+      sortedMachines = List.unmodifiable(
+        factorioDb.craftingMachineMap.values
+            .map((machine) => InGameMachine(machine))
+            .toList()
+          ..sort(
+            (machine1, machine2) =>
+                machine2.craftingSpeed.compareTo(machine1.craftingSpeed),
+          ),
       ) {
     var nauvis = factorioDb.surfaceMap['nauvis']!;
 
