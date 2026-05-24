@@ -176,12 +176,11 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
         }
       }
 
-      var newConsumerNode = ProdLineNode(
+      var newConsumerNode = ProdLineNode.addToGraph(
         parentGraph: this,
         nodeType: NodeType.consumer,
         line: IoLine(name: '$item consumer', netInputs: {item}),
       );
-      apply(GraphEvent.newNode(this, newConsumerNode));
 
       // TODO - Don't use treeLayout for everything
       treeLayout();
@@ -201,7 +200,6 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
             _createRecipeNode(input,) ??
             _createProducerNode(input);
         
-        apply(GraphEvent.newNode(this, producerNode));
         producers[input] = producerNode;
 
         _createRecipeTree(
@@ -217,7 +215,7 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   ProdLineNode? _createResourceNode(InGameItem item) {
     // TODO - Appropriate resource extraction production line
     if (_surfaceProperties!.resources.contains(item)) {
-      return ProdLineNode(
+      return ProdLineNode.addToGraph(
         parentGraph: this,
         nodeType: NodeType.productionLine,
         line: IoLine(name: '$item resource', netOutputs: {item}),
@@ -256,7 +254,7 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
 
       var recipeQuality = item is InGameSolidItem ? item.quality : 1;
 
-      return ProdLineNode(
+      return ProdLineNode.addToGraph(
         parentGraph: this,
         nodeType: NodeType.productionLine,
         line: SingleRecipeLine(
@@ -272,7 +270,7 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   }
 
   ProdLineNode _createProducerNode(InGameItem item) {
-    return ProdLineNode(
+    return ProdLineNode.addToGraph(
       parentGraph: this,
       nodeType: NodeType.producer,
       line: IoLine(name: '$item producer', netOutputs: {item}),
@@ -387,7 +385,7 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
             if (producerNodes.containsKey(unfulfilledInput)) {
               producerNode = producerNodes[unfulfilledInput]!;
             } else {
-              producerNode = ProdLineNode(
+              producerNode = ProdLineNode.addToGraph(
                 parentGraph: this,
                 nodeType: NodeType.producer,
                 line: IoLine(
@@ -397,12 +395,10 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
               );
 
               producerNodes[unfulfilledInput] = producerNode;
-
-              apply(GraphEvent.newNode(this, producerNode));
             }
             nodesToUpdate.add(producerNode);
 
-            var newEdge = DirectedEdge(
+            var newEdge = DirectedEdge.addToGraph(
               parentGraph: this,
               item: unfulfilledInput,
               parent: node,
@@ -419,7 +415,7 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
             if (disposalNodes.containsKey(unfulfilledOutput)) {
               disposalNode = disposalNodes[unfulfilledOutput]!;
             } else {
-              disposalNode = ProdLineNode(
+              disposalNode = ProdLineNode.addToGraph(
                 parentGraph: this,
                 nodeType: NodeType.disposal,
                 line: IoLine(
@@ -429,12 +425,10 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
               );
 
               disposalNodes[unfulfilledOutput] = disposalNode;
-
-              apply(GraphEvent.newNode(this, disposalNode));
             }
             nodesToUpdate.add(disposalNode);
 
-            var newEdge = DirectedEdge(
+            var newEdge = DirectedEdge.addToGraph(
               parentGraph: this,
               item: unfulfilledOutput,
               parent: node,

@@ -24,7 +24,6 @@ class ProdLineNode with Stateful<NodeEvent> {
   final NodeType nodeType;
 
   _EventHistory get _history => parentGraph._history;
-  bool _active;
   ProductionLine _productionLine;
 
   ItemIo? _internalInputConstraints, _internalOutputConstraints;
@@ -51,22 +50,22 @@ class ProdLineNode with Stateful<NodeEvent> {
   String toString() => _productionLine.toString();
 
   /* --------------- Constructors --------------- */
-  /// While this creates a node, it does not add it to the graph.
-  /// That must be done via [PlanetBaseGraph.addNewNode]
-  ProdLineNode({
+  ProdLineNode.addToGraph({
     required this.parentGraph,
     required this.nodeType,
     required ProductionLine line,
   }) : _productionLine = line,
        _parents = const [],
        _children = const [],
-       _geometry = NodeGeometry.uninitialised,
-       _active = false {
+       _geometry = NodeGeometry.uninitialised {
     if (!_verifyNodeTypeAndLine(nodeType, line)) {
       throw FactorioException(
         'Nodetype $nodeType is incompatible with production line $line',
       );
     }
+
+    // TODO - verify node is compatible with graph
+    parentGraph.apply(GraphEvent.newNode(parentGraph, this));
   }
 
   /* ----------------- Cache ----------------- */
@@ -219,12 +218,6 @@ class ProdLineNode with Stateful<NodeEvent> {
   void _apply(NodeEvent event) {
     _history.checkIfMutationPermitted();
 
-    if (!_active && !event.mutations.contains(NodeEventType.addedToGraph)) {
-      throw GraphException(
-        'Node $this is not active and cannot have changes applied',
-      );
-    }
-
     for (var mutationEvent in event.mutations) {
       switch (mutationEvent) {
         case NodeEventType.updateGeometry:
@@ -245,12 +238,6 @@ class ProdLineNode with Stateful<NodeEvent> {
 
         case NodeEventType.parentsUpdate:
           _parents = event.newParents!;
-
-        case NodeEventType.addedToGraph:
-          _active = true;
-
-        case NodeEventType.removedFromGraph:
-          _active = false;
 
         case NodeEventType.tempGeometry:
           throw const MutationException(
@@ -294,10 +281,18 @@ class ProdLineNode with Stateful<NodeEvent> {
   /* ------------- All other logic ------------- */
   void removeFromGraph() {
     parentGraph.apply(GraphEvent.removeNode(parentGraph, this));
-    for (var edge in [...children, ...parents]) {
-      edge.removeFromGraph();
+    parentGraph.apply(
+      GraphEvent.removeMultipleEdges(parentGraph, [...parents, ...children]),
+    );
+
+    for (var childEdge in children) {
+      childEdge._removeFromChildOnly();
     }
-    apply(NodeEvent.removeFromGraph(this));
+    for (var parentEdge in parents) {
+      parentEdge._removeFromParentOnly();
+    }
+
+    apply(NodeEvent.clearParentsAndChildren(this));
   }
 
   List<DirectedEdge> findRelationships(ProdLineNode other) => children

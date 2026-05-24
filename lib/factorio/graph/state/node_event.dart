@@ -20,17 +20,10 @@ class NodeEvent extends MutationEvent {
   @override
   late final NodeEvent reversed = original ?? NodeEvent._reverse(this);
 
-  NodeEvent.addToGraph(ProdLineNode node)
-    : this._(node, const {NodeEventType.addedToGraph});
-
-  NodeEvent.removeFromGraph(ProdLineNode node)
+  NodeEvent.clearParentsAndChildren(ProdLineNode node)
     : this._(
         node,
-        const {
-          NodeEventType.removedFromGraph,
-          NodeEventType.childrenUpdate,
-          NodeEventType.parentsUpdate,
-        },
+        const {NodeEventType.childrenUpdate, NodeEventType.parentsUpdate},
         oldChildren: node.children,
         oldParents: node.parents,
         newChildren: const [],
@@ -160,20 +153,12 @@ class NodeEvent extends MutationEvent {
             oldParentsEvent ??= event;
             newParentsEvent = event;
 
-          case NodeEventType.addedToGraph:
-          case NodeEventType.removedFromGraph:
-            break;
-
           case NodeEventType.tempGeometry:
             throw const GraphException(
               'Cannot combine temp geometry node event',
             );
         }
       }
-    }
-
-    if (mutations.containsAll(NodeEventType.creationEvents)) {
-      mutations.removeAll(NodeEventType.creationEvents);
     }
 
     return NodeEvent._(
@@ -223,9 +208,7 @@ class NodeEvent extends MutationEvent {
 
   NodeEvent._reverse(NodeEvent toReverse)
     : node = toReverse.node,
-      mutations = Set.unmodifiable(
-        toReverse.mutations.map((eventType) => eventType.reverse),
-      ),
+      mutations = toReverse.mutations,
       oldIo = toReverse.newIo,
       oldGeometry = toReverse.newGeometry,
       oldInputConstraints = toReverse.newInputConstraints,
@@ -252,23 +235,4 @@ enum NodeEventType {
   newProductionLine,
   childrenUpdate,
   parentsUpdate,
-  addedToGraph,
-  removedFromGraph;
-
-  NodeEventType get reverse => switch (this) {
-    updateGeometry => updateGeometry,
-    tempGeometry => tempGeometry,
-    updateIo => updateIo,
-    updateConstraints => updateConstraints,
-    newProductionLine => newProductionLine,
-    childrenUpdate => childrenUpdate,
-    parentsUpdate => parentsUpdate,
-    addedToGraph => removedFromGraph,
-    removedFromGraph => addedToGraph,
-  };
-
-  static const List<NodeEventType> creationEvents = [
-    addedToGraph,
-    removedFromGraph,
-  ];
 }

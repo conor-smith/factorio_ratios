@@ -27,8 +27,6 @@ class DirectedEdge with Stateful<EdgeEvent> {
   final Relationship edgeType;
 
   /* -------------- Mutable fields -------------- */
-  bool _active;
-
   double? _amount;
 
   EdgeGeometry _geometry;
@@ -41,10 +39,8 @@ class DirectedEdge with Stateful<EdgeEvent> {
   LineType get lineType => _geometry.lineType;
   List<Line> get lines => _geometry.lines;
 
-  bool get active => _active;
-
   /* --------------- Constructors --------------- */
-  DirectedEdge({
+  DirectedEdge.addToGraph({
     required this.parentGraph,
     required this.item,
     required this.parent,
@@ -53,8 +49,7 @@ class DirectedEdge with Stateful<EdgeEvent> {
     required this.edgeType,
   }) : _eventHistory = parentGraph._history,
        _amount = initialAmount,
-       _geometry = EdgeGeometry.uninitialised,
-       _active = false {
+       _geometry = EdgeGeometry.uninitialised {
     // TODO - fix up
     // Confirm both parent and child are valid
     if (parentGraph != parent.parentGraph || parentGraph != child.parentGraph) {
@@ -84,7 +79,6 @@ class DirectedEdge with Stateful<EdgeEvent> {
     parentGraph.apply(GraphEvent.newEdge(parentGraph, this));
     parent.apply(NodeEvent.newChildEdge(parent, this));
     child.apply(NodeEvent.newParentEdge(child, this));
-    apply(EdgeEvent.addToGraph(this));
   }
 
   /* ------------- Stateful methods ------------- */
@@ -116,12 +110,6 @@ class DirectedEdge with Stateful<EdgeEvent> {
         case EdgeEventType.newGeometry:
           _geometry = event.newGeometry!;
 
-        case EdgeEventType.addedToGraph:
-          _active = true;
-
-        case EdgeEventType.removedFromGraph:
-          _active = false;
-
         case EdgeEventType.tempGeometry:
           throw const MutationException(
             'Cannot apply event of type tempGeometry',
@@ -131,11 +119,18 @@ class DirectedEdge with Stateful<EdgeEvent> {
   }
 
   /* ------------- All other logic ------------- */
-  void removeFromGraph() {
+  void removeFromGraphAndNodes() {
     parentGraph.apply(GraphEvent.removeEdge(parentGraph, this));
     parent.apply(NodeEvent.removeChildEdge(parent, this));
     child.apply(NodeEvent.removeParentEdge(child, this));
-    apply(EdgeEvent.removeFromGraph(this));
+  }
+
+  void _removeFromParentOnly() {
+    parent.apply(NodeEvent.removeChildEdge(parent, this));
+  }
+
+  void _removeFromChildOnly() {
+    child.apply(NodeEvent.removeParentEdge(child, this));
   }
 
   void _shortestLineBetweenNodes() {

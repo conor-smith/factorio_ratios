@@ -15,12 +15,6 @@ class EdgeEvent extends MutationEvent {
   @override
   late final EdgeEvent reversed = original ?? EdgeEvent._reverse(this);
 
-  EdgeEvent.addToGraph(DirectedEdge edge)
-    : this._(edge, {EdgeEventType.addedToGraph});
-
-  EdgeEvent.removeFromGraph(DirectedEdge edge)
-    : this._(edge, {EdgeEventType.removedFromGraph});
-
   EdgeEvent.newAmount(DirectedEdge edge, double newAmount)
     : this._(
         edge,
@@ -62,20 +56,12 @@ class EdgeEvent extends MutationEvent {
             oldGeometryEvent ??= event;
             newGeometryEvent = event;
 
-          case EdgeEventType.addedToGraph:
-          case EdgeEventType.removedFromGraph:
-            break;
-
           case EdgeEventType.tempGeometry:
             throw const GraphException(
               'Cannot combine edge temp geometry event',
             );
         }
       }
-    }
-
-    if (mutations.containsAll(EdgeEventType.creationEvents)) {
-      mutations.removeAll(EdgeEventType.creationEvents);
     }
 
     return EdgeEvent._(
@@ -101,9 +87,7 @@ class EdgeEvent extends MutationEvent {
 
   EdgeEvent._reverse(EdgeEvent toReverse)
     : edge = toReverse.edge,
-      mutations = Set.unmodifiable(
-        toReverse.mutations.map((eventType) => eventType.reverse),
-      ),
+      mutations = toReverse.mutations,
       oldAmount = toReverse.newAmount,
       oldGeometry = toReverse.newGeometry,
       newAmount = toReverse.oldAmount,
@@ -112,23 +96,4 @@ class EdgeEvent extends MutationEvent {
       original = toReverse;
 }
 
-enum EdgeEventType {
-  newAmount,
-  newGeometry,
-  tempGeometry,
-  addedToGraph,
-  removedFromGraph;
-
-  EdgeEventType get reverse => switch (this) {
-    newAmount => newAmount,
-    newGeometry => newGeometry,
-    tempGeometry => tempGeometry,
-    addedToGraph => removedFromGraph,
-    removedFromGraph => addedToGraph,
-  };
-
-  static const List<EdgeEventType> creationEvents = [
-    addedToGraph,
-    removedFromGraph,
-  ];
-}
+enum EdgeEventType { newAmount, newGeometry, tempGeometry }
