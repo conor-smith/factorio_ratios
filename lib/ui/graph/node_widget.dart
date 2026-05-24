@@ -16,7 +16,7 @@ class _NodeWidgetState extends State<NodeWidget> {
     super.initState();
 
     // All relevant state is stored within node object
-    widget.node.addListener((isRollback, event) {
+    widget.node.addListener((event) {
       if (mounted) {
         setState(() {});
       }

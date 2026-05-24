@@ -1,3 +1,4 @@
+import 'package:factorio_ratios/factorio/graph/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/graph/graph.dart';
 import 'package:flutter/material.dart';
 
@@ -16,7 +17,7 @@ class _EdgeWidgetState extends State<EdgeWidget> {
     super.initState();
 
     // All relevant state is stored within edge object
-    widget.edge.addListener((isRollback, event) {
+    widget.edge.addListener((event) {
       if (mounted) {
         setState(() {});
       }

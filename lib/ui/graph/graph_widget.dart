@@ -1,7 +1,8 @@
 import 'package:factorio_ratios/factorio/graph/graph.dart';
+import 'package:factorio_ratios/factorio/graph/state/state.dart';
 import 'package:factorio_ratios/ui/graph/edge_widget.dart';
 import 'package:factorio_ratios/ui/graph/node_widget.dart';
-import 'package:factorio_ratios/ui/graph/overlay_widget.dart';
+import 'package:factorio_ratios/ui/graph/factorio_base_widget.dart';
 import 'package:flutter/material.dart';
 
 class GraphWidget extends StatefulWidget {
@@ -28,7 +29,7 @@ class _GraphWidgetState extends State<GraphWidget> {
             removedNode.clearListeners();
             nodeWidgets.remove(removedNode);
           }
-          for (var newNode in event.newNodes) {
+          for (var newNode in event.addedNodes) {
             nodeWidgets[newNode] = NodeWidget(node: newNode);
           }
 
@@ -37,7 +38,7 @@ class _GraphWidgetState extends State<GraphWidget> {
             removedEdge.clearListeners();
             edgeWidgets.remove(removedEdge);
           }
-          for (var newEdge in event.newEdges) {
+          for (var newEdge in event.addedEdges) {
             edgeWidgets[newEdge] = EdgeWidget(edge: newEdge);
           }
 
@@ -63,8 +64,7 @@ class _GraphWidgetState extends State<GraphWidget> {
       edgeWidgets[edge] = EdgeWidget(edge: edge);
     }
 
-    widget.graph.addListener((isRollback, event) {
-      event = isRollback ? event.reversed : event;
+    widget.graph.addListener((event) {
       if (mounted) {
         setState(() => processEvent(event));
       } else {
@@ -83,7 +83,9 @@ class _GraphWidgetState extends State<GraphWidget> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
-              var overlayNotifier = OverlayWidget.getOverlayNotifier(context);
+              var overlayNotifier = FactorioBaseWidget.getOverlayNotifier(
+                context,
+              );
               overlayNotifier.toggleSelectionMenu();
             },
           ),
