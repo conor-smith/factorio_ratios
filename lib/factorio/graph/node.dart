@@ -197,6 +197,21 @@ class ProdLineNode with Stateful<NodeEvent> {
     if (event.mutations.contains(NodeEventType.newProductionLine)) {
       parentGraph._clearNodeCache();
     }
+
+    for (var mutation in event.mutations) {
+      switch (mutation) {
+        case NodeEventType.newProductionLine:
+          // TODO - Can this be more efficient?
+          parentGraph._clearNodeCache();
+
+        case NodeEventType.childrenUpdate:
+        case NodeEventType.parentsUpdate:
+          _clearEdgeCache();
+
+        default:
+          break;
+      }
+    }
   }
 
   @override
@@ -246,37 +261,6 @@ class ProdLineNode with Stateful<NodeEvent> {
       }
     }
   }
-
-  /* ----------- Geometry Operations ----------- */
-  void beginDragging() {
-    parentGraph.beginMultiNodeDrag([this], const []);
-  }
-
-  void beginResize(RectPoint selectedPoint) {
-    parentGraph.beginMultiNodeResize([this], this, selectedPoint);
-  }
-
-  void drag(Offset offset) {
-    parentGraph._throwIfNoGeometricOp();
-    parentGraph._geometryOperation!.drag(offset);
-  }
-
-  void resize({
-    double leftOffset = 0,
-    double topOffset = 0,
-    double rightOffset = 0,
-    double bottomOffset = 0,
-  }) {
-    parentGraph._throwIfNoGeometricOp();
-    parentGraph._geometryOperation!.resizeNodes(
-      leftOffset,
-      topOffset,
-      rightOffset,
-      bottomOffset,
-    );
-  }
-
-  void finishDragOrResize() {}
 
   /* ------------- All other logic ------------- */
   void removeFromGraph() {

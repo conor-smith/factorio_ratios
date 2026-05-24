@@ -12,7 +12,8 @@ class GeometryOperation {
   // These elements are only affected their connected nodes
   final List<_MutableEdgeGeometry> _affectedEdgeGeometry;
 
-  final bool _isDragOperation;
+  final _OperationType _operationType;
+  bool _isFinished = false;
 
   /// Create a GeometryOperation to drag one or multiple nodes
   /// Any edges that connect selected nodes should also be added
@@ -39,7 +40,7 @@ class GeometryOperation {
       nodeData.values.toList(),
       edgeData,
       affectedEdgeData,
-      true,
+      _OperationType.drag,
     );
   }
 
@@ -73,7 +74,7 @@ class GeometryOperation {
       nodeData.values.toList(),
       const [],
       affectedEdgeData,
-      false,
+      _OperationType.resize,
     );
   }
 
@@ -81,7 +82,7 @@ class GeometryOperation {
     this._nodeGeometry,
     this._edgeGeometry,
     this._affectedEdgeGeometry,
-    this._isDragOperation,
+    this._operationType,
   );
 
   static List<_MutableEdgeGeometry> _buildEdgeData(
@@ -98,10 +99,10 @@ class GeometryOperation {
       .toList();
 
   void drag(Offset offset) {
-    if (!_isDragOperation) {
-      throw const GraphException(
-        'Current cartesian operation is not a drag operation',
-      );
+    if (_operationType != _OperationType.drag) {
+      throw const GraphException('Geometry operation is not a drag operation');
+    } else if (_isFinished) {
+      throw const GraphException('Geometry operation is finished');
     }
 
     for (var nodeData in _nodeGeometry) {
@@ -123,6 +124,12 @@ class GeometryOperation {
     double rightOffset,
     double bottomOffset,
   ) {
+    if (_operationType != _OperationType.resize) {
+      throw const GraphException('Geometry is not a resize operation');
+    } else if (_isFinished) {
+      throw const GraphException('Geometry operation is finished');
+    }
+
     for (var nodeData in _nodeGeometry) {
       nodeData.resize(leftOffset, topOffset, rightOffset, bottomOffset);
     }
@@ -132,6 +139,20 @@ class GeometryOperation {
     }
 
     _notifyAllListeners();
+  }
+
+  void applyNewGeometryAndFinish() {
+    for (var nodeGeometry in _nodeGeometry) {
+      nodeGeometry.node.apply(
+        NodeEvent.updateGeometry(nodeGeometry.node, nodeGeometry.finish()),
+      );
+    }
+
+    for (var edgeGeometry in [..._affectedEdgeGeometry, ..._edgeGeometry]) {
+      edgeGeometry.edge.apply(
+        EdgeEvent.updateGeometry(edgeGeometry.edge, edgeGeometry.finish()),
+      );
+    }
   }
 
   void _notifyAllListeners({bool cancel = false}) {
@@ -238,3 +259,5 @@ class _MutableEdgeGeometry implements EdgeGeometry {
     ),
   };
 }
+
+enum _OperationType { drag, resize }

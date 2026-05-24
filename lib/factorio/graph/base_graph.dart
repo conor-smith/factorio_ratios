@@ -73,7 +73,6 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   ItemIo? _outputRatios;
 
   GraphGeometry _geometry;
-  GeometryOperation? _geometryOperation;
 
   bool _hasCachedData = false;
   Map<NodeType, Map<InGameItem, List<ProdLineNode>>>? _cachedNodeInputIndex;
@@ -197,18 +196,13 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
       if (producerNode == null) {
         producerNode =
             _createResourceNode(input) ??
-            _createRecipeNode(input,) ??
+            _createRecipeNode(input) ??
             _createProducerNode(input);
-        
+
         producers[input] = producerNode;
 
-        _createRecipeTree(
-          producerNode,
-          producers,
-        );
+        _createRecipeTree(producerNode, producers);
       }
-
-      
     }
   }
 
@@ -744,18 +738,6 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   /* ----------- Geometry Operations ----------- */
   GraphGeometry get geometry => _geometry;
 
-  void _throwIfNoGeometricOp() {
-    if (_geometryOperation == null) {
-      throw const GraphException('No geometry operation taking place');
-    }
-  }
-
-  void _throwIfGeometricOp() {
-    if (_geometryOperation != null) {
-      throw const GraphException('Geometry operation currently taking place');
-    }
-  }
-
   List<Geometry> _getAllGeometryData() => _nodes
       .map<Geometry>((node) => node.geometry)
       .followedBy(_edges.map((edge) => edge.geometry))
@@ -796,101 +778,28 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
     });
   }
 
-  void beginMultiNodeDrag(List<ProdLineNode> nodes, List<DirectedEdge> edges) {
-    _throwIfGeometricOp();
+  GeometryOperation beginDragOperation(
+    List<ProdLineNode> nodes,
+    List<DirectedEdge> edges,
+  ) => GeometryOperation.dragOperation(Set.from(nodes), Set.from(edges));
 
-    _geometryOperation = GeometryOperation.dragOperation(
-      Set.from(nodes),
-      Set.from(edges),
-    );
-  }
-
-  void beginMultiNodeResize(
+  GeometryOperation beginResizeOperation(
     List<ProdLineNode> nodes,
     ProdLineNode selectedNode,
     RectPoint selectedPoint,
-  ) {
-    _throwIfGeometricOp();
-
-    _geometryOperation = GeometryOperation.resizeOperation(
+  ) => GeometryOperation.resizeOperation(
       Set.from(nodes),
       selectedNode,
       selectedPoint,
     );
-  }
 
-  void _finishGeometricOp() {
-    // _throwIfNoGeometricOp();
+  void finishGeometryOperation(GeometryOperation geometryOperation) {
+    _history.mutate(() {
+      geometryOperation.applyNewGeometryAndFinish();
+    });
 
-    // _history.mutate(() {
-    //   var nodeEvents = _geometryOperation!.nodeGeometry
-    //       .map((data) => NodeEvent.updateGeometry(data.node, data.finish()))
-    //       .toList();
-
-    //   var edgeEvents = _geometryOperation!.edgeGeometry
-    //       .followedBy(_geometryOperation!.affectedEdgeGeometry)
-    //       .map((data) => EdgeEvent.updateGeometry(data.edge, data.finish()));
-
-    //   List<Geometry> removedGeometry = [];
-    //   List<Geometry> newGeometry = [];
-    //   for (var nodeEvent in nodeEvents) {
-    //     nodeEvent.node.apply(nodeEvent);
-    //     removedGeometry.add(nodeEvent.oldGeometry!);
-    //     newGeometry.add(nodeEvent.newGeometry!);
-    //   }
-    //   for (var edgeEvent in edgeEvents) {
-    //     edgeEvent.edge.apply(edgeEvent);
-    //     removedGeometry.add(edgeEvent.oldGeometry!);
-    //     newGeometry.add(edgeEvent.newGeometry!);
-    //   }
-
-    //   var allGeometryData = _getAllGeometryData();
-
-    //   Geometry? left = _findNewMaxGeometry(
-    //         allGeometryData,
-    //         Geometry.leftMost,
-    //         oldMaxGeometry: _geometry.left,
-    //         removedGeometry: removedGeometry,
-    //         newGeometry: newGeometry,
-    //       ),
-    //       top = _findNewMaxGeometry(
-    //         allGeometryData,
-    //         Geometry.topMost,
-    //         oldMaxGeometry: _geometry.top,
-    //         removedGeometry: removedGeometry,
-    //         newGeometry: newGeometry,
-    //       ),
-    //       right = _findNewMaxGeometry(
-    //         allGeometryData,
-    //         Geometry.rightMost,
-    //         oldMaxGeometry: _geometry.right,
-    //         removedGeometry: removedGeometry,
-    //         newGeometry: newGeometry,
-    //       ),
-    //       bottom = _findNewMaxGeometry(
-    //         allGeometryData,
-    //         Geometry.bottomMost,
-    //         oldMaxGeometry: _geometry.bottom,
-    //         removedGeometry: removedGeometry,
-    //         newGeometry: newGeometry,
-    //       );
-
-    //   if (left != null || top != null || right != null || bottom != null) {
-    //     apply(
-    //       GraphEvent.updateGeometry(
-    //         this,
-    //         GraphGeometry.fromLTRB(
-    //           left ?? _geometry.left!,
-    //           top ?? _geometry.top!,
-    //           right ?? _geometry.top!,
-    //           bottom ?? _geometry.bottom!,
-    //         ),
-    //       ),
-    //     );
-    //   }
-
-    //   _geometryOperation = null;
-    // });
+    // TODO - Find a more efficient way to do this
+    _redoGraphGeometry();
   }
 
   // Must be called after all geometry objects have been updated
