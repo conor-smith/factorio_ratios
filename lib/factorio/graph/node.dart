@@ -288,12 +288,12 @@ class ProdLineNode with Stateful<NodeEvent> {
       switch (nodeType) {
         NodeType.consumer || NodeType.disposal || NodeType.output =>
           line.isImmutable &&
-              line.inputItems.isEmpty &&
-              line.outputItems.isNotEmpty,
-        NodeType.producer || NodeType.input =>
-          line.isImmutable &&
               line.inputItems.isNotEmpty &&
               line.outputItems.isEmpty,
+        NodeType.producer || NodeType.input =>
+          line.isImmutable &&
+              line.inputItems.isEmpty &&
+              line.outputItems.isNotEmpty,
         NodeType.productionLine => true,
       };
 }

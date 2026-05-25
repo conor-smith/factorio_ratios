@@ -154,55 +154,106 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
 
   void addConsumerNodeAndTree(InGameItem item) {
     // Return if consumer node already exists
-    if (_nodes.any(
-      (node) =>
-          node.nodeType == NodeType.consumer && node.inputItems.contains(item),
-    )) {
-      return;
-    } else if (surface == null) {
+
+    if (surface == null) {
       throw GraphException('Cannot build node tree on graph with no surface');
     }
 
     _history.mutate(() {
       _buildNodeCache();
 
-      // Creating these two maps so we don't need to completely rebuild the cache for every new node
-      // TODO - Account for multiple producers of a single item
-      Map<InGameItem, ProdLineNode> producers = {};
-      for (var node in _nodes) {
-        for (var nodeOutput in node.outputItems) {
-          producers[nodeOutput] = node;
-        }
-      }
+      // Saving node cache locally as it is wiped every time a new node is added
+      var nodeOutputIndex = _cachedNodeOutputIndex!;
 
-      var newConsumerNode = ProdLineNode.addToGraph(
-        parentGraph: this,
-        nodeType: NodeType.consumer,
-        line: IoLine(name: '$item consumer', netInputs: {item}),
-      );
+      // Either find existing node, or create one
+      var rootConsumerNode =
+          _cachedNodeInputIndex![NodeType.consumer]?[item]?[0] ??
+          ProdLineNode.addToGraph(
+            parentGraph: this,
+            nodeType: NodeType.consumer,
+            line: IoLine(name: '$item consumer', netInputs: {item}),
+          );
+
+      _createRecipeTree(rootConsumerNode, nodeOutputIndex, {});
 
       // TODO - Don't use treeLayout for everything
       treeLayout();
     });
   }
 
+  // Creates full tree for parentNode and all descendents
+  // Does this by either finding or creating nodes for each input of parentNode
+  // Then recursively calls itself on each child node
+  // This is still called on nodes that already exist in order to ensure full
+  // tree is created
   void _createRecipeTree(
-    ProdLineNode parentNode,
-    Map<InGameItem, ProdLineNode> producers,
+    ProdLineNode inputNode,
+    Map<NodeType, Map<InGameItem, List<ProdLineNode>>> nodeOutputIndex,
+    Set<ProdLineNode> visitedNodes,
   ) {
-    for (var input in parentNode.inputItems) {
-      var producerNode = producers[input];
+    visitedNodes.add(inputNode);
 
-      if (producerNode == null) {
-        producerNode =
-            _createResourceNode(input) ??
-            _createRecipeNode(input) ??
-            _createProducerNode(input);
+    // Store node cache locally as it gets wiped for every new edge
+    inputNode._buildEdgeCache();
+    var nodeInputCache = inputNode._cachedInputEdges!;
 
-        producers[input] = producerNode;
+    // Only add edges where no input edge already exists
+    for (var input in inputNode.inputItems) {
+      // Find existing children that satisfy input
+      var itemInputEdges = nodeInputCache[input];
 
-        _createRecipeTree(producerNode, producers);
+      if (itemInputEdges == null) {
+        // If no children exist, find existing node that can satisfy input
+        var producerNode =
+            nodeOutputIndex[NodeType.input]?[input]?[0] ??
+            nodeOutputIndex[NodeType.producer]?[input]?[0] ??
+            nodeOutputIndex[NodeType.productionLine]?[input]?[0];
+
+        if (producerNode == null) {
+          // If no node exists, create new node to satisfy input
+          producerNode =
+              _createResourceNode(input) ??
+              _createRecipeNode(input) ??
+              _createProducerNode(input);
+
+          nodeOutputIndex.update(
+            producerNode.nodeType,
+            (itemMap) => itemMap
+              ..update(
+                input,
+                (itemNodes) => itemNodes..add(producerNode!),
+                ifAbsent: () => [producerNode!],
+              ),
+            ifAbsent: () => {
+              input: [producerNode!],
+            },
+          );
+        }
+
+        // Create edge between producerNode and parentNode
+        itemInputEdges = [
+          DirectedEdge.addToGraph(
+            parentGraph: this,
+            item: input,
+            parent: inputNode,
+            child: producerNode,
+            edgeType: Relationship.requestItems,
+          ),
+        ];
       }
+
+      // Call _createRecipeTree on all unvisited input nodes
+      itemInputEdges
+          .map(
+            (edge) => switch (edge.flowDirection) {
+              ItemFlowDirection.childToParent => edge.child,
+              ItemFlowDirection.parentToChild => edge.parent,
+            },
+          )
+          .where((node) => !visitedNodes.contains(node))
+          .forEach(
+            (node) => _createRecipeTree(node, nodeOutputIndex, visitedNodes),
+          );
     }
   }
 
@@ -788,10 +839,10 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
     ProdLineNode selectedNode,
     RectPoint selectedPoint,
   ) => GeometryOperation.resizeOperation(
-      Set.from(nodes),
-      selectedNode,
-      selectedPoint,
-    );
+    Set.from(nodes),
+    selectedNode,
+    selectedPoint,
+  );
 
   void finishGeometryOperation(GeometryOperation geometryOperation) {
     _history.mutate(() {

@@ -42,7 +42,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   }) {
     var craftingMachine = plMachine.craftingMachine;
 
-    if (!craftingMachine.recipes.contains(recipe)) {
+    if (!craftingMachine.recipes.contains(recipe.internalRecipe)) {
       throw ProductionLineException(
         'Recipe $recipe cannot be crafted on machine $craftingMachine',
       );
@@ -227,8 +227,8 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
     required ItemIo machineTotalInput,
     required ItemIo machineTotalOutput,
     required Map<InGameItem, InGameItem> potentialSpoilage,
-  }) : outputItems = Set.unmodifiable(inputItems),
-       inputItems = Set.unmodifiable(outputItems),
+  }) : inputItems = Set.unmodifiable(inputItems),
+       outputItems = Set.unmodifiable(outputItems),
        inputRatios = Map.unmodifiable(inputRatios),
        outputRatios = Map.unmodifiable(outputRatios),
        machineNetInput = Map.unmodifiable(machineNetInput),

@@ -36,9 +36,7 @@ class FactorioBase {
         (name, surface) => MapEntry(
           surface,
           _SurfaceProperties(
-            defaultRecipes: surface.recipes
-                .where((recipe) => recipe.isSimple)
-                .map((recipe) => InGameRecipe(recipe)),
+            defaultRecipes: surface.recipes.where((recipe) => recipe.isSimple),
             resources: surface.resourceItems.map((item) => InGameItem(item)),
             availableSolidFuels: surface.resourceItems
                 .whereType<SolidItem>()

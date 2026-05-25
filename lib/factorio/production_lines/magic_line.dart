@@ -27,8 +27,8 @@ class IoLine with ProductionLine<IoLineIoData> {
     Set<InGameItem> netInputs = const {},
     Set<InGameItem> netOutputs = const {},
     this.icon,
-  }) : outputItems = Set.unmodifiable(netInputs),
-       inputItems = Set.unmodifiable(netOutputs) {
+  }) : inputItems = Set.unmodifiable(netInputs),
+       outputItems = Set.unmodifiable(netOutputs) {
     if (netInputs.isEmpty && netOutputs.isEmpty) {
       throw ProductionLineException('No input or output specified for IO line');
     }

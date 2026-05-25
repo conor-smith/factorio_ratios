@@ -22,10 +22,7 @@ class EdgeGeometry extends Geometry {
 
   /// Creates a shortest path line between 2 nodes
   factory EdgeGeometry.shortestPath(DirectedEdge edge) {
-    var shortestLine = _shortestLine(
-      edge.parent.geometry,
-      edge.parent.geometry,
-    );
+    var shortestLine = _shortestLine(edge.parent.geometry, edge.child.geometry);
 
     return EdgeGeometry._(
       lineType: LineType.shortestPath,
