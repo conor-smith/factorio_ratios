@@ -1,17 +1,19 @@
 part of 'graph.dart';
 
-/// Represents a single base / collections of production lines on a single planet surface.
+/// Represents a single base on a single surface.
+/// In this context, a "base" is just any collection of connected production lines.
+/// Not all production lines in a base necessarily need to be connected to eachother.
 /// There may be multiple bases per surface.
 /// A base may also contain nodes that belong to a different surface.
 ///
-/// This class ultimately represents a directed graph.
+/// A base is ultimately represented by a directed graph.
 /// Nodes are of type [ProdLineNode] and can be accessed via [nodes].
 /// Edges are of type [DirectedEdge] and can be accessed via [edges].
-/// An edge represents a flow of items from one node to another.
-/// For every item flow between 2 nodes, there may only be one edge per item.
 ///
 /// There are certain in game production lines that require a loop. Eg.
-/// Producing nutrients via bioflux and using those nutrients to produce bioflux.
+/// Using [bioflux](https://wiki.factorio.com/Bioflux) to produce
+/// [nutrients](https://wiki.factorio.com/Nutrients), then using those same nutrients
+/// to power the bioflux machines.
 /// As such, loops are permitted, with a small caveat.
 /// There exists 2 kinds of edges as given by [DirectedEdge.edgeType] -
 /// [Relationship.requestItems] and [Relationship.acceptExcess].
@@ -61,7 +63,7 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   _EventHistory get _history => globalData._history;
 
   final Surface? surface;
-  final _SurfaceProperties? _surfaceProperties;
+  final SurfaceProperties? surfaceProperties;
 
   List<ProdLineNode> _nodes;
   List<DirectedEdge> _edges;
@@ -131,10 +133,9 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   PlanetBaseGraph._root({
     required this.globalData,
     this.surface,
+    this.surfaceProperties,
     String? name,
-    _SurfaceProperties? surfaceProperties,
-  }) : _surfaceProperties = surfaceProperties,
-       _name = name ?? surface?.name ?? '',
+  }) : _name = name ?? surface?.name ?? '',
        _geometry = GraphGeometry.uninitialised,
        _nodes = const [],
        _edges = const [],
@@ -152,6 +153,26 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
 
   /* ------------ User Operations ------------ */
 
+  /// Adds a new [NodeType.consumer] node (or finds an existing one) that
+  /// consumes [item].
+  /// Then builds a tree of nodes recursively running the following process
+  /// on the new node, and on all subsequent descendents.
+  ///
+  /// For every unfulfilled [InGameItem] input of a selected node (as given by
+  /// [ProdLineNode.inputItems]), a new [DirectedEdge] of type
+  /// [Relationship.requestItems] will be created.
+  /// The child node ([DirectedEdge.child]) will either be selected or created
+  /// via the following process
+  /// 1. Check existing nodes for one that outputs relevant item
+  ///   * Check nodes of type [NodeType.input]
+  ///   * Check nodes of type [NodeType.producer]
+  ///   * Check nodes of type [NodeType.productionLine]
+  /// 2. Create a new node based on the value of [surface]
+  ///   * Check [Surface.resources] for item. Create [NodeType.producer] node if item is present.
+  ///   * Check [SurfaceProperties.defaultRecipes] for valid [Recipe].
+  /// If one exists, create a [NodeType.productionLine] node with a
+  /// [SingleRecipeLine] using fastest valid machine
+  ///   * Create [NodeType.producer] node with an [IoLine] producing the item
   void addConsumerNodeAndTree(InGameItem item) {
     // Return if consumer node already exists
 
@@ -259,7 +280,7 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
 
   ProdLineNode? _createResourceNode(InGameItem item) {
     // TODO - Appropriate resource extraction production line
-    if (_surfaceProperties!.resources.contains(item)) {
+    if (surfaceProperties!.resources.contains(item)) {
       return ProdLineNode.addToGraph(
         parentGraph: this,
         nodeType: NodeType.productionLine,
@@ -272,7 +293,7 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
 
   ProdLineNode? _createRecipeNode(InGameItem item) {
     // TODO - account for null surface
-    var producerRecipe = _surfaceProperties!.defaultRecipes
+    var producerRecipe = surfaceProperties!.defaultRecipes
         .where((recipe) => item.internalItem.producedBy.contains(recipe))
         .firstOrNull;
 
@@ -287,7 +308,7 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
         BurnerEnergySource energySource =
             fastestMachine.energySource as BurnerEnergySource;
 
-        fuel = _surfaceProperties.availableSolidFuels
+        fuel = surfaceProperties!.availableSolidFuels
             .where(
               (surfaceFuel) =>
                   energySource.fuelItems.contains(surfaceFuel.internalItem),

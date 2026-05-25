@@ -26,7 +26,7 @@ class FactorioBase {
   final _EventHistory _history;
 
   late final PlanetBaseGraph rootGraph;
-  final Map<Surface, _SurfaceProperties> _surfaceProperties;
+  final Map<Surface, SurfaceProperties> _surfaceProperties;
 
   final List<InGameMachine> sortedMachines;
 
@@ -35,7 +35,7 @@ class FactorioBase {
       _surfaceProperties = factorioDb.surfaceMap.map(
         (name, surface) => MapEntry(
           surface,
-          _SurfaceProperties(
+          SurfaceProperties._(
             defaultRecipes: surface.recipes.where((recipe) => recipe.isSimple),
             resources: surface.resourceItems.map((item) => InGameItem(item)),
             availableSolidFuels: surface.resourceItems
@@ -72,13 +72,13 @@ class GraphException extends ProductionLineException {
   String toString() => 'GraphException: $message';
 }
 
-class _SurfaceProperties {
+class SurfaceProperties {
   final List<Recipe> defaultRecipes;
   final List<InGameItem> resources;
   final List<InGameSolidItem> availableSolidFuels;
   // TODO - Liquid fuels
 
-  _SurfaceProperties({
+  SurfaceProperties._({
     required Iterable<Recipe> defaultRecipes,
     required Iterable<InGameItem> resources,
     required Iterable<InGameSolidItem> availableSolidFuels,
