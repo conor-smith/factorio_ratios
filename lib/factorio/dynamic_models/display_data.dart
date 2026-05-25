@@ -16,10 +16,10 @@ class DisplayData {
 
   final List<DisplayData> children;
 
-  DisplayData.netInput(ItemIo itemIo)
+  DisplayData.netInput(ItemAmounts itemIo)
     : this.string('Net Input', children: convertToSortedDisplayData(itemIo));
 
-  DisplayData.netOutput(ItemIo itemIo)
+  DisplayData.netOutput(ItemAmounts itemIo)
     : this.string('Net Output', children: convertToSortedDisplayData(itemIo));
 
   DisplayData.powerConsumption(
@@ -137,7 +137,7 @@ class DisplayData {
     Iterable<DisplayData> children = const [],
   }) : children = List.unmodifiable(children);
 
-  static Iterable<DisplayData> convertToSortedDisplayData(ItemIo itemIo) {
+  static Iterable<DisplayData> convertToSortedDisplayData(ItemAmounts itemIo) {
     var sortedEntries = _sortMapAndReturnEntries(itemIo);
 
     return sortedEntries.map(

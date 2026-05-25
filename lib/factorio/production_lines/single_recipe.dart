@@ -21,16 +21,16 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   final Set<InGameItem> inputItems;
 
   @override
-  final ItemIo inputRatios;
+  final ItemAmounts inputRatios;
   @override
-  final ItemIo outputRatios;
+  final ItemAmounts outputRatios;
 
   final double machineCyclesPerMinute;
 
-  final ItemIo machineNetInput;
-  final ItemIo machineNetOutput;
-  final ItemIo machineTotalInput;
-  final ItemIo machineTotalOutput;
+  final ItemAmounts machineNetInput;
+  final ItemAmounts machineNetOutput;
+  final ItemAmounts machineTotalInput;
+  final ItemAmounts machineTotalOutput;
 
   final Map<InGameItem, InGameItem> potentialSpoilage;
 
@@ -99,7 +99,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
 
     var cyclesPerMinute = finalCraftingSpeed * 60 / recipe.energyRequired;
 
-    ItemIo machineTotalInput = {};
+    ItemAmounts machineTotalInput = {};
     for (var ingredient in recipe.ingredients) {
       machineTotalInput[ingredient.item] = ingredient.amount * cyclesPerMinute;
     }
@@ -113,7 +113,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
       );
     }
 
-    ItemIo machineTotalOutput = {};
+    ItemAmounts machineTotalOutput = {};
     for (var product in recipe.results) {
       var amountPerCycle =
           product.amount ?? (product.amountMax! + product.amountMin!) / 2;
@@ -138,8 +138,8 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
       );
     }
 
-    ItemIo machineNetInputs = Map.from(machineTotalInput);
-    ItemIo machineNetOutputs = Map.from(machineTotalOutput);
+    ItemAmounts machineNetInputs = Map.from(machineTotalInput);
+    ItemAmounts machineNetOutputs = Map.from(machineTotalOutput);
 
     machineTotalInput.forEach((item, input) {
       var output = machineTotalOutput[item] ?? 0.0;
@@ -157,10 +157,10 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
         .followedBy(machineNetOutputs.values)
         .reduce((val1, val2) => val1 < val2 ? val1 : val2);
 
-    ItemIo machineNetInputRatios = machineNetInputs.map(
+    ItemAmounts machineNetInputRatios = machineNetInputs.map(
       (item, amount) => MapEntry(item, amount / smallestValue),
     );
-    ItemIo machineNetOutputRatios = machineNetOutputs.map(
+    ItemAmounts machineNetOutputRatios = machineNetOutputs.map(
       (item, amount) => MapEntry(item, amount / smallestValue),
     );
 
@@ -219,13 +219,13 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
     required super.consumptionData,
     required Iterable<InGameItem> inputItems,
     required Iterable<InGameItem> outputItems,
-    required ItemIo inputRatios,
-    required ItemIo outputRatios,
+    required ItemAmounts inputRatios,
+    required ItemAmounts outputRatios,
     required this.machineCyclesPerMinute,
-    required ItemIo machineNetInput,
-    required ItemIo machineNetOutput,
-    required ItemIo machineTotalInput,
-    required ItemIo machineTotalOutput,
+    required ItemAmounts machineNetInput,
+    required ItemAmounts machineNetOutput,
+    required ItemAmounts machineTotalInput,
+    required ItemAmounts machineTotalOutput,
     required Map<InGameItem, InGameItem> potentialSpoilage,
   }) : inputItems = Set.unmodifiable(inputItems),
        outputItems = Set.unmodifiable(outputItems),
@@ -240,8 +240,8 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
 
   @override
   SingleRecipeLineIo calculate({
-    ItemIo inputConstraints = const {},
-    ItemIo outputConstraints = const {},
+    ItemAmounts inputConstraints = const {},
+    ItemAmounts outputConstraints = const {},
   }) {
     verifyConstraintsAndIo(inputConstraints, outputConstraints);
 
@@ -287,8 +287,8 @@ class SingleRecipeLineIo extends ProductionLineIo {
   final double machineCount;
   final double totalCyclesPerMinute;
 
-  final ItemIo totalInput;
-  final ItemIo totalOutput;
+  final ItemAmounts totalInput;
+  final ItemAmounts totalOutput;
 
   SingleRecipeLineIo({
     required super.inputConstraints,
@@ -297,8 +297,8 @@ class SingleRecipeLineIo extends ProductionLineIo {
     required this.totalCyclesPerMinute,
     required super.netInput,
     required super.netOutput,
-    required ItemIo totalInput,
-    required ItemIo totalOutput,
+    required ItemAmounts totalInput,
+    required ItemAmounts totalOutput,
     required super.electricPowerConsumption,
     required super.pollution,
     super.displayData,

@@ -26,7 +26,7 @@ class ProdLineNode with Stateful<NodeEvent> {
   _EventHistory get _history => parentGraph._history;
   ProductionLine _productionLine;
 
-  ItemIo? _internalInputConstraints, _internalOutputConstraints;
+  ItemAmounts? _internalInputConstraints, _internalOutputConstraints;
 
   NodeGeometry _geometry;
 
@@ -123,8 +123,8 @@ class ProdLineNode with Stateful<NodeEvent> {
 
   Set<InGameItem> get inputItems => _productionLine.inputItems;
   Set<InGameItem> get outputItems => _productionLine.outputItems;
-  ItemIo? get inputRatios => _productionLine.inputRatios;
-  ItemIo? get outputRatios => _productionLine.outputRatios;
+  ItemAmounts? get inputRatios => _productionLine.inputRatios;
+  ItemAmounts? get outputRatios => _productionLine.outputRatios;
   String get productionLineType => _productionLine.type;
   String get productionLineName => _productionLine.name;
 
@@ -133,10 +133,10 @@ class ProdLineNode with Stateful<NodeEvent> {
   bool get hasInternalConstraints => _internalInputConstraints != null;
 
   /// Can only be populated via [setInternalConstraints] if this node has no children
-  ItemIo? get internalInputConstraints => _internalInputConstraints;
+  ItemAmounts? get internalInputConstraints => _internalInputConstraints;
 
   /// Can only be populated via [setInternalConstraints] if this node has no children
-  ItemIo? get internalOutputConstraints => _internalOutputConstraints;
+  ItemAmounts? get internalOutputConstraints => _internalOutputConstraints;
 
   ProductionLineIo? get ioData => _ioData;
 
@@ -144,8 +144,8 @@ class ProdLineNode with Stateful<NodeEvent> {
   /// DOES NOT affect [internalInputConstraints] or [internalOutputConstraints].
   /// Constraints are saved in the [ioData] field itself
   void calculateAndCache({
-    ItemIo inputConstraints = const {},
-    ItemIo outputConstraints = const {},
+    ItemAmounts inputConstraints = const {},
+    ItemAmounts outputConstraints = const {},
   }) {
     _history.mutate(() {
       var newIo = _productionLine.calculate(
@@ -160,8 +160,8 @@ class ProdLineNode with Stateful<NodeEvent> {
   /// Sets [internalInputConstraints] and [internalOutputConstraints] but does
   /// not actually actually call [calculateAndCache]. That must be done independently
   void setInternalConstraints({
-    ItemIo inputConstraints = const {},
-    ItemIo outputConstraints = const {},
+    ItemAmounts inputConstraints = const {},
+    ItemAmounts outputConstraints = const {},
   }) {
     _productionLine.verifyConstraintsAndIo(inputConstraints, outputConstraints);
 

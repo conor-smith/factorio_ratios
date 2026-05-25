@@ -39,12 +39,12 @@ mixin ProductionLine<T extends ProductionLineIo> {
   /// Ratios of all output items. Dependant upon [inputRatios].
   /// If the input and output ratios are known beforehand, divides all
   /// known values by the smallest number in either inputs or outputs.
-  ItemIo? get outputRatios;
+  ItemAmounts? get outputRatios;
 
   /// Ratios of all input items. Dependant upon [outputRatios].
   /// If the input and output ratios are known beforehand, divides all
   /// known values by the smallest number in either inputs or outputs.
-  ItemIo? get inputRatios;
+  ItemAmounts? get inputRatios;
 
   /// Specifies whether this production line is immutable or not.
   /// An immutable production line will always have the same [inputItems] and
@@ -58,11 +58,11 @@ mixin ProductionLine<T extends ProductionLineIo> {
   /// The same rule applies to input constraints.
   ///
   /// [inputConstraints] and [outputConstraints] are given in items per minute.
-  T calculate({ItemIo inputConstraints, ItemIo outputConstraints});
+  T calculate({ItemAmounts inputConstraints, ItemAmounts outputConstraints});
 
   void verifyConstraintsAndIo(
-    ItemIo inputConstraints,
-    ItemIo outputConstraints,
+    ItemAmounts inputConstraints,
+    ItemAmounts outputConstraints,
   ) {
     inputConstraints.forEach((input, constraint) {
       if (constraint <= 0) {
@@ -99,7 +99,7 @@ mixin ProductionLine<T extends ProductionLineIo> {
 /// All other fiels, both here and in inherited classes,
 /// should exist for utility reasons - to be used in further equations / operations.
 ///
-/// All [ItemIo] fieds are given in items per minute.
+/// All [ItemAmounts] fieds are given in items per minute.
 abstract class ProductionLineIo {
   /// DisplayData for end user
   /// No data in here should be used for math or further operations
@@ -107,16 +107,16 @@ abstract class ProductionLineIo {
   final List<DisplayData> displayData;
 
   /// Given in items per minute
-  final ItemIo netOutput;
+  final ItemAmounts netOutput;
 
   /// Given in items per minute
-  final ItemIo netInput;
+  final ItemAmounts netInput;
 
   /// Given in items per minute
-  final ItemIo inputConstraints;
+  final ItemAmounts inputConstraints;
 
   /// Given in items per minute
-  final ItemIo outputConstraints;
+  final ItemAmounts outputConstraints;
 
   final double electricPowerConsumption;
 
@@ -124,10 +124,10 @@ abstract class ProductionLineIo {
   final Map<String, double> emissions;
 
   ProductionLineIo({
-    required ItemIo netOutput,
-    required ItemIo netInput,
-    ItemIo inputConstraints = const {},
-    ItemIo outputConstraints = const {},
+    required ItemAmounts netOutput,
+    required ItemAmounts netInput,
+    ItemAmounts inputConstraints = const {},
+    ItemAmounts outputConstraints = const {},
     this.electricPowerConsumption = 0,
     Map<String, double> pollution = const {},
     List<DisplayData> displayData = const [],

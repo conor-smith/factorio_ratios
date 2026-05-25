@@ -9,7 +9,7 @@ class GraphEvent extends MutationEvent {
   final List<DirectedEdge>? oldEdges, newEdges;
   final GraphGeometry? oldGeometry, newGeometry;
   final Set<InGameItem>? oldInputs, oldOutputs, newInputs, newOutputs;
-  final ItemIo? oldInputRatios,
+  final ItemAmounts? oldInputRatios,
       oldOutputRatios,
       newInputRatios,
       newOutputRatios;
@@ -119,8 +119,8 @@ class GraphEvent extends MutationEvent {
 
   GraphEvent.newIoRatios(
     PlanetBaseGraph graph, {
-    required ItemIo newInputRatios,
-    required ItemIo newOutputRatios,
+    required ItemAmounts newInputRatios,
+    required ItemAmounts newOutputRatios,
   }) : this._(
          graph,
          {GraphEventType.updateRatios},
@@ -229,8 +229,8 @@ class GraphEvent extends MutationEvent {
     Iterable<DirectedEdge>? newEdges,
     Iterable<InGameItem>? newInputs,
     Iterable<InGameItem>? newOutputs,
-    ItemIo? newInputRatios,
-    ItemIo? newOutputRatios,
+    ItemAmounts? newInputRatios,
+    ItemAmounts? newOutputRatios,
     this.newGeometry,
   }) : mutations = Set.unmodifiable(mutations),
        newNodes = _unmodifiableOrNullList(newNodes),

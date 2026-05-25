@@ -9,7 +9,7 @@ class NodeEvent extends MutationEvent {
   final NodeGeometry? oldGeometry, newGeometry;
   final ProductionLine? oldProductionLine, newProductionLine;
   final List<DirectedEdge>? oldParents, oldChildren, newParents, newChildren;
-  final ItemIo? oldInputConstraints,
+  final ItemAmounts? oldInputConstraints,
       oldOutputConstraints,
       newInputConstraints,
       newOutputConstraints;
@@ -61,8 +61,8 @@ class NodeEvent extends MutationEvent {
 
   NodeEvent.newInternalConstraints(
     ProdLineNode node, {
-    ItemIo inputConstraints = const {},
-    ItemIo outputConstraints = const {},
+    ItemAmounts inputConstraints = const {},
+    ItemAmounts outputConstraints = const {},
   }) : this._(
          node,
          const {NodeEventType.updateConstraints},
@@ -193,8 +193,8 @@ class NodeEvent extends MutationEvent {
     this.oldGeometry,
     this.newProductionLine,
     this.newIo,
-    ItemIo? newInputConstraints,
-    ItemIo? newOutputConstraints,
+    ItemAmounts? newInputConstraints,
+    ItemAmounts? newOutputConstraints,
     Iterable<DirectedEdge>? newChildren,
     Iterable<DirectedEdge>? newParents,
     this.newGeometry,

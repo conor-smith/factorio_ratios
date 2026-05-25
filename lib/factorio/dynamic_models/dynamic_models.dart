@@ -6,7 +6,7 @@ part 'in_game_item.dart';
 part 'recipe_with_quality.dart';
 part 'machine_with_quality.dart';
 
-typedef ItemIo = Map<InGameItem, double>;
+typedef ItemAmounts = Map<InGameItem, double>;
 
 // TODO
 List<IconData>? _verifyQualityAndUpdateIcon(

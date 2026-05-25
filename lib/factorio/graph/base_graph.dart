@@ -69,8 +69,8 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   String _name;
   Set<InGameItem> _inputItems;
   Set<InGameItem> _outputItems;
-  ItemIo? _inputRatios;
-  ItemIo? _outputRatios;
+  ItemAmounts? _inputRatios;
+  ItemAmounts? _outputRatios;
 
   GraphGeometry _geometry;
 
@@ -336,9 +336,9 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   Set<InGameItem> get outputItems => _outputItems;
 
   @override
-  ItemIo? get inputRatios => _inputRatios;
+  ItemAmounts? get inputRatios => _inputRatios;
   @override
-  ItemIo? get outputRatios => _outputRatios;
+  ItemAmounts? get outputRatios => _outputRatios;
 
   @override
   HasIcon? get icon => surface;
@@ -358,8 +358,8 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   /// that satisfies this requirement. If none exists, a new node will be created
   @override
   PlanetBaseIo calculate({
-    ItemIo inputConstraints = const {},
-    ItemIo outputConstraints = const {},
+    ItemAmounts inputConstraints = const {},
+    ItemAmounts outputConstraints = const {},
   }) {
     // TODO - This method assumes the graph is already 100% verified
     verifyConstraintsAndIo(inputConstraints, outputConstraints);
@@ -510,8 +510,8 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
         });
       }
 
-      ItemIo finalInput = {};
-      ItemIo finalOutput = {};
+      ItemAmounts finalInput = {};
+      ItemAmounts finalOutput = {};
       Map<String, double> finalPollution = {};
       double finalPowerConsumption = 0.0;
 
@@ -579,7 +579,7 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
     }
 
     // Determine constraints from sum of parent edge amounts, or root node constraints
-    ItemIo inputConstraints, outputConstraints;
+    ItemAmounts inputConstraints, outputConstraints;
     if (rootNodeConstraints.containsKey(nodeToSolve)) {
       inputConstraints = rootNodeConstraints[nodeToSolve]!.inputConstraints;
       outputConstraints = rootNodeConstraints[nodeToSolve]!.outputConstraints;
@@ -981,16 +981,18 @@ class PlanetBaseIo extends ProductionLineIo {
 
 // TODO - Move to production_line.dart
 class _IOConstraints {
-  final ItemIo inputConstraints;
-  final ItemIo outputConstraints;
+  final ItemAmounts inputConstraints;
+  final ItemAmounts outputConstraints;
 
-  _IOConstraints({ItemIo? inputConstraints, ItemIo? outputConstraints})
-    : inputConstraints = inputConstraints ?? {},
-      outputConstraints = outputConstraints ?? {};
+  _IOConstraints({
+    ItemAmounts? inputConstraints,
+    ItemAmounts? outputConstraints,
+  }) : inputConstraints = inputConstraints ?? {},
+       outputConstraints = outputConstraints ?? {};
 }
 
 // TODO - Move to production_line.dart
-bool _compareItemIo(ItemIo io1, ItemIo io2) =>
+bool _compareItemIo(ItemAmounts io1, ItemAmounts io2) =>
     io1 == io2 ||
     (io1.length == io2.length &&
         io1.entries.every((entry) {

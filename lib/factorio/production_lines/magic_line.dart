@@ -18,9 +18,9 @@ class IoLine with ProductionLine<IoLineIoData> {
   bool get isImmutable => true;
 
   @override
-  ItemIo? get outputRatios => null;
+  ItemAmounts? get outputRatios => null;
   @override
-  ItemIo? get inputRatios => null;
+  ItemAmounts? get inputRatios => null;
 
   IoLine({
     required this.name,
@@ -59,8 +59,8 @@ class IoLine with ProductionLine<IoLineIoData> {
 
   @override
   IoLineIoData calculate({
-    ItemIo inputConstraints = const {},
-    ItemIo outputConstraints = const {},
+    ItemAmounts inputConstraints = const {},
+    ItemAmounts outputConstraints = const {},
   }) {
     verifyConstraintsAndIo(inputConstraints, inputConstraints);
 
