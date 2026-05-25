@@ -268,7 +268,7 @@ class RecipeProduct extends RecipeItem {
   final double extraCountFraction;
   final double percentSpoiled;
 
-  final double temperature;
+  final double? temperature;
 
   RecipeProduct._({
     required super.factorioDb,
@@ -296,7 +296,7 @@ class RecipeProduct extends RecipeItem {
         ignoredByProductivity: json['ignored_by_productivity']?.toDouble() ?? 0,
         extraCountFraction: json['extra_count_fraction']?.toDouble() ?? 0,
         percentSpoiled: json['percent_spoiled']?.toDouble() ?? 0,
-        temperature: json['temperature'],
+        temperature: json['temperature']?.toDouble(),
       );
 }
 

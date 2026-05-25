@@ -182,7 +182,7 @@ class InGameRecipeProduct implements RecipeProduct {
   @override
   double get probability => internalRecipeProduct.probability;
   @override
-  double get temperature => internalRecipeProduct.temperature;
+  double? get temperature => internalRecipeProduct.temperature;
   @override
   String get type => internalRecipeProduct.type;
 }
