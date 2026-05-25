@@ -85,6 +85,16 @@ class GraphEvent extends MutationEvent {
         newEdges: Set.from(graph.edges)..removeAll(removedEdges),
       );
 
+  GraphEvent.clearGraph(PlanetBaseGraph graph)
+    : this._(
+        graph,
+        const {GraphEventType.updateNodes, GraphEventType.updateEdges},
+        oldNodes: graph.nodes,
+        newNodes: graph.nodes.where((node) => !node.nodeType.isIo),
+        oldEdges: graph.edges,
+        newEdges: const [],
+      );
+
   GraphEvent.newInput(PlanetBaseGraph graph, InGameItem newInput)
     : this._(
         graph,
