@@ -13,6 +13,7 @@ class NodeEvent extends MutationEvent {
       oldOutputConstraints,
       newInputConstraints,
       newOutputConstraints;
+  final bool? selected;
 
   final NodeEvent? original;
   @override
@@ -115,6 +116,9 @@ class NodeEvent extends MutationEvent {
   NodeEvent.tempGeometry(ProdLineNode node, NodeGeometry tempData)
     : this._(node, const {NodeEventType.tempGeometry}, newGeometry: tempData);
 
+  NodeEvent.selectToggle(ProdLineNode node, bool selected)
+    : this._(node, const {NodeEventType.selectToggle}, selected: selected);
+
   factory NodeEvent.combine(List<NodeEvent> orderedEvents) {
     Set<NodeEventType> mutations = {};
 
@@ -154,9 +158,8 @@ class NodeEvent extends MutationEvent {
             newParentsEvent = event;
 
           case NodeEventType.tempGeometry:
-            throw const GraphException(
-              'Cannot combine temp geometry node event',
-            );
+          case NodeEventType.selectToggle:
+            throw const GraphException('Cannot combine node temp event');
         }
       }
     }
@@ -198,6 +201,7 @@ class NodeEvent extends MutationEvent {
     Iterable<DirectedEdge>? newChildren,
     Iterable<DirectedEdge>? newParents,
     this.newGeometry,
+    this.selected,
   }) : mutations = Set.unmodifiable(mutations),
        newInputConstraints = _unmodifiableOrNullMap(newInputConstraints),
        newOutputConstraints = _unmodifiableOrNullMap(newOutputConstraints),
@@ -223,6 +227,7 @@ class NodeEvent extends MutationEvent {
       newProductionLine = toReverse.oldProductionLine,
       newChildren = toReverse.oldChildren,
       newParents = toReverse.oldParents,
+      selected = null,
       isReversed = true,
       original = toReverse;
 }
@@ -235,4 +240,5 @@ enum NodeEventType {
   newProductionLine,
   childrenUpdate,
   parentsUpdate,
+  selectToggle,
 }

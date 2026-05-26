@@ -255,9 +255,8 @@ class ProdLineNode with Stateful<NodeEvent> {
           _parents = event.newParents!;
 
         case NodeEventType.tempGeometry:
-          throw const MutationException(
-            'Cannot apply event of type tempGeometry',
-          );
+        case NodeEventType.selectToggle:
+          throw const MutationException('Cannot apply node temp event');
       }
     }
   }

@@ -111,9 +111,8 @@ class DirectedEdge with Stateful<EdgeEvent> {
           _geometry = event.newGeometry!;
 
         case EdgeEventType.tempGeometry:
-          throw const MutationException(
-            'Cannot apply event of type tempGeometry',
-          );
+        case EdgeEventType.selectToggle:
+          throw const MutationException('Cannot apply temp edge event');
       }
     }
   }

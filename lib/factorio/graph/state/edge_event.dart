@@ -4,10 +4,9 @@ class EdgeEvent extends MutationEvent {
   final DirectedEdge edge;
 
   final Set<EdgeEventType> mutations;
-
   final double? oldAmount, newAmount;
-
   final EdgeGeometry? oldGeometry, newGeometry;
+  final bool? selected;
 
   final EdgeEvent? original;
   @override
@@ -18,7 +17,7 @@ class EdgeEvent extends MutationEvent {
   EdgeEvent.newAmount(DirectedEdge edge, double newAmount)
     : this._(
         edge,
-        {EdgeEventType.newAmount},
+        const {EdgeEventType.newAmount},
         oldAmount: edge.amount,
         newAmount: newAmount,
       );
@@ -26,16 +25,21 @@ class EdgeEvent extends MutationEvent {
   EdgeEvent.updateGeometry(DirectedEdge edge, EdgeGeometry newGeometry)
     : this._(
         edge,
-        {EdgeEventType.newGeometry},
+        const {EdgeEventType.newGeometry},
         oldGeometry: edge.geometry,
         newGeometry: newGeometry,
       );
 
   EdgeEvent.tempGeometry(DirectedEdge edge, EdgeGeometry tempGeometry)
-    : this._(edge, {EdgeEventType.tempGeometry}, newGeometry: tempGeometry);
+    : this._(edge, const {
+        EdgeEventType.tempGeometry,
+      }, newGeometry: tempGeometry);
 
   EdgeEvent.clearAmount(DirectedEdge edge)
-    : this._(edge, {EdgeEventType.newAmount}, oldAmount: edge.amount);
+    : this._(edge, const {EdgeEventType.newAmount}, oldAmount: edge.amount);
+
+  EdgeEvent.selectToggle(DirectedEdge edge, bool selected)
+    : this._(edge, const {EdgeEventType.selectToggle}, selected: selected);
 
   factory EdgeEvent.combine(List<EdgeEvent> orderedEvents) {
     Set<EdgeEventType> mutations = {};
@@ -57,9 +61,8 @@ class EdgeEvent extends MutationEvent {
             newGeometryEvent = event;
 
           case EdgeEventType.tempGeometry:
-            throw const GraphException(
-              'Cannot combine edge temp geometry event',
-            );
+          case EdgeEventType.selectToggle:
+            throw const GraphException('Cannot combine edge temp event');
         }
       }
     }
@@ -81,6 +84,7 @@ class EdgeEvent extends MutationEvent {
     this.oldGeometry,
     this.newAmount,
     this.newGeometry,
+    this.selected,
   }) : mutations = Set.unmodifiable(mutations),
        isReversed = false,
        original = null;
@@ -92,8 +96,9 @@ class EdgeEvent extends MutationEvent {
       oldGeometry = toReverse.newGeometry,
       newAmount = toReverse.oldAmount,
       newGeometry = toReverse.oldGeometry,
+      selected = null,
       isReversed = true,
       original = toReverse;
 }
 
-enum EdgeEventType { newAmount, newGeometry, tempGeometry }
+enum EdgeEventType { newAmount, newGeometry, tempGeometry, selectToggle }

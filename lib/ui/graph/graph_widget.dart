@@ -8,7 +8,13 @@ import 'package:flutter/material.dart';
 class GraphWidget extends StatefulWidget {
   final PlanetBaseGraph graph;
 
-  const GraphWidget({super.key, required this.graph});
+  final GraphChangeNotifier graphChangeNotifier;
+
+  const GraphWidget({
+    super.key,
+    required this.graph,
+    required this.graphChangeNotifier,
+  });
 
   @override
   State<GraphWidget> createState() => _GraphWidgetState();
@@ -30,7 +36,10 @@ class _GraphWidgetState extends State<GraphWidget> {
             nodeWidgets.remove(removedNode);
           }
           for (var newNode in event.addedNodes) {
-            nodeWidgets[newNode] = NodeWidget(node: newNode);
+            nodeWidgets[newNode] = NodeWidget(
+              node: newNode,
+              graphChangeNotifier: widget.graphChangeNotifier,
+            );
           }
 
         case GraphEventType.updateEdges:
@@ -57,7 +66,10 @@ class _GraphWidgetState extends State<GraphWidget> {
     super.initState();
 
     for (var node in widget.graph.nodes) {
-      nodeWidgets[node] = NodeWidget(node: node);
+      nodeWidgets[node] = NodeWidget(
+        node: node,
+        graphChangeNotifier: widget.graphChangeNotifier,
+      );
     }
 
     for (var edge in widget.graph.edges) {
@@ -83,10 +95,7 @@ class _GraphWidgetState extends State<GraphWidget> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
-              var overlayNotifier = FactorioBaseWidget.getOverlayNotifier(
-                context,
-              );
-              overlayNotifier.toggleSelectionMenu();
+              widget.graphChangeNotifier.toggleSelectionMenu();
             },
           ),
           ...edgeWidgets.values,

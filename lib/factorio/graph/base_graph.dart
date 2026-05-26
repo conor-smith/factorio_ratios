@@ -858,8 +858,8 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   GraphGeometry get geometry => _geometry;
 
   GeometryOperation beginDragOperation(
-    List<ProdLineNode> nodes,
-    List<DirectedEdge> edges,
+    Iterable<ProdLineNode> nodes,
+    Iterable<DirectedEdge> edges,
   ) => GeometryOperation.dragOperation(Set.from(nodes), Set.from(edges));
 
   GeometryOperation beginResizeOperation(
