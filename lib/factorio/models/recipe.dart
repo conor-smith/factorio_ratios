@@ -72,7 +72,8 @@ class Recipe extends OrderedWithSubgroup {
   /// and that the inputs of this recipe do not contain the output
   late final bool isSimple =
       results.length == 1 &&
-      ingredients.every((ingredient) => ingredient._name != results[0]._name);
+      ingredients.every((ingredient) => ingredient._name != results[0]._name) &&
+      !categories.contains('recycling');
 
   Recipe._({
     required this.factorioDb,
