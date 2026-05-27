@@ -143,4 +143,8 @@ class GraphChangeNotifier extends ChangeNotifier {
   GeometryOperation drag() {
     return _activeGraph.beginDragOperation(_selectedNodes, _selectedEdges);
   }
+
+  void finishGeometryOperation(GeometryOperation operation) {
+    _activeGraph.finishGeometryOperation(operation);
+  }
 }

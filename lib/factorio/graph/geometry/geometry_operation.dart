@@ -214,7 +214,7 @@ class _MutableNodeGeometry implements NodeGeometry {
 class _MutableEdgeGeometry implements EdgeGeometry {
   final DirectedEdge edge;
 
-  final NodeGeometry parentNodeData, childNodeData;
+  final NodeGeometry parentNodeGeometry, childNodeGeometry;
 
   @override
   final Rect minimalRect;
@@ -226,8 +226,11 @@ class _MutableEdgeGeometry implements EdgeGeometry {
   @override
   late final List<Line> lines = UnmodifiableListView(_transformedLines);
 
-  _MutableEdgeGeometry.from(this.edge, this.parentNodeData, this.childNodeData)
-    : minimalRect = edge.geometry.minimalRect,
+  _MutableEdgeGeometry.from(
+    this.edge,
+    this.parentNodeGeometry,
+    this.childNodeGeometry,
+  ) : minimalRect = edge.geometry.minimalRect,
       lineType = edge.lineType,
       _baseLines = edge.lines,
       _transformedLines = List.from(edge.lines);
@@ -236,8 +239,8 @@ class _MutableEdgeGeometry implements EdgeGeometry {
     switch (lineType) {
       case LineType.shortestPath:
         _transformedLines[0] = EdgeGeometry._shortestLine(
-          edge.parent.geometry,
-          edge.child.geometry,
+          parentNodeGeometry,
+          childNodeGeometry,
         );
     }
   }

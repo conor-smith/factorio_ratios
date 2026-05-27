@@ -14,15 +14,28 @@ class EdgeWidget extends StatefulWidget {
 
 class _EdgeWidgetState extends State<EdgeWidget> {
   bool selected = false;
+  late EdgeGeometry geometry;
 
   @override
   void initState() {
     super.initState();
 
+    geometry = widget.edge.geometry;
+
     // All relevant state is stored within edge object
     widget.edge.addListener((event) {
-      if (event.mutations.contains(EdgeEventType.selectToggle)) {
-        selected = event.selected!;
+      for (var mutation in event.mutations) {
+        switch (mutation) {
+          case EdgeEventType.selectToggle:
+            selected = event.selected!;
+
+          case EdgeEventType.tempGeometry:
+          case EdgeEventType.newGeometry:
+            geometry = event.newGeometry!;
+
+          default:
+            break;
+        }
       }
 
       if (mounted) {
@@ -33,7 +46,7 @@ class _EdgeWidgetState extends State<EdgeWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: LinesPainter(widget.edge.lines[0], selected));
+    return CustomPaint(painter: LinesPainter(geometry.lines[0], selected));
   }
 }
 

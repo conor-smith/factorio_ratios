@@ -875,10 +875,9 @@ class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
   void finishGeometryOperation(GeometryOperation geometryOperation) {
     _history.mutate(() {
       geometryOperation.applyNewGeometryAndFinish();
+      // TODO - Find a more efficient way to do this
+      _redoGraphGeometry();
     });
-
-    // TODO - Find a more efficient way to do this
-    _redoGraphGeometry();
   }
 
   List<Geometry> _getAllGeometryData() => _nodes
