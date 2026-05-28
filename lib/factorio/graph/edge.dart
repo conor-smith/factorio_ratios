@@ -39,6 +39,8 @@ class DirectedEdge with Stateful<EdgeEvent> {
   LineType get lineType => _geometry.lineType;
   List<Line> get lines => _geometry.lines;
 
+  bool get selected => parentGraph.globalData._selectedEdges.contains(this);
+
   /* --------------- Constructors --------------- */
   DirectedEdge.addToGraph({
     required this.parentGraph,

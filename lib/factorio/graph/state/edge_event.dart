@@ -6,7 +6,6 @@ class EdgeEvent extends MutationEvent {
   final Set<EdgeEventType> mutations;
   final double? oldAmount, newAmount;
   final EdgeGeometry? oldGeometry, newGeometry;
-  final bool? selected;
 
   final EdgeEvent? original;
   @override
@@ -38,8 +37,8 @@ class EdgeEvent extends MutationEvent {
   EdgeEvent.clearAmount(DirectedEdge edge)
     : this._(edge, const {EdgeEventType.newAmount}, oldAmount: edge.amount);
 
-  EdgeEvent.selectToggle(DirectedEdge edge, bool selected)
-    : this._(edge, const {EdgeEventType.selectToggle}, selected: selected);
+  EdgeEvent.selectToggle(DirectedEdge edge)
+    : this._(edge, const {EdgeEventType.selectToggle});
 
   factory EdgeEvent.combine(List<EdgeEvent> orderedEvents) {
     Set<EdgeEventType> mutations = {};
@@ -84,7 +83,6 @@ class EdgeEvent extends MutationEvent {
     this.oldGeometry,
     this.newAmount,
     this.newGeometry,
-    this.selected,
   }) : mutations = Set.unmodifiable(mutations),
        isReversed = false,
        original = null;
@@ -96,7 +94,6 @@ class EdgeEvent extends MutationEvent {
       oldGeometry = toReverse.newGeometry,
       newAmount = toReverse.oldAmount,
       newGeometry = toReverse.oldGeometry,
-      selected = null,
       isReversed = true,
       original = toReverse;
 }

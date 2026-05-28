@@ -46,6 +46,9 @@ class ProdLineNode with Stateful<NodeEvent> {
   NodeGeometry get geometry => _geometry;
   Rect get rect => _geometry.minimalRect;
 
+  // TODO - Should this be a local field?
+  bool get selected => parentGraph.globalData._selectedNodes.contains(this);
+
   @override
   String toString() => _productionLine.toString();
 
