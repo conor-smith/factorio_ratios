@@ -1,4 +1,4 @@
-part of 'graph.dart';
+part of 'base_planner.dart';
 
 class _EventHistory {
   final int maxSavedEvents;
@@ -19,7 +19,7 @@ class _EventHistory {
   Set<Stateful> delayedEventOperations = {};
 
   // Uncommitted events
-  Map<PlanetBaseGraph, List<GraphEvent>> _uGraphEvents;
+  Map<ProductionLineGraph, List<GraphEvent>> _uGraphEvents;
   Map<ProdLineNode, List<NodeEvent>> _uNodeEvents;
   Map<DirectedEdge, List<EdgeEvent>> _uEdgeEvents;
 
@@ -101,8 +101,10 @@ class _EventHistory {
 
       if (_mutationLock == 0) {
         undoUncommittedEvents();
+        throw MutationException('Exception occurred during mutation', e);
+      } else {
+        rethrow;
       }
-      rethrow;
     }
 
     _mutationLock--;
@@ -120,7 +122,7 @@ class _EventHistory {
 }
 
 class _UpdateEvent {
-  final Map<PlanetBaseGraph, GraphEvent> graphEvents;
+  final Map<ProductionLineGraph, GraphEvent> graphEvents;
   final Map<ProdLineNode, NodeEvent> nodeEvents;
   final Map<DirectedEdge, EdgeEvent> edgeEvents;
 
@@ -130,7 +132,7 @@ class _UpdateEvent {
         ..addAll(edgeEvents);
 
   _UpdateEvent(
-    Map<PlanetBaseGraph, List<GraphEvent>> graphEvents,
+    Map<ProductionLineGraph, List<GraphEvent>> graphEvents,
     Map<ProdLineNode, List<NodeEvent>> nodeEvents,
     Map<DirectedEdge, List<EdgeEvent>> edgeEvents,
   ) : graphEvents = graphEvents.map(

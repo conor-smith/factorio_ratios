@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:factorio_ratios/factorio/factorio.dart';
-import 'package:logging/logging.dart';
 
 part 'crafting_machines.dart';
 part 'group.dart';
@@ -112,15 +111,12 @@ class FactorioDatabase {
   late final Map<Item, List<Recipe>> _producedBy;
   late final Map<Item, List<Recipe>> _consumedBy;
 
-  static final Logger _logger = Logger('FactorioDb');
-
   FactorioDatabase.fromJson(String rawJson) {
     _parseJson(rawJson);
     _buildIndices();
   }
 
   void _parseJson(String rawJson) {
-    _logger.info('Decoding raw data dump');
     Map factorioRawData = jsonDecode(rawJson);
 
     Map<String, Item> items = {};
@@ -130,9 +126,6 @@ class FactorioDatabase {
     Map<String, ItemSubgroup> itemSubgroups = {};
     Map<String, Surface> surfaces = {};
     Map<String, Resource> resources = {};
-
-    // TODO - clean up
-    _logger.info('decoding items');
 
     List<String> itemSections = [
       'item',
@@ -172,12 +165,13 @@ class FactorioDatabase {
           items[name] = Item.fromJson(this, itemJson);
         }
       } catch (e) {
-        _logger.info('Encountered error when decoding item "$name"', e);
-        rethrow;
+        throw FactorioException(
+          'Encountered error when decoding item $name',
+          e,
+        );
       }
     });
 
-    _logger.info('decoding recipes');
     Map<String, Map> rawRecipes = (factorioRawData['recipe'] as Map).cast();
     rawRecipes.forEach((name, recipeJson) {
       try {
@@ -185,12 +179,13 @@ class FactorioDatabase {
           recipes[name] = Recipe.fromJson(this, recipeJson);
         }
       } catch (e) {
-        _logger.info('Encountered error when decoding recipe "$name"', e);
-        rethrow;
+        throw FactorioException(
+          'Encountered error when decoding recipe $name',
+          e,
+        );
       }
     });
 
-    _logger.info('decoding machines');
     Map<String, Map> rawCraftingMachines = {};
     for (var machineSection in machineSections) {
       rawCraftingMachines.addAll(
@@ -201,42 +196,39 @@ class FactorioDatabase {
       try {
         craftingMachines[name] = CraftingMachine.fromJson(this, machineJson);
       } catch (e) {
-        _logger.info(
-          'Encountered error when decoding crafting machine "$name"',
+        throw FactorioException(
+          'Encountered error when decoding crafting machine $name',
           e,
         );
-        rethrow;
       }
     });
 
-    _logger.info('decoding item groups');
     Map<String, Map> rawItemGroups = (factorioRawData['item-group'] as Map)
         .cast();
     rawItemGroups.forEach((name, groupJson) {
       try {
         itemGroups[name] = ItemGroup.fromJson(this, groupJson);
       } catch (e) {
-        _logger.info('Encountered error when decoding item group "$name"', e);
-        rethrow;
+        throw FactorioException(
+          'Encountered error when decoding item group $name',
+          e,
+        );
       }
     });
 
-    _logger.info('decoding item subgroups');
     Map<String, Map> rawItemSubgroups =
         (factorioRawData['item-subgroup'] as Map).cast();
     rawItemSubgroups.forEach((name, subgroupJson) {
       try {
         itemSubgroups[name] = ItemSubgroup.fromJson(this, subgroupJson);
       } catch (e) {
-        _logger.info(
-          'Encountered error when decoding item subgroup "$name"',
+        throw FactorioException(
+          'Encountered error when decoding item subgroup $name',
           e,
         );
-        rethrow;
       }
     });
 
-    _logger.info('decoding surfaces');
     Map<String, Map> rawSurfaces = {};
     for (var surfaceSection in surfaceSections) {
       rawSurfaces.addAll((factorioRawData[surfaceSection] as Map).cast());
@@ -245,19 +237,22 @@ class FactorioDatabase {
       try {
         surfaces[name] = Surface.fromJson(this, planetJson);
       } catch (e) {
-        _logger.info('Encountered errror when decoding planet "$name"', e);
-        rethrow;
+        throw FactorioException(
+          'Encountered error when decoding surface $name',
+          e,
+        );
       }
     });
 
-    _logger.info('decoding resources');
     Map<String, Map> rawResources = (factorioRawData['resource'] as Map).cast();
     rawResources.forEach((name, resourceJson) {
       try {
         resources[name] = Resource.fromJson(this, resourceJson);
       } catch (e) {
-        _logger.info('Encountered errror when decoding resource "$name"', e);
-        rethrow;
+        throw FactorioException(
+          'Encountered error when decoding resource $name',
+          e,
+        );
       }
     });
 
@@ -271,8 +266,6 @@ class FactorioDatabase {
   }
 
   void _buildIndices() {
-    _logger.info('Building non-lazy relationships');
-
     Map<String, List<Recipe>> craftingCategoryToRecipes = {};
     Map<String, List<CraftingMachine>> craftingCategoryToMachines = {};
     Map<String, List<SolidItem>> fuelCategoryToItems = {};
@@ -312,11 +305,10 @@ class FactorioDatabase {
           );
         }
       } catch (e) {
-        _logger.info(
-          'Encountered error when building relationships for recipe $name',
+        throw FactorioException(
+          'Encountered exception when building relationships for recipe $name',
           e,
         );
-        rethrow;
       }
     });
 
@@ -330,11 +322,10 @@ class FactorioDatabase {
           );
         }
       } catch (e) {
-        _logger.info(
+        throw FactorioException(
           'Encountered error when building relationships for crafting machine $name',
           e,
         );
-        rethrow;
       }
     });
 
@@ -378,11 +369,10 @@ class FactorioDatabase {
           }
         }
       } catch (e) {
-        _logger.info(
+        throw FactorioException(
           'Encountered error when building relationships for item $name',
           e,
         );
-        rethrow;
       }
     });
 

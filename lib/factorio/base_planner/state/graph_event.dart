@@ -1,7 +1,7 @@
 part of 'state.dart';
 
 class GraphEvent extends MutationEvent {
-  final PlanetBaseGraph graph;
+  final ProductionLineGraph graph;
 
   final Set<GraphEventType> mutations;
 
@@ -41,7 +41,7 @@ class GraphEvent extends MutationEvent {
           ? const []
           : oldEdges!.where((edge) => !newEdges!.contains(edge)).toList());
 
-  GraphEvent.newNode(PlanetBaseGraph graph, ProdLineNode newNode)
+  GraphEvent.newNode(ProductionLineGraph graph, ProdLineNode newNode)
     : this._(
         graph,
         const {GraphEventType.updateNodes},
@@ -49,7 +49,7 @@ class GraphEvent extends MutationEvent {
         newNodes: [...graph.nodes, newNode],
       );
 
-  GraphEvent.removeNode(PlanetBaseGraph graph, ProdLineNode removedNode)
+  GraphEvent.removeNode(ProductionLineGraph graph, ProdLineNode removedNode)
     : this._(
         graph,
         const {GraphEventType.updateNodes},
@@ -57,7 +57,7 @@ class GraphEvent extends MutationEvent {
         newNodes: List.from(graph.nodes)..remove(removedNode),
       );
 
-  GraphEvent.newEdge(PlanetBaseGraph graph, DirectedEdge newEdge)
+  GraphEvent.newEdge(ProductionLineGraph graph, DirectedEdge newEdge)
     : this._(
         graph,
         const {GraphEventType.updateEdges},
@@ -65,7 +65,7 @@ class GraphEvent extends MutationEvent {
         newEdges: [...graph.edges, newEdge],
       );
 
-  GraphEvent.removeEdge(PlanetBaseGraph graph, DirectedEdge removedEdge)
+  GraphEvent.removeEdge(ProductionLineGraph graph, DirectedEdge removedEdge)
     : this._(
         graph,
         const {GraphEventType.updateEdges},
@@ -74,7 +74,7 @@ class GraphEvent extends MutationEvent {
       );
 
   GraphEvent.removeMultipleEdges(
-    PlanetBaseGraph graph,
+    ProductionLineGraph graph,
     Iterable<DirectedEdge> removedEdges,
   ) : this._(
         graph,
@@ -83,7 +83,7 @@ class GraphEvent extends MutationEvent {
         newEdges: Set.from(graph.edges)..removeAll(removedEdges),
       );
 
-  GraphEvent.clearGraph(PlanetBaseGraph graph)
+  GraphEvent.clearGraph(ProductionLineGraph graph)
     : this._(
         graph,
         const {GraphEventType.updateNodes, GraphEventType.updateEdges},
@@ -93,7 +93,7 @@ class GraphEvent extends MutationEvent {
         newEdges: const [],
       );
 
-  GraphEvent.newInput(PlanetBaseGraph graph, InGameItem newInput)
+  GraphEvent.newInput(ProductionLineGraph graph, InGameItem newInput)
     : this._(
         graph,
         const {GraphEventType.updateInput},
@@ -101,7 +101,7 @@ class GraphEvent extends MutationEvent {
         newInputs: [...graph.inputItems, newInput],
       );
 
-  GraphEvent.removeInput(PlanetBaseGraph graph, InGameItem removedInput)
+  GraphEvent.removeInput(ProductionLineGraph graph, InGameItem removedInput)
     : this._(
         graph,
         const {GraphEventType.updateInput},
@@ -109,7 +109,7 @@ class GraphEvent extends MutationEvent {
         newInputs: List.from(graph.inputItems)..remove(removedInput),
       );
 
-  GraphEvent.newOutput(PlanetBaseGraph graph, InGameItem newOutput)
+  GraphEvent.newOutput(ProductionLineGraph graph, InGameItem newOutput)
     : this._(
         graph,
         const {GraphEventType.updateOutput},
@@ -117,7 +117,7 @@ class GraphEvent extends MutationEvent {
         newOutputs: [...graph.outputItems, newOutput],
       );
 
-  GraphEvent.removeOutput(PlanetBaseGraph graph, InGameItem removedOutput)
+  GraphEvent.removeOutput(ProductionLineGraph graph, InGameItem removedOutput)
     : this._(
         graph,
         const {GraphEventType.updateOutput},
@@ -126,7 +126,7 @@ class GraphEvent extends MutationEvent {
       );
 
   GraphEvent.newIoRatios(
-    PlanetBaseGraph graph, {
+    ProductionLineGraph graph, {
     required ItemAmounts newInputRatios,
     required ItemAmounts newOutputRatios,
   }) : this._(
@@ -138,7 +138,7 @@ class GraphEvent extends MutationEvent {
          newOutputRatios: newOutputRatios,
        );
 
-  GraphEvent.clearIoRatios(PlanetBaseGraph graph)
+  GraphEvent.clearIoRatios(ProductionLineGraph graph)
     : this._(
         graph,
         {GraphEventType.updateRatios},
@@ -146,15 +146,17 @@ class GraphEvent extends MutationEvent {
         oldOutputRatios: graph.outputRatios,
       );
 
-  GraphEvent.updateGeometry(PlanetBaseGraph graph, GraphGeometry newGeometry)
-    : this._(
+  GraphEvent.updateGeometry(
+    ProductionLineGraph graph,
+    GraphGeometry newGeometry,
+  ) : this._(
         graph,
         {GraphEventType.geometryUpdate},
         oldGeometry: graph.geometry,
         newGeometry: newGeometry,
       );
 
-  GraphEvent.clearGeometry(PlanetBaseGraph graph)
+  GraphEvent.clearGeometry(ProductionLineGraph graph)
     : this._(
         graph,
         {GraphEventType.geometryUpdate},

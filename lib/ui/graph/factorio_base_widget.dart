@@ -1,14 +1,14 @@
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
-import 'package:factorio_ratios/factorio/graph/geometry/geometry.dart';
-import 'package:factorio_ratios/factorio/graph/graph.dart';
-import 'package:factorio_ratios/factorio/graph/state/state.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
+import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/base_planner/state/state.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/ui/factorio_menu.dart';
 import 'package:factorio_ratios/ui/graph/graph_widget.dart';
 import 'package:flutter/material.dart';
 
 class FactorioBaseWidget extends StatefulWidget {
-  final FactorioBase base;
+  final BasePlanner base;
 
   const FactorioBaseWidget({super.key, required this.base});
 
@@ -17,12 +17,12 @@ class FactorioBaseWidget extends StatefulWidget {
 }
 
 class _FactorioBaseWidgetState extends State<FactorioBaseWidget> {
-  final Map<PlanetBaseGraph, GraphWidget> graphWidgets = {};
+  final Map<ProductionLineGraph, GraphWidget> graphWidgets = {};
   late final GraphChangeNotifier graphChangeNotifier = GraphChangeNotifier(
     activeGraph: widget.base.rootGraph,
   );
 
-  PlanetBaseGraph get activeGraph => graphChangeNotifier._activeGraph;
+  ProductionLineGraph get activeGraph => graphChangeNotifier._activeGraph;
   ProdLineNode? get activeNode => graphChangeNotifier._activeNode;
   bool get selectionMenuActive => graphChangeNotifier._selectionMenuActive;
   FactorioDatabase get factorioDb => widget.base.factorioDb;
@@ -67,14 +67,14 @@ class _FactorioBaseWidgetState extends State<FactorioBaseWidget> {
 }
 
 class GraphChangeNotifier extends ChangeNotifier {
-  PlanetBaseGraph _activeGraph;
+  ProductionLineGraph _activeGraph;
   ProdLineNode? _activeNode;
   bool _selectionMenuActive;
   final Set<ProdLineNode> _selectedNodes = {};
   final Set<DirectedEdge> _selectedEdges = {};
 
   GraphChangeNotifier({
-    required PlanetBaseGraph activeGraph,
+    required ProductionLineGraph activeGraph,
     ProdLineNode? activeNode,
     bool selectionMenuActive = false,
   }) : _selectionMenuActive = selectionMenuActive,
@@ -86,7 +86,7 @@ class GraphChangeNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateActiveGraph(PlanetBaseGraph newGraph) {
+  void updateActiveGraph(ProductionLineGraph newGraph) {
     if (_activeGraph != newGraph) {
       _selectionMenuActive = false;
       _activeNode = null;

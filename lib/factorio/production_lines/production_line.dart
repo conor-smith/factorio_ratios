@@ -140,10 +140,7 @@ abstract class ProductionLineIo {
 }
 
 class ProductionLineException extends FactorioException {
-  const ProductionLineException(super.message);
-
-  @override
-  String toString() => 'ProductionLineException: $message';
+  const ProductionLineException(super.message, [super.cause]);
 }
 
 class ValueAndDisplayData<T> {

@@ -1,8 +1,8 @@
 import 'dart:collection';
 import 'dart:ui';
 
-import 'package:factorio_ratios/factorio/graph/graph.dart';
-import 'package:factorio_ratios/factorio/graph/state/state.dart';
+import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/base_planner/state/state.dart';
 
 part 'edge_geometry.dart';
 part 'geometry_operation.dart';

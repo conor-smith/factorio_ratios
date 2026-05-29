@@ -1,18 +1,11 @@
 import 'dart:io';
 
-import 'package:factorio_ratios/factorio/graph/graph.dart';
+import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/ui/graph/factorio_base_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:logging/logging.dart';
 
 void main() {
-  Logger.root.onRecord.listen(
-    (event) => print(
-      '${event.level.name}: ${event.time}: ${event.loggerName}: ${event.message}',
-    ),
-  );
-
   runApp(MainApp());
 }
 
@@ -55,6 +48,6 @@ class FactorioRatiosApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FactorioBaseWidget(base: FactorioBase(factorioDb));
+    return FactorioBaseWidget(base: BasePlanner(factorioDb));
   }
 }

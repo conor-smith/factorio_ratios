@@ -1,4 +1,4 @@
-part of 'graph.dart';
+part of 'base_planner.dart';
 
 /// Represents a single node in the graph.
 ///
@@ -20,7 +20,7 @@ class ProdLineNode extends Stateful<NodeEvent> {
       minSideLength = 20,
       connectionOffset = 8;
 
-  final PlanetBaseGraph parentGraph;
+  final ProductionLineGraph parentGraph;
   final NodeType nodeType;
 
   _EventHistory get _history => parentGraph._history;

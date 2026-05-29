@@ -3,44 +3,44 @@ import 'dart:ui';
 
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
-import 'package:factorio_ratios/factorio/graph/geometry/geometry.dart';
-import 'package:factorio_ratios/factorio/graph/state/state.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
+import 'package:factorio_ratios/factorio/base_planner/state/state.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 
-part 'base_graph.dart';
+part 'graph.dart';
 part 'edge.dart';
 part 'event_history.dart';
 part 'node.dart';
 
 /// This object represents the entire base, and is the single source of truth for the app.
 /// Stores all event history, default recipes, and any global data.
-/// Every [PlanetBaseGraph] object will have reference to this object.
+/// Every [ProductionLineGraph] object will have reference to this object.
 ///
-/// Creates a single [PlanetBaseGraph] to act as the [rootGraph].
-/// As a planetBase is a production line, a [ProdLineNode] a [PlanetBaseGraph] object.
-/// Every [PlanetBaseGraph] is owned by a single node.
+/// Creates a single [ProductionLineGraph] to act as the [rootGraph].
+/// As a planetBase is a production line, a [ProdLineNode] a [ProductionLineGraph] object.
+/// Every [ProductionLineGraph] is owned by a single node.
 /// This ultimately creates a tree like structure where each graph can own several
 /// "child" graphs (via it's nodes), and each graph is owned by only one parent.
 /// The only exception to this being [rootGraph], which consequently cannot have
 /// input or output nodes.
 ///
 /// All state change operations must happen through this object.
-class FactorioBase extends EventNotifier {
+class BasePlanner extends Stateful<BasePlannerEvent> {
   final FactorioDatabase factorioDb;
   final _EventHistory _history;
 
   final List<InGameMachine> sortedMachines;
   final Map<Surface, SurfaceProperties> _surfaceProperties;
-  late final PlanetBaseGraph rootGraph;
+  late final ProductionLineGraph rootGraph;
 
   /// The graph to display in the UI
-  late PlanetBaseGraph _activeGraph;
+  late ProductionLineGraph _activeGraph;
 
   final Set<ProdLineNode> _selectedNodes = {};
   final Set<DirectedEdge> _selectedEdges = {};
 
-  PlanetBaseGraph get activeGraph => _activeGraph;
+  ProductionLineGraph get activeGraph => _activeGraph;
 
   late final Set<ProdLineNode> selectedNodes = UnmodifiableSetView(
     _selectedNodes,
@@ -49,7 +49,7 @@ class FactorioBase extends EventNotifier {
     _selectedEdges,
   );
 
-  FactorioBase(this.factorioDb)
+  BasePlanner(this.factorioDb)
     : _history = _EventHistory(20),
       _surfaceProperties = factorioDb.surfaceMap.map(
         (name, surface) => MapEntry(
@@ -76,7 +76,7 @@ class FactorioBase extends EventNotifier {
     var nauvis = factorioDb.surfaceMap['nauvis']!;
 
     // TODO - Top graph should have no surface
-    rootGraph = PlanetBaseGraph._root(
+    rootGraph = ProductionLineGraph._root(
       globalData: this,
       surface: nauvis,
       surfaceProperties: _surfaceProperties[nauvis]!,
@@ -84,7 +84,7 @@ class FactorioBase extends EventNotifier {
     _activeGraph = rootGraph;
   }
 
-  void changeActiveGraph(PlanetBaseGraph graph) {
+  void changeActiveGraph(ProductionLineGraph graph) {
     // TODO - ensure this new graph is valid
     _activeGraph = graph;
 
@@ -179,13 +179,25 @@ class FactorioBase extends EventNotifier {
   void activeGraphClearAllNodes() {
     activeGraph.clearAllNodes();
   }
+
+  @override
+  void apply(BasePlannerEvent event) {
+    // TODO: implement apply
+  }
+
+  @override
+  void redo(BasePlannerEvent event) {
+    // TODO: implement redo
+  }
+
+  @override
+  void rollback(BasePlannerEvent event) {
+    // TODO: implement rollback
+  }
 }
 
 class GraphException extends ProductionLineException {
-  const GraphException(super.message);
-
-  @override
-  String toString() => 'GraphException: $message';
+  const GraphException(super.message, [super.cause]);
 }
 
 class SurfaceProperties {

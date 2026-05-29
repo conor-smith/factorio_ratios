@@ -1,4 +1,4 @@
-part of 'graph.dart';
+part of 'base_planner.dart';
 
 /// Represents a flow of items between two [ProdLineNode] objects in the graph.
 ///
@@ -17,7 +17,7 @@ part of 'graph.dart';
 /// an input constraint.
 class DirectedEdge extends Stateful<EdgeEvent> {
   /* ------------- Immutable fields ------------- */
-  final PlanetBaseGraph parentGraph;
+  final ProductionLineGraph parentGraph;
   final _EventHistory _eventHistory;
 
   final ProdLineNode parent;

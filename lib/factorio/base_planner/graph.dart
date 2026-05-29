@@ -1,4 +1,4 @@
-part of 'graph.dart';
+part of 'base_planner.dart';
 
 /// Represents a single base on a single surface.
 /// In this context, a "base" is just any collection of connected production lines.
@@ -55,11 +55,11 @@ part of 'graph.dart';
 /// Eg. If a particular operation results in multiple new nodes being added,
 /// listeners will only receive one update containing all new nodes, rather than
 /// one update for each node.
-class PlanetBaseGraph extends Stateful<GraphEvent>
-    with ProductionLine<PlanetBaseIo> {
+class ProductionLineGraph extends Stateful<GraphEvent>
+    with ProductionLine<BaseGraphIo> {
   // TODO - support loops
   // TODO - Allow for multiple nodes producing the same item
-  final FactorioBase globalData;
+  final BasePlanner globalData;
 
   _EventHistory get _history => globalData._history;
 
@@ -130,7 +130,7 @@ class PlanetBaseGraph extends Stateful<GraphEvent>
     }
   }
 
-  PlanetBaseGraph._root({
+  ProductionLineGraph._root({
     required this.globalData,
     this.surface,
     this.surfaceProperties,
@@ -184,14 +184,14 @@ class PlanetBaseGraph extends Stateful<GraphEvent>
   /// be connected to first node of type [NodeType.disposal] or [NodeType.producer]
   /// that satisfies this requirement. If none exists, a new node will be created
   @override
-  PlanetBaseIo calculate({
+  BaseGraphIo calculate({
     ItemAmounts inputConstraints = const {},
     ItemAmounts outputConstraints = const {},
   }) {
     // TODO - This method assumes the graph is already 100% verified
     verifyConstraintsAndIo(inputConstraints, outputConstraints);
 
-    PlanetBaseIo? io;
+    BaseGraphIo? io;
     _history.mutate(() {
       _buildNodeCache();
 
@@ -361,7 +361,7 @@ class PlanetBaseGraph extends Stateful<GraphEvent>
         }
       }
 
-      io = PlanetBaseIo(
+      io = BaseGraphIo(
         inputConstraints: inputConstraints,
         outputConstraints: outputConstraints,
         netOutput: finalOutput,
@@ -987,8 +987,8 @@ class PlanetBaseGraph extends Stateful<GraphEvent>
   }
 }
 
-class PlanetBaseIo extends ProductionLineIo {
-  PlanetBaseIo({
+class BaseGraphIo extends ProductionLineIo {
+  BaseGraphIo({
     required super.inputConstraints,
     required super.outputConstraints,
     required super.netOutput,
