@@ -13,7 +13,7 @@ part of 'graph.dart';
 /// [ProductionLine.calculate] is called, we do not need to determine IO to
 /// build the graph. As such, [ioData] and the [DirectedEdge.amount] field
 /// of all child edges will be null until [calculateAndCache] is called
-class ProdLineNode with Stateful<NodeEvent> {
+class ProdLineNode extends Stateful<NodeEvent> {
   static const double defaultWidth = 100,
       defaultHeight = 100,
       defaultOffset = 50,

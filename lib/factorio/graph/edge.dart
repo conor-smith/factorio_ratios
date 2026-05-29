@@ -15,7 +15,7 @@ part of 'graph.dart';
 /// In this application, this would be represented by an edge of type
 /// [Relationship.acceptExcess], sending excess stone to another node and setting
 /// an input constraint.
-class DirectedEdge with Stateful<EdgeEvent> {
+class DirectedEdge extends Stateful<EdgeEvent> {
   /* ------------- Immutable fields ------------- */
   final PlanetBaseGraph parentGraph;
   final _EventHistory _eventHistory;

@@ -15,9 +15,7 @@ class GraphEvent extends MutationEvent {
       newOutputRatios;
 
   final GraphEvent? _original;
-  @override
   final bool isReversed;
-  @override
   late final GraphEvent reversed = _original ?? GraphEvent._reverse(this);
 
   // These are useful for the UI

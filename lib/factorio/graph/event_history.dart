@@ -87,7 +87,7 @@ class _EventHistory {
 
       _committedEvents.add(newEvent);
 
-      newEvent.notifyListeners(false);
+      newEvent.notifyListeners();
     }
   }
 
@@ -155,10 +155,7 @@ class _UpdateEvent {
     });
   }
 
-  void notifyListeners(bool isRollback) {
-    events.forEach(
-      (mutable, event) =>
-          mutable.notifyListeners(isRollback ? event.reversed : event),
-    );
+  void notifyListeners() {
+    events.forEach((mutable, event) => mutable.notifyListeners(event));
   }
 }

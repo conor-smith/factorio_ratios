@@ -3,18 +3,12 @@ import 'package:factorio_ratios/factorio/graph/graph.dart';
 import 'package:factorio_ratios/factorio/graph/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 
+part 'base_event.dart';
 part 'edge_event.dart';
 part 'graph_event.dart';
 part 'node_event.dart';
 
-/// A stateful class can only have it's internal state be meaningfully modified
-/// by applying a MutationEvent.
-/// Said mutationEvents can also be rolled back and redone, completely restoring
-/// a previously existing state.
-///
-/// A stateful object can be listened to.
-/// The object may update listeners with events as required.
-abstract mixin class Stateful<T extends MutationEvent> {
+abstract class EventNotifier<T extends MutationEvent> {
   final List<Function(T update)> _listeners = [];
 
   void addListener(Function(T event) callback) {
@@ -30,18 +24,24 @@ abstract mixin class Stateful<T extends MutationEvent> {
       callback(update);
     }
   }
+}
 
+/// A stateful class can only have it's internal state be meaningfully modified
+/// by applying a MutationEvent.
+/// Said mutationEvents can also be rolled back and redone, completely restoring
+/// a previously existing state.
+///
+/// A stateful object can be listened to.
+/// The object may update listeners with events as required.
+abstract class Stateful<T extends MutationEvent> extends EventNotifier<T> {
   void apply(T event);
   void redo(T event);
   void rollback(T event);
 }
 
-/// Represents a single, reversible state update
-/// A mutation event needn't necessarily be atomic
-abstract class MutationEvent {
-  bool get isReversed;
-  MutationEvent get reversed;
-}
+/// Represents a single state update
+/// A mutation event isn't necessarily atomic
+abstract class MutationEvent {}
 
 class MutationException implements Exception {
   final String message;

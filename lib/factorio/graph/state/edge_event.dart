@@ -8,9 +8,7 @@ class EdgeEvent extends MutationEvent {
   final EdgeGeometry? oldGeometry, newGeometry;
 
   final EdgeEvent? original;
-  @override
   final bool isReversed;
-  @override
   late final EdgeEvent reversed = original ?? EdgeEvent._reverse(this);
 
   EdgeEvent.newAmount(DirectedEdge edge, double newAmount)

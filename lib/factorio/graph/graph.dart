@@ -26,7 +26,7 @@ part 'node.dart';
 /// input or output nodes.
 ///
 /// All state change operations must happen through this object.
-class FactorioBase {
+class FactorioBase extends EventNotifier {
   final FactorioDatabase factorioDb;
   final _EventHistory _history;
 

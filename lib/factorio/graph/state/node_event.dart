@@ -15,9 +15,7 @@ class NodeEvent extends MutationEvent {
       newOutputConstraints;
 
   final NodeEvent? original;
-  @override
   final bool isReversed;
-  @override
   late final NodeEvent reversed = original ?? NodeEvent._reverse(this);
 
   NodeEvent.clearParentsAndChildren(ProdLineNode node)

@@ -55,7 +55,8 @@ part of 'graph.dart';
 /// Eg. If a particular operation results in multiple new nodes being added,
 /// listeners will only receive one update containing all new nodes, rather than
 /// one update for each node.
-class PlanetBaseGraph with ProductionLine<PlanetBaseIo>, Stateful<GraphEvent> {
+class PlanetBaseGraph extends Stateful<GraphEvent>
+    with ProductionLine<PlanetBaseIo> {
   // TODO - support loops
   // TODO - Allow for multiple nodes producing the same item
   final FactorioBase globalData;
