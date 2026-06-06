@@ -1,5 +1,5 @@
+import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
-import 'package:factorio_ratios/factorio/old_base_planner/base_planner.dart';
 
 class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   final BasePlanner basePlanner;
@@ -8,17 +8,18 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   final int id;
 
   final EventNotifier<EdgeEvent> _notifier = EventNotifier();
-  EdgeState _state;
+  late EdgeState _state;
 
-  Edge(this.basePlanner)
-    : id = BasePlannerElement.generateId(),
-      _state = EdgeState.uninitialised;
+  Edge(this.basePlanner) : id = BasePlannerElement.generateId() {
+    basePlanner.initialiseEdge(this);
+  }
 
   @override
   EdgeState get state => _state;
   @override
   set state(EdgeState state) {
-    // TODO: implement state setter
+    basePlanner.throwIfMutationNotPermitted();
+    _state = state;
   }
 
   @override
@@ -29,7 +30,7 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   @override
   void clearCallback() => _notifier.clearCallback();
   @override
-  void notifyListener(event) => _notifier.notifyListener(event);
+  void notifyListener(EdgeEvent event) => _notifier.notifyListener(event);
 
   @override
   void notifyListenerOfStateChange(
@@ -47,10 +48,6 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
 }
 
 class EdgeState implements ElementState {
-  static const uninitialised = EdgeState();
-
-  const EdgeState();
-
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
@@ -59,6 +56,8 @@ class EdgeState implements ElementState {
 }
 
 class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
+  EdgeStateBuilder.from(EdgeState state);
+
   @override
   EdgeState build() {
     // TODO: implement build

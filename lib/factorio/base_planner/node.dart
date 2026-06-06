@@ -8,17 +8,18 @@ class Node implements BasePlannerElement<NodeState, NodeEvent> {
   final int id;
 
   final EventNotifier<NodeEvent> _notifier = EventNotifier();
-  NodeState _state;
+  late NodeState _state;
 
-  Node(this.basePlanner)
-    : id = BasePlannerElement.generateId(),
-      _state = NodeState.uninitialised;
+  Node(this.basePlanner) : id = BasePlannerElement.generateId() {
+    basePlanner.initialiseNode(this);
+  }
 
   @override
   NodeState get state => _state;
   @override
   set state(NodeState state) {
-    // TODO: implement state setter
+    basePlanner.throwIfMutationNotPermitted();
+    _state = state;
   }
 
   @override
@@ -29,7 +30,7 @@ class Node implements BasePlannerElement<NodeState, NodeEvent> {
   @override
   void clearCallback() => _notifier.clearCallback();
   @override
-  void notifyListener(event) => _notifier.notifyListener(event);
+  void notifyListener(NodeEvent event) => _notifier.notifyListener(event);
 
   @override
   void notifyListenerOfStateChange(
@@ -47,10 +48,6 @@ class Node implements BasePlannerElement<NodeState, NodeEvent> {
 }
 
 class NodeState implements ElementState {
-  static const uninitialised = NodeState();
-
-  const NodeState();
-
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
@@ -59,6 +56,8 @@ class NodeState implements ElementState {
 }
 
 class NodeStateBuilder implements Builder<NodeState>, NodeState {
+  NodeStateBuilder.from(NodeState state);
+
   @override
   NodeState build() {
     // TODO: implement build
@@ -72,4 +71,6 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   }
 }
 
-class NodeEvent {}
+class NodeEvent {
+  // TODO
+}

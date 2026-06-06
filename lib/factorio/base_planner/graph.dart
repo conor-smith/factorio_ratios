@@ -8,17 +8,18 @@ class Graph implements BasePlannerElement<GraphState, GraphEvent> {
   final int id;
 
   final EventNotifier<GraphEvent> _notifier = EventNotifier();
-  GraphState _state;
+  late GraphState _state;
 
-  Graph(this.basePlanner)
-    : id = BasePlannerElement.generateId(),
-      _state = GraphState.uninitialised;
+  Graph(this.basePlanner) : id = BasePlannerElement.generateId() {
+    basePlanner.initialiseGraph(this);
+  }
 
   @override
   GraphState get state => _state;
   @override
   set state(GraphState state) {
-    // TODO: implement state setter
+    basePlanner.throwIfMutationNotPermitted();
+    _state = state;
   }
 
   @override
@@ -29,7 +30,7 @@ class Graph implements BasePlannerElement<GraphState, GraphEvent> {
   @override
   void clearCallback() => _notifier.clearCallback();
   @override
-  void notifyListener(event) => _notifier.notifyListener(event);
+  void notifyListener(GraphEvent event) => _notifier.notifyListener(event);
 
   @override
   void notifyListenerOfStateChange(
@@ -47,10 +48,6 @@ class Graph implements BasePlannerElement<GraphState, GraphEvent> {
 }
 
 class GraphState implements ElementState {
-  static const uninitialised = GraphState();
-
-  const GraphState();
-
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
@@ -59,6 +56,9 @@ class GraphState implements ElementState {
 }
 
 class GraphStateBuilder implements Builder<GraphState>, GraphState {
+  GraphStateBuilder();
+  GraphStateBuilder.from(GraphState state);
+
   @override
   GraphState build() {
     // TODO: implement build
