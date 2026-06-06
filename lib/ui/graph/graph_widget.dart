@@ -1,5 +1,5 @@
-import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
-import 'package:factorio_ratios/factorio/base_planner/state/state.dart';
+import 'package:factorio_ratios/factorio/old_base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/old_base_planner/state/state.dart';
 import 'package:factorio_ratios/ui/graph/edge_widget.dart';
 import 'package:factorio_ratios/ui/graph/node_widget.dart';
 import 'package:factorio_ratios/ui/graph/factorio_base_widget.dart';

@@ -1,6 +1,6 @@
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
-import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
-import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
+import 'package:factorio_ratios/factorio/old_base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/old_base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 

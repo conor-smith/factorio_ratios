@@ -1,6 +1,6 @@
-import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
-import 'package:factorio_ratios/factorio/base_planner/state/state.dart';
+import 'package:factorio_ratios/factorio/old_base_planner/geometry/geometry.dart';
+import 'package:factorio_ratios/factorio/old_base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/old_base_planner/state/state.dart';
 import 'package:flutter/material.dart';
 
 class EdgeWidget extends StatefulWidget {

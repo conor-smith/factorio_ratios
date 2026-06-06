@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/old_base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/ui/graph/factorio_base_widget.dart';
 import 'package:flutter/material.dart';

@@ -1,7 +1,7 @@
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
-import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
-import 'package:factorio_ratios/factorio/base_planner/state/state.dart';
+import 'package:factorio_ratios/factorio/old_base_planner/geometry/geometry.dart';
+import 'package:factorio_ratios/factorio/old_base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/old_base_planner/state/state.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/ui/factorio_menu.dart';
 import 'package:factorio_ratios/ui/graph/graph_widget.dart';
