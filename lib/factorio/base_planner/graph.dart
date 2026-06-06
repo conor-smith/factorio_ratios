@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node.dart';
 import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
@@ -68,11 +69,14 @@ class GraphState implements ElementState {
   final Set<Edge> edges;
   final Set<Graph> childGraphs;
 
+  final NodeGeometry nodeGeometry;
+
   GraphState(
     Graph graph, {
     Iterable<Node> nodes = const {},
     Iterable<Edge> edges = const {},
     Iterable<Graph> childGraphs = const {},
+    this.nodeGeometry = NodeGeometry.uninitialised,
   }) : _graph = graph,
        nodes = Set.unmodifiable(nodes),
        edges = Set.unmodifiable(edges),
@@ -94,6 +98,7 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
   final Set<Node> _nodes;
   final Set<Edge> _edges;
   final Set<Graph> _childGraphs;
+  NodeGeometry _nodeGeometry;
 
   @override
   late final Set<Node> nodes = UnmodifiableSetView(_nodes);
@@ -101,6 +106,8 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
   late final Set<Edge> edges = UnmodifiableSetView(_edges);
   @override
   late final Set<Graph> childGraphs = UnmodifiableSetView(_childGraphs);
+  @override
+  NodeGeometry get nodeGeometry => _nodeGeometry;
 
   factory GraphStateBuilder.from(GraphState state) {
     if (state is GraphStateBuilder) {
@@ -114,7 +121,8 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
     : _graph = state._graph,
       _nodes = Set.from(state.nodes),
       _edges = Set.from(state.edges),
-      _childGraphs = Set.from(state.childGraphs);
+      _childGraphs = Set.from(state.childGraphs),
+      _nodeGeometry = state.nodeGeometry;
 
   void addNode(Node node) => _nodes.add(node);
   void removeNode(Node node) => _nodes.remove(node);
@@ -125,9 +133,17 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
   void addChildGraph(Graph childGraph) => _childGraphs.add(childGraph);
   void removeChildGraph(Graph childGraph) => _childGraphs.remove(childGraph);
 
+  void updateGeometry(NodeGeometry nodeGeometry) =>
+      _nodeGeometry = nodeGeometry;
+
   @override
-  GraphState build() =>
-      GraphState(_graph, nodes: nodes, edges: edges, childGraphs: childGraphs);
+  GraphState build() => GraphState(
+    _graph,
+    nodes: nodes,
+    edges: edges,
+    childGraphs: childGraphs,
+    nodeGeometry: _nodeGeometry,
+  );
 
   @override
   Map<String, dynamic> toJson() {

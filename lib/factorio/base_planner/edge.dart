@@ -1,4 +1,5 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node.dart';
 import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
@@ -74,7 +75,13 @@ class EdgeState implements ElementState {
 
   final double? amount;
 
-  EdgeState(Edge edge, {this.amount}) : _edge = edge {
+  final EdgeGeometry edgeGeometry;
+
+  EdgeState(
+    Edge edge, {
+    this.amount,
+    this.edgeGeometry = EdgeGeometry.uninitialised,
+  }) : _edge = edge {
     // TODO: verification
   }
 
@@ -91,8 +98,13 @@ class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
 
   double? _amount;
 
+  EdgeGeometry _edgeGeometry;
+
   @override
   double? get amount => _amount;
+
+  @override
+  EdgeGeometry get edgeGeometry => _edgeGeometry;
 
   factory EdgeStateBuilder.from(EdgeState state) {
     if (state is EdgeStateBuilder) {
@@ -104,13 +116,18 @@ class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
 
   EdgeStateBuilder._from(EdgeState state)
     : _edge = state._edge,
-      _amount = state.amount;
+      _amount = state.amount,
+      _edgeGeometry = state.edgeGeometry;
 
   void updateAmount(double amount) => _amount = amount;
   void clearAmount() => _amount = 0;
 
+  void updateGeometry(EdgeGeometry edgeGeometry) =>
+      _edgeGeometry = edgeGeometry;
+
   @override
-  EdgeState build() => EdgeState(_edge, amount: amount);
+  EdgeState build() =>
+      EdgeState(_edge, amount: amount, edgeGeometry: _edgeGeometry);
 
   @override
   Map<String, dynamic> toJson() {

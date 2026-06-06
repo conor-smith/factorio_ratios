@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
@@ -73,6 +74,8 @@ class NodeState implements ElementState {
   final ProductionLine productionLine;
   final ProductionLineIo? io;
 
+  final NodeGeometry nodeGeometry;
+
   final Set<Edge> parents;
   final Set<Edge> children;
 
@@ -82,6 +85,7 @@ class NodeState implements ElementState {
     ItemAmounts? requiredOutput,
     required this.productionLine,
     this.io,
+    this.nodeGeometry = NodeGeometry.uninitialised,
     Iterable<Edge> parents = const {},
     Iterable<Edge> children = const {},
   }) : _node = node,
@@ -113,6 +117,8 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   ProductionLine _productionLine;
   ProductionLineIo? _io;
 
+  NodeGeometry _nodeGeometry;
+
   final Set<Edge> _parents;
   final Set<Edge> _children;
 
@@ -125,6 +131,9 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   ProductionLine get productionLine => _productionLine;
   @override
   ProductionLineIo? get io => _io;
+
+  @override
+  NodeGeometry get nodeGeometry => _nodeGeometry;
 
   @override
   late final Set<Edge> parents = UnmodifiableSetView(parents);
@@ -145,6 +154,7 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
       _requiredOutput = state.requiredOutput,
       _productionLine = state.productionLine,
       _io = state.io,
+      _nodeGeometry = state.nodeGeometry,
       _parents = Set.from(state.parents),
       _children = Set.from(state.children);
 
@@ -177,6 +187,9 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
     );
   }
 
+  void updateGeometry(NodeGeometry nodeGeometry) =>
+      _nodeGeometry = nodeGeometry;
+
   void addParent(Edge parent) => _parents.add(parent);
   void removeParent(Edge parent) => _parents.remove(parent);
 
@@ -190,6 +203,7 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
     requiredOutput: _requiredOutput,
     productionLine: _productionLine,
     io: _io,
+    nodeGeometry: nodeGeometry,
     parents: _parents,
     children: _children,
   );
