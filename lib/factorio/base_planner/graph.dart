@@ -1,8 +1,14 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/base_planner/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/node.dart';
 import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
+import 'package:factorio_ratios/factorio/models/models.dart';
 
 class Graph implements BasePlannerElement<GraphState, GraphEvent> {
   final BasePlanner basePlanner;
+
+  final Surface? surface;
+  final Graph? parentGraph;
 
   @override
   final int id;
@@ -10,8 +16,14 @@ class Graph implements BasePlannerElement<GraphState, GraphEvent> {
   final EventNotifier<GraphEvent> _notifier = EventNotifier();
   late GraphState _state;
 
-  Graph(this.basePlanner) : id = BasePlannerElement.generateId() {
+  Graph({required this.basePlanner, this.surface, this.parentGraph})
+    : id = BasePlannerElement.generateId() {
+    _state = GraphState(this);
     basePlanner.initialiseGraph(this);
+
+    if (parentGraph != null) {
+      basePlanner.getGraphStateBuilder(parentGraph!).childGraphs.add(this);
+    }
   }
 
   @override
@@ -48,6 +60,24 @@ class Graph implements BasePlannerElement<GraphState, GraphEvent> {
 }
 
 class GraphState implements ElementState {
+  final Graph _graph;
+
+  final Set<Node> nodes;
+  final Set<Edge> edges;
+  final Set<Graph> childGraphs;
+
+  GraphState(
+    Graph graph, {
+    Iterable<Node> nodes = const {},
+    Iterable<Edge> edges = const {},
+    Iterable<Graph> childGraphs = const {},
+  }) : _graph = graph,
+       nodes = Set.unmodifiable(nodes),
+       edges = Set.unmodifiable(edges),
+       childGraphs = Set.unmodifiable(childGraphs) {
+    // TODO: Validation
+  }
+
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
@@ -56,14 +86,33 @@ class GraphState implements ElementState {
 }
 
 class GraphStateBuilder implements Builder<GraphState>, GraphState {
-  GraphStateBuilder();
-  GraphStateBuilder.from(GraphState state);
+  @override
+  final Graph _graph;
 
   @override
-  GraphState build() {
-    // TODO: implement build
-    throw UnimplementedError();
+  final Set<Node> nodes;
+  @override
+  final Set<Edge> edges;
+  @override
+  final Set<Graph> childGraphs;
+
+  factory GraphStateBuilder.from(GraphState state) {
+    if (state is GraphStateBuilder) {
+      return state;
+    } else {
+      return GraphStateBuilder._from(state);
+    }
   }
+
+  GraphStateBuilder._from(GraphState state)
+    : _graph = state._graph,
+      nodes = Set.from(state.nodes),
+      edges = Set.from(state.edges),
+      childGraphs = Set.from(state.childGraphs);
+
+  @override
+  GraphState build() =>
+      GraphState(_graph, nodes: nodes, edges: edges, childGraphs: childGraphs);
 
   @override
   Map<String, dynamic> toJson() {
@@ -73,3 +122,7 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
 }
 
 class GraphEvent {}
+
+class GraphException extends BasePlannerException {
+  const GraphException(super.message, [super.cause]);
+}

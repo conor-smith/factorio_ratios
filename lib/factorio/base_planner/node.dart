@@ -1,5 +1,9 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/base_planner/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
+import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
+import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 
 class Node implements BasePlannerElement<NodeState, NodeEvent> {
   final BasePlanner basePlanner;
@@ -7,11 +11,22 @@ class Node implements BasePlannerElement<NodeState, NodeEvent> {
   @override
   final int id;
 
+  final Graph parentGraph;
+  final NodeType nodeType;
+
   final EventNotifier<NodeEvent> _notifier = EventNotifier();
   late NodeState _state;
 
-  Node(this.basePlanner) : id = BasePlannerElement.generateId() {
+  Node({
+    required this.basePlanner,
+    required this.parentGraph,
+    required this.nodeType,
+    required ProductionLine productionLine,
+  }) : id = BasePlannerElement.generateId() {
+    _state = NodeState(node: this, productionLine: productionLine);
     basePlanner.initialiseNode(this);
+
+    basePlanner.getGraphStateBuilder(parentGraph).nodes.add(this);
   }
 
   @override
@@ -48,6 +63,37 @@ class Node implements BasePlannerElement<NodeState, NodeEvent> {
 }
 
 class NodeState implements ElementState {
+  final Node _node;
+
+  final ItemAmounts? requiredInput;
+  final ItemAmounts? requiredOutput;
+
+  final ProductionLine productionLine;
+  final ProductionLineIo? io;
+
+  final Set<Edge> parents;
+  final Set<Edge> children;
+
+  NodeState({
+    required Node node,
+    ItemAmounts? requiredInput,
+    ItemAmounts? requiredOutput,
+    required this.productionLine,
+    this.io,
+    Iterable<Edge> parents = const {},
+    Iterable<Edge> children = const {},
+  }) : _node = node,
+       requiredInput = requiredInput != null
+           ? Map.unmodifiable(requiredInput)
+           : null,
+       requiredOutput = requiredOutput != null
+           ? Map.unmodifiable(requiredOutput)
+           : null,
+       parents = Set.unmodifiable(parents),
+       children = Set.unmodifiable(children) {
+    // TODO: Validation
+  }
+
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
@@ -56,7 +102,44 @@ class NodeState implements ElementState {
 }
 
 class NodeStateBuilder implements Builder<NodeState>, NodeState {
-  NodeStateBuilder.from(NodeState state);
+  @override
+  final Node _node;
+
+  @override
+  ItemAmounts? requiredInput;
+  @override
+  ItemAmounts? requiredOutput;
+
+  @override
+  ProductionLine productionLine;
+  @override
+  ProductionLineIo? io;
+
+  @override
+  final Set<Edge> parents;
+  @override
+  final Set<Edge> children;
+
+  factory NodeStateBuilder.from(NodeState state) {
+    if (state is NodeStateBuilder) {
+      return state;
+    } else {
+      return NodeStateBuilder._from(state);
+    }
+  }
+
+  NodeStateBuilder._from(NodeState state)
+    : _node = state._node,
+      requiredInput = state.requiredInput != null
+          ? Map.from(state.requiredInput!)
+          : null,
+      requiredOutput = state.requiredOutput != null
+          ? Map.from(state.requiredOutput!)
+          : null,
+      productionLine = state.productionLine,
+      io = state.io,
+      parents = Set.from(state.parents),
+      children = Set.from(state.children);
 
   @override
   NodeState build() {
@@ -73,4 +156,14 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
 
 class NodeEvent {
   // TODO
+}
+
+enum NodeType {
+  consumer,
+  producer,
+  input,
+  output,
+  resource,
+  disposal,
+  productionLine,
 }
