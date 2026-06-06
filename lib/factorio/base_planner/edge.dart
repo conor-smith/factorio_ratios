@@ -27,11 +27,13 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
     required this.child,
     required this.item,
   }) : id = BasePlannerElement.generateId() {
+    _state = EdgeState(this);
+
     basePlanner.initialiseEdge(this);
 
-    basePlanner.getGraphStateBuilder(parentGraph).edges.add(this);
-    basePlanner.getNodeStateBuilder(parent).children.add(this);
-    basePlanner.getNodeStateBuilder(child).parents.add(this);
+    basePlanner.getGraphStateBuilder(parentGraph).addEdge(this);
+    basePlanner.getNodeStateBuilder(parent).addChild(this);
+    basePlanner.getNodeStateBuilder(child).addParent(this);
   }
 
   @override
@@ -87,8 +89,10 @@ class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
   @override
   final Edge _edge;
 
+  double? _amount;
+
   @override
-  double? amount;
+  double? get amount => _amount;
 
   factory EdgeStateBuilder.from(EdgeState state) {
     if (state is EdgeStateBuilder) {
@@ -100,7 +104,10 @@ class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
 
   EdgeStateBuilder._from(EdgeState state)
     : _edge = state._edge,
-      amount = state.amount;
+      _amount = state.amount;
+
+  void updateAmount(double amount) => _amount = amount;
+  void clearAmount() => _amount = 0;
 
   @override
   EdgeState build() => EdgeState(_edge, amount: amount);

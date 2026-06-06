@@ -227,18 +227,18 @@ class _BasePlannerSnapshotBuilder {
   _BasePlannerSnapshotBuilder.from(this.previousSnapshot);
 
   void addGraph(Graph newGraph) => graphUpdates.addElement(newGraph);
+  void addNode(Node newNode) => nodeUpdates.addElement(newNode);
+  void addEdge(Edge newEdge) => edgeUpdates.addElement(newEdge);
+
   GraphStateBuilder getGraphStateBuilder(Graph graph) =>
       graphUpdates.getStateBuilder(graph);
-  void removeGraph(Graph graph) => graphUpdates.removeElement(graph);
-
-  void addNode(Node newNode) => nodeUpdates.addElement(newNode);
   NodeStateBuilder getNodeStateBuilder(Node node) =>
       nodeUpdates.getStateBuilder(node);
-  void removeNode(Node node) => nodeUpdates.removeElement(node);
-
-  void addEdge(Edge newEdge) => edgeUpdates.addElement(newEdge);
   EdgeStateBuilder getEdgeStateBuilder(Edge edge) =>
       edgeUpdates.getStateBuilder(edge);
+
+  void removeGraph(Graph graph) => graphUpdates.removeElement(graph);
+  void removeNode(Node node) => nodeUpdates.removeElement(node);
   void removeEdge(Edge edge) => edgeUpdates.removeElement(edge);
 
   BasePlannerSnapshot buildAndNotifyListeners(BasePlanner basePlanner) {

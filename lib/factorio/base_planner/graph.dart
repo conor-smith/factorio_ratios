@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/node.dart';
@@ -22,7 +24,7 @@ class Graph implements BasePlannerElement<GraphState, GraphEvent> {
     basePlanner.initialiseGraph(this);
 
     if (parentGraph != null) {
-      basePlanner.getGraphStateBuilder(parentGraph!).childGraphs.add(this);
+      basePlanner.getGraphStateBuilder(parentGraph!).addChildGraph(this);
     }
   }
 
@@ -89,12 +91,16 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
   @override
   final Graph _graph;
 
+  final Set<Node> _nodes;
+  final Set<Edge> _edges;
+  final Set<Graph> _childGraphs;
+
   @override
-  final Set<Node> nodes;
+  late final Set<Node> nodes = UnmodifiableSetView(_nodes);
   @override
-  final Set<Edge> edges;
+  late final Set<Edge> edges = UnmodifiableSetView(_edges);
   @override
-  final Set<Graph> childGraphs;
+  late final Set<Graph> childGraphs = UnmodifiableSetView(_childGraphs);
 
   factory GraphStateBuilder.from(GraphState state) {
     if (state is GraphStateBuilder) {
@@ -106,9 +112,18 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
 
   GraphStateBuilder._from(GraphState state)
     : _graph = state._graph,
-      nodes = Set.from(state.nodes),
-      edges = Set.from(state.edges),
-      childGraphs = Set.from(state.childGraphs);
+      _nodes = Set.from(state.nodes),
+      _edges = Set.from(state.edges),
+      _childGraphs = Set.from(state.childGraphs);
+
+  void addNode(Node node) => _nodes.add(node);
+  void removeNode(Node node) => _nodes.remove(node);
+
+  void addEdge(Edge edge) => _edges.add(edge);
+  void removeEdge(Edge edge) => _edges.remove(edge);
+
+  void addChildGraph(Graph childGraph) => _childGraphs.add(childGraph);
+  void removeChildGraph(Graph childGraph) => _childGraphs.remove(childGraph);
 
   @override
   GraphState build() =>

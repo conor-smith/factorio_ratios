@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph.dart';
@@ -26,7 +28,7 @@ class Node implements BasePlannerElement<NodeState, NodeEvent> {
     _state = NodeState(node: this, productionLine: productionLine);
     basePlanner.initialiseNode(this);
 
-    basePlanner.getGraphStateBuilder(parentGraph).nodes.add(this);
+    basePlanner.getGraphStateBuilder(parentGraph).addNode(this);
   }
 
   @override
@@ -105,20 +107,29 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   @override
   final Node _node;
 
-  @override
-  ItemAmounts? requiredInput;
-  @override
-  ItemAmounts? requiredOutput;
+  ItemAmounts? _requiredInput;
+  ItemAmounts? _requiredOutput;
+
+  ProductionLine _productionLine;
+  ProductionLineIo? _io;
+
+  final Set<Edge> _parents;
+  final Set<Edge> _children;
 
   @override
-  ProductionLine productionLine;
+  ItemAmounts? get requiredInput => _requiredInput;
   @override
-  ProductionLineIo? io;
+  ItemAmounts? get requiredOutput => _requiredOutput;
 
   @override
-  final Set<Edge> parents;
+  ProductionLine get productionLine => _productionLine;
   @override
-  final Set<Edge> children;
+  ProductionLineIo? get io => _io;
+
+  @override
+  late final Set<Edge> parents = UnmodifiableSetView(parents);
+  @override
+  late final Set<Edge> children = UnmodifiableSetView(children);
 
   factory NodeStateBuilder.from(NodeState state) {
     if (state is NodeStateBuilder) {
@@ -130,22 +141,58 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
 
   NodeStateBuilder._from(NodeState state)
     : _node = state._node,
-      requiredInput = state.requiredInput != null
-          ? Map.from(state.requiredInput!)
-          : null,
-      requiredOutput = state.requiredOutput != null
-          ? Map.from(state.requiredOutput!)
-          : null,
-      productionLine = state.productionLine,
-      io = state.io,
-      parents = Set.from(state.parents),
-      children = Set.from(state.children);
+      _requiredInput = state.requiredInput,
+      _requiredOutput = state.requiredOutput,
+      _productionLine = state.productionLine,
+      _io = state.io,
+      _parents = Set.from(state.parents),
+      _children = Set.from(state.children);
+
+  void updateRequirements({
+    ItemAmounts? requiredInput,
+    ItemAmounts? requiredOutput,
+  }) {
+    _requiredInput = requiredInput != null
+        ? Map.unmodifiable(requiredInput)
+        : null;
+    _requiredOutput = requiredOutput != null
+        ? Map.unmodifiable(requiredOutput)
+        : null;
+  }
+
+  void clearRequirements() => updateRequirements();
+
+  void updateProductionLineAndClearIo(ProductionLine productionLine) {
+    _productionLine = productionLine;
+    _io = null;
+  }
+
+  void calculateIo({
+    ItemAmounts inputConstraints = const {},
+    ItemAmounts outputConstraints = const {},
+  }) {
+    _io = productionLine.calculate(
+      inputConstraints: inputConstraints,
+      outputConstraints: outputConstraints,
+    );
+  }
+
+  void addParent(Edge parent) => _parents.add(parent);
+  void removeParent(Edge parent) => _parents.remove(parent);
+
+  void addChild(Edge child) => _children.add(child);
+  void removeChild(Edge child) => _children.remove(child);
 
   @override
-  NodeState build() {
-    // TODO: implement build
-    throw UnimplementedError();
-  }
+  NodeState build() => NodeState(
+    node: _node,
+    requiredInput: _requiredInput,
+    requiredOutput: _requiredOutput,
+    productionLine: _productionLine,
+    io: _io,
+    parents: _parents,
+    children: _children,
+  );
 
   @override
   Map<String, dynamic> toJson() {
