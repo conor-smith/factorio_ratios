@@ -11,7 +11,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   @override
   String get name => recipe.name;
   @override
-  HasIcon get icon => recipe;
+  EntityPrototype get icon => recipe;
   @override
   bool get isImmutable => true;
 

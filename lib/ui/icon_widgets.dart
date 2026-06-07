@@ -11,7 +11,7 @@ const String _factorioFilesPath =
     '/.local/share/Steam/steamapps/common/Factorio/data/';
 
 class FactorioIconWidget extends StatelessWidget {
-  final HasIcon icon;
+  final EntityPrototype icon;
   final double size;
 
   const FactorioIconWidget({super.key, required this.icon, required this.size});

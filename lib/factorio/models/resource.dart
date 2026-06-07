@@ -1,6 +1,6 @@
 part of 'models.dart';
 
-class Resource extends OrderedWithSubgroup {
+class Resource extends EntityPrototype {
   static const double _expectedIconSize = 64;
   static const double _defaultScale =
       (_expectedIconSize / 2) / _expectedIconSize;
@@ -9,6 +9,10 @@ class Resource extends OrderedWithSubgroup {
 
   @override
   final String name;
+  @override
+  final String type;
+  @override
+  final String localisedName;
   @override
   final String order;
   @override
@@ -37,6 +41,8 @@ class Resource extends OrderedWithSubgroup {
   Resource._({
     required this.factorioDb,
     required this.name,
+    required this.type,
+    required this.localisedName,
     required this.order,
     required String? subgroup,
     required this.icons,
@@ -61,6 +67,8 @@ class Resource extends OrderedWithSubgroup {
     return Resource._(
       factorioDb: factorioDb,
       name: json['name'],
+      type: json['type'],
+      localisedName: json['name'],
       subgroup: json['subgroup'],
       order: json['order'] ?? '',
       icons: IconData.fromTopLevelJson(json, Item._expectedIconSize),

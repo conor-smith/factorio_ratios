@@ -1,6 +1,6 @@
 part of 'models.dart';
 
-class Recipe extends OrderedWithSubgroup {
+class Recipe extends EntityPrototype {
   static const double _expectedIconSize = 64,
       _defaultScale = (_expectedIconSize / 2) / _expectedIconSize,
       defaultEnergyRequired = 0.5;
@@ -12,6 +12,8 @@ class Recipe extends OrderedWithSubgroup {
   @override
   final String order;
   @override
+  final String type;
+  @override
   late final ItemSubgroup? subgroup = _determineSubGroup();
   @override
   late final List<IconData>? icons = _icons ?? mainProduct?.icons;
@@ -19,6 +21,8 @@ class Recipe extends OrderedWithSubgroup {
   double get expectedIconSize => _expectedIconSize;
   @override
   double get defaultScale => _defaultScale;
+  @override
+  late final String localisedName = _getLocalisedName();
 
   final List<String> categories;
   final double energyRequired;
@@ -41,7 +45,6 @@ class Recipe extends OrderedWithSubgroup {
   final List<SurfaceCondition> surfaceConditions;
 
   late final Item? mainProduct = _determineMainProduct();
-  late final String localisedName = _getLocalisedName();
 
   late final List<CraftingMachine> craftingMachines = List.unmodifiable(
     categories
@@ -78,6 +81,7 @@ class Recipe extends OrderedWithSubgroup {
   Recipe._({
     required this.factorioDb,
     required this.name,
+    required this.type,
     required this.order,
     required String? mainProduct,
     required String? subgroup,
@@ -154,6 +158,7 @@ class Recipe extends OrderedWithSubgroup {
     return Recipe._(
       factorioDb: factorioDb,
       name: json['name'],
+      type: json['type'],
       categories: categories,
       order: json['order'] ?? '',
       mainProduct: json['main_product'],

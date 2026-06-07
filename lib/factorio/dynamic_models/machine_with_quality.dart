@@ -1,6 +1,6 @@
 part of 'dynamic_models.dart';
 
-class InGameMachine implements CraftingMachine {
+class InGameMachine implements CraftingMachine, ToJson {
   // TODO - Quality effects
   final CraftingMachine internalMachine;
 
@@ -26,7 +26,7 @@ class InGameMachine implements CraftingMachine {
 
   // Ensure that machines of different quality are separated
   @override
-  int compareTo(Ordered other) {
+  int compareTo(Prototype other) {
     if (other is InGameMachine) {
       if (quality > other.quality) {
         return -1;
@@ -37,6 +37,8 @@ class InGameMachine implements CraftingMachine {
     return internalMachine.compareTo(other);
   }
 
+  @override
+  String get type => internalMachine.type;
   @override
   double get energyUsage => internalMachine.energyUsage;
   @override
@@ -84,4 +86,10 @@ class InGameMachine implements CraftingMachine {
 
   @override
   String toString() => name;
+  
+  @override
+  Map<String, dynamic> toJson() {
+    // TODO: implement toJson
+    throw UnimplementedError();
+  }
 }

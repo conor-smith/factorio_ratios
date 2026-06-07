@@ -43,8 +43,10 @@ class DisplayData {
   DisplayData.boolean(bool value, {Iterable<DisplayData> children = const []})
     : this._(DisplayDataType.boolean, value, children: children);
 
-  DisplayData.icon(HasIcon value, {Iterable<DisplayData> children = const []})
-    : this._(DisplayDataType.hasIcon, value, children: children);
+  DisplayData.icon(
+    EntityPrototype value, {
+    Iterable<DisplayData> children = const [],
+  }) : this._(DisplayDataType.hasIcon, value, children: children);
 
   DisplayData.rowAlignedLeft(
     Iterable<DisplayData> row, {
@@ -62,7 +64,7 @@ class DisplayData {
   }) : this._row(DisplayDataType.rowAlignedRight, row, children);
 
   DisplayData.iconAndString({
-    required HasIcon icon,
+    required EntityPrototype icon,
     required String string,
     Iterable<DisplayData> children = const [],
   }) : this._(DisplayDataType.rowAlignedLeft, [

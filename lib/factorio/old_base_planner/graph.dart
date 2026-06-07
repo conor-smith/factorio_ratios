@@ -168,7 +168,7 @@ class ProductionLineGraph extends Stateful<GraphEvent>
   ItemAmounts? get outputRatios => _outputRatios;
 
   @override
-  HasIcon? get icon => surface;
+  EntityPrototype? get icon => surface;
 
   /// Calls [ProdLineNode.calculateAndCache] on all relevant input and output nodes
   /// using [inputConstraints] and [outputConstraints].

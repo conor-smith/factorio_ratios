@@ -1,6 +1,6 @@
 part of 'models.dart';
 
-class CraftingMachine extends OrderedWithSubgroup {
+class CraftingMachine extends EntityPrototype {
   // TODO - Quality effects on module and energy usage
   static const double _expectedIconSize = 64,
       _defaultScale = (_expectedIconSize / 2) / _expectedIconSize;
@@ -9,6 +9,10 @@ class CraftingMachine extends OrderedWithSubgroup {
 
   @override
   final String name;
+  @override
+  final String type;
+  @override
+  final String localisedName;
   @override
   late final String order = _orderString ?? item?.order ?? '';
   @override
@@ -20,7 +24,6 @@ class CraftingMachine extends OrderedWithSubgroup {
   @override
   double get defaultScale => _defaultScale;
 
-  final String localisedName;
   final double craftingSpeed;
   final double energyUsage;
   final int moduleSlots;
@@ -57,6 +60,7 @@ class CraftingMachine extends OrderedWithSubgroup {
   CraftingMachine._({
     required this.factorioDb,
     required this.name,
+    required this.type,
     required String? order,
     required String? subgroup,
     required this.localisedName,
@@ -86,6 +90,7 @@ class CraftingMachine extends OrderedWithSubgroup {
     return CraftingMachine._(
       factorioDb: factorioDb,
       name: json['name'],
+      type: json['type'],
       order: json['order'],
       subgroup: json['subgroup'],
       localisedName: Item._getLocalisedName(json), // TODO - proper localisation

@@ -161,7 +161,7 @@ class FactorioDatabase {
 
     rawItems.forEach((name, itemJson) {
       try {
-        if (itemJson['parameter'] != true) {
+        if (itemJson['parameter'] != true && itemJson['hidden'] != true) {
           items[name] = Item.fromJson(this, itemJson);
         }
       } catch (e) {

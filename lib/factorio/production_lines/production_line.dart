@@ -28,7 +28,7 @@ mixin ProductionLine<T extends ProductionLineIo> {
   String get type;
 
   /// Used in displays
-  HasIcon? get icon;
+  EntityPrototype? get icon;
 
   /// All items this production line requires
   Set<InGameItem> get inputItems;

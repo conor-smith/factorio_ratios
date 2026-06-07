@@ -1,22 +1,21 @@
 part of 'models.dart';
 
-abstract class Ordered implements Comparable<Ordered> {
+abstract class Prototype implements Comparable<Prototype> {
   String get name;
+  String get type;
+  String get localisedName;
   String get order;
+  ItemSubgroup? get subgroup;
 
   @override
-  int compareTo(Ordered other) {
+  int compareTo(Prototype other) {
     var order = this.order.compareTo(other.order);
 
     return order != 0 ? order : name.compareTo(other.name);
   }
 }
 
-abstract class OrderedWithSubgroup extends Ordered implements HasIcon {
-  ItemSubgroup? get subgroup;
-}
-
-abstract class HasIcon {
+abstract class EntityPrototype extends Prototype {
   List<IconData>? get icons;
   double get expectedIconSize;
   double get defaultScale;

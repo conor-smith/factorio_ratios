@@ -1,6 +1,6 @@
 part of 'dynamic_models.dart';
 
-class InGameRecipe implements Recipe {
+class InGameRecipe implements Recipe, ToJson {
   final Recipe internalRecipe;
   final int quality;
 
@@ -42,7 +42,7 @@ class InGameRecipe implements Recipe {
 
   // Ensure that recipes of different quality are separated
   @override
-  int compareTo(Ordered other) {
+  int compareTo(Prototype other) {
     if (other is InGameRecipe) {
       if (quality > other.quality) {
         return -1;
@@ -53,6 +53,8 @@ class InGameRecipe implements Recipe {
     return internalRecipe.compareTo(other);
   }
 
+  @override
+  String get type => internalRecipe.type;
   @override
   bool get allowConsumption => internalRecipe.allowConsumption;
   @override
@@ -107,6 +109,12 @@ class InGameRecipe implements Recipe {
 
   @override
   String toString() => name;
+  
+  @override
+  Map<String, dynamic> toJson() {
+    // TODO: implement toJson
+    throw UnimplementedError();
+  }
 }
 
 class InGameRecipeIngredient implements RecipeIngredient {

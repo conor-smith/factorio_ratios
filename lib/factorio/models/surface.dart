@@ -1,6 +1,6 @@
 part of 'models.dart';
 
-class Surface extends OrderedWithSubgroup {
+class Surface extends EntityPrototype {
   static const double _expectedIconSize = 64;
   static const double _defaultScale =
       (_expectedIconSize / 2) / _expectedIconSize;
@@ -9,6 +9,10 @@ class Surface extends OrderedWithSubgroup {
 
   @override
   final String name;
+  @override
+  final String type;
+  @override
+  final String localisedName;
   @override
   final String order;
   @override
@@ -22,7 +26,6 @@ class Surface extends OrderedWithSubgroup {
   @override
   double get defaultScale => _defaultScale;
 
-  final String localisedName;
   final Map<String, double> surfaceProperties;
 
   final String? _subgroupString;
@@ -46,6 +49,7 @@ class Surface extends OrderedWithSubgroup {
   Surface._({
     required this.factorioDb,
     required this.name,
+    required this.type,
     required this.localisedName,
     required this.icons,
     required this.order,
@@ -65,6 +69,7 @@ class Surface extends OrderedWithSubgroup {
     return Surface._(
       factorioDb: factorioDb,
       name: json['name'],
+      type: json['type'],
       localisedName: json['name'], // TODO
       icons: IconData.fromTopLevelJson(json, _expectedIconSize),
       order: json['order'],

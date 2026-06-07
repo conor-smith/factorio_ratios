@@ -10,7 +10,7 @@ class IoLine with ProductionLine<IoLineIoData> {
   @override
   final String name;
   @override
-  final HasIcon? icon;
+  final EntityPrototype? icon;
 
   @override
   String get type => 'io';

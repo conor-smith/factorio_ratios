@@ -1,6 +1,6 @@
 part of 'dynamic_models.dart';
 
-abstract class InGameItem implements Item {
+abstract class InGameItem implements Item, ToJson {
   Item get internalItem;
 
   InGameItem._();
@@ -20,7 +20,7 @@ abstract class InGameItem implements Item {
   FactorioDatabase get factorioDb => internalItem.factorioDb;
 
   @override
-  int compareTo(Ordered other) => internalItem.compareTo(other);
+  int compareTo(Prototype other) => internalItem.compareTo(other);
 
   @override
   List<Recipe> get consumedBy => internalItem.consumedBy;
@@ -85,7 +85,7 @@ class InGameSolidItem extends InGameItem implements SolidItem {
 
   // Ensure that items of different quality are separated
   @override
-  int compareTo(Ordered other) {
+  int compareTo(Prototype other) {
     if (other is InGameSolidItem) {
       if (quality > other.quality) {
         return -1;
@@ -118,6 +118,12 @@ class InGameSolidItem extends InGameItem implements SolidItem {
 
   @override
   int get hashCode => internalItem.hashCode + quality;
+  
+  @override
+  Map<String, dynamic> toJson() {
+    // TODO: implement toJson
+    throw UnimplementedError();
+  }
 }
 
 class InGameFluidItem extends InGameItem implements FluidItem {
@@ -134,7 +140,7 @@ class InGameFluidItem extends InGameItem implements FluidItem {
 
   // Ensure that fluids of different temperature are sorted
   @override
-  int compareTo(Ordered other) {
+  int compareTo(Prototype other) {
     if (other is InGameFluidItem && internalItem == other.internalItem) {
       return temperature.compareTo(other.temperature);
     } else {
@@ -163,4 +169,10 @@ class InGameFluidItem extends InGameItem implements FluidItem {
 
   @override
   int get hashCode => internalItem.hashCode + temperature.ceil();
+  
+  @override
+  Map<String, dynamic> toJson() {
+    // TODO: implement toJson
+    throw UnimplementedError();
+  }
 }
