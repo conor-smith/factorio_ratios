@@ -1,7 +1,7 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/node.dart';
+import 'package:factorio_ratios/factorio/base_planner/production_line_node.dart';
 import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 
@@ -13,8 +13,8 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
 
   final Graph parentGraph;
   final EdgeType edgeType;
-  final ProductionLineNode parent;
-  final ProductionLineNode child;
+  final ProductionLineNode parentProductionLine;
+  final ProductionLineNode childProductionLine;
   final Node parentNode;
   final Node childNode;
   final InGameItem item;
@@ -23,8 +23,8 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   late EdgeState _state;
 
   // For convenience
-  Graph get parentNodeGraph => parent.parentGraph;
-  Graph get childNodeGraph => child.parentGraph;
+  Graph get parentNodeGraph => parentProductionLine.parentGraph;
+  Graph get childNodeGraph => childProductionLine.parentGraph;
   double? get amount => _state.amount;
   EdgeGeometry get edgeGeometry => _state.edgeGeometry;
 
@@ -32,23 +32,37 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
     required this.basePlanner,
     required this.parentGraph,
     required this.edgeType,
-    required this.parent,
-    required this.child,
+    required this.parentProductionLine,
+    required this.childProductionLine,
     required this.item,
   }) : id = BasePlannerElement.generateId(),
-       parentNode = parent.parentGraph == parentGraph
-           ? parent
-           : parent.parentGraph,
-       childNode = child.parentGraph == parentGraph
-           ? child
-           : child.parentGraph {
-    _state = EdgeState(this);
+       parentNode = parentProductionLine.parentGraph == parentGraph
+           ? parentProductionLine
+           : parentProductionLine.parentGraph,
+       childNode = childProductionLine.parentGraph == parentGraph
+           ? childProductionLine
+           : childProductionLine.parentGraph {
+    // TODO: verification
+    _state = EdgeState();
 
     basePlanner.initialiseEdge(this);
 
     basePlanner.getGraphStateBuilder(parentGraph).addEdge(this);
-    basePlanner.getNodeStateBuilder(parent).addChild(this);
-    basePlanner.getNodeStateBuilder(child).addParent(this);
+    basePlanner
+        .getProdLineNodeStateBuilder(parentProductionLine)
+        .addChild(this);
+    basePlanner
+        .getProdLineNodeStateBuilder(childProductionLine)
+        .addParent(this);
+
+    // If either attached nodes are ioNodes of a graphNode, we must update their state
+    // This is because adding this edge will affect the parents and children fields
+    if (parentProductionLine.parentGraph != parentGraph) {
+      basePlanner.getGraphStateBuilder(parentProductionLine.parentGraph);
+    }
+    if (childProductionLine.parentGraph != parentGraph) {
+      basePlanner.getGraphStateBuilder(childProductionLine.parentGraph);
+    }
   }
 
   @override
@@ -56,6 +70,8 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   @override
   set state(EdgeState state) {
     basePlanner.throwIfMutationNotPermitted();
+
+    // TODO: verification
     _state = state;
   }
 
@@ -85,19 +101,11 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
 }
 
 class EdgeState implements ElementState {
-  final Edge _edge;
-
   final double? amount;
 
   final EdgeGeometry edgeGeometry;
 
-  EdgeState(
-    Edge edge, {
-    this.amount,
-    this.edgeGeometry = EdgeGeometry.uninitialised,
-  }) : _edge = edge {
-    // TODO: verification
-  }
+  EdgeState({this.amount, this.edgeGeometry = EdgeGeometry.uninitialised});
 
   @override
   Map<String, dynamic> toJson() {
@@ -107,31 +115,20 @@ class EdgeState implements ElementState {
 }
 
 class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
-  @override
   final Edge _edge;
 
   double? _amount;
-
   EdgeGeometry _edgeGeometry;
 
   @override
   double? get amount => _amount;
-
   @override
   EdgeGeometry get edgeGeometry => _edgeGeometry;
 
-  factory EdgeStateBuilder.from(EdgeState state) {
-    if (state is EdgeStateBuilder) {
-      return state;
-    } else {
-      return EdgeStateBuilder._from(state);
-    }
-  }
-
-  EdgeStateBuilder._from(EdgeState state)
-    : _edge = state._edge,
-      _amount = state.amount,
-      _edgeGeometry = state.edgeGeometry;
+  EdgeStateBuilder.from(Edge edge)
+    : _edge = edge,
+      _amount = edge.amount,
+      _edgeGeometry = edge.edgeGeometry;
 
   void updateAmount(double amount) => _amount = amount;
   void clearAmount() => _amount = 0;
@@ -140,8 +137,7 @@ class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
       _edgeGeometry = edgeGeometry;
 
   @override
-  EdgeState build() =>
-      EdgeState(_edge, amount: amount, edgeGeometry: _edgeGeometry);
+  EdgeState build() => EdgeState(amount: amount, edgeGeometry: _edgeGeometry);
 
   @override
   Map<String, dynamic> toJson() {

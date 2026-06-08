@@ -3,7 +3,7 @@ import 'dart:collection';
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/node.dart';
+import 'package:factorio_ratios/factorio/base_planner/production_line_node.dart';
 import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
@@ -31,12 +31,13 @@ class Graph implements BasePlannerElement<GraphState, GraphEvent>, Node {
   late GraphState _state;
 
   // For convenience
-  Set<ProductionLineNode> get nodes => _state.nodes;
+  Set<ProductionLineNode> get productionLineNodes => _state.productionLineNodes;
+  Set<Graph> get graphNodes => _state.graphNodes;
   Set<Edge> get edges => _state.edges;
-  Set<Graph> get childGraphs => _state.childGraphs;
 
   Graph({required this.basePlanner, this.surface, this.parentGraph})
     : id = BasePlannerElement.generateId() {
+    // TODO: verification
     _state = GraphState(this);
     basePlanner.initialiseGraph(this);
 
@@ -50,6 +51,8 @@ class Graph implements BasePlannerElement<GraphState, GraphEvent>, Node {
   @override
   set state(GraphState state) {
     basePlanner.throwIfMutationNotPermitted();
+
+    // TODO: verification
     _state = state;
   }
 
@@ -90,41 +93,54 @@ abstract class Node {
 }
 
 class GraphState implements ElementState {
-  final Graph _graph;
-
-  final Set<ProductionLineNode> nodes;
+  final Set<ProductionLineNode> productionLineNodes;
+  final Set<Graph> graphNodes;
   final Set<Edge> edges;
-  final Set<Graph> childGraphs;
 
   final NodeGeometry nodeGeometry;
 
   late final GraphIo io = GraphIo.calculateIo(this);
 
-  late final Set<Edge> parents = Set.unmodifiable(
-    nodes
-        .where((node) => node.nodeType.isIo)
-        .expand((node) => node.parents)
-        .where((edge) => edge.parentNodeGraph != _graph),
-  );
-  late final Set<Edge> children = Set.unmodifiable(
-    nodes
-        .where((node) => node.nodeType.isIo)
-        .expand((node) => node.children)
-        .where((edge) => edge.childNodeGraph != _graph),
-  );
+  final Set<Edge> parents;
+  final Set<Edge> children;
 
-  GraphState(
+  factory GraphState(
     Graph graph, {
-    Iterable<ProductionLineNode> nodes = const {},
+    Iterable<ProductionLineNode> productionLineNodes = const {},
     Iterable<Edge> edges = const {},
-    Iterable<Graph> childGraphs = const {},
-    this.nodeGeometry = NodeGeometry.uninitialised,
-  }) : _graph = graph,
-       nodes = Set.unmodifiable(nodes),
-       edges = Set.unmodifiable(edges),
-       childGraphs = Set.unmodifiable(childGraphs) {
-    // TODO: Validation
+    Iterable<Graph> graphNodes = const {},
+    NodeGeometry nodeGeometry = NodeGeometry.uninitialised,
+  }) {
+    Set<Edge> parents = {};
+    Set<Edge> children = {};
+
+    for (var ioNode in productionLineNodes.where(
+      (node) => node.nodeType.isIo,
+    )) {
+      parents.addAll(ioNode.parents.where((edge) => edge.parentGraph != graph));
+      children.addAll(
+        ioNode.children.where((edge) => edge.parentGraph != graph),
+      );
+    }
+
+    return GraphState._(
+      productionLineNodes: Set.unmodifiable(productionLineNodes),
+      graphNodes: Set.unmodifiable(graphNodes),
+      edges: Set.unmodifiable(edges),
+      nodeGeometry: nodeGeometry,
+      parents: Set.unmodifiable(parents),
+      children: Set.unmodifiable(children),
+    );
   }
+
+  GraphState._({
+    required this.productionLineNodes,
+    required this.graphNodes,
+    required this.edges,
+    required this.nodeGeometry,
+    required this.parents,
+    required this.children,
+  });
 
   @override
   Map<String, dynamic> toJson() {
@@ -134,20 +150,21 @@ class GraphState implements ElementState {
 }
 
 class GraphStateBuilder implements Builder<GraphState>, GraphState {
-  @override
   final Graph _graph;
 
-  final Set<ProductionLineNode> _nodes;
+  final Set<ProductionLineNode> _prodLineNodes;
   final Set<Edge> _edges;
-  final Set<Graph> _childGraphs;
+  final Set<Graph> _graphNodes;
   NodeGeometry _nodeGeometry;
 
   @override
-  late final Set<ProductionLineNode> nodes = UnmodifiableSetView(_nodes);
+  late final Set<ProductionLineNode> productionLineNodes = UnmodifiableSetView(
+    _prodLineNodes,
+  );
   @override
   late final Set<Edge> edges = UnmodifiableSetView(_edges);
   @override
-  late final Set<Graph> childGraphs = UnmodifiableSetView(_childGraphs);
+  late final Set<Graph> graphNodes = UnmodifiableSetView(_graphNodes);
   @override
   NodeGeometry get nodeGeometry => _nodeGeometry;
 
@@ -155,41 +172,33 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
   GraphIo get io => GraphIo.calculateIo(this);
 
   @override
-  Set<Edge> get parents => nodes
+  Set<Edge> get parents => _prodLineNodes
       .where((node) => node.nodeType.isIo)
       .expand((node) => node.parents)
       .where((edge) => edge.parentNodeGraph != _graph)
       .toSet();
   @override
-  Set<Edge> get children => nodes
+  Set<Edge> get children => _prodLineNodes
       .where((node) => node.nodeType.isIo)
       .expand((node) => node.children)
       .where((edge) => edge.childNodeGraph != _graph)
       .toSet();
 
-  factory GraphStateBuilder.from(GraphState state) {
-    if (state is GraphStateBuilder) {
-      return state;
-    } else {
-      return GraphStateBuilder._from(state);
-    }
-  }
+  GraphStateBuilder.from(Graph graph)
+    : _graph = graph,
+      _prodLineNodes = Set.from(graph.productionLineNodes),
+      _edges = Set.from(graph.edges),
+      _graphNodes = Set.from(graph.graphNodes),
+      _nodeGeometry = graph.nodeGeometry;
 
-  GraphStateBuilder._from(GraphState state)
-    : _graph = state._graph,
-      _nodes = Set.from(state.nodes),
-      _edges = Set.from(state.edges),
-      _childGraphs = Set.from(state.childGraphs),
-      _nodeGeometry = state.nodeGeometry;
-
-  void addNode(ProductionLineNode node) => _nodes.add(node);
-  void removeNode(ProductionLineNode node) => _nodes.remove(node);
+  void addNode(ProductionLineNode node) => _prodLineNodes.add(node);
+  void removeNode(ProductionLineNode node) => _prodLineNodes.remove(node);
 
   void addEdge(Edge edge) => _edges.add(edge);
   void removeEdge(Edge edge) => _edges.remove(edge);
 
-  void addChildGraph(Graph childGraph) => _childGraphs.add(childGraph);
-  void removeChildGraph(Graph childGraph) => _childGraphs.remove(childGraph);
+  void addChildGraph(Graph childGraph) => _graphNodes.add(childGraph);
+  void removeChildGraph(Graph childGraph) => _graphNodes.remove(childGraph);
 
   void updateGeometry(NodeGeometry nodeGeometry) =>
       _nodeGeometry = nodeGeometry;
@@ -197,9 +206,9 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
   @override
   GraphState build() => GraphState(
     _graph,
-    nodes: nodes,
+    productionLineNodes: _prodLineNodes,
     edges: edges,
-    childGraphs: childGraphs,
+    graphNodes: _graphNodes,
     nodeGeometry: _nodeGeometry,
   );
 

@@ -42,8 +42,9 @@ class ProductionLineNode
     required this.nodeType,
     required ProductionLine productionLine,
   }) : id = BasePlannerElement.generateId() {
-    _state = NodeState(node: this, productionLine: productionLine);
-    basePlanner.initialiseNode(this);
+    // TODO: verification
+    _state = NodeState(productionLine: productionLine);
+    basePlanner.initialiseProdLineNode(this);
 
     basePlanner.getGraphStateBuilder(parentGraph).addNode(this);
   }
@@ -82,8 +83,6 @@ class ProductionLineNode
 }
 
 class NodeState implements ElementState {
-  final ProductionLineNode _node;
-
   final ItemAmounts? requiredInput;
   final ItemAmounts? requiredOutput;
 
@@ -96,7 +95,6 @@ class NodeState implements ElementState {
   final Set<Edge> children;
 
   NodeState({
-    required ProductionLineNode node,
     ItemAmounts? requiredInput,
     ItemAmounts? requiredOutput,
     required this.productionLine,
@@ -104,17 +102,14 @@ class NodeState implements ElementState {
     this.nodeGeometry = NodeGeometry.uninitialised,
     Iterable<Edge> parents = const {},
     Iterable<Edge> children = const {},
-  }) : _node = node,
-       requiredInput = requiredInput != null
+  }) : requiredInput = requiredInput != null
            ? Map.unmodifiable(requiredInput)
            : null,
        requiredOutput = requiredOutput != null
            ? Map.unmodifiable(requiredOutput)
            : null,
        parents = Set.unmodifiable(parents),
-       children = Set.unmodifiable(children) {
-    // TODO: Validation
-  }
+       children = Set.unmodifiable(children);
 
   @override
   Map<String, dynamic> toJson() {
@@ -124,9 +119,6 @@ class NodeState implements ElementState {
 }
 
 class NodeStateBuilder implements Builder<NodeState>, NodeState {
-  @override
-  final ProductionLineNode _node;
-
   ItemAmounts? _requiredInput;
   ItemAmounts? _requiredOutput;
 
@@ -156,23 +148,14 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   @override
   late final Set<Edge> children = UnmodifiableSetView(children);
 
-  factory NodeStateBuilder.from(NodeState state) {
-    if (state is NodeStateBuilder) {
-      return state;
-    } else {
-      return NodeStateBuilder._from(state);
-    }
-  }
-
-  NodeStateBuilder._from(NodeState state)
-    : _node = state._node,
-      _requiredInput = state.requiredInput,
-      _requiredOutput = state.requiredOutput,
-      _productionLine = state.productionLine,
-      _io = state.io,
-      _nodeGeometry = state.nodeGeometry,
-      _parents = Set.from(state.parents),
-      _children = Set.from(state.children);
+  NodeStateBuilder.from(ProductionLineNode node)
+    : _requiredInput = node.requiredInput,
+      _requiredOutput = node.requiredOutput,
+      _productionLine = node.productionLine,
+      _io = node.io,
+      _nodeGeometry = node.nodeGeometry,
+      _parents = Set.from(node.parents),
+      _children = Set.from(node.children);
 
   void updateRequirements({
     ItemAmounts? requiredInput,
@@ -214,7 +197,6 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
 
   @override
   NodeState build() => NodeState(
-    node: _node,
     requiredInput: _requiredInput,
     requiredOutput: _requiredOutput,
     productionLine: _productionLine,

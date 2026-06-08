@@ -49,11 +49,10 @@ class CraftingMachine extends EntityPrototype {
 
   late final List<Recipe> recipes = List.unmodifiable(
     craftingCategories
-        .map(
+        .expand(
           (category) =>
               factorioDb._craftingCategoryToRecipes[category] ?? const [],
         )
-        .expand((i) => i)
         .toSet(),
   );
 

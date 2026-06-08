@@ -2,7 +2,7 @@ import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/base_planner/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/node.dart';
+import 'package:factorio_ratios/factorio/base_planner/production_line_node.dart';
 import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
@@ -67,20 +67,20 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
   }
 
   void initialiseGraph(Graph newGraph) =>
-      _snapshotBuilderOrThrow().addGraph(newGraph);
+      _snapshotBuilderOrThrow().initialiseGraph(newGraph);
   GraphStateBuilder getGraphStateBuilder(Graph graph) =>
       _snapshotBuilderOrThrow().getGraphStateBuilder(graph);
   void removeGraph(Graph graph) => _snapshotBuilderOrThrow().removeGraph(graph);
 
-  void initialiseNode(ProductionLineNode newNode) =>
-      _snapshotBuilderOrThrow().addNode(newNode);
-  NodeStateBuilder getNodeStateBuilder(ProductionLineNode node) =>
-      _snapshotBuilderOrThrow().getNodeStateBuilder(node);
-  void removeNode(ProductionLineNode node) =>
-      _snapshotBuilderOrThrow().removeNode(node);
+  void initialiseProdLineNode(ProductionLineNode newNode) =>
+      _snapshotBuilderOrThrow().initialiseProdLineNode(newNode);
+  NodeStateBuilder getProdLineNodeStateBuilder(ProductionLineNode node) =>
+      _snapshotBuilderOrThrow().getProdLineNodeStateBuilder(node);
+  void removeProdLineNode(ProductionLineNode node) =>
+      _snapshotBuilderOrThrow().removeProdLineNode(node);
 
   void initialiseEdge(Edge newEdge) =>
-      _snapshotBuilderOrThrow().addEdge(newEdge);
+      _snapshotBuilderOrThrow().initialiseEdge(newEdge);
   EdgeStateBuilder getEdgeStateBuilder(Edge edge) =>
       _snapshotBuilderOrThrow().getEdgeStateBuilder(edge);
   void removeEdge(Edge edge) => _snapshotBuilderOrThrow().removeEdge(edge);
@@ -227,19 +227,21 @@ class _BasePlannerSnapshotBuilder {
 
   _BasePlannerSnapshotBuilder.from(this.previousSnapshot);
 
-  void addGraph(Graph newGraph) => graphUpdates.addElement(newGraph);
-  void addNode(ProductionLineNode newNode) => nodeUpdates.addElement(newNode);
-  void addEdge(Edge newEdge) => edgeUpdates.addElement(newEdge);
-
+  void initialiseGraph(Graph newGraph) => graphUpdates.addElement(newGraph);
   GraphStateBuilder getGraphStateBuilder(Graph graph) =>
       graphUpdates.getStateBuilder(graph);
-  NodeStateBuilder getNodeStateBuilder(ProductionLineNode node) =>
+  void removeGraph(Graph graph) => graphUpdates.removeElement(graph);
+
+  void initialiseProdLineNode(ProductionLineNode newNode) =>
+      nodeUpdates.addElement(newNode);
+  NodeStateBuilder getProdLineNodeStateBuilder(ProductionLineNode node) =>
       nodeUpdates.getStateBuilder(node);
+  void removeProdLineNode(ProductionLineNode node) =>
+      nodeUpdates.removeElement(node);
+
+  void initialiseEdge(Edge newEdge) => edgeUpdates.addElement(newEdge);
   EdgeStateBuilder getEdgeStateBuilder(Edge edge) =>
       edgeUpdates.getStateBuilder(edge);
-
-  void removeGraph(Graph graph) => graphUpdates.removeElement(graph);
-  void removeNode(ProductionLineNode node) => nodeUpdates.removeElement(node);
   void removeEdge(Edge edge) => edgeUpdates.removeElement(edge);
 
   BasePlannerSnapshot buildAndNotifyListeners(BasePlanner basePlanner) {
@@ -318,7 +320,7 @@ class _GraphUpdateTracker
     extends _UpdateTracker<Graph, GraphState, GraphStateBuilder> {
   _GraphUpdateTracker()
     : super((graph) {
-        var builder = GraphStateBuilder.from(graph.state);
+        var builder = GraphStateBuilder.from(graph);
         graph.state = builder;
         return builder;
       });
@@ -328,7 +330,7 @@ class _NodeUpdateTracker
     extends _UpdateTracker<ProductionLineNode, NodeState, NodeStateBuilder> {
   _NodeUpdateTracker()
     : super((node) {
-        var builder = NodeStateBuilder.from(node.state);
+        var builder = NodeStateBuilder.from(node);
         node.state = builder;
         return builder;
       });
@@ -338,7 +340,7 @@ class _EdgeUpdateTracker
     extends _UpdateTracker<Edge, EdgeState, EdgeStateBuilder> {
   _EdgeUpdateTracker()
     : super((edge) {
-        var builder = EdgeStateBuilder.from(edge.state);
+        var builder = EdgeStateBuilder.from(edge);
         edge.state = builder;
         return builder;
       });
