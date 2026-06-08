@@ -8,19 +8,35 @@ import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 
-class Node implements BasePlannerElement<NodeState, NodeEvent> {
+class ProductionLineNode
+    implements BasePlannerElement<NodeState, NodeEvent>, Node {
   final BasePlanner basePlanner;
 
   @override
   final int id;
 
+  @override
   final Graph parentGraph;
+  @override
+  NodeGeometry get nodeGeometry => _state.nodeGeometry;
+  @override
+  Set<Edge> get parents => _state.parents;
+  @override
+  Set<Edge> get children => _state.children;
+  @override
+  ProductionLineIo? get io => _state.io;
+
   final NodeType nodeType;
 
   final EventNotifier<NodeEvent> _notifier = EventNotifier();
   late NodeState _state;
 
-  Node({
+  // For convenience
+  ItemAmounts? get requiredInput => _state.requiredInput;
+  ItemAmounts? get requiredOutput => _state.requiredOutput;
+  ProductionLine get productionLine => _state.productionLine;
+
+  ProductionLineNode({
     required this.basePlanner,
     required this.parentGraph,
     required this.nodeType,
@@ -66,7 +82,7 @@ class Node implements BasePlannerElement<NodeState, NodeEvent> {
 }
 
 class NodeState implements ElementState {
-  final Node _node;
+  final ProductionLineNode _node;
 
   final ItemAmounts? requiredInput;
   final ItemAmounts? requiredOutput;
@@ -80,7 +96,7 @@ class NodeState implements ElementState {
   final Set<Edge> children;
 
   NodeState({
-    required Node node,
+    required ProductionLineNode node,
     ItemAmounts? requiredInput,
     ItemAmounts? requiredOutput,
     required this.productionLine,
@@ -109,7 +125,7 @@ class NodeState implements ElementState {
 
 class NodeStateBuilder implements Builder<NodeState>, NodeState {
   @override
-  final Node _node;
+  final ProductionLineNode _node;
 
   ItemAmounts? _requiredInput;
   ItemAmounts? _requiredOutput;
@@ -220,11 +236,15 @@ class NodeEvent {
 }
 
 enum NodeType {
-  consumer,
-  producer,
-  input,
-  output,
-  resource,
-  disposal,
-  productionLine,
+  consumer(false),
+  producer(false),
+  input(true),
+  output(true),
+  resource(false),
+  disposal(false),
+  productionLine(false);
+
+  final bool isIo;
+
+  const NodeType(this.isIo);
 }

@@ -11,4 +11,8 @@ class Line {
   final Offset end;
 
   const Line(this.start, this.end);
+
+  Line.shortestLine(Rect start, Rect end) : this(start.center, end.center);
+
+  Line shift(Offset offset) => Line(start + offset, end + offset);
 }

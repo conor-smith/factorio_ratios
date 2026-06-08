@@ -72,11 +72,12 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
       _snapshotBuilderOrThrow().getGraphStateBuilder(graph);
   void removeGraph(Graph graph) => _snapshotBuilderOrThrow().removeGraph(graph);
 
-  void initialiseNode(Node newNode) =>
+  void initialiseNode(ProductionLineNode newNode) =>
       _snapshotBuilderOrThrow().addNode(newNode);
-  NodeStateBuilder getNodeStateBuilder(Node node) =>
+  NodeStateBuilder getNodeStateBuilder(ProductionLineNode node) =>
       _snapshotBuilderOrThrow().getNodeStateBuilder(node);
-  void removeNode(Node node) => _snapshotBuilderOrThrow().removeNode(node);
+  void removeNode(ProductionLineNode node) =>
+      _snapshotBuilderOrThrow().removeNode(node);
 
   void initialiseEdge(Edge newEdge) =>
       _snapshotBuilderOrThrow().addEdge(newEdge);
@@ -153,7 +154,7 @@ class BasePlannerEvent {
 
 class BasePlannerSnapshot {
   final Map<Graph, GraphState> graphStates;
-  final Map<Node, NodeState> nodeStates;
+  final Map<ProductionLineNode, NodeState> nodeStates;
   final Map<Edge, EdgeState> edgeStates;
 
   const BasePlannerSnapshot._empty()
@@ -163,7 +164,7 @@ class BasePlannerSnapshot {
 
   BasePlannerSnapshot._(
     Map<Graph, GraphState> graphStates,
-    Map<Node, NodeState> nodeStates,
+    Map<ProductionLineNode, NodeState> nodeStates,
     Map<Edge, EdgeState> edgeStates,
   ) : graphStates = Map.unmodifiable(graphStates),
       nodeStates = Map.unmodifiable(nodeStates),
@@ -227,18 +228,18 @@ class _BasePlannerSnapshotBuilder {
   _BasePlannerSnapshotBuilder.from(this.previousSnapshot);
 
   void addGraph(Graph newGraph) => graphUpdates.addElement(newGraph);
-  void addNode(Node newNode) => nodeUpdates.addElement(newNode);
+  void addNode(ProductionLineNode newNode) => nodeUpdates.addElement(newNode);
   void addEdge(Edge newEdge) => edgeUpdates.addElement(newEdge);
 
   GraphStateBuilder getGraphStateBuilder(Graph graph) =>
       graphUpdates.getStateBuilder(graph);
-  NodeStateBuilder getNodeStateBuilder(Node node) =>
+  NodeStateBuilder getNodeStateBuilder(ProductionLineNode node) =>
       nodeUpdates.getStateBuilder(node);
   EdgeStateBuilder getEdgeStateBuilder(Edge edge) =>
       edgeUpdates.getStateBuilder(edge);
 
   void removeGraph(Graph graph) => graphUpdates.removeElement(graph);
-  void removeNode(Node node) => nodeUpdates.removeElement(node);
+  void removeNode(ProductionLineNode node) => nodeUpdates.removeElement(node);
   void removeEdge(Edge edge) => edgeUpdates.removeElement(edge);
 
   BasePlannerSnapshot buildAndNotifyListeners(BasePlanner basePlanner) {
@@ -324,7 +325,7 @@ class _GraphUpdateTracker
 }
 
 class _NodeUpdateTracker
-    extends _UpdateTracker<Node, NodeState, NodeStateBuilder> {
+    extends _UpdateTracker<ProductionLineNode, NodeState, NodeStateBuilder> {
   _NodeUpdateTracker()
     : super((node) {
         var builder = NodeStateBuilder.from(node.state);

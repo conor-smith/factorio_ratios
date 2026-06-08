@@ -11,6 +11,10 @@ class EdgeGeometry implements Geometry {
   final EdgeGeometryType geometryType;
   final List<Line> lines;
 
+  EdgeGeometry(this.geometryType, List<Line> lines)
+    : lines = List.unmodifiable(lines),
+      minimalRect = determineMinimalRect(lines);
+
   EdgeGeometry.shortestPath(Rect startRect, Rect endRect)
     : geometryType = EdgeGeometryType.shortestPath,
       lines = List.unmodifiable([Line(startRect.center, endRect.center)]),
@@ -19,7 +23,18 @@ class EdgeGeometry implements Geometry {
   const EdgeGeometry._uninitialised()
     : minimalRect = Rect.zero,
       geometryType = EdgeGeometryType.shortestPath,
-      lines = const [Line(Offset.zero, Offset.zero)];
+      lines = const [];
+
+  static Rect determineMinimalRect(List<Line> lines) {
+    if (lines.isEmpty) {
+      return Rect.zero;
+    } else if (lines.length == 1) {
+      return Rect.fromPoints(lines[0].start, lines[0].end);
+    } else {
+      // TODO
+      throw UnimplementedError();
+    }
+  }
 
   @override
   Map<String, dynamic> toJson() {

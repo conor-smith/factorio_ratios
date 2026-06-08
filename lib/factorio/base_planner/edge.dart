@@ -13,12 +13,20 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
 
   final Graph parentGraph;
   final EdgeType edgeType;
-  final Node parent;
-  final Node child;
+  final ProductionLineNode parent;
+  final ProductionLineNode child;
+  final Node parentNode;
+  final Node childNode;
   final InGameItem item;
 
   final EventNotifier<EdgeEvent> _notifier = EventNotifier();
   late EdgeState _state;
+
+  // For convenience
+  Graph get parentNodeGraph => parent.parentGraph;
+  Graph get childNodeGraph => child.parentGraph;
+  double? get amount => _state.amount;
+  EdgeGeometry get edgeGeometry => _state.edgeGeometry;
 
   Edge({
     required this.basePlanner,
@@ -27,7 +35,13 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
     required this.parent,
     required this.child,
     required this.item,
-  }) : id = BasePlannerElement.generateId() {
+  }) : id = BasePlannerElement.generateId(),
+       parentNode = parent.parentGraph == parentGraph
+           ? parent
+           : parent.parentGraph,
+       childNode = child.parentGraph == parentGraph
+           ? child
+           : child.parentGraph {
     _state = EdgeState(this);
 
     basePlanner.initialiseEdge(this);
