@@ -149,3 +149,12 @@ class ValueAndDisplayData<T> {
 
   const ValueAndDisplayData(this.value, this.displayData);
 }
+
+class ItemIo {
+  final ItemAmounts inputs;
+  final ItemAmounts outputs;
+
+  ItemIo({ItemAmounts inputs = const {}, ItemAmounts outputs = const {}})
+    : inputs = Map.unmodifiable(inputs),
+      outputs = Map.unmodifiable(outputs);
+}

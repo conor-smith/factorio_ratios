@@ -7,6 +7,7 @@ import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 
 class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   final BasePlanner basePlanner;
+  late final Function(Function) newSnapshotFunction;
 
   @override
   final int id;
@@ -23,9 +24,8 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   late EdgeState _state;
 
   // For convenience
-  Graph get parentNodeGraph => parentProductionLine.parentGraph;
-  Graph get childNodeGraph => childProductionLine.parentGraph;
   double? get amount => _state.amount;
+  double get percentage => _state.percentage;
   EdgeGeometry get edgeGeometry => _state.edgeGeometry;
 
   Edge({
@@ -54,15 +54,6 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
     basePlanner
         .getProdLineNodeStateBuilder(childProductionLine)
         .addParent(this);
-
-    // If either attached nodes are ioNodes of a graphNode, we must update their state
-    // This is because adding this edge will affect the parents and children fields
-    if (parentProductionLine.parentGraph != parentGraph) {
-      basePlanner.getGraphStateBuilder(parentProductionLine.parentGraph);
-    }
-    if (childProductionLine.parentGraph != parentGraph) {
-      basePlanner.getGraphStateBuilder(childProductionLine.parentGraph);
-    }
   }
 
   @override
@@ -102,10 +93,15 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
 
 class EdgeState implements ElementState {
   final double? amount;
+  final double percentage;
 
   final EdgeGeometry edgeGeometry;
 
-  EdgeState({this.amount, this.edgeGeometry = EdgeGeometry.uninitialised});
+  EdgeState({
+    this.amount,
+    this.percentage = 1.0,
+    this.edgeGeometry = EdgeGeometry.uninitialised,
+  });
 
   @override
   Map<String, dynamic> toJson() {
@@ -118,20 +114,25 @@ class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
   final Edge _edge;
 
   double? _amount;
+  double _percentage;
   EdgeGeometry _edgeGeometry;
 
   @override
   double? get amount => _amount;
+  @override
+  double get percentage => _percentage;
   @override
   EdgeGeometry get edgeGeometry => _edgeGeometry;
 
   EdgeStateBuilder.from(Edge edge)
     : _edge = edge,
       _amount = edge.amount,
+      _percentage = edge.percentage,
       _edgeGeometry = edge.edgeGeometry;
 
   void updateAmount(double amount) => _amount = amount;
   void clearAmount() => _amount = 0;
+  void updatePercentage(double percentage) => _percentage = percentage;
 
   void updateGeometry(EdgeGeometry edgeGeometry) =>
       _edgeGeometry = edgeGeometry;

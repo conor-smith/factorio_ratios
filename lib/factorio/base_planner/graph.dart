@@ -5,11 +5,13 @@ import 'package:factorio_ratios/factorio/base_planner/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/production_line_node.dart';
 import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
+import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 
 class Graph implements BasePlannerElement<GraphState, GraphEvent>, Node {
   final BasePlanner basePlanner;
+  late final Function(Function) newSnapshotFunction;
 
   @override
   final int id;
@@ -38,7 +40,7 @@ class Graph implements BasePlannerElement<GraphState, GraphEvent>, Node {
   Graph({required this.basePlanner, this.surface, this.parentGraph})
     : id = BasePlannerElement.generateId() {
     // TODO: verification
-    _state = GraphState(this);
+    _state = GraphState();
     basePlanner.initialiseGraph(this);
 
     if (parentGraph != null) {
@@ -55,6 +57,8 @@ class Graph implements BasePlannerElement<GraphState, GraphEvent>, Node {
     // TODO: verification
     _state = state;
   }
+
+  void addConsumerNodeAndTree(InGameItem item) {}
 
   @override
   bool get hasCallback => _notifier.hasCallback;
@@ -99,48 +103,60 @@ class GraphState implements ElementState {
 
   final NodeGeometry nodeGeometry;
 
-  late final GraphIo io = GraphIo.calculateIo(this);
+  final Set<Edge>? _cachedParents;
+  final Set<Edge>? _cachedChildren;
+  final GraphIo? _cachedIo;
 
-  final Set<Edge> parents;
-  final Set<Edge> children;
+  // All following fields are derived from above fields
+  // They are calculated and cached when required
+  // However, some of the values are affected by the state of other objects
+  // Eg. parents is modified if parentGraph gets a new edge connecting to an IO node
+  // If parents was already calculated and cached before then, the value will be incorrect
+  // The builder fields always recalculate these derived values
+  // As such, when a state change affects these fields, we must call
+  // basePlanner.getGraphStateBuilder on this graph too in order to ensure fields remain correct
+  // All element interactions are documented
 
-  factory GraphState(
-    Graph graph, {
-    Iterable<ProductionLineNode> productionLineNodes = const {},
-    Iterable<Edge> edges = const {},
-    Iterable<Graph> graphNodes = const {},
-    NodeGeometry nodeGeometry = NodeGeometry.uninitialised,
-  }) {
-    Set<Edge> parents = {};
-    Set<Edge> children = {};
+  // Affected whenever io data in any prodlineNode, here or within descendent graphs, is updated
+  late final GraphIo io = _cachedIo ?? GraphIo.calculateIo(this);
 
-    for (var ioNode in productionLineNodes.where(
-      (node) => node.nodeType.isIo,
-    )) {
-      parents.addAll(ioNode.parents.where((edge) => edge.parentGraph != graph));
-      children.addAll(
-        ioNode.children.where((edge) => edge.parentGraph != graph),
+  // Affected whenever parentGraph gets a new edge connecting to an IO node
+  late final Set<Edge> parents =
+      _cachedParents ??
+      Set.unmodifiable(
+        productionLineNodes
+            .where((node) => node.nodeType.isIo)
+            .expand((node) => node.parents)
+            .where((edge) => edge.parentProductionLine != edge.parentNode),
       );
-    }
+  // Affected whenever parentGraph gets a new edge connecting to an IO node
+  late final Set<Edge> children =
+      _cachedChildren ??
+      Set.unmodifiable(
+        productionLineNodes
+            .where((node) => node.nodeType.isIo)
+            .expand((node) => node.children)
+            .where((edge) => edge.childProductionLine != edge.childNode),
+      );
 
-    return GraphState._(
-      productionLineNodes: Set.unmodifiable(productionLineNodes),
-      graphNodes: Set.unmodifiable(graphNodes),
-      edges: Set.unmodifiable(edges),
-      nodeGeometry: nodeGeometry,
-      parents: Set.unmodifiable(parents),
-      children: Set.unmodifiable(children),
-    );
-  }
-
-  GraphState._({
-    required this.productionLineNodes,
-    required this.graphNodes,
-    required this.edges,
-    required this.nodeGeometry,
-    required this.parents,
-    required this.children,
-  });
+  GraphState({
+    Iterable<ProductionLineNode> productionLineNodes = const {},
+    Iterable<Graph> graphNodes = const {},
+    Iterable<Edge> edges = const {},
+    this.nodeGeometry = NodeGeometry.uninitialised,
+    Set<Edge>? cachedParents,
+    Set<Edge>? cachedChildren,
+    GraphIo? cachedIo,
+  }) : productionLineNodes = Set.unmodifiable(productionLineNodes),
+       graphNodes = Set.unmodifiable(graphNodes),
+       edges = Set.unmodifiable(edges),
+       _cachedParents = cachedParents != null
+           ? Set.unmodifiable(cachedParents)
+           : null,
+       _cachedChildren = cachedChildren != null
+           ? Set.unmodifiable(cachedChildren)
+           : null,
+       _cachedIo = cachedIo;
 
   @override
   Map<String, dynamic> toJson() {
@@ -150,12 +166,19 @@ class GraphState implements ElementState {
 }
 
 class GraphStateBuilder implements Builder<GraphState>, GraphState {
-  final Graph _graph;
+  final BasePlanner _basePlanner;
 
   final Set<ProductionLineNode> _prodLineNodes;
   final Set<Edge> _edges;
   final Set<Graph> _graphNodes;
   NodeGeometry _nodeGeometry;
+
+  @override
+  Set<Edge>? _cachedParents;
+  @override
+  Set<Edge>? _cachedChildren;
+  @override
+  GraphIo? _cachedIo;
 
   @override
   late final Set<ProductionLineNode> productionLineNodes = UnmodifiableSetView(
@@ -169,33 +192,77 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
   NodeGeometry get nodeGeometry => _nodeGeometry;
 
   @override
-  GraphIo get io => GraphIo.calculateIo(this);
+  GraphIo get io {
+    _cachedIo ??= GraphIo.calculateIo(this);
+
+    return _cachedIo!;
+  }
 
   @override
-  Set<Edge> get parents => _prodLineNodes
-      .where((node) => node.nodeType.isIo)
-      .expand((node) => node.parents)
-      .where((edge) => edge.parentNodeGraph != _graph)
-      .toSet();
+  Set<Edge> get parents {
+    _cachedParents ??= Set.unmodifiable(
+      _prodLineNodes
+          .where((node) => node.nodeType.isIo)
+          .expand((node) => node.parents)
+          .where((edge) => edge.parentProductionLine != edge.parentNode),
+    );
+
+    return _cachedParents!;
+  }
+
   @override
-  Set<Edge> get children => _prodLineNodes
-      .where((node) => node.nodeType.isIo)
-      .expand((node) => node.children)
-      .where((edge) => edge.childNodeGraph != _graph)
-      .toSet();
+  Set<Edge> get children {
+    _cachedChildren = Set.unmodifiable(
+      _prodLineNodes
+          .where((node) => node.nodeType.isIo)
+          .expand((node) => node.children)
+          .where((edge) => edge.childProductionLine != edge.childNode),
+    );
+    return _cachedChildren!;
+  }
 
   GraphStateBuilder.from(Graph graph)
-    : _graph = graph,
+    : _basePlanner = graph.basePlanner,
       _prodLineNodes = Set.from(graph.productionLineNodes),
       _edges = Set.from(graph.edges),
       _graphNodes = Set.from(graph.graphNodes),
-      _nodeGeometry = graph.nodeGeometry;
+      _nodeGeometry = graph.nodeGeometry,
+      _cachedParents = graph._state._cachedParents,
+      _cachedChildren = graph._state._cachedChildren,
+      _cachedIo = graph._state._cachedIo;
 
   void addNode(ProductionLineNode node) => _prodLineNodes.add(node);
   void removeNode(ProductionLineNode node) => _prodLineNodes.remove(node);
 
-  void addEdge(Edge edge) => _edges.add(edge);
-  void removeEdge(Edge edge) => _edges.remove(edge);
+  void addEdge(Edge edge) {
+    _edges.add(edge);
+
+    if (_graphNodes.contains(edge.parentNode)) {
+      _basePlanner
+          .getGraphStateBuilder(edge.parentNode as Graph)
+          .clearCachedChildren();
+    }
+    if (_graphNodes.contains(edge.childNode)) {
+      _basePlanner
+          .getGraphStateBuilder(edge.childNode as Graph)
+          .clearCachedParents();
+    }
+  }
+
+  void removeEdge(Edge edge) {
+    _edges.remove(edge);
+
+    if (_graphNodes.contains(edge.parentNode)) {
+      _basePlanner
+          .getGraphStateBuilder(edge.parentNode as Graph)
+          .clearCachedChildren();
+    }
+    if (_graphNodes.contains(edge.childNode)) {
+      _basePlanner
+          .getGraphStateBuilder(edge.childNode as Graph)
+          .clearCachedParents();
+    }
+  }
 
   void addChildGraph(Graph childGraph) => _graphNodes.add(childGraph);
   void removeChildGraph(Graph childGraph) => _graphNodes.remove(childGraph);
@@ -203,13 +270,19 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
   void updateGeometry(NodeGeometry nodeGeometry) =>
       _nodeGeometry = nodeGeometry;
 
+  void clearCachedParents() => _cachedParents = null;
+  void clearCachedChildren() => _cachedChildren = null;
+  void clearCachedIo() => _cachedIo = null;
+
   @override
   GraphState build() => GraphState(
-    _graph,
     productionLineNodes: _prodLineNodes,
     edges: edges,
     graphNodes: _graphNodes,
     nodeGeometry: _nodeGeometry,
+    cachedChildren: _cachedChildren,
+    cachedParents: _cachedParents,
+    cachedIo: _cachedIo,
   );
 
   @override

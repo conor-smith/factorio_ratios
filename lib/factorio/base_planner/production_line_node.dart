@@ -11,6 +11,7 @@ import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 class ProductionLineNode
     implements BasePlannerElement<NodeState, NodeEvent>, Node {
   final BasePlanner basePlanner;
+  late final Function(Function) newSnapshotFunction;
 
   @override
   final int id;
@@ -119,6 +120,9 @@ class NodeState implements ElementState {
 }
 
 class NodeStateBuilder implements Builder<NodeState>, NodeState {
+  BasePlanner _basePlanner;
+  ProductionLineNode _node;
+
   ItemAmounts? _requiredInput;
   ItemAmounts? _requiredOutput;
 
@@ -149,7 +153,9 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   late final Set<Edge> children = UnmodifiableSetView(children);
 
   NodeStateBuilder.from(ProductionLineNode node)
-    : _requiredInput = node.requiredInput,
+    : _basePlanner = node.basePlanner,
+      _node = node,
+      _requiredInput = node.requiredInput,
       _requiredOutput = node.requiredOutput,
       _productionLine = node.productionLine,
       _io = node.io,
@@ -184,6 +190,128 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
       inputConstraints: inputConstraints,
       outputConstraints: outputConstraints,
     );
+
+    Graph? parentGraph = _node.parentGraph;
+    while (parentGraph != null) {
+      _basePlanner.getGraphStateBuilder(parentGraph);
+      parentGraph = parentGraph.parentGraph;
+    }
+  }
+
+  void calculateIoFromParentEdges() {
+    ItemAmounts inputConstraints = {};
+    ItemAmounts outputConstraints = {};
+
+    for (var parent in _parents) {
+      var newAmount = parent.amount ?? 0;
+      switch (parent.edgeType) {
+        case EdgeType.requestItems:
+          outputConstraints.update(
+            parent.item,
+            (amount) => amount + newAmount,
+            ifAbsent: () => newAmount,
+          );
+        case EdgeType.acceptExcess:
+          inputConstraints.update(
+            parent.item,
+            (amount) => amount + newAmount,
+            ifAbsent: () => newAmount,
+          );
+      }
+
+      calculateIo(
+        inputConstraints: inputConstraints,
+        outputConstraints: outputConstraints,
+      );
+    }
+  }
+
+  ItemIo updateChildrenAndDetermineExcess() {
+    // TODO: optimise
+    var io = _io;
+    if (io == null) {
+      for (var child in _children) {
+        _basePlanner.getEdgeStateBuilder(child).clearAmount();
+      }
+
+      return ItemIo();
+    } else {
+      ItemAmounts consumedOutput = {};
+      ItemAmounts providedInput = {};
+
+      for (var parent in _parents) {
+        var parentAmount = parent.amount ?? 0;
+
+        switch (parent.edgeType) {
+          case EdgeType.requestItems:
+            consumedOutput.update(
+              parent.item,
+              (amount) => amount + parentAmount,
+              ifAbsent: () => parentAmount,
+            );
+
+          case EdgeType.acceptExcess:
+            providedInput.update(
+              parent.item,
+              (amount) => amount + parentAmount,
+              ifAbsent: () => parentAmount,
+            );
+        }
+      }
+
+      var remainingOutput = io.netOutput.map(
+        (item, amount) => MapEntry(item, amount - (consumedOutput[item] ?? 0)),
+      );
+      var unfulfilledInput = io.netInput.map(
+        (item, amount) => MapEntry(item, amount - (providedInput[item] ?? 0)),
+      );
+
+      Map<InGameItem, Map<EdgeType, List<Edge>>> itemToChildMap = {};
+      for (var child in _children) {
+        itemToChildMap.update(
+          child.item,
+          (edgeTypeMap) => edgeTypeMap
+            ..update(
+              child.edgeType,
+              (edges) => edges..add(child),
+              ifAbsent: () => [child],
+            ),
+          ifAbsent: () => {
+            child.edgeType: [child],
+          },
+        );
+      }
+
+      remainingOutput.updateAll((item, amount) {
+        double totalRemovedOutput = 0;
+        List<Edge> acceptExcessEdges =
+            itemToChildMap[item]?[EdgeType.acceptExcess] ?? const [];
+
+        for (var aeEdge in acceptExcessEdges) {
+          var removedOutput = amount * aeEdge.percentage;
+          totalRemovedOutput += removedOutput;
+          _basePlanner.getEdgeStateBuilder(aeEdge).updateAmount(removedOutput);
+        }
+
+        return amount - totalRemovedOutput;
+      });
+
+      unfulfilledInput.updateAll((item, amount) {
+        double totalFulfilledInput = 0;
+        List<Edge> requestItemsEdges =
+            itemToChildMap[item]?[EdgeType.requestItems] ?? const [];
+
+        for (var riEdge in requestItemsEdges) {
+          var fulfilledInput = amount * riEdge.percentage;
+          totalFulfilledInput += fulfilledInput;
+          _basePlanner.getEdgeStateBuilder(riEdge).updateAmount(fulfilledInput);
+        }
+
+        return amount - totalFulfilledInput;
+      });
+
+      return ItemIo(inputs: unfulfilledInput, outputs: remainingOutput);
+    }
   }
 
   void updateGeometry(NodeGeometry nodeGeometry) =>

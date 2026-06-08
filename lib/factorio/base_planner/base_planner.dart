@@ -66,21 +66,30 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
     }
   }
 
-  void initialiseGraph(Graph newGraph) =>
-      _snapshotBuilderOrThrow().initialiseGraph(newGraph);
+  void initialiseGraph(Graph newGraph) {
+    _snapshotBuilderOrThrow().initialiseGraph(newGraph);
+    newGraph.newSnapshotFunction = _buildNextSnapshot;
+  }
+
   GraphStateBuilder getGraphStateBuilder(Graph graph) =>
       _snapshotBuilderOrThrow().getGraphStateBuilder(graph);
   void removeGraph(Graph graph) => _snapshotBuilderOrThrow().removeGraph(graph);
 
-  void initialiseProdLineNode(ProductionLineNode newNode) =>
-      _snapshotBuilderOrThrow().initialiseProdLineNode(newNode);
+  void initialiseProdLineNode(ProductionLineNode newNode) {
+    _snapshotBuilderOrThrow().initialiseProdLineNode(newNode);
+    newNode.newSnapshotFunction = _buildNextSnapshot;
+  }
+
   NodeStateBuilder getProdLineNodeStateBuilder(ProductionLineNode node) =>
       _snapshotBuilderOrThrow().getProdLineNodeStateBuilder(node);
   void removeProdLineNode(ProductionLineNode node) =>
       _snapshotBuilderOrThrow().removeProdLineNode(node);
 
-  void initialiseEdge(Edge newEdge) =>
-      _snapshotBuilderOrThrow().initialiseEdge(newEdge);
+  void initialiseEdge(Edge newEdge) {
+    _snapshotBuilderOrThrow().initialiseEdge(newEdge);
+    newEdge.newSnapshotFunction = _buildNextSnapshot;
+  }
+
   EdgeStateBuilder getEdgeStateBuilder(Edge edge) =>
       _snapshotBuilderOrThrow().getEdgeStateBuilder(edge);
   void removeEdge(Edge edge) => _snapshotBuilderOrThrow().removeEdge(edge);
