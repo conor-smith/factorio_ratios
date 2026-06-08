@@ -254,6 +254,31 @@ class _BasePlannerSnapshotBuilder {
   void removeEdge(Edge edge) => edgeUpdates.removeElement(edge);
 
   BasePlannerSnapshot buildAndNotifyListeners(BasePlanner basePlanner) {
+    // Get all nodes with updated IO
+    var updatedIoNodes = nodeUpdates.newElements.entries
+        .where((entry) => entry.value.ioUpdate)
+        .map((entry) => entry.key)
+        .followedBy(
+          nodeUpdates.updatedElements.entries
+              .where((entry) => entry.value.builder.ioUpdate)
+              .map((entry) => entry.key),
+        );
+
+    // Get all parent and ancestor graphs of nodes
+    Set<Graph> graphsToResetIo = {};
+    for (var updatedIoNode in updatedIoNodes) {
+      Graph? graph = updatedIoNode.parentGraph;
+      while (graph != null && !graphsToResetIo.contains(graph)) {
+        graphsToResetIo.add(graph);
+        graph = graph.parentGraph;
+      }
+    }
+
+    // Clear cached IO for all relevant graphs
+    for (var graph in graphsToResetIo) {
+      getGraphStateBuilder(graph).clearCachedIo();
+    }
+
     var graphStates = graphUpdates.applyStateAndUpdateListeners();
     var nodeStates = nodeUpdates.applyStateAndUpdateListeners();
     var edgeStates = edgeUpdates.applyStateAndUpdateListeners();

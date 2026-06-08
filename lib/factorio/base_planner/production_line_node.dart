@@ -120,14 +120,15 @@ class NodeState implements ElementState {
 }
 
 class NodeStateBuilder implements Builder<NodeState>, NodeState {
-  BasePlanner _basePlanner;
-  ProductionLineNode _node;
+  final BasePlanner _basePlanner;
 
   ItemAmounts? _requiredInput;
   ItemAmounts? _requiredOutput;
 
   ProductionLine _productionLine;
+
   ProductionLineIo? _io;
+  bool _ioUpdate = false;
 
   NodeGeometry _nodeGeometry;
 
@@ -143,6 +144,7 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   ProductionLine get productionLine => _productionLine;
   @override
   ProductionLineIo? get io => _io;
+  bool get ioUpdate => _ioUpdate;
 
   @override
   NodeGeometry get nodeGeometry => _nodeGeometry;
@@ -154,7 +156,6 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
 
   NodeStateBuilder.from(ProductionLineNode node)
     : _basePlanner = node.basePlanner,
-      _node = node,
       _requiredInput = node.requiredInput,
       _requiredOutput = node.requiredOutput,
       _productionLine = node.productionLine,
@@ -179,23 +180,26 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
 
   void updateProductionLineAndClearIo(ProductionLine productionLine) {
     _productionLine = productionLine;
-    _io = null;
+
+    clearIo();
+  }
+
+  void clearIo() {
+    if (io != null) {
+      _io = null;
+      _ioUpdate = true;
+    }
   }
 
   void calculateIo({
     ItemAmounts inputConstraints = const {},
     ItemAmounts outputConstraints = const {},
   }) {
+    _ioUpdate = true;
     _io = productionLine.calculate(
       inputConstraints: inputConstraints,
       outputConstraints: outputConstraints,
     );
-
-    Graph? parentGraph = _node.parentGraph;
-    while (parentGraph != null) {
-      _basePlanner.getGraphStateBuilder(parentGraph);
-      parentGraph = parentGraph.parentGraph;
-    }
   }
 
   void calculateIoFromParentEdges() {
@@ -226,7 +230,7 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
     }
   }
 
-  ItemIo updateChildrenAndDetermineExcess() {
+  ItemIo updateChildrenAndReturnUnfulfilledIo() {
     // TODO: optimise
     var io = _io;
     if (io == null) {

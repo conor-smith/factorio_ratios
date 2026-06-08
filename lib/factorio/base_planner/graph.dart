@@ -298,15 +298,7 @@ class GraphIo extends ProductionLineIo {
     throw UnimplementedError();
   }
 
-  GraphIo._({
-    required super.netOutput,
-    required super.netInput,
-    super.inputConstraints,
-    super.outputConstraints,
-    super.electricPowerConsumption,
-    super.pollution,
-    super.displayData,
-  });
+  GraphIo({required super.netOutput, required super.netInput});
 }
 
 class GraphEvent {}

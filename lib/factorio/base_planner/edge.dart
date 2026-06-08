@@ -111,8 +111,6 @@ class EdgeState implements ElementState {
 }
 
 class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
-  final Edge _edge;
-
   double? _amount;
   double _percentage;
   EdgeGeometry _edgeGeometry;
@@ -125,8 +123,7 @@ class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
   EdgeGeometry get edgeGeometry => _edgeGeometry;
 
   EdgeStateBuilder.from(Edge edge)
-    : _edge = edge,
-      _amount = edge.amount,
+    : _amount = edge.amount,
       _percentage = edge.percentage,
       _edgeGeometry = edge.edgeGeometry;
 
