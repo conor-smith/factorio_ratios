@@ -2,17 +2,15 @@ import 'dart:collection';
 import 'dart:ui';
 
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
-import 'package:factorio_ratios/factorio/base_planner/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/production_line_node.dart';
-import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
+import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/production_line_node.dart';
 
 class GeometryOperation {
   final BasePlanner _basePlanner;
-  late final Function(Function) newSnapshotFunction;
 
   final Map<ProductionLineNode, NodeGeometryBuilder> _nodes = {};
   final Map<Edge, EdgeGeometryBuilder> _edges = {};
@@ -85,24 +83,19 @@ class GeometryOperation {
   }
 
   void applyUpdate() {
-    newSnapshotFunction(() {
+    _basePlanner.buildNextSnapshot(() {
       _nodes.forEach(
-        (node, geometry) => _basePlanner
-            .getProdLineNodeStateBuilder(node)
-            .updateGeometry(geometry.build()),
+        (node, geometry) => node.getStateBuilder().updateGeometry(geometry),
       );
 
       _graphs.forEach(
-        (graph, geometry) => _basePlanner
-            .getGraphStateBuilder(graph)
-            .updateGeometry(geometry.build()),
+        (graph, geometry) => graph.getStateBuilder().updateGeometry(geometry),
       );
 
       Map<Edge, EdgeGeometryBuilder>.from(_edges)
         ..addAll(_affectedEdges)
         ..forEach(
-          (edge, geometry) =>
-              _basePlanner.getEdgeStateBuilder(edge).updateGeometry(geometry),
+          (edge, geometry) => edge.getStateBuilder().updateGeometry(geometry),
         );
     });
   }

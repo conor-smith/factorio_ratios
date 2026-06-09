@@ -1,16 +1,18 @@
 import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
-import 'package:factorio_ratios/factorio/base_planner/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
+import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
+import 'package:factorio_ratios/json/json.dart';
 
 class ProductionLineNode
-    implements BasePlannerElement<NodeState, NodeEvent>, Node {
-  final BasePlanner basePlanner;
+    implements
+        BasePlannerElement<NodeState, NodeStateBuilder, NodeEvent>,
+        Node {
+  final BasePlanner _basePlanner;
   late final Function(Function) newSnapshotFunction;
 
   @override
@@ -19,18 +21,19 @@ class ProductionLineNode
   @override
   final Graph parentGraph;
   @override
-  NodeGeometry get nodeGeometry => _state.nodeGeometry;
+  NodeGeometry get nodeGeometry => state.nodeGeometry;
   @override
-  Set<Edge> get parents => _state.parents;
+  Set<Edge> get parents => state.parents;
   @override
-  Set<Edge> get children => _state.children;
+  Set<Edge> get children => state.children;
   @override
-  ProductionLineIo? get io => _state.io;
+  ProductionLineIo? get io => state.io;
 
   final NodeType nodeType;
 
-  final EventNotifier<NodeEvent> _notifier = EventNotifier();
-  late NodeState _state;
+  final EventNotifier<NodeEvent> _notifier = EventNotifierImpl();
+  NodeState _state;
+  NodeStateBuilder? _builder;
 
   // For convenience
   ItemAmounts? get requiredInput => _state.requiredInput;
@@ -38,40 +41,56 @@ class ProductionLineNode
   ProductionLine get productionLine => _state.productionLine;
 
   ProductionLineNode({
-    required this.basePlanner,
+    required BasePlanner basePlanner,
     required this.parentGraph,
     required this.nodeType,
     required ProductionLine productionLine,
-  }) : id = BasePlannerElement.generateId() {
-    // TODO: verification
-    _state = NodeState(productionLine: productionLine);
-    basePlanner.initialiseProdLineNode(this);
+  }) : _basePlanner = basePlanner,
+       id = BasePlannerElement.generateId(),
+       _state = NodeState._(productionLine: productionLine) {
+    var builder = NodeStateBuilder._from(this);
 
-    basePlanner.getGraphStateBuilder(parentGraph).addNode(this);
+    _builder = builder;
+    _basePlanner.getSnapshotBuilder().addToSnapsnot(this, builder);
+
+    parentGraph.getStateBuilder().addNode(this);
   }
 
   @override
-  NodeState get state => _state;
+  NodeState get state => _builder ?? _state;
   @override
   set state(NodeState state) {
-    basePlanner.throwIfMutationNotPermitted();
+    _basePlanner.throwIfMutationNotPermitted();
+
+    // Validate state
     _state = state;
   }
 
   @override
-  void addCallback(Function(NodeEvent event) callback) =>
-      _notifier.addCallback(callback);
+  NodeStateBuilder getStateBuilder() {
+    if (_builder != null) {
+      var builder = NodeStateBuilder._from(this);
+      _basePlanner.getSnapshotBuilder().addToSnapsnot(this, builder);
+      _builder = builder;
+    }
+
+    return _builder!;
+  }
+
   @override
-  void clearCallbacks() => _notifier.clearCallbacks();
+  void addListener(Object listener, Function(NodeEvent event) callback) =>
+      _notifier.addListener(listener, callback);
+  @override
+  void removeListener(Object listener) => _notifier.removeListener(listener);
+  @override
+  void clearListeners() => _notifier.clearListeners();
   @override
   void notifyListeners(NodeEvent event) => _notifier.notifyListeners(event);
 
   @override
-  void notifyListenerOfStateChange(
-    ElementState oldState,
-    ElementState newState,
-  ) {
+  void notifyListenersOfStateChange(NodeState oldState, NodeState newState) {
     // TODO: implement notifyListenerOfStateChange
+    throw UnimplementedError();
   }
 
   @override
@@ -81,7 +100,7 @@ class ProductionLineNode
   }
 }
 
-class NodeState implements ElementState {
+class NodeState implements ToJson {
   final ItemAmounts? requiredInput;
   final ItemAmounts? requiredOutput;
 
@@ -93,7 +112,7 @@ class NodeState implements ElementState {
   final Set<Edge> parents;
   final Set<Edge> children;
 
-  NodeState({
+  NodeState._({
     ItemAmounts? requiredInput,
     ItemAmounts? requiredOutput,
     required this.productionLine,
@@ -118,7 +137,7 @@ class NodeState implements ElementState {
 }
 
 class NodeStateBuilder implements Builder<NodeState>, NodeState {
-  final BasePlanner _basePlanner;
+  final ProductionLineNode _node;
 
   ItemAmounts? _requiredInput;
   ItemAmounts? _requiredOutput;
@@ -126,7 +145,6 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   ProductionLine _productionLine;
 
   ProductionLineIo? _io;
-  bool _ioUpdate = false;
 
   NodeGeometry _nodeGeometry;
 
@@ -142,7 +160,6 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   ProductionLine get productionLine => _productionLine;
   @override
   ProductionLineIo? get io => _io;
-  bool get ioUpdate => _ioUpdate;
 
   @override
   NodeGeometry get nodeGeometry => _nodeGeometry;
@@ -152,15 +169,14 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   @override
   late final Set<Edge> children = UnmodifiableSetView(children);
 
-  NodeStateBuilder.from(ProductionLineNode node)
-    : _basePlanner = node.basePlanner,
-      _requiredInput = node.requiredInput,
-      _requiredOutput = node.requiredOutput,
-      _productionLine = node.productionLine,
-      _io = node.io,
-      _nodeGeometry = node.nodeGeometry,
-      _parents = Set.from(node.parents),
-      _children = Set.from(node.children);
+  NodeStateBuilder._from(this._node)
+    : _requiredInput = _node.requiredInput,
+      _requiredOutput = _node.requiredOutput,
+      _productionLine = _node.productionLine,
+      _io = _node.io,
+      _nodeGeometry = _node.nodeGeometry,
+      _parents = Set.from(_node.parents),
+      _children = Set.from(_node.children);
 
   void updateRequirements({
     ItemAmounts? requiredInput,
@@ -178,14 +194,13 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
 
   void updateProductionLineAndClearIo(ProductionLine productionLine) {
     _productionLine = productionLine;
-
     clearIo();
   }
 
   void clearIo() {
-    if (io != null) {
+    if (_io != null) {
       _io = null;
-      _ioUpdate = true;
+      _node.parentGraph.getStateBuilder().clearCachedIo();
     }
   }
 
@@ -193,11 +208,11 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
     ItemAmounts inputConstraints = const {},
     ItemAmounts outputConstraints = const {},
   }) {
-    _ioUpdate = true;
     _io = productionLine.calculate(
       inputConstraints: inputConstraints,
       outputConstraints: outputConstraints,
     );
+    _node.parentGraph.getStateBuilder().clearCachedIo();
   }
 
   void calculateIoFromParentEdges() {
@@ -233,7 +248,7 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
     var io = _io;
     if (io == null) {
       for (var child in _children) {
-        _basePlanner.getEdgeStateBuilder(child).clearAmount();
+        child.getStateBuilder().clearAmount();
       }
 
       return ItemIo();
@@ -292,7 +307,7 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
         for (var aeEdge in acceptExcessEdges) {
           var removedOutput = amount * aeEdge.percentage;
           totalRemovedOutput += removedOutput;
-          _basePlanner.getEdgeStateBuilder(aeEdge).updateAmount(removedOutput);
+          aeEdge.getStateBuilder().updateAmount(removedOutput);
         }
 
         return amount - totalRemovedOutput;
@@ -306,7 +321,7 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
         for (var riEdge in requestItemsEdges) {
           var fulfilledInput = amount * riEdge.percentage;
           totalFulfilledInput += fulfilledInput;
-          _basePlanner.getEdgeStateBuilder(riEdge).updateAmount(fulfilledInput);
+          riEdge.getStateBuilder().updateAmount(fulfilledInput);
         }
 
         return amount - totalFulfilledInput;
@@ -326,7 +341,7 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   void removeChild(Edge child) => _children.remove(child);
 
   @override
-  NodeState build() => NodeState(
+  NodeState build() => NodeState._(
     requiredInput: _requiredInput,
     requiredOutput: _requiredOutput,
     productionLine: _productionLine,

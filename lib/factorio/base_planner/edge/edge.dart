@@ -1,13 +1,13 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/production_line_node.dart';
-import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
+import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/production_line_node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
+import 'package:factorio_ratios/json/json.dart';
 
-class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
-  final BasePlanner basePlanner;
-  late final Function(Function) newSnapshotFunction;
+class Edge
+    implements BasePlannerElement<EdgeState, EdgeStateBuilder, EdgeEvent> {
+  final BasePlanner _basePlanner;
 
   @override
   final int id;
@@ -20,66 +20,84 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   final Node childNode;
   final InGameItem item;
 
-  final EventNotifier<EdgeEvent> _notifier = EventNotifier();
-  late EdgeState _state;
+  final EventNotifier<EdgeEvent> _notifier = EventNotifierImpl();
+  EdgeState _state;
+  EdgeStateBuilder? _builder;
 
   // For convenience
-  double? get amount => _state.amount;
-  double get percentage => _state.percentage;
-  EdgeGeometry get edgeGeometry => _state.edgeGeometry;
+  double? get amount => state.amount;
+  double get percentage => state.percentage;
+  EdgeGeometry get edgeGeometry => state.edgeGeometry;
 
   Edge({
-    required this.basePlanner,
+    required BasePlanner basePlanner,
     required this.parentGraph,
     required this.edgeType,
     required this.parentProductionLine,
     required this.childProductionLine,
     required this.item,
-  }) : id = BasePlannerElement.generateId(),
+  }) : _basePlanner = basePlanner,
+       id = BasePlannerElement.generateId(),
+       _state = EdgeState._(),
        parentNode = parentProductionLine.parentGraph == parentGraph
            ? parentProductionLine
            : parentProductionLine.parentGraph,
        childNode = childProductionLine.parentGraph == parentGraph
            ? childProductionLine
            : childProductionLine.parentGraph {
-    // TODO: verification
-    _state = EdgeState();
+    var builder = EdgeStateBuilder._from(this);
 
-    basePlanner.initialiseEdge(this);
+    _basePlanner.getSnapshotBuilder().addToSnapsnot(this, builder);
+    _builder = builder;
 
-    basePlanner.getGraphStateBuilder(parentGraph).addEdge(this);
-    basePlanner
-        .getProdLineNodeStateBuilder(parentProductionLine)
-        .addChild(this);
-    basePlanner
-        .getProdLineNodeStateBuilder(childProductionLine)
-        .addParent(this);
+    parentGraph.getStateBuilder().addEdge(this);
+
+    parentProductionLine.getStateBuilder().addChild(this);
+    childProductionLine.getStateBuilder().addParent(this);
+
+    if (parentNode is Graph) {
+      (parentNode as Graph).getStateBuilder().clearCachedChildren();
+    }
+    if (childNode is Graph) {
+      (childNode as Graph).getStateBuilder().clearCachedChildren();
+    }
   }
 
   @override
-  EdgeState get state => _state;
+  EdgeState get state => _builder ?? _state;
   @override
   set state(EdgeState state) {
-    basePlanner.throwIfMutationNotPermitted();
+    _basePlanner.throwIfMutationNotPermitted();
 
-    // TODO: verification
+    // TODO: validate state
     _state = state;
   }
 
   @override
-  void addCallback(Function(EdgeEvent event) callback) =>
-      _notifier.addCallback(callback);
+  EdgeStateBuilder getStateBuilder() {
+    if (_builder == null) {
+      var builder = EdgeStateBuilder._from(this);
+      _basePlanner.getSnapshotBuilder().addToSnapsnot(this, builder);
+      _builder = builder;
+    }
+
+    return _builder!;
+  }
+
   @override
-  void clearCallbacks() => _notifier.clearCallbacks();
+  void addListener(Object listener, Function(EdgeEvent event) callback) =>
+      _notifier.addListener(listener, callback);
+  @override
+  void removeListener(Object listener) => _notifier.removeListener(listener);
+  @override
+  void clearListeners() => _notifier.clearListeners();
   @override
   void notifyListeners(EdgeEvent event) => _notifier.notifyListeners(event);
 
   @override
-  void notifyListenerOfStateChange(
-    ElementState oldState,
-    ElementState newState,
-  ) {
+  void notifyListenersOfStateChange(EdgeState oldState, EdgeState newState) {
     // TODO: implement notifyListenerOfStateChange
+    throw UnimplementedError();
   }
 
   @override
@@ -89,13 +107,13 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   }
 }
 
-class EdgeState implements ElementState {
+class EdgeState implements ToJson {
   final double? amount;
   final double percentage;
 
   final EdgeGeometry edgeGeometry;
 
-  EdgeState({
+  EdgeState._({
     this.amount,
     this.percentage = 1.0,
     this.edgeGeometry = EdgeGeometry.uninitialised,
@@ -120,7 +138,7 @@ class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
   @override
   EdgeGeometry get edgeGeometry => _edgeGeometry;
 
-  EdgeStateBuilder.from(Edge edge)
+  EdgeStateBuilder._from(Edge edge)
     : _amount = edge.amount,
       _percentage = edge.percentage,
       _edgeGeometry = edge.edgeGeometry;
@@ -133,7 +151,7 @@ class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
       _edgeGeometry = edgeGeometry;
 
   @override
-  EdgeState build() => EdgeState(amount: amount, edgeGeometry: _edgeGeometry);
+  EdgeState build() => EdgeState._(amount: amount, edgeGeometry: _edgeGeometry);
 
   @override
   Map<String, dynamic> toJson() {
