@@ -3,15 +3,13 @@ import 'dart:math';
 import 'package:factorio_ratios/json/json.dart';
 
 interface class EventNotifier<T> {
-  Function(T event)? _eventCallback;
+  final List<Function(T event)> _callbacks = [];
 
-  bool get hasCallback => _eventCallback != null;
-  set eventCallback(Function(T event) callback) => _eventCallback = callback;
-  void clearCallback() => _eventCallback = null;
+  void addCallback(Function(T event) callback) => _callbacks.add(callback);
+  void clearCallbacks() => _callbacks.clear();
 
-  void notifyListener(T event) {
-    var callback = _eventCallback;
-    if (callback != null) {
+  void notifyListeners(T event) {
+    for (var callback in _callbacks) {
       callback(event);
     }
   }

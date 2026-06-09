@@ -12,6 +12,7 @@ import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
 
 class GeometryOperation {
   final BasePlanner _basePlanner;
+  late final Function(Function) newSnapshotFunction;
 
   final Map<ProductionLineNode, NodeGeometryBuilder> _nodes = {};
   final Map<Edge, EdgeGeometryBuilder> _edges = {};
@@ -58,6 +59,52 @@ class GeometryOperation {
         );
       }
     }
+  }
+
+  void performOperation(Offset shiftFromStart) {
+    // TODO: Refactor and clean up
+    _nodes.forEach((node, geometry) {
+      geometry.shift(shiftFromStart);
+      node.notifyListeners(NodeEvent.geometryOp(geometry));
+    });
+
+    _graphs.forEach((graph, geometry) {
+      geometry.shift(shiftFromStart);
+      graph.notifyListeners(GraphEvent.geometryOp(geometry));
+    });
+
+    _edges.forEach((edge, geometry) {
+      geometry.shift(shiftFromStart);
+      edge.notifyListeners(EdgeEvent.geometryOp(geometry));
+    });
+
+    _affectedEdges.forEach((edge, geometry) {
+      geometry.shift(shiftFromStart);
+      edge.notifyListeners(EdgeEvent.geometryOp(geometry));
+    });
+  }
+
+  void applyUpdate() {
+    newSnapshotFunction(() {
+      _nodes.forEach(
+        (node, geometry) => _basePlanner
+            .getProdLineNodeStateBuilder(node)
+            .updateGeometry(geometry.build()),
+      );
+
+      _graphs.forEach(
+        (graph, geometry) => _basePlanner
+            .getGraphStateBuilder(graph)
+            .updateGeometry(geometry.build()),
+      );
+
+      Map<Edge, EdgeGeometryBuilder>.from(_edges)
+        ..addAll(_affectedEdges)
+        ..forEach(
+          (edge, geometry) =>
+              _basePlanner.getEdgeStateBuilder(edge).updateGeometry(geometry),
+        );
+    });
   }
 }
 

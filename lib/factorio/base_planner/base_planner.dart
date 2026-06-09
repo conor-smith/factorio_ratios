@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/base_planner/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/production_line_node.dart';
 import 'package:factorio_ratios/factorio/base_planner/stateful.dart';
@@ -30,15 +31,13 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
   BasePlanner(this.db);
 
   @override
-  bool get hasCallback => _notifier.hasCallback;
+  void addCallback(Function(BasePlannerEvent event) callback) =>
+      _notifier.addCallback(callback);
   @override
-  set eventCallback(Function(BasePlannerEvent event) callback) =>
-      _notifier.eventCallback = callback;
+  void clearCallbacks() => _notifier.clearCallbacks();
   @override
-  void clearCallback() => _notifier.clearCallback();
-  @override
-  void notifyListener(BasePlannerEvent event) =>
-      _notifier.notifyListener(event);
+  void notifyListeners(BasePlannerEvent event) =>
+      _notifier.notifyListeners(event);
 
   void throwIfMutationNotPermitted() {
     if (_mutationLock == 0) {
@@ -64,6 +63,10 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
 
       _snapshotIndex = snapshotIndex;
     }
+  }
+
+  void initialiseGeometryOperation(GeometryOperation op) {
+    op.newSnapshotFunction = _buildNextSnapshot;
   }
 
   void initialiseGraph(Graph newGraph) {
@@ -196,7 +199,7 @@ class BasePlannerSnapshot {
     var oldGraphs = oldSnapshot.graphStates.keys.toSet();
     var newGraphs = graphStates.keys.toSet();
 
-    basePlanner.notifyListener(
+    basePlanner.notifyListeners(
       BasePlannerEvent._newSnapshot(
         addedGraphs: oldGraphs.difference(newGraphs).toList(),
         removedGraphs: newGraphs.difference(oldGraphs).toList(),
@@ -283,7 +286,7 @@ class _BasePlannerSnapshotBuilder {
     var nodeStates = nodeUpdates.applyStateAndUpdateListeners();
     var edgeStates = edgeUpdates.applyStateAndUpdateListeners();
 
-    basePlanner.notifyListener(
+    basePlanner.notifyListeners(
       BasePlannerEvent._newSnapshot(
         addedGraphs: graphUpdates.newElements.keys.toList(),
         removedGraphs: graphUpdates.removedElements.toList(),

@@ -59,14 +59,12 @@ class ProductionLineNode
   }
 
   @override
-  bool get hasCallback => _notifier.hasCallback;
+  void addCallback(Function(NodeEvent event) callback) =>
+      _notifier.addCallback(callback);
   @override
-  set eventCallback(Function(NodeEvent event) callback) =>
-      _notifier.eventCallback = callback;
+  void clearCallbacks() => _notifier.clearCallbacks();
   @override
-  void clearCallback() => _notifier.clearCallback();
-  @override
-  void notifyListener(NodeEvent event) => _notifier.notifyListener(event);
+  void notifyListeners(NodeEvent event) => _notifier.notifyListeners(event);
 
   @override
   void notifyListenerOfStateChange(
@@ -346,7 +344,9 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
 }
 
 class NodeEvent {
-  // TODO
+  NodeEvent.geometryOp(NodeGeometry nodeGeometry) {
+    throw UnimplementedError();
+  }
 }
 
 enum NodeType {

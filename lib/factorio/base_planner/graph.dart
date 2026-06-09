@@ -61,14 +61,12 @@ class Graph implements BasePlannerElement<GraphState, GraphEvent>, Node {
   void addConsumerNodeAndTree(InGameItem item) {}
 
   @override
-  bool get hasCallback => _notifier.hasCallback;
+  void addCallback(Function(GraphEvent event) callback) =>
+      _notifier.addCallback(callback);
   @override
-  set eventCallback(Function(GraphEvent event) callback) =>
-      _notifier.eventCallback = callback;
+  void clearCallbacks() => _notifier.clearCallbacks();
   @override
-  void clearCallback() => _notifier.clearCallback();
-  @override
-  void notifyListener(GraphEvent event) => _notifier.notifyListener(event);
+  void notifyListeners(GraphEvent event) => _notifier.notifyListeners(event);
 
   @override
   void notifyListenerOfStateChange(
@@ -308,7 +306,12 @@ class GraphIo extends ProductionLineIo {
   GraphIo({required super.netOutput, required super.netInput});
 }
 
-class GraphEvent {}
+class GraphEvent {
+  GraphEvent.geometryOp(NodeGeometry nodeGeometry) {
+    // TODO
+    throw UnimplementedError();
+  }
+}
 
 class GraphException extends BasePlannerException {
   const GraphException(super.message, [super.cause]);

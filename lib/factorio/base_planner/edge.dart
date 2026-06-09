@@ -67,14 +67,12 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   }
 
   @override
-  bool get hasCallback => _notifier.hasCallback;
+  void addCallback(Function(EdgeEvent event) callback) =>
+      _notifier.addCallback(callback);
   @override
-  set eventCallback(Function(EdgeEvent event) callback) =>
-      _notifier.eventCallback = callback;
+  void clearCallbacks() => _notifier.clearCallbacks();
   @override
-  void clearCallback() => _notifier.clearCallback();
-  @override
-  void notifyListener(EdgeEvent event) => _notifier.notifyListener(event);
+  void notifyListeners(EdgeEvent event) => _notifier.notifyListeners(event);
 
   @override
   void notifyListenerOfStateChange(
@@ -144,6 +142,11 @@ class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
   }
 }
 
-class EdgeEvent {}
+class EdgeEvent {
+  EdgeEvent.geometryOp(EdgeGeometry edgeGeometry) {
+    // TODO
+    throw UnimplementedError();
+  }
+}
 
 enum EdgeType { requestItems, acceptExcess }
