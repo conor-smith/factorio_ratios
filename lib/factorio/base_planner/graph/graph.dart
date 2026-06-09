@@ -8,7 +8,7 @@ import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/json/json.dart';
 
-class Graph implements NodeElement<GraphState, GraphStateBuilder, GraphEvent> {
+class Graph implements NodeElement<GraphState, GraphEvent> {
   final BasePlanner _basePlanner;
 
   @override
@@ -16,6 +16,12 @@ class Graph implements NodeElement<GraphState, GraphStateBuilder, GraphEvent> {
   final Surface? surface;
   @override
   final Graph? parentGraph;
+
+  final EventNotifier<GraphEvent> _notifier = EventNotifierImpl();
+  GraphState _state;
+  GraphStateBuilder? _builder;
+
+  // For convenience
   @override
   NodeGeometry get nodeGeometry => state.nodeGeometry;
   @override
@@ -24,15 +30,9 @@ class Graph implements NodeElement<GraphState, GraphStateBuilder, GraphEvent> {
   Set<Edge> get children => state.children;
   @override
   GraphIo? get io => state.io;
-
-  final EventNotifier<GraphEvent> _notifier = EventNotifierImpl();
-  GraphState _state;
-  GraphStateBuilder? _builder;
-
-  // For convenience
-  Set<ProdLineNode> get productionLineNodes => _state.productionLineNodes;
-  Set<Graph> get graphNodes => _state.graphNodes;
-  Set<Edge> get edges => _state.edges;
+  Set<Graph> get graphNodes => state.graphNodes;
+  Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
+  Set<Edge> get edges => state.edges;
 
   Graph(BasePlanner basePlanner, {this.parentGraph, this.surface})
     : _basePlanner = basePlanner,
@@ -89,6 +89,9 @@ class Graph implements NodeElement<GraphState, GraphStateBuilder, GraphEvent> {
   }
 
   @override
+  ProductionLine get productionLine => throw UnimplementedError();
+
+  @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
@@ -96,10 +99,9 @@ class Graph implements NodeElement<GraphState, GraphStateBuilder, GraphEvent> {
 }
 
 class GraphState implements ToJson {
-  final Set<ProdLineNode> productionLineNodes;
+  final Set<ProdLineNode> prodLineNodes;
   final Set<Graph> graphNodes;
   final Set<Edge> edges;
-
   final NodeGeometry nodeGeometry;
 
   Set<Edge>? _cachedParents;
@@ -109,31 +111,30 @@ class GraphState implements ToJson {
   // All following fields are derived from above fields
   // They are calculated and cached when required
   GraphIo get io {
-    _cachedIo ??= GraphIo.calculateIo(this);
-    return _cachedIo!;
+    throw UnimplementedError();
   }
 
   Set<Edge> get parents {
-    _cachedParents ??= _calculateExternalParents(productionLineNodes);
+    _cachedParents ??= _calculateExternalParents(prodLineNodes);
 
     return _cachedParents!;
   }
 
   // Affected whenever parentGraph gets a new edge connecting to an IO node
   Set<Edge> get children {
-    _cachedChildren ??= _calculateExternalChildren(productionLineNodes);
+    _cachedChildren ??= _calculateExternalChildren(prodLineNodes);
     return _cachedChildren!;
   }
 
   GraphState._({
-    Iterable<ProdLineNode> productionLineNodes = const {},
+    Iterable<ProdLineNode> prodLineNodes = const {},
     Iterable<Graph> graphNodes = const {},
     Iterable<Edge> edges = const {},
     this.nodeGeometry = NodeGeometry.uninitialised,
     Set<Edge>? cachedParents,
     Set<Edge>? cachedChildren,
     GraphIo? cachedIo,
-  }) : productionLineNodes = Set.unmodifiable(productionLineNodes),
+  }) : this.prodLineNodes = Set.unmodifiable(prodLineNodes),
        graphNodes = Set.unmodifiable(graphNodes),
        edges = Set.unmodifiable(edges),
        _cachedParents = cachedParents, // Assumed to be unmodifiable
@@ -165,7 +166,7 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
   GraphIo? _cachedIo;
 
   @override
-  late final Set<ProdLineNode> productionLineNodes = UnmodifiableSetView(
+  late final Set<ProdLineNode> prodLineNodes = UnmodifiableSetView(
     _prodLineNodes,
   );
   @override
@@ -177,9 +178,7 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
 
   @override
   GraphIo get io {
-    _cachedIo ??= GraphIo.calculateIo(this);
-
-    return _cachedIo!;
+    throw UnimplementedError();
   }
 
   @override
@@ -196,7 +195,7 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
   }
 
   GraphStateBuilder._from(this._graph)
-    : _prodLineNodes = Set.from(_graph.productionLineNodes),
+    : _prodLineNodes = Set.from(_graph.prodLineNodes),
       _edges = Set.from(_graph.edges),
       _graphNodes = Set.from(_graph.graphNodes),
       _nodeGeometry = _graph.nodeGeometry,
@@ -231,7 +230,7 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
 
   @override
   GraphState build() => GraphState._(
-    productionLineNodes: _prodLineNodes,
+    prodLineNodes: _prodLineNodes,
     edges: edges,
     graphNodes: _graphNodes,
     nodeGeometry: _nodeGeometry,
@@ -247,13 +246,18 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
   }
 }
 
-class GraphIo extends ProductionLineIo {
-  factory GraphIo.calculateIo(GraphState graphState) {
-    // TODO
-    throw UnimplementedError();
-  }
-
-  GraphIo({required super.netOutput, required super.netInput});
+class GraphIo extends FullIo {
+  GraphIo({
+    required super.inputConstraints,
+    required super.outputConstraints,
+    required super.netInput,
+    required super.netOutput,
+    required super.totalInput,
+    required super.totalOutput,
+    required super.electricPowerConsumption,
+    super.displayData = const [],
+    required super.emissions,
+  });
 }
 
 class GraphEvent {

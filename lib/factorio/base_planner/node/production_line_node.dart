@@ -1,8 +1,6 @@
 part of 'node.dart';
 
-class ProdLineNode
-    implements
-        NodeElement<ProdLineNodeState, ProdLineNodeStateBuilder, NodeEvent> {
+class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   final BasePlanner _basePlanner;
 
   @override

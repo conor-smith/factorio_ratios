@@ -7,11 +7,7 @@ abstract interface class EventNotifier<T> {
   void notifyListeners(T event);
 }
 
-abstract interface class BasePlannerElement<
-  St extends ToJson,
-  B extends Builder<St>,
-  E
->
+abstract interface class BasePlannerElement<St extends ToJson, E>
     implements EventNotifier<E>, ToJson {
   static final Random _random = Random(DateTime.now().millisecondsSinceEpoch);
   static int generateId() => _random.nextInt(1000000000);
@@ -21,7 +17,7 @@ abstract interface class BasePlannerElement<
   St get state;
   set state(St state);
 
-  B getStateBuilder();
+  Builder<St> getStateBuilder();
 
   void notifyListenersOfStateChange(St oldState, St newState);
   void notifyListenersOfGeometryUpdate(covariant Geometry geometry);

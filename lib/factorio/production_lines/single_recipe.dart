@@ -1,7 +1,7 @@
 part of 'production_line.dart';
 
 class SingleRecipeLine extends ProductionLineCraftingMachine
-    with ProductionLine<SingleRecipeLineIo> {
+    implements ProductionLine<SingleRecipeLineIo> {
   final InGameRecipe recipe;
   final Surface? surface;
   final InGameItem? fuel;
@@ -12,8 +12,6 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   String get name => recipe.name;
   @override
   EntityPrototype get icon => recipe;
-  @override
-  bool get isImmutable => true;
 
   @override
   final Set<InGameItem> outputItems;
@@ -243,7 +241,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
     ItemAmounts inputConstraints = const {},
     ItemAmounts outputConstraints = const {},
   }) {
-    verifyConstraintsAndIo(inputConstraints, outputConstraints);
+    // TODO: verify constraints
 
     var machineCount = 0.0;
 
@@ -278,32 +276,28 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
       totalInput: _multiplyMap(machineTotalInput, machineCount),
       totalOutput: _multiplyMap(machineTotalOutput, machineCount),
       electricPowerConsumption: electricPowerConsumption,
-      pollution: _multiplyMap(singleMachineEmissions, machineCount),
+      emissions: _multiplyMap(singleMachineEmissions, machineCount),
     );
   }
 }
 
-class SingleRecipeLineIo extends ProductionLineIo {
+class SingleRecipeLineIo extends FullIo {
   final double machineCount;
   final double totalCyclesPerMinute;
-
-  final ItemAmounts totalInput;
-  final ItemAmounts totalOutput;
 
   SingleRecipeLineIo({
     required super.inputConstraints,
     required super.outputConstraints,
-    required this.machineCount,
-    required this.totalCyclesPerMinute,
     required super.netInput,
     required super.netOutput,
-    required ItemAmounts totalInput,
-    required ItemAmounts totalOutput,
+    required super.totalInput,
+    required super.totalOutput,
     required super.electricPowerConsumption,
-    required super.pollution,
-    super.displayData,
-  }) : totalInput = Map.unmodifiable(totalInput),
-       totalOutput = Map.unmodifiable(totalOutput);
+    super.displayData = const [],
+    required super.emissions,
+    required this.machineCount,
+    required this.totalCyclesPerMinute,
+  });
 }
 
 Map<K, double> _multiplyMap<K>(Map<K, double> toMultiply, double multiplier) =>

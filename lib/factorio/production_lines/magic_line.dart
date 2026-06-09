@@ -2,7 +2,7 @@ part of 'production_line.dart';
 
 /// Represents a 'magic' line that consumes / produces items at no cost
 /// Inputs and outputs are decided at creation and cannot be changed
-class IoLine with ProductionLine<IoLineIoData> {
+class IoLine implements ProductionLine<IoLineIoData> {
   @override
   final Set<InGameItem> outputItems;
   @override
@@ -14,8 +14,6 @@ class IoLine with ProductionLine<IoLineIoData> {
 
   @override
   String get type => 'io';
-  @override
-  bool get isImmutable => true;
 
   @override
   ItemAmounts? get outputRatios => null;
@@ -62,7 +60,7 @@ class IoLine with ProductionLine<IoLineIoData> {
     ItemAmounts inputConstraints = const {},
     ItemAmounts outputConstraints = const {},
   }) {
-    verifyConstraintsAndIo(inputConstraints, inputConstraints);
+    // TODO: verify
 
     if (inputConstraints.length != outputItems.length ||
         outputConstraints.length != inputItems.length) {
@@ -72,10 +70,6 @@ class IoLine with ProductionLine<IoLineIoData> {
     }
 
     return IoLineIoData(
-      displayData: [
-        DisplayData.netOutput(outputConstraints),
-        DisplayData.netInput(inputConstraints),
-      ],
       netInput: inputConstraints,
       netOutput: outputConstraints,
       inputConstraints: inputConstraints,
@@ -84,12 +78,34 @@ class IoLine with ProductionLine<IoLineIoData> {
   }
 }
 
-class IoLineIoData extends ProductionLineIo {
+class IoLineIoData implements ProductionLineIo {
+  @override
+  final ItemAmounts inputConstraints;
+  @override
+  final ItemAmounts outputConstraints;
+  @override
+  final ItemAmounts netInput;
+  @override
+  final ItemAmounts netOutput;
+
+  @override
+  List<DisplayData> get displayData => const [];
+  @override
+  ItemAmounts get totalOutput => netOutput;
+  @override
+  ItemAmounts get totalInput => netInput;
+  @override
+  double get electricPowerConsumption => 0;
+  @override
+  Map<String, double> get emissions => const {};
+
   IoLineIoData({
-    required super.displayData,
-    required super.netInput,
-    required super.netOutput,
-    required super.inputConstraints,
-    required super.outputConstraints,
-  });
+    required ItemAmounts inputConstraints,
+    required ItemAmounts outputConstraints,
+    required ItemAmounts netInput,
+    required ItemAmounts netOutput,
+  }) : inputConstraints = Map.unmodifiable(inputConstraints),
+       outputConstraints = Map.unmodifiable(outputConstraints),
+       netInput = Map.unmodifiable(netInput),
+       netOutput = Map.unmodifiable(netOutput);
 }

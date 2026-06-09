@@ -151,7 +151,7 @@ class SnapshotBuilder extends Builder<Snapshot> {
   SnapshotBuilder._(this._previousSnapshot);
 
   void addToSnapsnot<
-    E extends BasePlannerElement<St, B, dynamic>,
+    E extends BasePlannerElement<St, dynamic>,
     St extends ToJson,
     B extends Builder<St>
   >(E element, B builder) => _updatedElements[element] = builder;

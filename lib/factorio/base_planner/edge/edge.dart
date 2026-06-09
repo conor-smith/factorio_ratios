@@ -5,8 +5,7 @@ import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/json/json.dart';
 
-class Edge
-    implements BasePlannerElement<EdgeState, EdgeStateBuilder, EdgeEvent> {
+class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   final BasePlanner _basePlanner;
 
   @override

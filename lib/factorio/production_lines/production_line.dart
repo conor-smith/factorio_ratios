@@ -20,7 +20,7 @@ part 'single_machine.dart';
 /// All other values across both maps will be calculated relative to this.
 /// This field must be calculated independently of [calculate].
 /// If this isn't possible, these fields will be null.
-mixin ProductionLine<T extends ProductionLineIo> {
+abstract interface class ProductionLine<T extends ProductionLineIo> {
   /// Used in [toString]
   String get name;
 
@@ -46,11 +46,6 @@ mixin ProductionLine<T extends ProductionLineIo> {
   /// known values by the smallest number in either inputs or outputs.
   ItemAmounts? get inputRatios;
 
-  /// Specifies whether this production line is immutable or not.
-  /// An immutable production line will always have the same [inputItems] and
-  /// [outputItems], and will always produce the same IO for a set of constraints.
-  bool get isImmutable;
-
   /// Takes a set of input and output constraints, and produces an object representing IO.
   /// For each constraint, the production line must consume this amount or more.
   /// Eg. If two output constraints are specified, the production line must fulfill both of them.
@@ -59,35 +54,6 @@ mixin ProductionLine<T extends ProductionLineIo> {
   ///
   /// [inputConstraints] and [outputConstraints] are given in items per minute.
   T calculate({ItemAmounts inputConstraints, ItemAmounts outputConstraints});
-
-  void verifyConstraintsAndIo(
-    ItemAmounts inputConstraints,
-    ItemAmounts outputConstraints,
-  ) {
-    inputConstraints.forEach((input, constraint) {
-      if (constraint <= 0) {
-        throw ProductionLineException(
-          'Input constraint $input had value $constraint',
-        );
-      } else if (!outputItems.contains(input)) {
-        throw ProductionLineException(
-          'Input constraint $input is not a valid input',
-        );
-      }
-    });
-
-    outputConstraints.forEach((output, constraint) {
-      if (constraint <= 0) {
-        throw ProductionLineException(
-          'Output constraint $output had value $constraint',
-        );
-      } else if (!outputItems.contains(output)) {
-        throw ProductionLineException(
-          'Output constraint $output is not a valid input',
-        );
-      }
-    });
-  }
 
   @override
   String toString() => name;
@@ -100,43 +66,74 @@ mixin ProductionLine<T extends ProductionLineIo> {
 /// should exist for utility reasons - to be used in further equations / operations.
 ///
 /// All [ItemAmounts] fieds are given in items per minute.
-abstract class ProductionLineIo {
+abstract interface class ProductionLineIo {
   /// DisplayData for end user
   /// No data in here should be used for math or further operations
   /// If any useful data exists, it should be made it's own field
-  final List<DisplayData> displayData;
+  List<DisplayData> get displayData;
 
   /// Given in items per minute
-  final ItemAmounts netOutput;
+  ItemAmounts get inputConstraints;
 
   /// Given in items per minute
-  final ItemAmounts netInput;
+  ItemAmounts get outputConstraints;
 
   /// Given in items per minute
-  final ItemAmounts inputConstraints;
+  ItemAmounts get netInput;
 
   /// Given in items per minute
-  final ItemAmounts outputConstraints;
+  ItemAmounts get netOutput;
 
-  final double electricPowerConsumption;
+  /// Given in items per minute
+  ItemAmounts get totalInput;
+
+  /// Given in items per minute
+  ItemAmounts get totalOutput;
+
+  double get electricPowerConsumption;
 
   /// Given in emissions per minute
-  final Map<String, double> emissions;
+  Map<String, double> get emissions;
+}
 
-  ProductionLineIo({
-    required ItemAmounts netOutput,
+abstract class FullIo implements ProductionLineIo {
+  @override
+  final ItemAmounts outputConstraints;
+  @override
+  final ItemAmounts inputConstraints;
+  @override
+  final ItemAmounts netInput;
+  @override
+  final ItemAmounts netOutput;
+  @override
+  final ItemAmounts totalInput;
+  @override
+  final ItemAmounts totalOutput;
+  @override
+  final double electricPowerConsumption;
+  @override
+  final Map<String, double> emissions;
+  @override
+  final List<DisplayData> displayData;
+
+  FullIo({
+    required ItemAmounts inputConstraints,
+    required ItemAmounts outputConstraints,
     required ItemAmounts netInput,
-    ItemAmounts inputConstraints = const {},
-    ItemAmounts outputConstraints = const {},
-    this.electricPowerConsumption = 0,
-    Map<String, double> pollution = const {},
-    List<DisplayData> displayData = const [],
-  }) : displayData = List.unmodifiable(displayData),
+    required ItemAmounts netOutput,
+    required ItemAmounts totalInput,
+    required ItemAmounts totalOutput,
+    required this.electricPowerConsumption,
+    required Map<String, double> emissions,
+    required Iterable<DisplayData> displayData,
+  }) : inputConstraints = Map.unmodifiable(inputConstraints),
+       outputConstraints = Map.unmodifiable(outputConstraints),
        netInput = Map.unmodifiable(netInput),
        netOutput = Map.unmodifiable(netOutput),
-       inputConstraints = Map.unmodifiable(inputConstraints),
-       outputConstraints = Map.unmodifiable(outputConstraints),
-       emissions = Map.unmodifiable(pollution);
+       totalInput = Map.unmodifiable(totalInput),
+       totalOutput = Map.unmodifiable(totalOutput),
+       emissions = Map.unmodifiable(emissions),
+       displayData = List.unmodifiable(displayData);
 }
 
 class ProductionLineException extends FactorioException {
