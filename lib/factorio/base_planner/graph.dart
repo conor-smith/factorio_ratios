@@ -103,9 +103,9 @@ class GraphState implements ElementState {
 
   final NodeGeometry nodeGeometry;
 
-  final Set<Edge>? _cachedParents;
-  final Set<Edge>? _cachedChildren;
-  final GraphIo? _cachedIo;
+  Set<Edge>? _cachedParents;
+  Set<Edge>? _cachedChildren;
+  GraphIo? _cachedIo;
 
   // All following fields are derived from above fields
   // They are calculated and cached when required
@@ -118,26 +118,33 @@ class GraphState implements ElementState {
   // All element interactions are documented
 
   // Affected whenever io data in any prodlineNode, here or within descendent graphs, is updated
-  late final GraphIo io = _cachedIo ?? GraphIo.calculateIo(this);
+  GraphIo get io {
+    _cachedIo ??= GraphIo.calculateIo(this);
+    return _cachedIo!;
+  }
 
   // Affected whenever parentGraph gets a new edge connecting to an IO node
-  late final Set<Edge> parents =
-      _cachedParents ??
-      Set.unmodifiable(
-        productionLineNodes
-            .where((node) => node.nodeType.isIo)
-            .expand((node) => node.parents)
-            .where((edge) => edge.parentProductionLine != edge.parentNode),
-      );
+  Set<Edge> get parents {
+    _cachedParents ??= Set.unmodifiable(
+      productionLineNodes
+          .where((node) => node.nodeType.isIo)
+          .expand((node) => node.parents)
+          .where((edge) => edge.parentProductionLine != edge.parentNode),
+    );
+
+    return _cachedParents!;
+  }
+
   // Affected whenever parentGraph gets a new edge connecting to an IO node
-  late final Set<Edge> children =
-      _cachedChildren ??
-      Set.unmodifiable(
-        productionLineNodes
-            .where((node) => node.nodeType.isIo)
-            .expand((node) => node.children)
-            .where((edge) => edge.childProductionLine != edge.childNode),
-      );
+  Set<Edge> get children {
+    _cachedChildren ??= Set.unmodifiable(
+      productionLineNodes
+          .where((node) => node.nodeType.isIo)
+          .expand((node) => node.children)
+          .where((edge) => edge.childProductionLine != edge.childNode),
+    );
+    return _cachedChildren!;
+  }
 
   GraphState({
     Iterable<ProductionLineNode> productionLineNodes = const {},
@@ -212,7 +219,7 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
 
   @override
   Set<Edge> get children {
-    _cachedChildren = Set.unmodifiable(
+    _cachedChildren ??= Set.unmodifiable(
       _prodLineNodes
           .where((node) => node.nodeType.isIo)
           .expand((node) => node.children)
