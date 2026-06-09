@@ -7,50 +7,39 @@ import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dar
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/node/production_line_node.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 
 class GeometryOperation {
   final BasePlanner _basePlanner;
 
-  final Map<ProductionLineNode, NodeGeometryBuilder> _nodes = {};
-  final Map<Edge, EdgeGeometryBuilder> _edges = {};
-  final Map<Graph, NodeGeometryBuilder> _graphs = {};
-
-  final Map<Edge, EdgeGeometryBuilder> _affectedEdges = {};
+  final Map<NodeElement, NodeGeometryBuilder> _nodeGeometries = {};
+  final Map<Edge, EdgeGeometryBuilder> _edgeGeometries = {};
+  final Map<Edge, EdgeGeometryBuilder> _affectedEdgeGeometries = {};
 
   GeometryOperation.drag(
     BasePlanner basePlanner,
     Graph parentGraph, {
-    Iterable<ProductionLineNode> selectedNodes = const [],
-    Iterable<Graph> selectedChildGraphs = const [],
+    Iterable<NodeElement> selectedNodes = const [],
   }) : _basePlanner = basePlanner {
-    // TODO: verification, optimisation
     for (var node in selectedNodes) {
-      _nodes[node] = NodeGeometryBuilder.from(node.nodeGeometry);
-    }
-    for (var graph in selectedChildGraphs) {
-      _graphs[graph] = NodeGeometryBuilder.from(graph.nodeGeometry);
+      _nodeGeometries[node] = NodeGeometryBuilder.from(node.nodeGeometry);
     }
 
-    // Makes lookup easier
-    Map<Node, NodeGeometryBuilder> allNodeGeometries = Map.from(_nodes)
-      ..addAll(_graphs);
-
-    for (var edge
-        in allNodeGeometries.keys
-            .expand((node) => node.parents.followedBy(node.children))
-            .toSet()) {
-      var parentGeometry = allNodeGeometries[edge.parentNode];
-      var childGeometry = allNodeGeometries[edge.childNode];
+    var allEdges = selectedNodes
+        .expand((node) => node.parents.followedBy(node.children))
+        .toSet();
+    for (var edge in allEdges) {
+      var parentGeometry = _nodeGeometries[edge.parentNode];
+      var childGeometry = _nodeGeometries[edge.childNode];
 
       if (parentGeometry != null && childGeometry != null) {
-        _edges[edge] = EdgeGeometryBuilder.from(
+        _edgeGeometries[edge] = EdgeGeometryBuilder.from(
           edge.edgeGeometry,
           parentGeometry,
           childGeometry,
         );
       } else {
-        _affectedEdges[edge] = EdgeGeometryBuilder.from(
+        _affectedEdgeGeometries[edge] = EdgeGeometryBuilder.from(
           edge.edgeGeometry,
           parentGeometry ?? edge.parentNode.nodeGeometry,
           childGeometry ?? edge.childNode.nodeGeometry,
@@ -60,40 +49,29 @@ class GeometryOperation {
   }
 
   void performOperation(Offset shiftFromStart) {
-    // TODO: Refactor and clean up
-    _nodes.forEach((node, geometry) {
+    _nodeGeometries.forEach((node, geometry) {
       geometry.shift(shiftFromStart);
-      node.notifyListeners(NodeEvent.geometryOp(geometry));
+      node.notifyListenersOfGeometryUpdate(geometry);
+    });
+    _edgeGeometries.forEach((edge, geometry) {
+      geometry.shift(shiftFromStart);
+      edge.notifyListenersOfGeometryUpdate(geometry);
     });
 
-    _graphs.forEach((graph, geometry) {
-      geometry.shift(shiftFromStart);
-      graph.notifyListeners(GraphEvent.geometryOp(geometry));
-    });
-
-    _edges.forEach((edge, geometry) {
-      geometry.shift(shiftFromStart);
-      edge.notifyListeners(EdgeEvent.geometryOp(geometry));
-    });
-
-    _affectedEdges.forEach((edge, geometry) {
-      geometry.shift(shiftFromStart);
-      edge.notifyListeners(EdgeEvent.geometryOp(geometry));
+    _affectedEdgeGeometries.forEach((edge, geometry) {
+      geometry.nodeUpdateRedraw();
+      edge.notifyListenersOfGeometryUpdate(geometry);
     });
   }
 
   void applyUpdate() {
     _basePlanner.buildNextSnapshot(() {
-      _nodes.forEach(
+      _nodeGeometries.forEach(
         (node, geometry) => node.getStateBuilder().updateGeometry(geometry),
       );
 
-      _graphs.forEach(
-        (graph, geometry) => graph.getStateBuilder().updateGeometry(geometry),
-      );
-
-      Map<Edge, EdgeGeometryBuilder>.from(_edges)
-        ..addAll(_affectedEdges)
+      Map<Edge, EdgeGeometryBuilder>.from(_edgeGeometries)
+        ..addAll(_affectedEdgeGeometries)
         ..forEach(
           (edge, geometry) => edge.getStateBuilder().updateGeometry(geometry),
         );
@@ -101,7 +79,8 @@ class GeometryOperation {
   }
 }
 
-class NodeGeometryBuilder implements Builder<NodeGeometry>, NodeGeometry {
+class NodeGeometryBuilder
+    implements GeometryBuilder<NodeGeometry>, NodeGeometry {
   final NodeGeometry _original;
 
   Rect _minimalRect;
@@ -113,6 +92,7 @@ class NodeGeometryBuilder implements Builder<NodeGeometry>, NodeGeometry {
     : _original = nodeGeometry,
       _minimalRect = nodeGeometry.minimalRect;
 
+  @override
   void shift(Offset offset) =>
       _minimalRect = _original.minimalRect.shift(offset);
 
@@ -128,7 +108,8 @@ class NodeGeometryBuilder implements Builder<NodeGeometry>, NodeGeometry {
   }
 }
 
-class EdgeGeometryBuilder implements Builder<EdgeGeometry>, EdgeGeometry {
+class EdgeGeometryBuilder
+    implements GeometryBuilder<EdgeGeometry>, EdgeGeometry {
   final EdgeGeometry _original;
   final NodeGeometry _parent;
   final NodeGeometry _child;
@@ -151,6 +132,7 @@ class EdgeGeometryBuilder implements Builder<EdgeGeometry>, EdgeGeometry {
       _child = child,
       _lines = List.from(edgeGeometry.lines);
 
+  @override
   void shift(Offset offset) {
     for (var i = 0; i < _original.lines.length; i++) {
       _lines[i] = _original.lines[i].shift(offset);

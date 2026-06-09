@@ -1,9 +1,15 @@
 import 'dart:ui';
 
+import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/json/json.dart';
 
 abstract interface class Geometry implements ToJson {
   Rect get minimalRect;
+}
+
+abstract interface class GeometryBuilder<G extends Geometry>
+    implements Builder<G> {
+  void shift(Offset offset);
 }
 
 class Line {

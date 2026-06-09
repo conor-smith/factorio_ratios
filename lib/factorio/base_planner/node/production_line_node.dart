@@ -1,19 +1,9 @@
-import 'dart:collection';
+part of 'node.dart';
 
-import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
-import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
-import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
-import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
-import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
-import 'package:factorio_ratios/json/json.dart';
-
-class ProductionLineNode
+class ProdLineNode
     implements
-        BasePlannerElement<NodeState, NodeStateBuilder, NodeEvent>,
-        Node {
+        NodeElement<ProdLineNodeState, ProdLineNodeStateBuilder, NodeEvent> {
   final BasePlanner _basePlanner;
-  late final Function(Function) newSnapshotFunction;
 
   @override
   final int id;
@@ -32,23 +22,23 @@ class ProductionLineNode
   final NodeType nodeType;
 
   final EventNotifier<NodeEvent> _notifier = EventNotifierImpl();
-  NodeState _state;
-  NodeStateBuilder? _builder;
+  ProdLineNodeState _state;
+  ProdLineNodeStateBuilder? _builder;
 
   // For convenience
   ItemAmounts? get requiredInput => _state.requiredInput;
   ItemAmounts? get requiredOutput => _state.requiredOutput;
   ProductionLine get productionLine => _state.productionLine;
 
-  ProductionLineNode({
+  ProdLineNode({
     required BasePlanner basePlanner,
     required this.parentGraph,
     required this.nodeType,
     required ProductionLine productionLine,
   }) : _basePlanner = basePlanner,
        id = BasePlannerElement.generateId(),
-       _state = NodeState._(productionLine: productionLine) {
-    var builder = NodeStateBuilder._from(this);
+       _state = ProdLineNodeState._(productionLine: productionLine) {
+    var builder = ProdLineNodeStateBuilder._from(this);
 
     _builder = builder;
     _basePlanner.getSnapshotBuilder().addToSnapsnot(this, builder);
@@ -57,9 +47,9 @@ class ProductionLineNode
   }
 
   @override
-  NodeState get state => _builder ?? _state;
+  ProdLineNodeState get state => _builder ?? _state;
   @override
-  set state(NodeState state) {
+  set state(ProdLineNodeState state) {
     _basePlanner.throwIfMutationNotPermitted();
 
     // Validate state
@@ -67,9 +57,9 @@ class ProductionLineNode
   }
 
   @override
-  NodeStateBuilder getStateBuilder() {
+  ProdLineNodeStateBuilder getStateBuilder() {
     if (_builder != null) {
-      var builder = NodeStateBuilder._from(this);
+      var builder = ProdLineNodeStateBuilder._from(this);
       _basePlanner.getSnapshotBuilder().addToSnapsnot(this, builder);
       _builder = builder;
     }
@@ -88,8 +78,17 @@ class ProductionLineNode
   void notifyListeners(NodeEvent event) => _notifier.notifyListeners(event);
 
   @override
-  void notifyListenersOfStateChange(NodeState oldState, NodeState newState) {
+  void notifyListenersOfStateChange(
+    ProdLineNodeState oldState,
+    ProdLineNodeState newState,
+  ) {
     // TODO: implement notifyListenerOfStateChange
+    throw UnimplementedError();
+  }
+
+  @override
+  void notifyListenersOfGeometryUpdate(NodeGeometry nodeGeometry) {
+    // TODO: implement notifyListenersOfGeometryUpdate
     throw UnimplementedError();
   }
 
@@ -100,7 +99,7 @@ class ProductionLineNode
   }
 }
 
-class NodeState implements ToJson {
+class ProdLineNodeState implements ToJson {
   final ItemAmounts? requiredInput;
   final ItemAmounts? requiredOutput;
 
@@ -112,7 +111,7 @@ class NodeState implements ToJson {
   final Set<Edge> parents;
   final Set<Edge> children;
 
-  NodeState._({
+  ProdLineNodeState._({
     ItemAmounts? requiredInput,
     ItemAmounts? requiredOutput,
     required this.productionLine,
@@ -136,8 +135,9 @@ class NodeState implements ToJson {
   }
 }
 
-class NodeStateBuilder implements Builder<NodeState>, NodeState {
-  final ProductionLineNode _node;
+class ProdLineNodeStateBuilder
+    implements NodeStateBuilder<ProdLineNodeState>, ProdLineNodeState {
+  final ProdLineNode _node;
 
   ItemAmounts? _requiredInput;
   ItemAmounts? _requiredOutput;
@@ -169,7 +169,7 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   @override
   late final Set<Edge> children = UnmodifiableSetView(children);
 
-  NodeStateBuilder._from(this._node)
+  ProdLineNodeStateBuilder._from(this._node)
     : _requiredInput = _node.requiredInput,
       _requiredOutput = _node.requiredOutput,
       _productionLine = _node.productionLine,
@@ -331,6 +331,7 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
     }
   }
 
+  @override
   void updateGeometry(NodeGeometry nodeGeometry) =>
       _nodeGeometry = nodeGeometry;
 
@@ -341,7 +342,7 @@ class NodeStateBuilder implements Builder<NodeState>, NodeState {
   void removeChild(Edge child) => _children.remove(child);
 
   @override
-  NodeState build() => NodeState._(
+  ProdLineNodeState build() => ProdLineNodeState._(
     requiredInput: _requiredInput,
     requiredOutput: _requiredOutput,
     productionLine: _productionLine,

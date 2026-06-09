@@ -3,15 +3,12 @@ import 'dart:collection';
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/node/production_line_node.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/json/json.dart';
 
-class Graph
-    implements
-        BasePlannerElement<GraphState, GraphStateBuilder, GraphEvent>,
-        Node {
+class Graph implements NodeElement<GraphState, GraphStateBuilder, GraphEvent> {
   final BasePlanner _basePlanner;
 
   @override
@@ -33,7 +30,7 @@ class Graph
   GraphStateBuilder? _builder;
 
   // For convenience
-  Set<ProductionLineNode> get productionLineNodes => _state.productionLineNodes;
+  Set<ProdLineNode> get productionLineNodes => _state.productionLineNodes;
   Set<Graph> get graphNodes => _state.graphNodes;
   Set<Edge> get edges => _state.edges;
 
@@ -86,24 +83,20 @@ class Graph
   }
 
   @override
+  void notifyListenersOfGeometryUpdate(NodeGeometry nodeGeometry) {
+    // TODO: implement notifyListenersOfGeometryUpdate
+    throw UnimplementedError();
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
   }
 }
 
-abstract class Node {
-  Graph? get parentGraph;
-
-  ProductionLineIo? get io;
-  NodeGeometry get nodeGeometry;
-
-  Set<Edge> get parents;
-  Set<Edge> get children;
-}
-
 class GraphState implements ToJson {
-  final Set<ProductionLineNode> productionLineNodes;
+  final Set<ProdLineNode> productionLineNodes;
   final Set<Graph> graphNodes;
   final Set<Edge> edges;
 
@@ -133,7 +126,7 @@ class GraphState implements ToJson {
   }
 
   GraphState._({
-    Iterable<ProductionLineNode> productionLineNodes = const {},
+    Iterable<ProdLineNode> productionLineNodes = const {},
     Iterable<Graph> graphNodes = const {},
     Iterable<Edge> edges = const {},
     this.nodeGeometry = NodeGeometry.uninitialised,
@@ -154,10 +147,10 @@ class GraphState implements ToJson {
   }
 }
 
-class GraphStateBuilder implements Builder<GraphState>, GraphState {
+class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
   final Graph _graph;
 
-  final Set<ProductionLineNode> _prodLineNodes;
+  final Set<ProdLineNode> _prodLineNodes;
   final Set<Edge> _edges;
   final Set<Graph> _graphNodes;
   NodeGeometry _nodeGeometry;
@@ -172,7 +165,7 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
   GraphIo? _cachedIo;
 
   @override
-  late final Set<ProductionLineNode> productionLineNodes = UnmodifiableSetView(
+  late final Set<ProdLineNode> productionLineNodes = UnmodifiableSetView(
     _prodLineNodes,
   );
   @override
@@ -211,8 +204,8 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
       _cachedChildren = _graph._state._cachedChildren,
       _cachedIo = _graph._state._cachedIo;
 
-  void addNode(ProductionLineNode node) => _prodLineNodes.add(node);
-  void removeNode(ProductionLineNode node) => _prodLineNodes.remove(node);
+  void addNode(ProdLineNode node) => _prodLineNodes.add(node);
+  void removeNode(ProdLineNode node) => _prodLineNodes.remove(node);
 
   void addEdge(Edge edge) => _edges.add(edge);
 
@@ -221,6 +214,7 @@ class GraphStateBuilder implements Builder<GraphState>, GraphState {
   void addChildGraph(Graph childGraph) => _graphNodes.add(childGraph);
   void removeChildGraph(Graph childGraph) => _graphNodes.remove(childGraph);
 
+  @override
   void updateGeometry(NodeGeometry nodeGeometry) =>
       _nodeGeometry = nodeGeometry;
 
@@ -273,7 +267,7 @@ class GraphException extends BasePlannerException {
   const GraphException(super.message, [super.cause]);
 }
 
-Set<Edge> _calculateExternalParents(Iterable<ProductionLineNode> nodes) =>
+Set<Edge> _calculateExternalParents(Iterable<ProdLineNode> nodes) =>
     Set.unmodifiable(
       nodes
           .where((node) => node.nodeType.isIo)
@@ -281,7 +275,7 @@ Set<Edge> _calculateExternalParents(Iterable<ProductionLineNode> nodes) =>
           .where((edge) => edge.parentProductionLine != edge.parentNode),
     );
 
-Set<Edge> _calculateExternalChildren(Iterable<ProductionLineNode> nodes) =>
+Set<Edge> _calculateExternalChildren(Iterable<ProdLineNode> nodes) =>
     Set.unmodifiable(
       nodes
           .where((node) => node.nodeType.isIo)

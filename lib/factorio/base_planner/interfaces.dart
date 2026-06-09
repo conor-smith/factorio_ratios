@@ -24,6 +24,7 @@ abstract interface class BasePlannerElement<
   B getStateBuilder();
 
   void notifyListenersOfStateChange(St oldState, St newState);
+  void notifyListenersOfGeometryUpdate(covariant Geometry geometry);
 }
 
 abstract interface class Builder<T> {

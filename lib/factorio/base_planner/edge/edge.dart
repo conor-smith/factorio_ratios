@@ -1,7 +1,7 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/node/production_line_node.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/json/json.dart';
 
@@ -14,10 +14,10 @@ class Edge
 
   final Graph parentGraph;
   final EdgeType edgeType;
-  final ProductionLineNode parentProductionLine;
-  final ProductionLineNode childProductionLine;
-  final Node parentNode;
-  final Node childNode;
+  final ProdLineNode parentProductionLine;
+  final ProdLineNode childProductionLine;
+  final NodeElement parentNode;
+  final NodeElement childNode;
   final InGameItem item;
 
   final EventNotifier<EdgeEvent> _notifier = EventNotifierImpl();
@@ -97,6 +97,12 @@ class Edge
   @override
   void notifyListenersOfStateChange(EdgeState oldState, EdgeState newState) {
     // TODO: implement notifyListenerOfStateChange
+    throw UnimplementedError();
+  }
+
+  @override
+  void notifyListenersOfGeometryUpdate(EdgeGeometry edgeGeometry) {
+    // TODO: implement notifyListenersOfGeometryUpdate
     throw UnimplementedError();
   }
 

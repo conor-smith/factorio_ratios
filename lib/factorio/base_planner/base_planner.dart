@@ -1,6 +1,7 @@
 import 'dart:collection';
 import 'dart:math';
 
+import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/json/json.dart';
