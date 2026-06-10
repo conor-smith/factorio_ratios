@@ -380,9 +380,12 @@ class GraphIoBuilder implements Builder<GraphIo> {
       if (node.nodeType.isIo) {
         sumMaps(inputConstraints, io.constraints.inputs);
         sumMaps(outputConstraints, io.constraints.outputs);
+      }
 
-        sumMaps(netInput, io.netIo.inputs);
+      if (node.nodeType == NodeType.output) {
         sumMaps(netOutput, io.netIo.outputs);
+      } else if (node.nodeType == NodeType.input) {
+        sumMaps(netInput, io.netIo.inputs);
       }
 
       sumMaps(totalInput, io.totalIo.inputs);
