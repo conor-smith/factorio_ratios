@@ -98,7 +98,7 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
       function();
       _mutationLock--;
 
-      if (firstCall) {
+      if (firstCall && _snapshotBuilder!.hasChanges) {
         var oldSnapshot = _snapshots[_snapshotIndex];
         var newSnapshot = _snapshotBuilder!.build();
         _snapshotBuilder = null;
@@ -112,6 +112,8 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
         _snapshots.add(newSnapshot);
 
         _applySnapshotAndUpdateListeners(oldSnapshot, newSnapshot);
+      } else if (firstCall && !_snapshotBuilder!.hasChanges) {
+        _snapshotBuilder = null;
       }
     } catch (e) {
       _mutationLock--;
@@ -179,6 +181,9 @@ class SnapshotBuilder extends Builder<Snapshot> {
 
   final Map<BasePlannerElement, Builder<ToJson>> _updatedElements = {};
   final Set<BasePlannerElement> _removedElements = {};
+
+  bool get hasChanges =>
+      _updatedElements.isNotEmpty || _removedElements.isNotEmpty;
 
   SnapshotBuilder._(this._previousSnapshot);
 

@@ -17,6 +17,8 @@ abstract interface class BasePlannerElement<St extends ToJson, E>
   St get state;
   set state(St state);
 
+  void remove();
+
   Builder<St> getStateBuilder();
 
   void notifyListenersOfStateChange(St oldState, St newState);

@@ -37,7 +37,7 @@ class Graph
   @override
   Set<Edge> get children => state.children;
   @override
-  GraphIo get io => state.getIo(this);
+  GraphIo? get io => state.io;
   Set<Graph> get graphNodes => state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
   Set<NodeElement> get allNodes => state.allNodes;
@@ -64,11 +64,11 @@ class Graph
        id = BasePlannerElement.generateId(),
        _state = GraphState._(icon: icon ?? surface),
        _surfaceProperties = basePlanner.surfaceProperties[surface] {
-    var builder = GraphStateBuilder._from(this);
-    _builder = builder;
-
-    basePlanner.getSnapshotBuilder().addToSnapsnot(this, builder);
+    _builder = GraphStateBuilder._new(this);
   }
+
+  @override
+  void remove() => GraphStateBuilder._remove(this);
 
   @override
   GraphState get state => _builder ?? _state;
@@ -83,11 +83,7 @@ class Graph
 
   @override
   GraphStateBuilder getStateBuilder() {
-    if (_builder == null) {
-      var builder = GraphStateBuilder._from(this);
-      _basePlanner.getSnapshotBuilder().addToSnapsnot(this, builder);
-      _builder = builder;
-    }
+    _builder ??= GraphStateBuilder._from(this);
 
     return _builder!;
   }
@@ -142,21 +138,16 @@ class GraphState implements ToJson {
   final Set<Graph> graphNodes;
   final Set<Edge> edges;
   final NodeGeometry nodeGeometry;
-
-  // All following fields are derived from above fields
-  // They are calculated and cached when required
-  _GraphStateCache _cache;
+  final Set<Edge> parents;
+  final Set<Edge> children;
+  final Set<InGameItem> inputItems;
+  final Set<InGameItem> outputItems;
+  final GraphIo? io;
 
   late final Set<NodeElement> allNodes = Set.unmodifiable({
     ...prodLineNodes,
     ...graphNodes,
   });
-
-  Set<Edge> get parents => _cache.getParents(prodLineNodes);
-  Set<Edge> get children => _cache.getChildren(prodLineNodes);
-  Set<InGameItem> get inputItems => _cache.getInputItems(prodLineNodes);
-  Set<InGameItem> get outputItems => _cache.getOutputItems(prodLineNodes);
-  GraphIo getIo(Graph graph) => _cache.getIo(graph);
 
   GraphState._({
     this.name = 'graph',
@@ -164,12 +155,19 @@ class GraphState implements ToJson {
     Iterable<ProdLineNode> prodLineNodes = const {},
     Iterable<Graph> graphNodes = const {},
     Iterable<Edge> edges = const {},
-    _GraphStateCache? cache,
     this.nodeGeometry = NodeGeometry.uninitialised,
+    Iterable<Edge> parents = const {},
+    Iterable<Edge> children = const {},
+    Iterable<InGameItem> inputItems = const {},
+    Iterable<InGameItem> outputItems = const {},
+    this.io,
   }) : prodLineNodes = Set.unmodifiable(prodLineNodes),
        graphNodes = Set.unmodifiable(graphNodes),
        edges = Set.unmodifiable(edges),
-       _cache = cache ?? _GraphStateCache();
+       parents = Set.unmodifiable(parents),
+       children = Set.unmodifiable(children),
+       inputItems = Set.unmodifiable(inputItems),
+       outputItems = Set.unmodifiable(outputItems);
 
   @override
   Map<String, dynamic> toJson() {
@@ -179,6 +177,7 @@ class GraphState implements ToJson {
 }
 
 class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
+  @override
   final Graph _graph;
 
   String _name;
@@ -187,9 +186,11 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
   final Set<Edge> _edges;
   final Set<Graph> _graphNodes;
   NodeGeometry _nodeGeometry;
-
-  @override
-  _GraphStateCache _cache;
+  final Set<Edge> _parents;
+  final Set<Edge> _children;
+  final Set<InGameItem> _inputItems;
+  final Set<InGameItem> _outputItems;
+  GraphIo? _io;
 
   @override
   String get name => _name;
@@ -205,20 +206,48 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
   late final Set<Graph> graphNodes = UnmodifiableSetView(_graphNodes);
   @override
   NodeGeometry get nodeGeometry => _nodeGeometry;
+  @override
+  Set<Edge> get parents => UnmodifiableSetView(_parents);
+  @override
+  Set<Edge> get children => UnmodifiableSetView(_children);
+  @override
+  Set<InGameItem> get inputItems => UnmodifiableSetView(_inputItems);
+  @override
+  Set<InGameItem> get outputItems => UnmodifiableSetView(_outputItems);
+  @override
+  GraphIo? get io => _io;
 
   @override
   Set<NodeElement> get allNodes => {..._prodLineNodes, ..._graphNodes};
 
-  @override
-  Set<Edge> get parents => _cache.getParents(prodLineNodes);
-  @override
-  Set<Edge> get children => _cache.getChildren(prodLineNodes);
-  @override
-  Set<InGameItem> get inputItems => _cache.getInputItems(prodLineNodes);
-  @override
-  Set<InGameItem> get outputItems => _cache.getOutputItems(prodLineNodes);
-  @override
-  GraphIo getIo(Graph graph) => _cache.getIo(graph);
+  factory GraphStateBuilder._new(Graph graph) {
+    var builder = GraphStateBuilder._from(graph);
+
+    var parentGraph = graph.parentGraph;
+    if (parentGraph != null) {
+      parentGraph.getStateBuilder()
+        ..addChildGraph(graph)
+        ..clearIo();
+    }
+
+    return builder;
+  }
+
+  static void _remove(Graph graph) {
+    for (var edge in graph.edges) {
+      edge.remove();
+    }
+    for (var node in graph.allNodes) {
+      node.remove();
+    }
+
+    var parentGraph = graph.parentGraph;
+    if (parentGraph != null) {
+      parentGraph.getStateBuilder()
+        ..removeChildGraph(graph)
+        ..clearIo();
+    }
+  }
 
   GraphStateBuilder._from(this._graph)
     : _name = _graph.name,
@@ -227,7 +256,12 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
       _edges = Set.from(_graph.edges),
       _graphNodes = Set.from(_graph.graphNodes),
       _nodeGeometry = _graph.nodeGeometry,
-      _cache = _GraphStateCache.from(_graph._state._cache);
+      _parents = Set.from(_graph.parents),
+      _children = Set.from(_graph.children),
+      _inputItems = Set.from(_graph.inputItems),
+      _outputItems = Set.from(_graph.outputItems) {
+    _graph._basePlanner.getSnapshotBuilder().addToSnapsnot(_graph, this);
+  }
 
   void updateName(String newName) => _name = newName;
 
@@ -248,24 +282,30 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
       _nodeGeometry = nodeGeometry;
 
   @override
-  void addChild(Edge chidEdge) => clearIoNodeItems();
+  void addParent(Edge parent) => _parents.add(parent);
   @override
-  void addParent(Edge parentEdge) => clearIoNodeItems();
+  void addChild(Edge child) => _children.add(child);
   @override
-  void removeChild(Edge childEdge) => clearIoNodeItems();
+  void removeParent(Edge parent) => _parents.remove(parent);
   @override
-  void removeParent(Edge parentEdge) => clearIoNodeItems();
+  void removeChild(Edge child) => _children.remove(child);
 
-  void clearIoNodeItems() => _cache.clearIoNodeItems();
+  void addOutputItems(Iterable<InGameItem> outputs) =>
+      _outputItems.addAll(outputs);
+  void addInputItems(Iterable<InGameItem> inputs) => _inputItems.addAll(inputs);
+  void removeOutputItems(Iterable<InGameItem> outputs) =>
+      _outputItems.removeAll(outputs);
+  void removeInputItems(Iterable<InGameItem> inputs) =>
+      _inputItems.removeAll(inputs);
 
   void clearIo() {
-    if (_cache._io != null) {
-      _cache.clearIo();
-      Graph? graph = _graph;
+    if (_io != null) {
+      _io = null;
 
-      while (graph != null) {
-        graph.getStateBuilder().clearIo();
-        graph = graph.parentGraph;
+      Graph? parentGraph = _graph.parentGraph;
+      while (parentGraph != null) {
+        parentGraph.getStateBuilder().clearIo();
+        parentGraph = parentGraph.parentGraph;
       }
     }
   }
@@ -277,7 +317,11 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
     edges: edges,
     graphNodes: _graphNodes,
     nodeGeometry: _nodeGeometry,
-    cache: _GraphStateCache.from(_cache),
+    parents: _parents,
+    children: _children,
+    inputItems: inputItems,
+    outputItems: outputItems,
+    io: io,
   );
 
   @override
@@ -288,6 +332,16 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
 }
 
 class GraphIo extends ProductionLineIo {
+  factory GraphIo.fromState(GraphState state) {
+    var builder = GraphIoBuilder();
+
+    for (var node in state.allNodes) {
+      builder.add(node);
+    }
+
+    return builder.build();
+  }
+
   GraphIo({
     required super.constraints,
     required super.netIo,
@@ -307,107 +361,6 @@ class GraphEvent {
 
 class GraphException extends BasePlannerException {
   const GraphException(super.message, [super.cause]);
-}
-
-class _GraphStateCache {
-  Set<Edge>? _parents;
-  Set<Edge>? _children;
-
-  Set<InGameItem>? _inputItems;
-  Set<InGameItem>? _outputItems;
-
-  GraphIo? _io;
-
-  _GraphStateCache();
-
-  _GraphStateCache.from(_GraphStateCache oldCache) {
-    _parents = oldCache._parents;
-    _children = oldCache._children;
-    _inputItems = oldCache._inputItems;
-    _outputItems = oldCache._outputItems;
-    _io = oldCache._io;
-  }
-
-  Set<Edge> getParents(Iterable<ProdLineNode> prodLineNodes) {
-    if (_parents == null) {
-      _populateIoNodeItems(prodLineNodes);
-    }
-
-    return _parents!;
-  }
-
-  Set<Edge> getChildren(Iterable<ProdLineNode> prodLineNodes) {
-    if (_children == null) {
-      _populateIoNodeItems(prodLineNodes);
-    }
-
-    return _children!;
-  }
-
-  Set<InGameItem> getInputItems(Iterable<ProdLineNode> prodLineNodes) {
-    if (_inputItems == null) {
-      _populateIoNodeItems(prodLineNodes);
-    }
-
-    return _inputItems!;
-  }
-
-  Set<InGameItem> getOutputItems(Iterable<ProdLineNode> prodLineNodes) {
-    if (_outputItems == null) {
-      _populateIoNodeItems(prodLineNodes);
-    }
-
-    return _outputItems!;
-  }
-
-  GraphIo getIo(Graph graph) {
-    _io ??= graph.calculate(ItemIo());
-
-    return _io!;
-  }
-
-  void clearIoNodeItems() {
-    _parents = null;
-    _children = null;
-    _inputItems = null;
-    _outputItems = null;
-  }
-
-  void clearIo() {
-    _io = null;
-  }
-
-  void _populateIoNodeItems(Iterable<ProdLineNode> prodLineNodes) {
-    Set<Edge> parents = {};
-    Set<Edge> children = {};
-    Set<InGameItem> inputItems = {};
-    Set<InGameItem> outputItems = {};
-
-    for (var ioNode in prodLineNodes.where((node) => node.nodeType.isIo)) {
-      parents.addAll(
-        ioNode.parents.where(
-          (edge) => edge.parentGraph == ioNode.parentGraph.parentGraph,
-        ),
-      );
-
-      children.addAll(
-        ioNode.children.where(
-          (edge) => edge.parentGraph == ioNode.parentGraph.parentGraph,
-        ),
-      );
-
-      if (ioNode.nodeType == NodeType.input) {
-        inputItems.addAll(ioNode.inputItems);
-      } else if (ioNode.nodeType == NodeType.output) {
-        outputItems.addAll(ioNode.outputItems);
-      }
-    }
-
-    _parents = Set.unmodifiable(parents);
-    _children = Set.unmodifiable(children);
-    _inputItems = Set.unmodifiable(inputItems);
-    _outputItems = Set.unmodifiable(outputItems);
-  }
 }
 
 class GraphIoBuilder implements Builder<GraphIo> {

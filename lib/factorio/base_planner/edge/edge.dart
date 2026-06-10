@@ -74,15 +74,7 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
       percentage: percentage,
     );
 
-    var builder = EdgeStateBuilder._from(edge);
-    edge._builder = builder;
-    basePlanner.getSnapshotBuilder().addToSnapsnot(edge, builder);
-
-    parent.getStateBuilder().addChild(edge);
-    parentProdLine.getStateBuilder().addChild(edge);
-
-    child.getStateBuilder().addParent(edge);
-    childProdLine.getStateBuilder().addParent(edge);
+    edge._builder = EdgeStateBuilder._new(edge);
 
     return edge;
   }
@@ -112,12 +104,11 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   }
 
   @override
+  void remove() => EdgeStateBuilder._remove(this);
+
+  @override
   EdgeStateBuilder getStateBuilder() {
-    if (_builder == null) {
-      var builder = EdgeStateBuilder._from(this);
-      _basePlanner.getSnapshotBuilder().addToSnapsnot(this, builder);
-      _builder = builder;
-    }
+    _builder ??= EdgeStateBuilder._from(this);
 
     return _builder!;
   }
@@ -182,10 +173,36 @@ class EdgeStateBuilder implements Builder<EdgeState>, EdgeState {
   @override
   EdgeGeometry get edgeGeometry => _edgeGeometry;
 
+  factory EdgeStateBuilder._new(Edge edge) {
+    var builder = EdgeStateBuilder._from(edge);
+
+    edge.parentGraph.getStateBuilder().addEdge(edge);
+
+    edge.parent.getStateBuilder().addChild(edge);
+    edge.child.getStateBuilder().addParent(edge);
+
+    edge.parentProductionLine.getStateBuilder().addChild(edge);
+    edge.childProductionLine.getStateBuilder().addParent(edge);
+
+    return builder;
+  }
+
+  static void _remove(Edge edge) {
+    edge.parentGraph.getStateBuilder().removeEdge(edge);
+
+    edge.parent.getStateBuilder().removeChild(edge);
+    edge.child.getStateBuilder().removeParent(edge);
+
+    edge.parentProductionLine.getStateBuilder().removeChild(edge);
+    edge.childProductionLine.getStateBuilder().removeParent(edge);
+  }
+
   EdgeStateBuilder._from(Edge edge)
     : _amount = edge.amount,
       _percentage = edge.percentage,
-      _edgeGeometry = edge.edgeGeometry;
+      _edgeGeometry = edge.edgeGeometry {
+    edge._basePlanner.getSnapshotBuilder().addToSnapsnot(edge, this);
+  }
 
   void updateAmount(double amount) => _amount = amount;
   void clearAmount() => _amount = 0;

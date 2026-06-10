@@ -1,6 +1,7 @@
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/utility/utility.dart';
 
 part 'magic_line.dart';
 part 'single_recipe.dart';
@@ -108,8 +109,12 @@ class ValueAndDisplayData<T> {
 }
 
 class ItemIo {
+  static const empty = ItemIo._empty();
+
   final ItemAmounts inputs;
   final ItemAmounts outputs;
+
+  const ItemIo._empty() : inputs = const {}, outputs = const {};
 
   ItemIo({ItemAmounts inputs = const {}, ItemAmounts outputs = const {}})
     : inputs = Map.unmodifiable(inputs),
@@ -128,4 +133,18 @@ class ItemIo {
       }
     });
   }
+
+  @override
+  bool operator ==(Object other) {
+    return super == other ||
+        (other is ItemIo &&
+            compareMaps(other.inputs, inputs) &&
+            compareMaps(other.outputs, outputs));
+  }
+
+  @override
+  int get hashCode => inputs.entries
+      .followedBy(outputs.entries)
+      .map((entry) => entry.key.hashCode * entry.value.ceil())
+      .reduce((val1, val2) => val1 + val2);
 }

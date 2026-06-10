@@ -12,8 +12,7 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   final NodeType nodeType;
 
   // For convenience
-  ItemAmounts? get requiredInput => _state.requiredInput;
-  ItemAmounts? get requiredOutput => _state.requiredOutput;
+  ItemIo? get requirements => state.requirements;
   @override
   ProductionLine get productionLine => _state.productionLine;
   @override
@@ -41,19 +40,7 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   }) : _basePlanner = basePlanner,
        id = BasePlannerElement.generateId(),
        _state = ProdLineNodeState._(productionLine: productionLine) {
-    var builder = ProdLineNodeStateBuilder._from(this);
-
-    _builder = builder;
-    _basePlanner.getSnapshotBuilder().addToSnapsnot(this, builder);
-
-    var parentGraphStateBuilder = parentGraph.getStateBuilder();
-    parentGraphStateBuilder
-      ..addNode(this)
-      ..clearIo();
-
-    if (nodeType.isIo) {
-      parentGraphStateBuilder.clearIoNodeItems();
-    }
+    _builder = ProdLineNodeStateBuilder._new(this);
   }
 
   @override
@@ -67,12 +54,11 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   }
 
   @override
+  void remove() => ProdLineNodeStateBuilder._remove(this);
+
+  @override
   ProdLineNodeStateBuilder getStateBuilder() {
-    if (_builder != null) {
-      var builder = ProdLineNodeStateBuilder._from(this);
-      _basePlanner.getSnapshotBuilder().addToSnapsnot(this, builder);
-      _builder = builder;
-    }
+    _builder ??= ProdLineNodeStateBuilder._from(this);
 
     return _builder!;
   }
@@ -110,8 +96,7 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
 }
 
 class ProdLineNodeState implements ToJson {
-  final ItemAmounts? requiredInput;
-  final ItemAmounts? requiredOutput;
+  final ItemIo? requirements;
 
   final ProductionLine productionLine;
   final ProductionLineIo? io;
@@ -122,20 +107,13 @@ class ProdLineNodeState implements ToJson {
   final Set<Edge> children;
 
   ProdLineNodeState._({
-    ItemAmounts? requiredInput,
-    ItemAmounts? requiredOutput,
+    this.requirements,
     required this.productionLine,
     this.io,
     this.nodeGeometry = NodeGeometry.uninitialised,
     Iterable<Edge> parents = const {},
     Iterable<Edge> children = const {},
-  }) : requiredInput = requiredInput != null
-           ? Map.unmodifiable(requiredInput)
-           : null,
-       requiredOutput = requiredOutput != null
-           ? Map.unmodifiable(requiredOutput)
-           : null,
-       parents = Set.unmodifiable(parents),
+  }) : parents = Set.unmodifiable(parents),
        children = Set.unmodifiable(children);
 
   @override
@@ -149,8 +127,7 @@ class ProdLineNodeStateBuilder
     implements NodeStateBuilder<ProdLineNodeState>, ProdLineNodeState {
   final ProdLineNode _node;
 
-  ItemAmounts? _requiredInput;
-  ItemAmounts? _requiredOutput;
+  ItemIo? _requirements;
 
   ProductionLine _productionLine;
 
@@ -162,9 +139,7 @@ class ProdLineNodeStateBuilder
   final Set<Edge> _children;
 
   @override
-  ItemAmounts? get requiredInput => _requiredInput;
-  @override
-  ItemAmounts? get requiredOutput => _requiredOutput;
+  ItemIo? get requirements => _requirements;
 
   @override
   ProductionLine get productionLine => _productionLine;
@@ -179,28 +154,57 @@ class ProdLineNodeStateBuilder
   @override
   late final Set<Edge> children = UnmodifiableSetView(children);
 
+  factory ProdLineNodeStateBuilder._new(ProdLineNode node) {
+    var builder = ProdLineNodeStateBuilder._from(node);
+
+    var parentGraphStateBuilder = node.parentGraph.getStateBuilder();
+    parentGraphStateBuilder
+      ..addNode(node)
+      ..clearIo();
+
+    if (node.nodeType == NodeType.output) {
+      parentGraphStateBuilder.addOutputItems(node.productionLine.outputItems);
+    } else if (node.nodeType == NodeType.input) {
+      parentGraphStateBuilder.addInputItems(node.productionLine.inputItems);
+    }
+
+    return builder;
+  }
+
+  static void _remove(ProdLineNode node) {
+    node._basePlanner.getSnapshotBuilder().removeFromSnapshot(node);
+
+    var parentGraphStateBuilder = node.parentGraph.getStateBuilder();
+    parentGraphStateBuilder
+      ..removeNode(node)
+      ..clearIo();
+
+    if (node.nodeType == NodeType.output) {
+      parentGraphStateBuilder.removeOutputItems(
+        node.productionLine.outputItems,
+      );
+    } else if (node.nodeType == NodeType.input) {
+      parentGraphStateBuilder.removeInputItems(node.productionLine.inputItems);
+    }
+
+    for (var edge in node.parents.followedBy(node.children)) {
+      edge.remove();
+    }
+  }
+
   ProdLineNodeStateBuilder._from(this._node)
-    : _requiredInput = _node.requiredInput,
-      _requiredOutput = _node.requiredOutput,
+    : _requirements = _node.requirements,
       _productionLine = _node.productionLine,
       _io = _node.io,
       _nodeGeometry = _node.nodeGeometry,
       _parents = Set.from(_node.parents),
-      _children = Set.from(_node.children);
-
-  void updateRequirements({
-    ItemAmounts? requiredInput,
-    ItemAmounts? requiredOutput,
-  }) {
-    _requiredInput = requiredInput != null
-        ? Map.unmodifiable(requiredInput)
-        : null;
-    _requiredOutput = requiredOutput != null
-        ? Map.unmodifiable(requiredOutput)
-        : null;
+      _children = Set.from(_node.children) {
+    _node._basePlanner.getSnapshotBuilder().addToSnapsnot(_node, this);
   }
 
-  void clearRequirements() => updateRequirements();
+  void updateRequirements(ItemIo requirements) => _requirements = requirements;
+
+  void clearRequirements() => _requirements = null;
 
   void updateProductionLineAndClearIo(ProductionLine productionLine) {
     _productionLine = productionLine;
@@ -348,8 +352,7 @@ class ProdLineNodeStateBuilder
 
   @override
   ProdLineNodeState build() => ProdLineNodeState._(
-    requiredInput: _requiredInput,
-    requiredOutput: _requiredOutput,
+    requirements: _requirements,
     productionLine: _productionLine,
     io: _io,
     nodeGeometry: nodeGeometry,

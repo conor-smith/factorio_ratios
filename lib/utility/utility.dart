@@ -13,3 +13,11 @@ void sumMaps<K>(Map<K, double> accumulator, Map<K, double> toAdd) =>
         ifAbsent: () => amount,
       ),
     );
+
+bool compareMaps<K, V>(Map<K, V> map1, Map<K, V> map2) =>
+    map1 == map2 ||
+    (map1.length == map2.length &&
+        map1.entries.every((entry) => map2[entry.key] == entry.value));
+
+bool compareSets<T>(Set<T> set1, Set<T> set2) =>
+    set1 == set2 || (set1.length == set2.length && set1.containsAll(set2));
