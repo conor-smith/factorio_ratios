@@ -2,6 +2,8 @@ import 'dart:collection';
 import 'dart:math';
 
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
+import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
+import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/json/json.dart';
@@ -14,6 +16,10 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
 
   final FactorioDatabase db;
 
+  late final Graph rootGraph;
+  final List<InGameMachine> sortedMachines;
+  final Map<Surface, SurfaceProperties> surfaceProperties;
+
   final EventNotifier<BasePlannerEvent> _notifier = EventNotifierImpl();
 
   final List<Snapshot> _snapshots = [const Snapshot._empty()];
@@ -24,7 +30,33 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
 
   int _mutationLock = 0;
 
-  BasePlanner(this.db);
+  BasePlanner(this.db)
+    : surfaceProperties = db.surfaceMap.map(
+        (name, surface) => MapEntry(
+          surface,
+          SurfaceProperties._(
+            defaultRecipes: surface.recipes.where((recipe) => recipe.isSimple),
+            resources: surface.resourceItems.map((item) => InGameItem(item)),
+            availableSolidFuels: surface.resourceItems
+                .whereType<SolidItem>()
+                .where((solidItem) => (solidItem.fuelValue ?? 0) > 0)
+                .map((solidItem) => InGameSolidItem(solidItem)),
+          ),
+        ),
+      ),
+      sortedMachines = List.unmodifiable(
+        db.craftingMachineMap.values
+            .map((machine) => InGameMachine(machine))
+            .toList()
+          ..sort(
+            (machine1, machine2) =>
+                machine2.craftingSpeed.compareTo(machine1.craftingSpeed),
+          ),
+      ) {
+    buildNextSnapshot(() {
+      rootGraph = Graph(this, surface: db.surfaceMap['nauvis']);
+    });
+  }
 
   @override
   void addListener(
@@ -176,6 +208,21 @@ class SnapshotBuilder extends Builder<Snapshot> {
 
     return Snapshot._(newSnapshotStates);
   }
+}
+
+class SurfaceProperties {
+  final List<Recipe> defaultRecipes;
+  final List<InGameItem> resources;
+  final List<InGameSolidItem> availableSolidFuels;
+  // TODO - Liquid fuels
+
+  SurfaceProperties._({
+    required Iterable<Recipe> defaultRecipes,
+    required Iterable<InGameItem> resources,
+    required Iterable<InGameSolidItem> availableSolidFuels,
+  }) : defaultRecipes = List.unmodifiable(defaultRecipes),
+       resources = List.unmodifiable(resources),
+       availableSolidFuels = List.unmodifiable(availableSolidFuels);
 }
 
 class BasePlannerException extends FactorioException {

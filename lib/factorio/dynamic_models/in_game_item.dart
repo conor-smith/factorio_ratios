@@ -6,8 +6,13 @@ abstract class InGameItem implements Item, ToJson {
   InGameItem._();
 
   factory InGameItem(Item item, {int quality = 1, double? temperature}) {
-    if (item is InGameItem) {
-      return item;
+    if (item is InGameSolidItem) {
+      return InGameSolidItem(item.internalItem, quality);
+    } else if (item is InGameFluidItem) {
+      return InGameFluidItem(
+        item.internalItem,
+        temperature ?? item.defaultTemperature,
+      );
     } else if (item is SolidItem) {
       return InGameSolidItem(item, quality);
     } else {
@@ -118,7 +123,7 @@ class InGameSolidItem extends InGameItem implements SolidItem {
 
   @override
   int get hashCode => internalItem.hashCode + quality;
-  
+
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
@@ -169,7 +174,7 @@ class InGameFluidItem extends InGameItem implements FluidItem {
 
   @override
   int get hashCode => internalItem.hashCode + temperature.ceil();
-  
+
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson

@@ -19,6 +19,7 @@ class Graph
   final Surface? surface;
   @override
   final Graph? parentGraph;
+  final SurfaceProperties? _surfaceProperties;
 
   final EventNotifier<GraphEvent> _notifier = EventNotifierImpl();
   GraphState _state;
@@ -54,10 +55,15 @@ class Graph
   @override
   ItemIo? get ioRatios => null;
 
-  Graph(BasePlanner basePlanner, {this.parentGraph, this.surface})
-    : _basePlanner = basePlanner,
-      id = BasePlannerElement.generateId(),
-      _state = GraphState._() {
+  Graph(
+    BasePlanner basePlanner, {
+    this.parentGraph,
+    this.surface,
+    EntityPrototype? icon,
+  }) : _basePlanner = basePlanner,
+       id = BasePlannerElement.generateId(),
+       _state = GraphState._(icon: icon ?? surface),
+       _surfaceProperties = basePlanner.surfaceProperties[surface] {
     var builder = GraphStateBuilder._from(this);
     _builder = builder;
 
