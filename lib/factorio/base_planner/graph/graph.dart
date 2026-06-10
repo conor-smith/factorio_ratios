@@ -8,8 +8,10 @@ import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/json/json.dart';
+import 'package:factorio_ratios/utility/utility.dart';
 
-class Graph implements NodeElement<GraphState, GraphEvent>, ProductionLine {
+class Graph
+    implements NodeElement<GraphState, GraphEvent>, ProductionLine<GraphIo> {
   final BasePlanner _basePlanner;
 
   @override
@@ -34,7 +36,7 @@ class Graph implements NodeElement<GraphState, GraphEvent>, ProductionLine {
   @override
   Set<Edge> get children => state.children;
   @override
-  GraphIo? get io => state.io;
+  GraphIo get io => state.getIo(this);
   Set<Graph> get graphNodes => state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
   Set<NodeElement> get allNodes => state.allNodes;
@@ -46,8 +48,9 @@ class Graph implements NodeElement<GraphState, GraphEvent>, ProductionLine {
 
   @override
   String get type => 'graph';
+  @override
+  NodeType get nodeType => NodeType.productionLine;
 
-  // TODO
   @override
   ItemIo? get ioRatios => null;
 
@@ -109,9 +112,14 @@ class Graph implements NodeElement<GraphState, GraphEvent>, ProductionLine {
   ProductionLine get productionLine => this;
 
   @override
-  ProductionLineIo calculate(ItemIo constraints) {
-    // TODO: implement calculate
-    throw UnimplementedError();
+  GraphIo calculate(ItemIo constraints) {
+    var ioBuilder = GraphIoBuilder();
+
+    for (var node in allNodes) {
+      ioBuilder.add(node);
+    }
+
+    return ioBuilder.build();
   }
 
   @override
@@ -142,7 +150,7 @@ class GraphState implements ToJson {
   Set<Edge> get children => _cache.getChildren(prodLineNodes);
   Set<InGameItem> get inputItems => _cache.getInputItems(prodLineNodes);
   Set<InGameItem> get outputItems => _cache.getOutputItems(prodLineNodes);
-  GraphIo get io => _cache.getIo(allNodes);
+  GraphIo getIo(Graph graph) => _cache.getIo(graph);
 
   GraphState._({
     this.name = 'graph',
@@ -204,7 +212,7 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
   @override
   Set<InGameItem> get outputItems => _cache.getOutputItems(prodLineNodes);
   @override
-  GraphIo get io => _cache.getIo(allNodes);
+  GraphIo getIo(Graph graph) => _cache.getIo(graph);
 
   GraphStateBuilder._from(this._graph)
     : _name = _graph.name,
@@ -246,6 +254,7 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
 
   void clearIo() {
     if (_cache._io != null) {
+      _cache.clearIo();
       Graph? graph = _graph;
 
       while (graph != null) {
@@ -345,8 +354,10 @@ class _GraphStateCache {
     return _outputItems!;
   }
 
-  GraphIo getIo(Iterable<NodeElement> allNodes) {
-    throw UnimplementedError();
+  GraphIo getIo(Graph graph) {
+    _io ??= graph.calculate(ItemIo());
+
+    return _io!;
   }
 
   void clearIoNodeItems() {
@@ -391,4 +402,45 @@ class _GraphStateCache {
     _inputItems = Set.unmodifiable(inputItems);
     _outputItems = Set.unmodifiable(outputItems);
   }
+}
+
+class GraphIoBuilder implements Builder<GraphIo> {
+  final ItemAmounts inputConstraints = {};
+  final ItemAmounts outputConstraints = {};
+  final ItemAmounts netInput = {};
+  final ItemAmounts netOutput = {};
+  final ItemAmounts totalInput = {};
+  final ItemAmounts totalOutput = {};
+  double electricPowerConsumption = 0.0;
+  final Map<String, double> emissions = {};
+
+  void add(NodeElement node) {
+    var io = node.io;
+
+    if (io != null) {
+      if (node.nodeType.isIo) {
+        sumMaps(inputConstraints, io.constraints.inputs);
+        sumMaps(outputConstraints, io.constraints.outputs);
+
+        sumMaps(netInput, io.netIo.inputs);
+        sumMaps(netOutput, io.netIo.outputs);
+      }
+
+      sumMaps(totalInput, io.totalIo.inputs);
+      sumMaps(totalOutput, io.totalIo.outputs);
+
+      electricPowerConsumption += io.electricPowerConsumption;
+
+      sumMaps(emissions, io.emissions);
+    }
+  }
+
+  @override
+  GraphIo build() => GraphIo(
+    constraints: ItemIo(inputs: inputConstraints, outputs: outputConstraints),
+    netIo: ItemIo(inputs: netInput, outputs: netOutput),
+    totalIo: ItemIo(inputs: totalInput, outputs: totalOutput),
+    electricPowerConsumption: electricPowerConsumption,
+    emissions: emissions,
+  );
 }

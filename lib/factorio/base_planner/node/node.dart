@@ -13,6 +13,7 @@ part 'production_line_node.dart';
 abstract interface class NodeElement<St extends ToJson, E>
     implements BasePlannerElement<St, E> {
   Graph? get parentGraph;
+  NodeType get nodeType;
 
   ProductionLine get productionLine;
   ProductionLineIo? get io;

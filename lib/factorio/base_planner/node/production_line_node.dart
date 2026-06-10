@@ -8,6 +8,7 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
 
   @override
   final Graph parentGraph;
+  @override
   final NodeType nodeType;
 
   // For convenience
