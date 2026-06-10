@@ -24,9 +24,16 @@ abstract interface class NodeElement<St extends ToJson, E>
 
   Set<Edge> get parents;
   Set<Edge> get children;
+
+  Set<InGameItem> get inputItems;
+  Set<InGameItem> get outputItems;
 }
 
 abstract interface class NodeStateBuilder<T extends ToJson>
     implements Builder<T> {
   void updateGeometry(NodeGeometry nodeGeometry);
+  void addParent(Edge parentEdge);
+  void removeParent(Edge parentEdge);
+  void addChild(Edge chidEdge);
+  void removeChild(Edge childEdge);
 }

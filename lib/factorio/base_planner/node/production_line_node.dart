@@ -8,6 +8,13 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
 
   @override
   final Graph parentGraph;
+  final NodeType nodeType;
+
+  // For convenience
+  ItemAmounts? get requiredInput => _state.requiredInput;
+  ItemAmounts? get requiredOutput => _state.requiredOutput;
+  @override
+  ProductionLine get productionLine => _state.productionLine;
   @override
   NodeGeometry get nodeGeometry => state.nodeGeometry;
   @override
@@ -16,17 +23,14 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   Set<Edge> get children => state.children;
   @override
   ProductionLineIo? get io => state.io;
-
-  final NodeType nodeType;
+  @override
+  Set<InGameItem> get inputItems => state.productionLine.inputItems;
+  @override
+  Set<InGameItem> get outputItems => state.productionLine.outputItems;
 
   final EventNotifier<NodeEvent> _notifier = EventNotifierImpl();
   ProdLineNodeState _state;
   ProdLineNodeStateBuilder? _builder;
-
-  // For convenience
-  ItemAmounts? get requiredInput => _state.requiredInput;
-  ItemAmounts? get requiredOutput => _state.requiredOutput;
-  ProductionLine get productionLine => _state.productionLine;
 
   ProdLineNode({
     required BasePlanner basePlanner,
@@ -41,7 +45,14 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
     _builder = builder;
     _basePlanner.getSnapshotBuilder().addToSnapsnot(this, builder);
 
-    parentGraph.getStateBuilder().addNode(this);
+    var parentGraphStateBuilder = parentGraph.getStateBuilder();
+    parentGraphStateBuilder
+      ..addNode(this)
+      ..clearIo();
+
+    if (nodeType.isIo) {
+      parentGraphStateBuilder.clearIoNodeItems();
+    }
   }
 
   @override
@@ -198,7 +209,7 @@ class ProdLineNodeStateBuilder
   void clearIo() {
     if (_io != null) {
       _io = null;
-      _node.parentGraph.getStateBuilder().clearCachedIo();
+      _node.parentGraph.getStateBuilder().clearIo();
     }
   }
 
@@ -210,7 +221,7 @@ class ProdLineNodeStateBuilder
       inputConstraints: inputConstraints,
       outputConstraints: outputConstraints,
     );
-    _node.parentGraph.getStateBuilder().clearCachedIo();
+    _node.parentGraph.getStateBuilder().clearIo();
   }
 
   void calculateIoFromParentEdges() {
@@ -333,10 +344,14 @@ class ProdLineNodeStateBuilder
   void updateGeometry(NodeGeometry nodeGeometry) =>
       _nodeGeometry = nodeGeometry;
 
+  @override
   void addParent(Edge parent) => _parents.add(parent);
+  @override
   void removeParent(Edge parent) => _parents.remove(parent);
 
+  @override
   void addChild(Edge child) => _children.add(child);
+  @override
   void removeChild(Edge child) => _children.remove(child);
 
   @override

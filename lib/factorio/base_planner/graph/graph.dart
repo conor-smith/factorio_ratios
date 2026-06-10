@@ -4,11 +4,12 @@ import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/json/json.dart';
 
-class Graph implements NodeElement<GraphState, GraphEvent> {
+class Graph implements NodeElement<GraphState, GraphEvent>, ProductionLine {
   final BasePlanner _basePlanner;
 
   @override
@@ -23,6 +24,10 @@ class Graph implements NodeElement<GraphState, GraphEvent> {
 
   // For convenience
   @override
+  String get name => state.name;
+  @override
+  EntityPrototype? get icon => state.icon;
+  @override
   NodeGeometry get nodeGeometry => state.nodeGeometry;
   @override
   Set<Edge> get parents => state.parents;
@@ -32,7 +37,22 @@ class Graph implements NodeElement<GraphState, GraphEvent> {
   GraphIo? get io => state.io;
   Set<Graph> get graphNodes => state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
+  Set<NodeElement> get allNodes => state.allNodes;
   Set<Edge> get edges => state.edges;
+  @override
+  Set<InGameItem> get inputItems => state.inputItems;
+  @override
+  Set<InGameItem> get outputItems => state.outputItems;
+
+  @override
+  String get type => 'graph';
+
+  // TODO
+  @override
+  ItemAmounts? get inputRatios => null;
+  // TODO
+  @override
+  ItemAmounts? get outputRatios => null;
 
   Graph(BasePlanner basePlanner, {this.parentGraph, this.surface})
     : _basePlanner = basePlanner,
@@ -89,7 +109,16 @@ class Graph implements NodeElement<GraphState, GraphEvent> {
   }
 
   @override
-  ProductionLine get productionLine => throw UnimplementedError();
+  ProductionLine get productionLine => this;
+
+  @override
+  ProductionLineIo calculate({
+    ItemAmounts inputConstraints = const {},
+    ItemAmounts outputConstraints = const {},
+  }) {
+    // TODO: implement calculate
+    throw UnimplementedError();
+  }
 
   @override
   Map<String, dynamic> toJson() {
@@ -99,47 +128,40 @@ class Graph implements NodeElement<GraphState, GraphEvent> {
 }
 
 class GraphState implements ToJson {
+  final String name;
+  final EntityPrototype? icon;
   final Set<ProdLineNode> prodLineNodes;
   final Set<Graph> graphNodes;
   final Set<Edge> edges;
   final NodeGeometry nodeGeometry;
 
-  Set<Edge>? _cachedParents;
-  Set<Edge>? _cachedChildren;
-  GraphIo? _cachedIo;
-
   // All following fields are derived from above fields
   // They are calculated and cached when required
-  GraphIo get io {
-    throw UnimplementedError();
-  }
+  _GraphStateCache _cache;
 
-  Set<Edge> get parents {
-    _cachedParents ??= _calculateExternalParents(prodLineNodes);
+  late final Set<NodeElement> allNodes = Set.unmodifiable({
+    ...prodLineNodes,
+    ...graphNodes,
+  });
 
-    return _cachedParents!;
-  }
-
-  // Affected whenever parentGraph gets a new edge connecting to an IO node
-  Set<Edge> get children {
-    _cachedChildren ??= _calculateExternalChildren(prodLineNodes);
-    return _cachedChildren!;
-  }
+  Set<Edge> get parents => _cache.getParents(prodLineNodes);
+  Set<Edge> get children => _cache.getChildren(prodLineNodes);
+  Set<InGameItem> get inputItems => _cache.getInputItems(prodLineNodes);
+  Set<InGameItem> get outputItems => _cache.getOutputItems(prodLineNodes);
+  GraphIo get io => _cache.getIo(allNodes);
 
   GraphState._({
+    this.name = 'graph',
+    this.icon,
     Iterable<ProdLineNode> prodLineNodes = const {},
     Iterable<Graph> graphNodes = const {},
     Iterable<Edge> edges = const {},
+    _GraphStateCache? cache,
     this.nodeGeometry = NodeGeometry.uninitialised,
-    Set<Edge>? cachedParents,
-    Set<Edge>? cachedChildren,
-    GraphIo? cachedIo,
-  }) : this.prodLineNodes = Set.unmodifiable(prodLineNodes),
+  }) : prodLineNodes = Set.unmodifiable(prodLineNodes),
        graphNodes = Set.unmodifiable(graphNodes),
        edges = Set.unmodifiable(edges),
-       _cachedParents = cachedParents, // Assumed to be unmodifiable
-       _cachedChildren = cachedChildren, // Assumed to be unmodifiable
-       _cachedIo = cachedIo;
+       _cache = cache ?? _GraphStateCache();
 
   @override
   Map<String, dynamic> toJson() {
@@ -151,20 +173,20 @@ class GraphState implements ToJson {
 class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
   final Graph _graph;
 
+  String _name;
+  EntityPrototype? _icon;
   final Set<ProdLineNode> _prodLineNodes;
   final Set<Edge> _edges;
   final Set<Graph> _graphNodes;
   NodeGeometry _nodeGeometry;
 
-  bool _hasClearedCachedIo = false;
+  @override
+  _GraphStateCache _cache;
 
   @override
-  Set<Edge>? _cachedParents;
+  String get name => _name;
   @override
-  Set<Edge>? _cachedChildren;
-  @override
-  GraphIo? _cachedIo;
-
+  EntityPrototype? get icon => _icon;
   @override
   late final Set<ProdLineNode> prodLineNodes = UnmodifiableSetView(
     _prodLineNodes,
@@ -177,37 +199,37 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
   NodeGeometry get nodeGeometry => _nodeGeometry;
 
   @override
-  GraphIo get io {
-    throw UnimplementedError();
-  }
+  Set<NodeElement> get allNodes => {..._prodLineNodes, ..._graphNodes};
 
   @override
-  Set<Edge> get parents {
-    _cachedParents ??= _calculateExternalParents(_prodLineNodes);
-
-    return _cachedParents!;
-  }
-
+  Set<Edge> get parents => _cache.getParents(prodLineNodes);
   @override
-  Set<Edge> get children {
-    _cachedChildren ??= _calculateExternalChildren(_prodLineNodes);
-    return _cachedChildren!;
-  }
+  Set<Edge> get children => _cache.getChildren(prodLineNodes);
+  @override
+  Set<InGameItem> get inputItems => _cache.getInputItems(prodLineNodes);
+  @override
+  Set<InGameItem> get outputItems => _cache.getOutputItems(prodLineNodes);
+  @override
+  GraphIo get io => _cache.getIo(allNodes);
 
   GraphStateBuilder._from(this._graph)
-    : _prodLineNodes = Set.from(_graph.prodLineNodes),
+    : _name = _graph.name,
+      _icon = _graph.icon,
+      _prodLineNodes = Set.from(_graph.prodLineNodes),
       _edges = Set.from(_graph.edges),
       _graphNodes = Set.from(_graph.graphNodes),
       _nodeGeometry = _graph.nodeGeometry,
-      _cachedParents = _graph._state._cachedParents,
-      _cachedChildren = _graph._state._cachedChildren,
-      _cachedIo = _graph._state._cachedIo;
+      _cache = _GraphStateCache.from(_graph._state._cache);
+
+  void updateName(String newName) => _name = newName;
+
+  void updateIcon(EntityPrototype newIcon) => _icon = newIcon;
+  void clearIcon() => _icon = null;
 
   void addNode(ProdLineNode node) => _prodLineNodes.add(node);
   void removeNode(ProdLineNode node) => _prodLineNodes.remove(node);
 
   void addEdge(Edge edge) => _edges.add(edge);
-
   void removeEdge(Edge edge) => _edges.remove(edge);
 
   void addChildGraph(Graph childGraph) => _graphNodes.add(childGraph);
@@ -217,26 +239,36 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
   void updateGeometry(NodeGeometry nodeGeometry) =>
       _nodeGeometry = nodeGeometry;
 
-  void clearCachedParents() => _cachedParents = null;
-  void clearCachedChildren() => _cachedChildren = null;
-  void clearCachedIo() {
-    if (!_hasClearedCachedIo) {
-      _hasClearedCachedIo = true;
-      _cachedIo = null;
+  @override
+  void addChild(Edge chidEdge) => clearIoNodeItems();
+  @override
+  void addParent(Edge parentEdge) => clearIoNodeItems();
+  @override
+  void removeChild(Edge childEdge) => clearIoNodeItems();
+  @override
+  void removeParent(Edge parentEdge) => clearIoNodeItems();
 
-      _graph.parentGraph?.getStateBuilder().clearCachedIo();
+  void clearIoNodeItems() => _cache.clearIoNodeItems();
+
+  void clearIo() {
+    if (_cache._io != null) {
+      Graph? graph = _graph;
+
+      while (graph != null) {
+        graph.getStateBuilder().clearIo();
+        graph = graph.parentGraph;
+      }
     }
   }
 
   @override
   GraphState build() => GraphState._(
+    name: _name,
     prodLineNodes: _prodLineNodes,
     edges: edges,
     graphNodes: _graphNodes,
     nodeGeometry: _nodeGeometry,
-    cachedChildren: _cachedChildren,
-    cachedParents: _cachedParents,
-    cachedIo: _cachedIo,
+    cache: _GraphStateCache.from(_cache),
   );
 
   @override
@@ -271,18 +303,101 @@ class GraphException extends BasePlannerException {
   const GraphException(super.message, [super.cause]);
 }
 
-Set<Edge> _calculateExternalParents(Iterable<ProdLineNode> nodes) =>
-    Set.unmodifiable(
-      nodes
-          .where((node) => node.nodeType.isIo)
-          .expand((node) => node.parents)
-          .where((edge) => edge.parentProductionLine != edge.parentNode),
-    );
+class _GraphStateCache {
+  Set<Edge>? _parents;
+  Set<Edge>? _children;
 
-Set<Edge> _calculateExternalChildren(Iterable<ProdLineNode> nodes) =>
-    Set.unmodifiable(
-      nodes
-          .where((node) => node.nodeType.isIo)
-          .expand((node) => node.children)
-          .where((edge) => edge.childProductionLine != edge.childNode),
-    );
+  Set<InGameItem>? _inputItems;
+  Set<InGameItem>? _outputItems;
+
+  GraphIo? _io;
+
+  _GraphStateCache();
+
+  _GraphStateCache.from(_GraphStateCache oldCache) {
+    _parents = oldCache._parents;
+    _children = oldCache._children;
+    _inputItems = oldCache._inputItems;
+    _outputItems = oldCache._outputItems;
+    _io = oldCache._io;
+  }
+
+  Set<Edge> getParents(Iterable<ProdLineNode> prodLineNodes) {
+    if (_parents == null) {
+      _populateIoNodeItems(prodLineNodes);
+    }
+
+    return _parents!;
+  }
+
+  Set<Edge> getChildren(Iterable<ProdLineNode> prodLineNodes) {
+    if (_children == null) {
+      _populateIoNodeItems(prodLineNodes);
+    }
+
+    return _children!;
+  }
+
+  Set<InGameItem> getInputItems(Iterable<ProdLineNode> prodLineNodes) {
+    if (_inputItems == null) {
+      _populateIoNodeItems(prodLineNodes);
+    }
+
+    return _inputItems!;
+  }
+
+  Set<InGameItem> getOutputItems(Iterable<ProdLineNode> prodLineNodes) {
+    if (_outputItems == null) {
+      _populateIoNodeItems(prodLineNodes);
+    }
+
+    return _outputItems!;
+  }
+
+  GraphIo getIo(Iterable<NodeElement> allNodes) {
+    throw UnimplementedError();
+  }
+
+  void clearIoNodeItems() {
+    _parents = null;
+    _children = null;
+    _inputItems = null;
+    _outputItems = null;
+  }
+
+  void clearIo() {
+    _io = null;
+  }
+
+  void _populateIoNodeItems(Iterable<ProdLineNode> prodLineNodes) {
+    Set<Edge> parents = {};
+    Set<Edge> children = {};
+    Set<InGameItem> inputItems = {};
+    Set<InGameItem> outputItems = {};
+
+    for (var ioNode in prodLineNodes.where((node) => node.nodeType.isIo)) {
+      parents.addAll(
+        ioNode.parents.where(
+          (edge) => edge.parentGraph == ioNode.parentGraph.parentGraph,
+        ),
+      );
+
+      children.addAll(
+        ioNode.children.where(
+          (edge) => edge.parentGraph == ioNode.parentGraph.parentGraph,
+        ),
+      );
+
+      if (ioNode.nodeType == NodeType.input) {
+        inputItems.addAll(ioNode.inputItems);
+      } else if (ioNode.nodeType == NodeType.output) {
+        outputItems.addAll(ioNode.outputItems);
+      }
+    }
+
+    _parents = Set.unmodifiable(parents);
+    _children = Set.unmodifiable(children);
+    _inputItems = Set.unmodifiable(inputItems);
+    _outputItems = Set.unmodifiable(outputItems);
+  }
+}
