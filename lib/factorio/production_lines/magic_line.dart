@@ -2,7 +2,7 @@ part of 'production_line.dart';
 
 /// Represents a 'magic' line that consumes / produces items at no cost
 /// Inputs and outputs are decided at creation and cannot be changed
-class IoLine implements ProductionLine<IoLineIoData> {
+class MagicLine implements ProductionLine<MagicLineIo> {
   @override
   final Set<InGameItem> outputItems;
   @override
@@ -16,11 +16,9 @@ class IoLine implements ProductionLine<IoLineIoData> {
   String get type => 'io';
 
   @override
-  ItemAmounts? get outputRatios => null;
-  @override
-  ItemAmounts? get inputRatios => null;
+  ItemIo? get ioRatios => null;
 
-  IoLine({
+  MagicLine({
     required this.name,
     Set<InGameItem> netInputs = const {},
     Set<InGameItem> netOutputs = const {},
@@ -43,69 +41,43 @@ class IoLine implements ProductionLine<IoLineIoData> {
     }
   }
 
-  IoLine.singleItemProducer(InGameItem item)
+  MagicLine.singleItemProducer(InGameItem item)
     : outputItems = const {},
       inputItems = Set.unmodifiable({item}),
       name = '${item.name} producer',
       icon = item;
 
-  IoLine.singleItemConsumer(InGameItem item)
+  MagicLine.singleItemConsumer(InGameItem item)
     : outputItems = Set.unmodifiable({item}),
       inputItems = const {},
       name = '${item.name} consumer',
       icon = item;
 
   @override
-  IoLineIoData calculate({
-    ItemAmounts inputConstraints = const {},
-    ItemAmounts outputConstraints = const {},
-  }) {
-    // TODO: verify
-
-    if (inputConstraints.length != outputItems.length ||
-        outputConstraints.length != inputItems.length) {
+  MagicLineIo calculate(ItemIo constraints) {
+    if (constraints.inputs.length > inputItems.length ||
+        !inputItems.containsAll(constraints.inputs.keys)) {
       throw ProductionLineException(
-        'Must specify a constraint for every input / output of IO line',
+        'Magic line inputs $inputItems did not match input constraints ${constraints.inputs}',
+      );
+    } else if (constraints.outputs.length > outputItems.length ||
+        !outputItems.containsAll(constraints.outputs.keys)) {
+      throw ProductionLineException(
+        'Magic line outputs $outputItems did not match input constraints ${constraints.outputs}',
       );
     }
 
-    return IoLineIoData(
-      netInput: inputConstraints,
-      netOutput: outputConstraints,
-      inputConstraints: inputConstraints,
-      outputConstraints: outputConstraints,
-    );
+    return MagicLineIo(constraints: constraints);
   }
 }
 
-class IoLineIoData implements ProductionLineIo {
-  @override
-  final ItemAmounts inputConstraints;
-  @override
-  final ItemAmounts outputConstraints;
-  @override
-  final ItemAmounts netInput;
-  @override
-  final ItemAmounts netOutput;
-
-  @override
-  List<DisplayData> get displayData => const [];
-  @override
-  ItemAmounts get totalOutput => netOutput;
-  @override
-  ItemAmounts get totalInput => netInput;
-  @override
-  double get electricPowerConsumption => 0;
-  @override
-  Map<String, double> get emissions => const {};
-
-  IoLineIoData({
-    required ItemAmounts inputConstraints,
-    required ItemAmounts outputConstraints,
-    required ItemAmounts netInput,
-    required ItemAmounts netOutput,
-  }) : inputConstraints = Map.unmodifiable(inputConstraints),
-       outputConstraints = Map.unmodifiable(outputConstraints),
-       netInput = Map.unmodifiable(netInput),
-       netOutput = Map.unmodifiable(netOutput);
+class MagicLineIo extends ProductionLineIo {
+  MagicLineIo({required super.constraints})
+    : super(
+        netIo: constraints,
+        totalIo: constraints,
+        electricPowerConsumption: 0,
+        emissions: const {},
+        displayData: const [],
+      );
 }

@@ -213,14 +213,8 @@ class ProdLineNodeStateBuilder
     }
   }
 
-  void calculateIo({
-    ItemAmounts inputConstraints = const {},
-    ItemAmounts outputConstraints = const {},
-  }) {
-    _io = productionLine.calculate(
-      inputConstraints: inputConstraints,
-      outputConstraints: outputConstraints,
-    );
+  void calculateIo(ItemIo constraints) {
+    _io = productionLine.calculate(constraints);
     _node.parentGraph.getStateBuilder().clearIo();
   }
 
@@ -245,10 +239,7 @@ class ProdLineNodeStateBuilder
           );
       }
 
-      calculateIo(
-        inputConstraints: inputConstraints,
-        outputConstraints: outputConstraints,
-      );
+      calculateIo(ItemIo(inputs: inputConstraints, outputs: outputConstraints));
     }
   }
 
@@ -285,10 +276,10 @@ class ProdLineNodeStateBuilder
         }
       }
 
-      var remainingOutput = io.netOutput.map(
+      var remainingOutput = io.netIo.outputs.map(
         (item, amount) => MapEntry(item, amount - (consumedOutput[item] ?? 0)),
       );
-      var unfulfilledInput = io.netInput.map(
+      var unfulfilledInput = io.netIo.inputs.map(
         (item, amount) => MapEntry(item, amount - (providedInput[item] ?? 0)),
       );
 

@@ -260,7 +260,7 @@ class ProductionLineGraph extends Stateful<GraphEvent>
               producerNode = ProdLineNode.addToGraph(
                 parentGraph: this,
                 nodeType: NodeType.producer,
-                line: IoLine(
+                line: MagicLine(
                   name: unfulfilledInput.name,
                   netOutputs: {unfulfilledInput},
                 ),
@@ -290,7 +290,7 @@ class ProductionLineGraph extends Stateful<GraphEvent>
               disposalNode = ProdLineNode.addToGraph(
                 parentGraph: this,
                 nodeType: NodeType.disposal,
-                line: IoLine(
+                line: MagicLine(
                   name: unfulfilledOutput.name,
                   netInputs: {unfulfilledOutput},
                 ),
@@ -581,7 +581,7 @@ class ProductionLineGraph extends Stateful<GraphEvent>
   ///   * Check [SurfaceProperties.defaultRecipes] for valid [Recipe].
   /// If one exists, create a [NodeType.productionLine] node with a
   /// [SingleRecipeLine] using fastest valid machine
-  ///   * Create [NodeType.producer] node with an [IoLine] producing the item
+  ///   * Create [NodeType.producer] node with an [MagicLine] producing the item
   void addConsumerNodeAndTree(InGameItem item) {
     // Return if consumer node already exists
 
@@ -601,7 +601,7 @@ class ProductionLineGraph extends Stateful<GraphEvent>
           ProdLineNode.addToGraph(
             parentGraph: this,
             nodeType: NodeType.consumer,
-            line: IoLine(name: '$item consumer', netInputs: {item}),
+            line: MagicLine(name: '$item consumer', netInputs: {item}),
           );
 
       _createRecipeTree(rootConsumerNode, nodeOutputIndex, {});
@@ -743,7 +743,7 @@ class ProductionLineGraph extends Stateful<GraphEvent>
       return ProdLineNode.addToGraph(
         parentGraph: this,
         nodeType: NodeType.productionLine,
-        line: IoLine(name: '$item resource', netOutputs: {item}),
+        line: MagicLine(name: '$item resource', netOutputs: {item}),
       );
     } else {
       return null;
@@ -798,7 +798,7 @@ class ProductionLineGraph extends Stateful<GraphEvent>
     return ProdLineNode.addToGraph(
       parentGraph: this,
       nodeType: NodeType.producer,
-      line: IoLine(name: '$item producer', netOutputs: {item}),
+      line: MagicLine(name: '$item producer', netOutputs: {item}),
     );
   }
 

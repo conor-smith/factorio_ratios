@@ -19,16 +19,12 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   final Set<InGameItem> inputItems;
 
   @override
-  final ItemAmounts inputRatios;
-  @override
-  final ItemAmounts outputRatios;
+  final ItemIo ioRatios;
 
   final double machineCyclesPerMinute;
 
-  final ItemAmounts machineNetInput;
-  final ItemAmounts machineNetOutput;
-  final ItemAmounts machineTotalInput;
-  final ItemAmounts machineTotalOutput;
+  final ItemIo machineNetIo;
+  final ItemIo machineTotalIo;
 
   final Map<InGameItem, InGameItem> potentialSpoilage;
 
@@ -188,13 +184,19 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
       fuel: fuel,
       inputItems: machineNetInputs.keys,
       outputItems: machineNetOutputs.keys,
-      inputRatios: machineNetInputRatios,
-      outputRatios: machineNetOutputRatios,
+      ioRatios: ItemIo(
+        inputs: machineNetInputRatios,
+        outputs: machineNetOutputRatios,
+      ),
       machineCyclesPerMinute: cyclesPerMinute,
-      machineNetInput: machineNetInputs,
-      machineNetOutput: machineNetOutputs,
-      machineTotalInput: machineTotalInput,
-      machineTotalOutput: machineTotalOutput,
+      machineNetIo: ItemIo(
+        inputs: machineNetInputs,
+        outputs: machineNetOutputs,
+      ),
+      machineTotalIo: ItemIo(
+        inputs: machineTotalInput,
+        outputs: machineTotalOutput,
+      ),
       potentialSpoilage: potentialSpoilage,
     );
   }
@@ -217,44 +219,32 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
     required super.consumptionData,
     required Iterable<InGameItem> inputItems,
     required Iterable<InGameItem> outputItems,
-    required ItemAmounts inputRatios,
-    required ItemAmounts outputRatios,
+    required this.machineNetIo,
+    required this.machineTotalIo,
+    required this.ioRatios,
     required this.machineCyclesPerMinute,
-    required ItemAmounts machineNetInput,
-    required ItemAmounts machineNetOutput,
-    required ItemAmounts machineTotalInput,
-    required ItemAmounts machineTotalOutput,
     required Map<InGameItem, InGameItem> potentialSpoilage,
   }) : inputItems = Set.unmodifiable(inputItems),
        outputItems = Set.unmodifiable(outputItems),
-       inputRatios = Map.unmodifiable(inputRatios),
-       outputRatios = Map.unmodifiable(outputRatios),
-       machineNetInput = Map.unmodifiable(machineNetInput),
-       machineNetOutput = Map.unmodifiable(machineNetOutput),
-       machineTotalInput = Map.unmodifiable(machineTotalInput),
-       machineTotalOutput = Map.unmodifiable(machineTotalOutput),
        potentialSpoilage = Map.unmodifiable(potentialSpoilage),
        super._();
 
   @override
-  SingleRecipeLineIo calculate({
-    ItemAmounts inputConstraints = const {},
-    ItemAmounts outputConstraints = const {},
-  }) {
+  SingleRecipeLineIo calculate(ItemIo constraints) {
     // TODO: verify constraints
 
     var machineCount = 0.0;
 
-    inputConstraints.forEach((input, constraint) {
-      var newMachineCount = constraint / machineNetInput[input]!;
+    constraints.inputs.forEach((input, constraint) {
+      var newMachineCount = constraint / machineNetIo.inputs[input]!;
 
       if (newMachineCount > machineCount) {
         machineCount = newMachineCount;
       }
     });
 
-    outputConstraints.forEach((output, constraint) {
-      var newMachineCount = constraint / machineNetOutput[output]!;
+    constraints.outputs.forEach((output, constraint) {
+      var newMachineCount = constraint / machineNetIo.outputs[output]!;
 
       if (newMachineCount > machineCount) {
         machineCount = newMachineCount;
@@ -267,31 +257,31 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
         : 0.0;
 
     return SingleRecipeLineIo(
-      inputConstraints: inputConstraints,
-      outputConstraints: outputConstraints,
+      constraints: constraints,
       machineCount: machineCount,
       totalCyclesPerMinute: machineCyclesPerMinute,
-      netInput: _multiplyMap(machineNetInput, machineCount),
-      netOutput: _multiplyMap(machineNetOutput, machineCount),
-      totalInput: _multiplyMap(machineTotalInput, machineCount),
-      totalOutput: _multiplyMap(machineTotalOutput, machineCount),
+      netIo: ItemIo(
+        inputs: _multiplyMap(machineNetIo.inputs, machineCount),
+        outputs: _multiplyMap(machineNetIo.outputs, machineCount),
+      ),
+      totalIo: ItemIo(
+        inputs: _multiplyMap(machineTotalIo.inputs, machineCount),
+        outputs: _multiplyMap(machineTotalIo.outputs, machineCount),
+      ),
       electricPowerConsumption: electricPowerConsumption,
       emissions: _multiplyMap(singleMachineEmissions, machineCount),
     );
   }
 }
 
-class SingleRecipeLineIo extends FullIo {
+class SingleRecipeLineIo extends ProductionLineIo {
   final double machineCount;
   final double totalCyclesPerMinute;
 
   SingleRecipeLineIo({
-    required super.inputConstraints,
-    required super.outputConstraints,
-    required super.netInput,
-    required super.netOutput,
-    required super.totalInput,
-    required super.totalOutput,
+    required super.constraints,
+    required super.netIo,
+    required super.totalIo,
     required super.electricPowerConsumption,
     super.displayData = const [],
     required super.emissions,

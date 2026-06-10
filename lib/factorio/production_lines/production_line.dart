@@ -36,15 +36,11 @@ abstract interface class ProductionLine<T extends ProductionLineIo> {
   /// All items this production line produces
   Set<InGameItem> get outputItems;
 
-  /// Ratios of all output items. Dependant upon [inputRatios].
-  /// If the input and output ratios are known beforehand, divides all
-  /// known values by the smallest number in either inputs or outputs.
-  ItemAmounts? get outputRatios;
-
-  /// Ratios of all input items. Dependant upon [outputRatios].
-  /// If the input and output ratios are known beforehand, divides all
-  /// known values by the smallest number in either inputs or outputs.
-  ItemAmounts? get inputRatios;
+  /// Ratios of all inputs and outputs. Smallest value will be 1, and
+  /// all other values will be set relative to that value.
+  /// Will only be present in production lines where it can be calculated
+  /// ahead of time.
+  ItemIo? get ioRatios;
 
   /// Takes a set of input and output constraints, and produces an object representing IO.
   /// For each constraint, the production line must consume this amount or more.
@@ -52,8 +48,8 @@ abstract interface class ProductionLine<T extends ProductionLineIo> {
   /// even if doing so means producing an excess of one.
   /// The same rule applies to input constraints.
   ///
-  /// [inputConstraints] and [outputConstraints] are given in items per minute.
-  T calculate({ItemAmounts inputConstraints, ItemAmounts outputConstraints});
+  /// [ItemIo.inputs] and [ItemIo.outputs] must be given in items per minute
+  T calculate(ItemIo constraints);
 
   @override
   String toString() => name;
@@ -66,73 +62,37 @@ abstract interface class ProductionLine<T extends ProductionLineIo> {
 /// should exist for utility reasons - to be used in further equations / operations.
 ///
 /// All [ItemAmounts] fieds are given in items per minute.
-abstract interface class ProductionLineIo {
+class ProductionLineIo {
+  /// Constraints that were used to generate this IO
+  final ItemIo constraints;
+
+  /// Net input / output in items per minute
+  final ItemIo netIo;
+
+  /// Total input / output in items per minute.
+  /// May differ from [netIo] in situations where a production line consumes
+  /// part of it's own output
+  final ItemIo totalIo;
+
+  /// Electrical power consumed given in watts
+  final double electricPowerConsumption;
+
+  /// Given in emissions per minute
+  final Map<String, double> emissions;
+
   /// DisplayData for end user
   /// No data in here should be used for math or further operations
   /// If any useful data exists, it should be made it's own field
-  List<DisplayData> get displayData;
-
-  /// Given in items per minute
-  ItemAmounts get inputConstraints;
-
-  /// Given in items per minute
-  ItemAmounts get outputConstraints;
-
-  /// Given in items per minute
-  ItemAmounts get netInput;
-
-  /// Given in items per minute
-  ItemAmounts get netOutput;
-
-  /// Given in items per minute
-  ItemAmounts get totalInput;
-
-  /// Given in items per minute
-  ItemAmounts get totalOutput;
-
-  double get electricPowerConsumption;
-
-  /// Given in emissions per minute
-  Map<String, double> get emissions;
-}
-
-abstract class FullIo implements ProductionLineIo {
-  @override
-  final ItemAmounts outputConstraints;
-  @override
-  final ItemAmounts inputConstraints;
-  @override
-  final ItemAmounts netInput;
-  @override
-  final ItemAmounts netOutput;
-  @override
-  final ItemAmounts totalInput;
-  @override
-  final ItemAmounts totalOutput;
-  @override
-  final double electricPowerConsumption;
-  @override
-  final Map<String, double> emissions;
-  @override
   final List<DisplayData> displayData;
 
-  FullIo({
-    required ItemAmounts inputConstraints,
-    required ItemAmounts outputConstraints,
-    required ItemAmounts netInput,
-    required ItemAmounts netOutput,
-    required ItemAmounts totalInput,
-    required ItemAmounts totalOutput,
+  ProductionLineIo({
+    required this.constraints,
+    required this.netIo,
+    required this.totalIo,
     required this.electricPowerConsumption,
     required Map<String, double> emissions,
     required Iterable<DisplayData> displayData,
-  }) : inputConstraints = Map.unmodifiable(inputConstraints),
-       outputConstraints = Map.unmodifiable(outputConstraints),
-       netInput = Map.unmodifiable(netInput),
-       netOutput = Map.unmodifiable(netOutput),
-       totalInput = Map.unmodifiable(totalInput),
-       totalOutput = Map.unmodifiable(totalOutput),
-       emissions = Map.unmodifiable(emissions),
+  }) : emissions = Map.unmodifiable(emissions),
        displayData = List.unmodifiable(displayData);
 }
 
@@ -153,5 +113,19 @@ class ItemIo {
 
   ItemIo({ItemAmounts inputs = const {}, ItemAmounts outputs = const {}})
     : inputs = Map.unmodifiable(inputs),
-      outputs = Map.unmodifiable(outputs);
+      outputs = Map.unmodifiable(outputs) {
+    inputs.forEach((input, amount) {
+      if (amount < 0) {
+        throw ProductionLineException('Input $input had invalid value $amount');
+      }
+    });
+
+    outputs.forEach((output, amount) {
+      if (amount < 0) {
+        throw ProductionLineException(
+          'Output $output had invalid value $amount',
+        );
+      }
+    });
+  }
 }

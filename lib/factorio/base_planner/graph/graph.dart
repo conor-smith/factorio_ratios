@@ -49,10 +49,7 @@ class Graph implements NodeElement<GraphState, GraphEvent>, ProductionLine {
 
   // TODO
   @override
-  ItemAmounts? get inputRatios => null;
-  // TODO
-  @override
-  ItemAmounts? get outputRatios => null;
+  ItemIo? get ioRatios => null;
 
   Graph(BasePlanner basePlanner, {this.parentGraph, this.surface})
     : _basePlanner = basePlanner,
@@ -112,10 +109,7 @@ class Graph implements NodeElement<GraphState, GraphEvent>, ProductionLine {
   ProductionLine get productionLine => this;
 
   @override
-  ProductionLineIo calculate({
-    ItemAmounts inputConstraints = const {},
-    ItemAmounts outputConstraints = const {},
-  }) {
+  ProductionLineIo calculate(ItemIo constraints) {
     // TODO: implement calculate
     throw UnimplementedError();
   }
@@ -278,14 +272,11 @@ class GraphStateBuilder implements NodeStateBuilder<GraphState>, GraphState {
   }
 }
 
-class GraphIo extends FullIo {
+class GraphIo extends ProductionLineIo {
   GraphIo({
-    required super.inputConstraints,
-    required super.outputConstraints,
-    required super.netInput,
-    required super.netOutput,
-    required super.totalInput,
-    required super.totalOutput,
+    required super.constraints,
+    required super.netIo,
+    required super.totalIo,
     required super.electricPowerConsumption,
     super.displayData = const [],
     required super.emissions,
