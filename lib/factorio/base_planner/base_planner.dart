@@ -22,7 +22,7 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
 
   final EventNotifier<BasePlannerEvent> _notifier = EventNotifierImpl();
 
-  final List<Snapshot> _snapshots = [const Snapshot._empty()];
+  final List<Snapshot> _snapshots = [];
   late final List<Snapshot> snapshots = UnmodifiableListView(_snapshots);
   int _snapshotIndex = 0;
   int get snapshotIndex => _snapshotIndex;
@@ -53,9 +53,9 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
                 machine2.craftingSpeed.compareTo(machine1.craftingSpeed),
           ),
       ) {
-    buildNextSnapshot(() {
-      rootGraph = Graph(this, surface: db.surfaceMap['nauvis']);
-    });
+    // Create first snapshot and root graph
+    rootGraph = Graph.rootGraph(this, db.surfaceMap['nauvis']);
+    _snapshots.add(Snapshot._({rootGraph: rootGraph.state}));
   }
 
   @override
@@ -91,7 +91,7 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
     var firstCall = _mutationLock == 0;
     try {
       if (firstCall) {
-        _snapshotBuilder = SnapshotBuilder._(_snapshots[_snapshotIndex]);
+        _snapshotBuilder = SnapshotBuilder._from(_snapshots[_snapshotIndex]);
       }
 
       _mutationLock++;
@@ -141,14 +141,21 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
   }
 
   void _applySnapshotAndUpdateListeners(
-    Snapshot oldShapshot,
+    Snapshot oldSnapshot,
     Snapshot newSnapshot,
   ) {
     _mutationLock++;
+    for (var element in oldSnapshot.states.keys) {
+      if (!newSnapshot.states.containsKey(element)) {
+        // Clear listeners on removed items
+        element.clearListeners();
+      }
+    }
+
     newSnapshot.states.forEach((element, newState) {
       element.state = newState;
 
-      var oldState = oldShapshot.states[element];
+      var oldState = oldSnapshot.states[element];
       if (oldState != null && oldState != newState) {
         element.notifyListenersOfStateChange(oldState, newState);
       }
@@ -170,8 +177,6 @@ class BasePlannerEvent {
 class Snapshot {
   final Map<BasePlannerElement, ToJson> states;
 
-  const Snapshot._empty() : states = const {};
-
   Snapshot._(Map<BasePlannerElement, ToJson> states)
     : states = Map.unmodifiable(states);
 }
@@ -185,7 +190,7 @@ class SnapshotBuilder extends Builder<Snapshot> {
   bool get hasChanges =>
       _updatedElements.isNotEmpty || _removedElements.isNotEmpty;
 
-  SnapshotBuilder._(this._previousSnapshot);
+  SnapshotBuilder._from(this._previousSnapshot);
 
   void addToSnapsnot<
     E extends BasePlannerElement<St, dynamic>,
@@ -198,20 +203,24 @@ class SnapshotBuilder extends Builder<Snapshot> {
 
   @override
   Snapshot build() {
+    for (var removedElement in _removedElements) {
+      // Just setting the new state here to ensure no unfinished changes
+      var builder = _updatedElements[removedElement];
+      if (builder != null) {
+        removedElement.state = builder.build();
+        _updatedElements.remove(removedElement);
+      }
+    }
+
     var updatedStates = _updatedElements.map(
       (element, builder) => MapEntry(element, builder.build()),
     );
-    updatedStates.forEach((element, newState) => element.state = newState);
-
-    Map<BasePlannerElement, ToJson> newSnapshotStates = Map.from(
+    Map<BasePlannerElement, ToJson> newStateMap = Map.from(
       _previousSnapshot.states,
     );
-    newSnapshotStates.addAll(updatedStates);
-    for (var removed in _removedElements) {
-      newSnapshotStates.remove(removed);
-    }
+    newStateMap.addAll(updatedStates);
 
-    return Snapshot._(newSnapshotStates);
+    return Snapshot._(newStateMap);
   }
 }
 

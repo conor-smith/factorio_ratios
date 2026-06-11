@@ -69,6 +69,13 @@ class Graph
     _builder = GraphStateBuilder._new(this);
   }
 
+  Graph.rootGraph(BasePlanner basePlanner, [this.surface])
+    : _basePlanner = basePlanner,
+      id = BasePlannerElement.generateId(),
+      parentGraph = null,
+      _state = GraphStateImpl._(icon: surface),
+      _surfaceProperties = basePlanner.surfaceProperties[surface];
+
   @override
   void remove() => GraphStateBuilder._remove(this);
 

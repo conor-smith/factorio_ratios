@@ -110,7 +110,7 @@ class ProdLineNodeStateBuilder
       parentGraphStateBuilder.removeInputItems(node.productionLine.inputItems);
     }
 
-    for (var edge in node.parents.followedBy(node.children)) {
+    for (var edge in [...node.parents, ...node.children]) {
       edge.remove();
     }
   }

@@ -130,10 +130,12 @@ class GraphStateBuilder
   }
 
   static void _remove(Graph graph) {
-    for (var edge in graph.edges) {
+    graph._basePlanner.getSnapshotBuilder().removeFromSnapshot(graph);
+
+    for (var edge in [...graph.edges]) {
       edge.remove();
     }
-    for (var node in graph.allNodes) {
+    for (var node in [...graph.allNodes]) {
       node.remove();
     }
 
