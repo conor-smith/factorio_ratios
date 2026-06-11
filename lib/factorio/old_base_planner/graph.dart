@@ -783,7 +783,7 @@ class ProductionLineGraph extends Stateful<GraphEvent>
         parentGraph: this,
         nodeType: NodeType.productionLine,
         line: SingleRecipeLine(
-          ProductionLineCraftingMachine(fastestMachine),
+          ProdLineCraftingMachine(fastestMachine),
           InGameRecipe(producerRecipe, recipeQuality),
           surface: surface,
           fuel: fuel,

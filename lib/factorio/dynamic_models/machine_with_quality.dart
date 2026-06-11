@@ -86,7 +86,7 @@ class InGameMachine implements CraftingMachine, ToJson {
 
   @override
   String toString() => name;
-  
+
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson

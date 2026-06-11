@@ -1,10 +1,36 @@
 part of 'production_line.dart';
 
-class SingleRecipeLine extends ProductionLineCraftingMachine
-    implements ProductionLine<SingleRecipeLineIo> {
+class SingleRecipeLine
+    implements ProdLineCraftingMachine, ProductionLine<SingleRecipeLineIo> {
   final InGameRecipe recipe;
+  final ProdLineCraftingMachineImpl craftingMachine;
   final Surface? surface;
   final InGameItem? fuel;
+
+  @override
+  final double productivityBonus;
+  @override
+  final double speedBonus;
+  @override
+  final double pollutionBonus;
+  @override
+  final double consumptionBonus;
+
+  @override
+  final double finalCraftingSpeed;
+  @override
+  final double singleMachineConsumption;
+  @override
+  final Map<String, double> singleMachineEmissions;
+
+  @override
+  final List<DisplayData> productivityData;
+  @override
+  final List<DisplayData> speedData;
+  @override
+  final List<DisplayData> pollutionData;
+  @override
+  final List<DisplayData> consumptionData;
 
   @override
   ProductionLineType get productionLineType => ProductionLineType.singleRecipe;
@@ -29,12 +55,12 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   final Map<InGameItem, InGameItem> potentialSpoilage;
 
   factory SingleRecipeLine(
-    ProductionLineCraftingMachine plMachine,
+    ProdLineCraftingMachineImpl plMachine,
     InGameRecipe recipe, {
     Surface? surface,
     InGameItem? fuel,
   }) {
-    var craftingMachine = plMachine.craftingMachine;
+    var craftingMachine = plMachine.internalMachine;
 
     if (!craftingMachine.recipes.contains(recipe.internalRecipe)) {
       throw ProductionLineException(
@@ -59,22 +85,22 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
       );
     }
 
-    var productivityBonus = _calculateFinalProductivityBonus(
+    var productivityBonus = ProdLineCraftingMachine.calculateProductivityBonus(
       craftingMachine,
       surface: surface,
       recipe: recipe,
     );
-    var speedBonus = _calculateFinalSpeedBonus(
+    var speedBonus = ProdLineCraftingMachine.calculateSpeedBonus(
       craftingMachine,
       surface: surface,
       recipe: recipe,
     );
-    var consumptionBonus = _calculateFinalConsumptionBonus(
+    var consumptionBonus = ProdLineCraftingMachine.calculateConsumptionBonus(
       craftingMachine,
       surface: surface,
       recipe: recipe,
     );
-    var pollutionBonus = _calculateFinalPollutionBonus(
+    var pollutionBonus = ProdLineCraftingMachine.calculatePollutionBonus(
       craftingMachine,
       surface: surface,
       recipe: recipe,
@@ -167,7 +193,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
     );
 
     return SingleRecipeLine._(
-      craftingMachine: craftingMachine,
+      craftingMachine: plMachine,
       productivityBonus: productivityBonus.value,
       speedBonus: speedBonus.value,
       pollutionBonus: pollutionBonus.value,
@@ -202,21 +228,21 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   }
 
   SingleRecipeLine._({
-    required super.craftingMachine,
+    required this.craftingMachine,
     required this.recipe,
     required this.surface,
     required this.fuel,
-    required super.productivityBonus,
-    required super.speedBonus,
-    required super.pollutionBonus,
-    required super.consumptionBonus,
-    required super.finalCraftingSpeed,
-    required super.singleMachineEmissions,
-    required super.singleMachineConsumption,
-    required super.productivityData,
-    required super.speedData,
-    required super.pollutionData,
-    required super.consumptionData,
+    required this.productivityBonus,
+    required this.speedBonus,
+    required this.pollutionBonus,
+    required this.consumptionBonus,
+    required this.finalCraftingSpeed,
+    required Map<String, double> singleMachineEmissions,
+    required this.singleMachineConsumption,
+    required List<DisplayData> productivityData,
+    required List<DisplayData> speedData,
+    required List<DisplayData> pollutionData,
+    required List<DisplayData> consumptionData,
     required Iterable<InGameItem> inputItems,
     required Iterable<InGameItem> outputItems,
     required this.machineNetIo,
@@ -227,7 +253,11 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   }) : inputItems = Set.unmodifiable(inputItems),
        outputItems = Set.unmodifiable(outputItems),
        potentialSpoilage = Map.unmodifiable(potentialSpoilage),
-       super._();
+       singleMachineEmissions = Map.unmodifiable(singleMachineEmissions),
+       productivityData = List.unmodifiable(productivityData),
+       speedData = List.unmodifiable(speedData),
+       pollutionData = List.unmodifiable(speedData),
+       consumptionData = List.unmodifiable(consumptionData);
 
   @override
   SingleRecipeLineIo calculate(ItemIo constraints) {
@@ -252,7 +282,8 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
     });
 
     var electricPowerConsumption =
-        craftingMachine.energySource.type == EnergySourceType.electric
+        craftingMachine.internalMachine.energySource.type ==
+            EnergySourceType.electric
         ? singleMachineConsumption * machineCount
         : 0.0;
 
