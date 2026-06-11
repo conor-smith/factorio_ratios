@@ -87,7 +87,7 @@ class ProductionLineIo {
   /// May differ from [io] in situations where a production line consumes
   /// part of it's own output, or in the case of [IoLineIo] where the [IoLine]
   /// doesn't actually do any production, and merely passes items through.
-  final ItemIo production;
+  final ItemIo totalProductionAndConsumption;
 
   /// Electrical power consumed given in watts
   final double electricPowerConsumption;
@@ -103,7 +103,7 @@ class ProductionLineIo {
   ProductionLineIo({
     required this.constraints,
     required this.io,
-    required this.production,
+    required this.totalProductionAndConsumption,
     required this.electricPowerConsumption,
     required Map<String, double> emissions,
     required Iterable<DisplayData> displayData,

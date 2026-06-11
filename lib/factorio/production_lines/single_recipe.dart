@@ -295,7 +295,7 @@ class SingleRecipeLine
         inputs: _multiplyMap(machineNetIo.inputs, machineCount),
         outputs: _multiplyMap(machineNetIo.outputs, machineCount),
       ),
-      production: ItemIo(
+      totalProductionAndConsumption: ItemIo(
         inputs: _multiplyMap(machineTotalIo.inputs, machineCount),
         outputs: _multiplyMap(machineTotalIo.outputs, machineCount),
       ),
@@ -312,7 +312,7 @@ class SingleRecipeLineIo extends ProductionLineIo {
   SingleRecipeLineIo({
     required super.constraints,
     required super.io,
-    required super.production,
+    required super.totalProductionAndConsumption,
     required super.electricPowerConsumption,
     super.displayData = const [],
     required super.emissions,

@@ -50,7 +50,7 @@ class IoLine implements ProductionLine<IoLineIo> {
 class IoLineIo extends ProductionLineIo {
   IoLineIo({required super.constraints, required super.io})
     : super(
-        production: ItemIo.empty,
+        totalProductionAndConsumption: ItemIo.empty,
         electricPowerConsumption: 0.0,
         emissions: const {},
         displayData: const [],

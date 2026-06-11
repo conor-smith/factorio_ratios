@@ -42,7 +42,7 @@ class MagicLineIo extends ProductionLineIo {
   MagicLineIo({required super.constraints})
     : super(
         io: constraints,
-        production: constraints,
+        totalProductionAndConsumption: constraints,
         electricPowerConsumption: 0,
         emissions: const {},
         displayData: const [],

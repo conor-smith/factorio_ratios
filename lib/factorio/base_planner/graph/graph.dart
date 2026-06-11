@@ -345,7 +345,7 @@ class GraphIo extends ProductionLineIo {
   GraphIo({
     required super.constraints,
     required super.io,
-    required super.production,
+    required super.totalProductionAndConsumption,
     required super.electricPowerConsumption,
     super.displayData = const [],
     required super.emissions,
@@ -366,10 +366,10 @@ class GraphException extends BasePlannerException {
 class GraphIoBuilder implements Builder<GraphIo> {
   final ItemAmounts inputConstraints = {};
   final ItemAmounts outputConstraints = {};
-  final ItemAmounts netInput = {};
-  final ItemAmounts netOutput = {};
-  final ItemAmounts totalInput = {};
-  final ItemAmounts totalOutput = {};
+  final ItemAmounts input = {};
+  final ItemAmounts output = {};
+  final ItemAmounts consumption = {};
+  final ItemAmounts production = {};
   double electricPowerConsumption = 0.0;
   final Map<String, double> emissions = {};
 
@@ -377,19 +377,16 @@ class GraphIoBuilder implements Builder<GraphIo> {
     var io = node.io;
 
     if (io != null) {
-      if (node.nodeType.isIo) {
+      if (node.nodeType == NodeType.input) {
         sumMaps(inputConstraints, io.constraints.inputs);
+        sumMaps(input, io.io.inputs);
+      } else if (node.nodeType == NodeType.output) {
         sumMaps(outputConstraints, io.constraints.outputs);
+        sumMaps(output, io.io.outputs);
       }
 
-      if (node.nodeType == NodeType.output) {
-        sumMaps(netOutput, io.io.outputs);
-      } else if (node.nodeType == NodeType.input) {
-        sumMaps(netInput, io.io.inputs);
-      }
-
-      sumMaps(totalInput, io.production.inputs);
-      sumMaps(totalOutput, io.production.outputs);
+      sumMaps(consumption, io.totalProductionAndConsumption.inputs);
+      sumMaps(production, io.totalProductionAndConsumption.outputs);
 
       electricPowerConsumption += io.electricPowerConsumption;
 
@@ -400,8 +397,11 @@ class GraphIoBuilder implements Builder<GraphIo> {
   @override
   GraphIo build() => GraphIo(
     constraints: ItemIo(inputs: inputConstraints, outputs: outputConstraints),
-    io: ItemIo(inputs: netInput, outputs: netOutput),
-    production: ItemIo(inputs: totalInput, outputs: totalOutput),
+    io: ItemIo(inputs: input, outputs: output),
+    totalProductionAndConsumption: ItemIo(
+      inputs: consumption,
+      outputs: production,
+    ),
     electricPowerConsumption: electricPowerConsumption,
     emissions: emissions,
   );

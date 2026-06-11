@@ -44,7 +44,7 @@ class CombinerLine implements ProductionLine<CombinerIo> {
 class CombinerIo extends ProductionLineIo {
   CombinerIo({required super.constraints, required super.io})
     : super(
-        production: ItemIo.empty,
+        totalProductionAndConsumption: ItemIo.empty,
         electricPowerConsumption: 0.0,
         emissions: const {},
         displayData: const [],
