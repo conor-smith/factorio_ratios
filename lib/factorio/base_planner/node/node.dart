@@ -8,6 +8,7 @@ import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/json/json.dart';
 
+part 'production_line_node_state.dart';
 part 'production_line_node.dart';
 
 abstract interface class NodeElement<St extends ToJson, E>

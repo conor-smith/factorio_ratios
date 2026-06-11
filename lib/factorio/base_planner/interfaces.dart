@@ -15,7 +15,7 @@ abstract interface class BasePlannerElement<St extends ToJson, E>
   int get id;
 
   St get state;
-  set state(St state);
+  set state(covariant St state);
 
   void remove();
 
