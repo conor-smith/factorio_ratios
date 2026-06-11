@@ -281,10 +281,10 @@ class ProdLineNodeStateBuilder
         }
       }
 
-      var remainingOutput = io.netIo.outputs.map(
+      var remainingOutput = io.io.outputs.map(
         (item, amount) => MapEntry(item, amount - (consumedOutput[item] ?? 0)),
       );
-      var unfulfilledInput = io.netIo.inputs.map(
+      var unfulfilledInput = io.io.inputs.map(
         (item, amount) => MapEntry(item, amount - (providedInput[item] ?? 0)),
       );
 

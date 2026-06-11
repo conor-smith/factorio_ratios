@@ -48,7 +48,7 @@ class Graph
   Set<InGameItem> get outputItems => state.outputItems;
 
   @override
-  String get type => 'graph';
+  ProductionLineType get productionLineType => ProductionLineType.graph;
   @override
   NodeType get nodeType => NodeType.productionLine;
 
@@ -344,8 +344,8 @@ class GraphIo extends ProductionLineIo {
 
   GraphIo({
     required super.constraints,
-    required super.netIo,
-    required super.totalIo,
+    required super.io,
+    required super.production,
     required super.electricPowerConsumption,
     super.displayData = const [],
     required super.emissions,
@@ -383,13 +383,13 @@ class GraphIoBuilder implements Builder<GraphIo> {
       }
 
       if (node.nodeType == NodeType.output) {
-        sumMaps(netOutput, io.netIo.outputs);
+        sumMaps(netOutput, io.io.outputs);
       } else if (node.nodeType == NodeType.input) {
-        sumMaps(netInput, io.netIo.inputs);
+        sumMaps(netInput, io.io.inputs);
       }
 
-      sumMaps(totalInput, io.totalIo.inputs);
-      sumMaps(totalOutput, io.totalIo.outputs);
+      sumMaps(totalInput, io.production.inputs);
+      sumMaps(totalOutput, io.production.outputs);
 
       electricPowerConsumption += io.electricPowerConsumption;
 
@@ -400,8 +400,8 @@ class GraphIoBuilder implements Builder<GraphIo> {
   @override
   GraphIo build() => GraphIo(
     constraints: ItemIo(inputs: inputConstraints, outputs: outputConstraints),
-    netIo: ItemIo(inputs: netInput, outputs: netOutput),
-    totalIo: ItemIo(inputs: totalInput, outputs: totalOutput),
+    io: ItemIo(inputs: netInput, outputs: netOutput),
+    production: ItemIo(inputs: totalInput, outputs: totalOutput),
     electricPowerConsumption: electricPowerConsumption,
     emissions: emissions,
   );

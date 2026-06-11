@@ -153,7 +153,7 @@ class ProductionLineGraph extends Stateful<GraphEvent>
   @override
   String get name => _name;
   @override
-  String get type => 'graph';
+  String get productionLineType => 'graph';
   @override
   bool get isImmutable => false;
 

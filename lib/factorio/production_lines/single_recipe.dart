@@ -7,7 +7,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
   final InGameItem? fuel;
 
   @override
-  String get type => 'single_recipe';
+  ProductionLineType get productionLineType => ProductionLineType.singleRecipe;
   @override
   String get name => recipe.name;
   @override
@@ -231,7 +231,7 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
 
   @override
   SingleRecipeLineIo calculate(ItemIo constraints) {
-    // TODO: verify constraints
+    ProductionLine.verifyConstraints(constraints, this);
 
     var machineCount = 0.0;
 
@@ -260,11 +260,11 @@ class SingleRecipeLine extends ProductionLineCraftingMachine
       constraints: constraints,
       machineCount: machineCount,
       totalCyclesPerMinute: machineCyclesPerMinute,
-      netIo: ItemIo(
+      io: ItemIo(
         inputs: _multiplyMap(machineNetIo.inputs, machineCount),
         outputs: _multiplyMap(machineNetIo.outputs, machineCount),
       ),
-      totalIo: ItemIo(
+      production: ItemIo(
         inputs: _multiplyMap(machineTotalIo.inputs, machineCount),
         outputs: _multiplyMap(machineTotalIo.outputs, machineCount),
       ),
@@ -280,8 +280,8 @@ class SingleRecipeLineIo extends ProductionLineIo {
 
   SingleRecipeLineIo({
     required super.constraints,
-    required super.netIo,
-    required super.totalIo,
+    required super.io,
+    required super.production,
     required super.electricPowerConsumption,
     super.displayData = const [],
     required super.emissions,

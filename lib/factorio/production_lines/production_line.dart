@@ -3,6 +3,8 @@ import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/utility/utility.dart';
 
+part 'combiner.dart';
+part 'io_line.dart';
 part 'magic_line.dart';
 part 'single_recipe.dart';
 part 'single_machine.dart';
@@ -26,7 +28,7 @@ abstract interface class ProductionLine<T extends ProductionLineIo> {
   String get name;
 
   /// Specifies what kind of production line this is
-  String get type;
+  ProductionLineType get productionLineType;
 
   /// Used in displays
   EntityPrototype? get icon;
@@ -52,8 +54,18 @@ abstract interface class ProductionLine<T extends ProductionLineIo> {
   /// [ItemIo.inputs] and [ItemIo.outputs] must be given in items per minute
   T calculate(ItemIo constraints);
 
-  @override
-  String toString() => name;
+  // TODO: Document
+  static void verifyConstraints(
+    ItemIo constraints,
+    ProductionLine productionLine,
+  ) {
+    if (!productionLine.inputItems.containsAll(constraints.inputs.keys) ||
+        !productionLine.outputItems.containsAll(constraints.outputs.keys)) {
+      throw ProductionLineException(
+        'Production line $productionLine with inputs ${productionLine.inputItems} and outputs ${productionLine.outputItems} could not accept constraints $constraints',
+      );
+    }
+  }
 }
 
 /// Represents a line output given a set of constraints.
@@ -68,12 +80,13 @@ class ProductionLineIo {
   final ItemIo constraints;
 
   /// Net input / output in items per minute
-  final ItemIo netIo;
+  final ItemIo io;
 
-  /// Total input / output in items per minute.
-  /// May differ from [netIo] in situations where a production line consumes
-  /// part of it's own output
-  final ItemIo totalIo;
+  /// Total production and comsumption in items per minute.
+  /// May differ from [io] in situations where a production line consumes
+  /// part of it's own output, or in the case of [IoLineIo] where the [IoLine]
+  /// doesn't actually do any production, and merely passes items through.
+  final ItemIo production;
 
   /// Electrical power consumed given in watts
   final double electricPowerConsumption;
@@ -88,8 +101,8 @@ class ProductionLineIo {
 
   ProductionLineIo({
     required this.constraints,
-    required this.netIo,
-    required this.totalIo,
+    required this.io,
+    required this.production,
     required this.electricPowerConsumption,
     required Map<String, double> emissions,
     required Iterable<DisplayData> displayData,
@@ -132,6 +145,9 @@ class ItemIo {
         );
       }
     });
+
+    @override
+    String toString() => 'inputs: $inputs, outputs: $outputs';
   }
 
   @override
@@ -148,3 +164,5 @@ class ItemIo {
       .map((entry) => entry.key.hashCode * entry.value.ceil())
       .reduce((val1, val2) => val1 + val2);
 }
+
+enum ProductionLineType { io, magic, singleRecipe, combiner, graph }

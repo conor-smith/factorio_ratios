@@ -128,7 +128,7 @@ class ProdLineNode extends Stateful<NodeEvent> {
   Set<InGameItem> get outputItems => _productionLine.outputItems;
   ItemAmounts? get inputRatios => _productionLine.inputRatios;
   ItemAmounts? get outputRatios => _productionLine.outputRatios;
-  String get productionLineType => _productionLine.type;
+  String get productionLineType => _productionLine.productionLineType;
   String get productionLineName => _productionLine.name;
 
   /// Returns true if [internalInputConstraints] and [internalOutputConstraints]
