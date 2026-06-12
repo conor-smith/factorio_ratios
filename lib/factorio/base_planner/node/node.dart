@@ -19,6 +19,8 @@ abstract interface class NodeElement<St extends ToJson, E>
   ProductionLine get productionLine;
   ProductionLineIo? get io;
 
+  ItemIo? get requirements;
+
   NodeGeometry get nodeGeometry;
 
   @override
@@ -102,19 +104,50 @@ abstract interface class NodeStateBuilder<T extends ToJson>
 }
 
 enum NodeType implements Comparable<NodeType> {
-  input(true, 1),
-  combiner(false, 2),
-  producer(false, 3),
-  resource(false, 4),
-  productionLine(false, 5),
-  consumer(false, 6),
-  disposal(false, 7),
-  output(true, 8);
+  /// Node can connect to and accept inputs from nodes in [NodeElement.parentGraph].
+  /// All [EdgeType]s are permitted so long as edges connecting to external nodes are inputs.
+  input(outputPriority: 1, isIo: true),
+
+  /// If a [Graph] has multiple nodes that produce the same output, a combiner node
+  /// can be used to combine all those outputs into one. Exists primarily for convenience
+  combiner(outputPriority: 2),
+
+  /// Represents a leaf node in the a [Graph] that outputs items.
+  /// This node is not allowed to have children.
+  resource(outputPriority: 3, childrenPermitted: false),
+
+  /// Represents a production line.
+  productionLine(outputPriority: 4),
+
+  /// Represents a leaf node in the a [Graph] that consumes items.
+  /// This node is not allowed to have children.
+  disposal(childrenPermitted: false),
+
+  /// Node can connect to and output to nodes in [NodeElement.parentGraph].
+  /// All [EdgeType]s are permitted so long as edges connecting to external nodes are outputs.
+  output(isIo: true),
+
+  /// Represents a root node in the graph that consumes items. Parents are not permitted.
+  ///
+  /// Only these nodes and [producer] nodes are permitted to set [NodeElement.requirements].
+  consumer(parentsPermitted: false),
+
+  /// Represents a root node in the graph that produces items. Parents are not permitted.
+  ///
+  /// Only these nodes and [consumer] nodes are permitted to set [NodeElement.requirements].
+  producer(parentsPermitted: false, outputPriority: 3);
 
   final bool isIo;
+  final bool parentsPermitted;
+  final bool childrenPermitted;
   final int outputPriority;
 
-  const NodeType(this.isIo, this.outputPriority);
+  const NodeType({
+    this.isIo = false,
+    this.parentsPermitted = true,
+    this.childrenPermitted = false,
+    this.outputPriority = 100,
+  });
 
   @override
   int compareTo(NodeType other) =>

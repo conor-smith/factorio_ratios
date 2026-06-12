@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 
 class EdgeGeometry implements Geometry {
   static const uninitialised = EdgeGeometry._uninitialised();
@@ -15,10 +16,12 @@ class EdgeGeometry implements Geometry {
     : lines = List.unmodifiable(lines),
       minimalRect = determineMinimalRect(lines);
 
-  EdgeGeometry.shortestPath(Rect startRect, Rect endRect)
+  EdgeGeometry.shortestPath(NodeGeometry start, NodeGeometry end)
     : geometryType = EdgeGeometryType.shortestPath,
-      lines = List.unmodifiable([Line(startRect.center, endRect.center)]),
-      minimalRect = Rect.fromPoints(startRect.center, endRect.center);
+      lines = List.unmodifiable([
+        Line(start.minimalRect.center, end.minimalRect.center),
+      ]),
+      minimalRect = Rect.fromPoints(start.minimalRect.center, end.minimalRect.center);
 
   const EdgeGeometry._uninitialised()
     : minimalRect = Rect.zero,

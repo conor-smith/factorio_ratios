@@ -12,6 +12,7 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   final NodeType nodeType;
 
   // For convenience
+  @override
   ItemIo? get requirements => state.requirements;
   @override
   ProductionLine get productionLine => _state.productionLine;

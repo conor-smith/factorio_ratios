@@ -1,7 +1,9 @@
 import 'dart:collection';
+import 'dart:ui';
 
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
@@ -59,12 +61,12 @@ class Graph
   @override
   NodeType get nodeType => NodeType.productionLine;
   @override
+  ItemIo? get requirements => null;
+  @override
   ProductionLine get productionLine => this;
 
   @override
   ItemIo? get ioRatios => null;
-
-  final Map<InGameItem, SortedList<NodeElement>> _cachedNodeOutputIndex = {};
 
   Graph.addToBasePlanner(
     BasePlanner basePlanner, {
@@ -144,20 +146,93 @@ class Graph
               node.inputItems.contains(item),
         )
         .firstOrNull;
-    if (existingConsumerNode == null) {
-      _basePlanner.buildNextSnapshot(() {
-        var consumerNode = ProdLineNode.addToBasePlanner(
-          basePlanner: _basePlanner,
-          parentGraph: this,
-          nodeType: NodeType.consumer,
-          productionLine: MagicLine.singleItemConsumer(item),
-        );
-
-        _resetNodeOutputIndex();
-
-        _createNodeTree(consumerNode, {});
-      });
+    if (existingConsumerNode != null) {
+      return;
     }
+
+    _basePlanner.buildNextSnapshot(() {
+      var consumerNode = ProdLineNode.addToBasePlanner(
+        basePlanner: _basePlanner,
+        parentGraph: this,
+        nodeType: NodeType.consumer,
+        productionLine: MagicLine.singleItemConsumer(item),
+      );
+
+      _NodeItemIndex outputIndex = {};
+      for (var node in allNodes.where(
+        (node) => node.nodeType.parentsPermitted,
+      )) {
+        _addOutputToIndex(outputIndex, node);
+      }
+
+      _createNodeTree(consumerNode, outputIndex, {});
+
+      // TODO: Is this the best layout?
+      defaultLayout();
+    });
+  }
+
+  void defaultLayout() {
+    if (allNodes.isEmpty) {
+      return;
+    }
+
+    _basePlanner.buildNextSnapshot(() {
+      int numberOfRows = 0;
+      Map<NodeElement, int> nodeToRowNumber = {};
+
+      for (var rootNode in allNodes.where((node) => node.parents.isEmpty)) {
+        var newNumberOfRows = _determineRowsAndReturnNumberOfRows(
+          rootNode,
+          0,
+          nodeToRowNumber,
+          {},
+        );
+        if (newNumberOfRows > numberOfRows) {
+          numberOfRows = newNumberOfRows;
+        }
+      }
+
+      List<List<NodeElement>> rows = List.generate(
+        numberOfRows + 1,
+        (_) => [],
+        growable: false,
+      );
+
+      nodeToRowNumber.forEach((node, rowNumber) => rows[rowNumber].add(node));
+
+      for (var row = 0; row < rows.length; row++) {
+        for (var column = 0; column < rows[row].length; column++) {
+          var topLeftCorner = Offset(
+            NodeGeometry.defaultPadding +
+                (NodeGeometry.defaultWidth + NodeGeometry.defaultPadding) *
+                    column,
+            NodeGeometry.defaultPadding +
+                (NodeGeometry.defaultHeight + NodeGeometry.defaultPadding) *
+                    row,
+          );
+          var bottomRightCorner =
+              topLeftCorner +
+              const Offset(
+                NodeGeometry.defaultWidth,
+                NodeGeometry.defaultHeight,
+              );
+
+          rows[row][column].getStateBuilder().updateGeometry(
+            NodeGeometry(Rect.fromPoints(topLeftCorner, bottomRightCorner)),
+          );
+        }
+      }
+
+      for (var edge in edges) {
+        edge.getStateBuilder().updateGeometry(
+          EdgeGeometry.shortestPath(
+            edge.parent.nodeGeometry,
+            edge.child.nodeGeometry,
+          ),
+        );
+      }
+    });
   }
 
   @override
@@ -177,20 +252,10 @@ class Graph
     throw UnimplementedError();
   }
 
-  void _resetNodeOutputIndex() {
-    _cachedNodeOutputIndex.clear();
-
-    for (var node in allNodes.where(
-      (node) => node.nodeType != NodeType.output,
-    )) {
-      _addToNodeOutputIndex(node);
-    }
-  }
-
-  void _addToNodeOutputIndex(NodeElement node) {
+  void _addOutputToIndex(_NodeItemIndex nodeOutputIndex, NodeElement node) {
     for (var output in node.outputItems) {
       // TODO: optimise this
-      _cachedNodeOutputIndex.update(
+      nodeOutputIndex.update(
         output,
         (nodeList) => nodeList..add(node),
         ifAbsent: () => SortedList(
@@ -200,7 +265,11 @@ class Graph
     }
   }
 
-  void _createNodeTree(NodeElement startNode, Set<NodeElement> visitedNodes) {
+  void _createNodeTree(
+    NodeElement startNode,
+    _NodeItemIndex outputIndex,
+    Set<NodeElement> visitedNodes,
+  ) {
     visitedNodes.add(startNode);
 
     var inputEdges = startNode.inputEdges;
@@ -208,8 +277,15 @@ class Graph
     for (var inputItem in startNode.inputItems.where(
       (input) => inputEdges.containsKey(input),
     )) {
-      var nextNode =
-          _findExistingNodeWithOutput(inputItem) ?? _createNewNode(inputItem);
+      var nextNode = outputIndex[inputItem]?.firstOrNull;
+
+      if (nextNode == null) {
+        nextNode =
+            _createResourceNode(inputItem) ??
+            _createRecipeNode(outputIndex, inputItem) ??
+            _createMagicResourceNode(inputItem);
+        _addOutputToIndex(outputIndex, nextNode);
+      }
 
       Edge.addToBasePlanner(
         basePlanner: _basePlanner,
@@ -221,22 +297,9 @@ class Graph
       );
 
       if (!visitedNodes.contains(nextNode)) {
-        _createNodeTree(nextNode, visitedNodes);
+        _createNodeTree(nextNode, outputIndex, visitedNodes);
       }
     }
-  }
-
-  NodeElement? _findExistingNodeWithOutput(InGameItem output) =>
-      _cachedNodeOutputIndex[output]?.firstOrNull;
-
-  ProdLineNode _createNewNode(InGameItem requiredOutput) {
-    var newNode =
-        _createResourceNode(requiredOutput) ??
-        _createRecipeNode(requiredOutput) ??
-        _createProducerNode(requiredOutput);
-
-    _addToNodeOutputIndex(newNode);
-    return newNode;
   }
 
   ProdLineNode? _createResourceNode(InGameItem requiredOutput) {
@@ -252,7 +315,10 @@ class Graph
     }
   }
 
-  ProdLineNode? _createRecipeNode(InGameItem requiredOutput) {
+  ProdLineNode? _createRecipeNode(
+    _NodeItemIndex outputIndex,
+    InGameItem requiredOutput,
+  ) {
     // TODO - check for valid fluid temperatures
     var baseRecipe = _surfaceProperties.defaultRecipes
         .where(
@@ -280,10 +346,7 @@ class Graph
 
         // Search existing nodes for valid fuel
         var existingNodeFuel = burner.fuelItems
-            .where(
-              (fuelItem) =>
-                  _findExistingNodeWithOutput(InGameItem(fuelItem)) != null,
-            )
+            .where((fuelItem) => outputIndex[InGameItem(fuelItem)] != null)
             .map((item) => InGameSolidItem(item));
 
         // Search surface for valid fuel
@@ -318,13 +381,50 @@ class Graph
     }
   }
 
-  ProdLineNode _createProducerNode(InGameItem requiredOutput) =>
+  ProdLineNode _createMagicResourceNode(InGameItem requiredOutput) =>
       ProdLineNode.addToBasePlanner(
         basePlanner: _basePlanner,
         parentGraph: this,
-        nodeType: NodeType.producer,
+        nodeType: NodeType.resource,
         productionLine: MagicLine.singleItemProducer(requiredOutput),
       );
+
+  int _determineRowsAndReturnNumberOfRows(
+    NodeElement node,
+    int rowNumber,
+    Map<NodeElement, int> nodeToRowNumber,
+    Set<NodeElement> visitedNodes,
+  ) {
+    visitedNodes.add(node);
+    int maxRowNumber = rowNumber;
+
+    if (rowNumber > (nodeToRowNumber[node] ?? 0)) {
+      nodeToRowNumber[node] = rowNumber;
+
+      var childNodes = node.children
+          .map((edge) => edge.child)
+          .where(
+            (childNode) =>
+                childNode.parentGraph == this &&
+                !visitedNodes.contains(childNode),
+          );
+
+      for (var childNode in childNodes) {
+        var newMaxRowNumber = _determineRowsAndReturnNumberOfRows(
+          childNode,
+          rowNumber + 1,
+          nodeToRowNumber,
+          visitedNodes,
+        );
+
+        if (newMaxRowNumber > maxRowNumber) {
+          maxRowNumber = newMaxRowNumber;
+        }
+      }
+    }
+
+    return rowNumber;
+  }
 }
 
 class GraphIo extends ProductionLineIo {
@@ -402,3 +502,5 @@ class GraphIoBuilder implements Builder<GraphIo> {
     emissions: emissions,
   );
 }
+
+typedef _NodeItemIndex = Map<InGameItem, SortedList<NodeElement>>;
