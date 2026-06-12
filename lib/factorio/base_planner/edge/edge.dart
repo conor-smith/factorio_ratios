@@ -30,7 +30,7 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   double get percentage => state.percentage;
   EdgeGeometry get edgeGeometry => state.edgeGeometry;
 
-  factory Edge({
+  factory Edge.addToBasePlanner({
     required BasePlanner basePlanner,
     required Graph parentGraph,
     required EdgeType edgeType,

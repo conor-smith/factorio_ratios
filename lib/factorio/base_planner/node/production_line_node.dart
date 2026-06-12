@@ -22,6 +22,10 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   @override
   Set<Edge> get children => state.children;
   @override
+  Map<InGameItem, List<Edge>> get inputEdges => state.inputEdges;
+  @override
+  Map<InGameItem, List<Edge>> get outputEdges => state.outputEdges;
+  @override
   ProductionLineIo? get io => state.io;
   @override
   Set<InGameItem> get inputItems => state.productionLine.inputItems;
@@ -32,7 +36,7 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   ProdLineNodeStateImpl _state;
   ProdLineNodeStateBuilder? _builder;
 
-  ProdLineNode({
+  ProdLineNode.addToBasePlanner({
     required BasePlanner basePlanner,
     required this.parentGraph,
     required this.nodeType,
@@ -99,18 +103,4 @@ class NodeEvent {
   NodeEvent.geometryOp(NodeGeometry nodeGeometry) {
     throw UnimplementedError();
   }
-}
-
-enum NodeType {
-  consumer(false),
-  producer(false),
-  input(true),
-  output(true),
-  resource(false),
-  disposal(false),
-  productionLine(false);
-
-  final bool isIo;
-
-  const NodeType(this.isIo);
 }

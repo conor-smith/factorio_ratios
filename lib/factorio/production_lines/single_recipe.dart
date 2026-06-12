@@ -54,6 +54,18 @@ class SingleRecipeLine
 
   final Map<InGameItem, InGameItem> potentialSpoilage;
 
+  factory SingleRecipeLine.fromBaseMachine(
+    CraftingMachine machine,
+    InGameRecipe recipe, {
+    Surface? surface,
+    InGameItem? fuel,
+  }) => SingleRecipeLine(
+    ProdLineCraftingMachineImpl(InGameMachine(machine)),
+    recipe,
+    surface: surface,
+    fuel: fuel,
+  );
+
   factory SingleRecipeLine(
     ProdLineCraftingMachineImpl plMachine,
     InGameRecipe recipe, {
@@ -70,15 +82,15 @@ class SingleRecipeLine
       throw ProductionLineException(
         'Recipe $recipe cannot be crafted on surface $surface',
       );
-    } else if (!craftingMachine.needsFuel && fuel != null) {
+    } else if (!craftingMachine.needsSolidFuel && fuel != null) {
       throw ProductionLineException(
         'Machine $craftingMachine does not need fuel',
       );
-    } else if (craftingMachine.needsFuel && fuel == null) {
+    } else if (craftingMachine.needsSolidFuel && fuel == null) {
       throw ProductionLineException(
         'Machine $craftingMachine needs fuel and was not supplied any',
       );
-    } else if (craftingMachine.needsFuel &&
+    } else if (craftingMachine.needsSolidFuel &&
         !craftingMachine.fuelItems.contains(fuel!.internalItem)) {
       throw ProductionLineException(
         'Fuel $fuel is not a valid fuel source for machine $craftingMachine',

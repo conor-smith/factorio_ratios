@@ -38,7 +38,7 @@ class CraftingMachine extends EntityPrototype {
   final String? _subgroupString;
   final List<IconData>? _icons;
 
-  late final bool needsFuel = energySource is BurnerEnergySource;
+  late final bool needsSolidFuel = energySource is BurnerEnergySource;
   late final List<Item> fuelItems = switch (energySource.type) {
     EnergySourceType.burner => (energySource as BurnerEnergySource).fuelItems,
     EnergySourceType.fluid => throw UnimplementedError(),

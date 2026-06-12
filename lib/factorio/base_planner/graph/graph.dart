@@ -9,6 +9,7 @@ import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/json/json.dart';
 import 'package:factorio_ratios/utility/utility.dart';
+import 'package:sorted_list/sorted_list.dart';
 
 part 'graph_state.dart';
 
@@ -21,7 +22,7 @@ class Graph
   final Surface? surface;
   @override
   final Graph? parentGraph;
-  final SurfaceProperties? _surfaceProperties;
+  final SurfaceProperties _surfaceProperties;
 
   final EventNotifier<GraphEvent> _notifier = EventNotifierImpl();
   GraphStateImpl _state;
@@ -39,6 +40,10 @@ class Graph
   @override
   Set<Edge> get children => state.children;
   @override
+  Map<InGameItem, List<Edge>> get inputEdges => state.inputEdges;
+  @override
+  Map<InGameItem, List<Edge>> get outputEdges => state.outputEdges;
+  @override
   GraphIo? get io => state.io;
   Set<Graph> get graphNodes => state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
@@ -53,11 +58,15 @@ class Graph
   ProductionLineType get productionLineType => ProductionLineType.graph;
   @override
   NodeType get nodeType => NodeType.productionLine;
+  @override
+  ProductionLine get productionLine => this;
 
   @override
   ItemIo? get ioRatios => null;
 
-  Graph(
+  final Map<InGameItem, SortedList<NodeElement>> _cachedNodeOutputIndex = {};
+
+  Graph.addToBasePlanner(
     BasePlanner basePlanner, {
     this.parentGraph,
     this.surface,
@@ -65,7 +74,8 @@ class Graph
   }) : _basePlanner = basePlanner,
        id = BasePlannerElement.generateId(),
        _state = GraphStateImpl._(icon: icon ?? surface),
-       _surfaceProperties = basePlanner.surfaceProperties[surface] {
+       _surfaceProperties =
+           basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
     _builder = GraphStateBuilder._new(this);
   }
 
@@ -74,7 +84,8 @@ class Graph
       id = BasePlannerElement.generateId(),
       parentGraph = null,
       _state = GraphStateImpl._(icon: surface),
-      _surfaceProperties = basePlanner.surfaceProperties[surface];
+      _surfaceProperties =
+          basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty;
 
   @override
   void remove() => GraphStateBuilder._remove(this);
@@ -119,8 +130,35 @@ class Graph
     throw UnimplementedError();
   }
 
-  @override
-  ProductionLine get productionLine => this;
+  void addConsumerNodeAndTree(InGameItem item) {
+    if (surface == null) {
+      throw const GraphException(
+        'Cannot build node tree of graph with no surface',
+      );
+    }
+
+    var existingConsumerNode = prodLineNodes
+        .where(
+          (node) =>
+              node.nodeType == NodeType.consumer &&
+              node.inputItems.contains(item),
+        )
+        .firstOrNull;
+    if (existingConsumerNode == null) {
+      _basePlanner.buildNextSnapshot(() {
+        var consumerNode = ProdLineNode.addToBasePlanner(
+          basePlanner: _basePlanner,
+          parentGraph: this,
+          nodeType: NodeType.consumer,
+          productionLine: MagicLine.singleItemConsumer(item),
+        );
+
+        _resetNodeOutputIndex();
+
+        _createNodeTree(consumerNode, {});
+      });
+    }
+  }
 
   @override
   GraphIo calculate(ItemIo constraints) {
@@ -138,6 +176,155 @@ class Graph
     // TODO: implement toJson
     throw UnimplementedError();
   }
+
+  void _resetNodeOutputIndex() {
+    _cachedNodeOutputIndex.clear();
+
+    for (var node in allNodes.where(
+      (node) => node.nodeType != NodeType.output,
+    )) {
+      _addToNodeOutputIndex(node);
+    }
+  }
+
+  void _addToNodeOutputIndex(NodeElement node) {
+    for (var output in node.outputItems) {
+      // TODO: optimise this
+      _cachedNodeOutputIndex.update(
+        output,
+        (nodeList) => nodeList..add(node),
+        ifAbsent: () => SortedList(
+          (node1, node2) => node1.nodeType.compareTo(node2.nodeType),
+        )..add(node),
+      );
+    }
+  }
+
+  void _createNodeTree(NodeElement startNode, Set<NodeElement> visitedNodes) {
+    visitedNodes.add(startNode);
+
+    var inputEdges = startNode.inputEdges;
+
+    for (var inputItem in startNode.inputItems.where(
+      (input) => inputEdges.containsKey(input),
+    )) {
+      var nextNode =
+          _findExistingNodeWithOutput(inputItem) ?? _createNewNode(inputItem);
+
+      Edge.addToBasePlanner(
+        basePlanner: _basePlanner,
+        parentGraph: this,
+        edgeType: EdgeType.requestItems,
+        parent: startNode,
+        child: nextNode,
+        item: inputItem,
+      );
+
+      if (!visitedNodes.contains(nextNode)) {
+        _createNodeTree(nextNode, visitedNodes);
+      }
+    }
+  }
+
+  NodeElement? _findExistingNodeWithOutput(InGameItem output) =>
+      _cachedNodeOutputIndex[output]?.firstOrNull;
+
+  ProdLineNode _createNewNode(InGameItem requiredOutput) {
+    var newNode =
+        _createResourceNode(requiredOutput) ??
+        _createRecipeNode(requiredOutput) ??
+        _createProducerNode(requiredOutput);
+
+    _addToNodeOutputIndex(newNode);
+    return newNode;
+  }
+
+  ProdLineNode? _createResourceNode(InGameItem requiredOutput) {
+    if (_surfaceProperties.resources.contains(requiredOutput)) {
+      return ProdLineNode.addToBasePlanner(
+        basePlanner: _basePlanner,
+        parentGraph: this,
+        nodeType: NodeType.resource,
+        productionLine: MagicLine.singleItemProducer(requiredOutput),
+      );
+    } else {
+      return null;
+    }
+  }
+
+  ProdLineNode? _createRecipeNode(InGameItem requiredOutput) {
+    // TODO - check for valid fluid temperatures
+    var baseRecipe = _surfaceProperties.defaultRecipes
+        .where(
+          (recipe) => recipe.results.any(
+            (product) => product.item == requiredOutput.internalItem,
+          ),
+        )
+        .firstOrNull;
+
+    if (baseRecipe != null) {
+      var quality = requiredOutput is InGameSolidItem
+          ? requiredOutput.quality
+          : 1;
+      var inGameRecipe = InGameRecipe(baseRecipe, quality);
+
+      var inGameMachine = InGameMachine(
+        _basePlanner.sortedMachines.firstWhere(
+          (machine) => machine.recipes.contains(baseRecipe),
+        ),
+      );
+
+      InGameSolidItem? fuel;
+      if (inGameMachine.needsSolidFuel) {
+        var burner = inGameMachine.energySource as BurnerEnergySource;
+
+        // Search existing nodes for valid fuel
+        var existingNodeFuel = burner.fuelItems
+            .where(
+              (fuelItem) =>
+                  _findExistingNodeWithOutput(InGameItem(fuelItem)) != null,
+            )
+            .map((item) => InGameSolidItem(item));
+
+        // Search surface for valid fuel
+        var surfaceFuels = _surfaceProperties.availableSolidFuels.where(
+          (surfaceFuel) => burner.fuelItems.contains(surfaceFuel.internalItem),
+        );
+
+        // Use first valid fuel
+        var machineFuels = burner.fuelItems.map(
+          (fuelItem) => InGameSolidItem(fuelItem),
+        );
+
+        fuel = existingNodeFuel
+            .followedBy(surfaceFuels)
+            .followedBy(machineFuels)
+            .first;
+      }
+
+      return ProdLineNode.addToBasePlanner(
+        basePlanner: _basePlanner,
+        parentGraph: this,
+        nodeType: NodeType.productionLine,
+        productionLine: SingleRecipeLine.fromBaseMachine(
+          inGameMachine,
+          inGameRecipe,
+          surface: surface,
+          fuel: fuel,
+        ),
+      );
+    } else {
+      return null;
+    }
+  }
+
+  ProdLineNode _createProducerNode(InGameItem requiredOutput) =>
+      ProdLineNode.addToBasePlanner(
+        basePlanner: _basePlanner,
+        parentGraph: this,
+        nodeType: NodeType.producer,
+        productionLine: MagicLine.singleItemProducer(requiredOutput),
+      );
 }
 
 class GraphIo extends ProductionLineIo {

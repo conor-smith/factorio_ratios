@@ -10,6 +10,8 @@ abstract class GraphState implements ToJson {
   NodeGeometry get nodeGeometry;
   Set<Edge> get parents;
   Set<Edge> get children;
+  Map<InGameItem, List<Edge>> get outputEdges;
+  Map<InGameItem, List<Edge>> get inputEdges;
   Set<InGameItem> get inputItems;
   Set<InGameItem> get outputItems;
   GraphIo? get io;
@@ -44,6 +46,12 @@ class GraphStateImpl implements GraphState {
     ...prodLineNodes,
     ...graphNodes,
   });
+  @override
+  late final Map<InGameItem, List<Edge>> outputEdges =
+      NodeElement.calculateOutputEdges(parents, children);
+  @override
+  late final Map<InGameItem, List<Edge>> inputEdges =
+      NodeElement.calculateInputEdges(parents, children);
 
   GraphStateImpl._({
     this.name = 'graph',
@@ -88,6 +96,9 @@ class GraphStateBuilder
   final Set<InGameItem> _outputItems;
   GraphIo? _io;
 
+  Map<InGameItem, List<Edge>>? _cachedInputEdges;
+  Map<InGameItem, List<Edge>>? _cachedOutputEdges;
+
   @override
   String get name => _name;
   @override
@@ -115,6 +126,18 @@ class GraphStateBuilder
 
   @override
   Set<NodeElement> get allNodes => {..._prodLineNodes, ..._graphNodes};
+
+  @override
+  Map<InGameItem, List<Edge>> get inputEdges {
+    _cachedInputEdges ??= NodeElement.calculateInputEdges(parents, children);
+    return _cachedInputEdges!;
+  }
+
+  @override
+  Map<InGameItem, List<Edge>> get outputEdges {
+    _cachedOutputEdges ??= NodeElement.calculateOutputEdges(parents, children);
+    return _cachedOutputEdges!;
+  }
 
   factory GraphStateBuilder._new(Graph graph) {
     var builder = GraphStateBuilder._from(graph);
@@ -180,13 +203,28 @@ class GraphStateBuilder
       _nodeGeometry = nodeGeometry;
 
   @override
-  void addParent(Edge parent) => _parents.add(parent);
+  void addParent(Edge parent) {
+    _parents.add(parent);
+    _invalidateCache();
+  }
+
   @override
-  void addChild(Edge child) => _children.add(child);
+  void addChild(Edge child) {
+    _children.add(child);
+    _invalidateCache();
+  }
+
   @override
-  void removeParent(Edge parent) => _parents.remove(parent);
+  void removeParent(Edge parent) {
+    _parents.remove(parent);
+    _invalidateCache();
+  }
+
   @override
-  void removeChild(Edge child) => _children.remove(child);
+  void removeChild(Edge child) {
+    _children.remove(child);
+    _invalidateCache();
+  }
 
   void addOutputItems(Iterable<InGameItem> outputs) =>
       _outputItems.addAll(outputs);
@@ -226,5 +264,10 @@ class GraphStateBuilder
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
+  }
+
+  void _invalidateCache() {
+    _cachedInputEdges = null;
+    _cachedOutputEdges = null;
   }
 }

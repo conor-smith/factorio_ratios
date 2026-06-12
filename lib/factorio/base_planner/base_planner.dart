@@ -35,7 +35,9 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
         (name, surface) => MapEntry(
           surface,
           SurfaceProperties._(
-            defaultRecipes: surface.recipes.where((recipe) => recipe.isSimple),
+            defaultRecipes: surface.recipes.where(
+              (recipe) => recipe.isSimple && recipe.craftingMachines.isNotEmpty,
+            ),
             resources: surface.resourceItems.map((item) => InGameItem(item)),
             availableSolidFuels: surface.resourceItems
                 .whereType<SolidItem>()
@@ -225,6 +227,8 @@ class SnapshotBuilder extends Builder<Snapshot> {
 }
 
 class SurfaceProperties {
+  static const empty = SurfaceProperties._empty();
+
   final List<Recipe> defaultRecipes;
   final List<InGameItem> resources;
   final List<InGameSolidItem> availableSolidFuels;
@@ -237,6 +241,11 @@ class SurfaceProperties {
   }) : defaultRecipes = List.unmodifiable(defaultRecipes),
        resources = List.unmodifiable(resources),
        availableSolidFuels = List.unmodifiable(availableSolidFuels);
+
+  const SurfaceProperties._empty()
+    : defaultRecipes = const [],
+      resources = const [],
+      availableSolidFuels = const [];
 }
 
 class BasePlannerException extends FactorioException {

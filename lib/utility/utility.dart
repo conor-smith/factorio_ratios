@@ -21,3 +21,4 @@ bool compareMaps<K, V>(Map<K, V> map1, Map<K, V> map2) =>
 
 bool compareSets<T>(Set<T> set1, Set<T> set2) =>
     set1 == set2 || (set1.length == set2.length && set1.containsAll(set2));
+

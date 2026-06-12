@@ -46,7 +46,7 @@ class InGameMachine implements CraftingMachine, ToJson {
   @override
   List<String> get allowedEffects => internalMachine.allowedEffects;
   @override
-  bool get needsFuel => internalMachine.needsFuel;
+  bool get needsSolidFuel => internalMachine.needsSolidFuel;
   @override
   List<String> get craftingCategories => internalMachine.craftingCategories;
   @override

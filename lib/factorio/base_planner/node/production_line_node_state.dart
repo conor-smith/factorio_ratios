@@ -10,6 +10,9 @@ abstract class ProdLineNodeState implements ToJson {
 
   Set<Edge> get parents;
   Set<Edge> get children;
+
+  Map<InGameItem, List<Edge>> get outputEdges;
+  Map<InGameItem, List<Edge>> get inputEdges;
 }
 
 class ProdLineNodeStateImpl implements ProdLineNodeState {
@@ -28,6 +31,13 @@ class ProdLineNodeStateImpl implements ProdLineNodeState {
   final Set<Edge> parents;
   @override
   final Set<Edge> children;
+
+  @override
+  late final Map<InGameItem, List<Edge>> outputEdges =
+      NodeElement.calculateOutputEdges(parents, children);
+  @override
+  late final Map<InGameItem, List<Edge>> inputEdges =
+      NodeElement.calculateInputEdges(parents, children);
 
   ProdLineNodeStateImpl._({
     this.requirements,
@@ -61,6 +71,9 @@ class ProdLineNodeStateBuilder
   final Set<Edge> _parents;
   final Set<Edge> _children;
 
+  Map<InGameItem, List<Edge>>? _cachedInputEdges;
+  Map<InGameItem, List<Edge>>? _cachedOutputEdges;
+
   @override
   ItemIo? get requirements => _requirements;
 
@@ -76,6 +89,18 @@ class ProdLineNodeStateBuilder
   late final Set<Edge> parents = UnmodifiableSetView(parents);
   @override
   late final Set<Edge> children = UnmodifiableSetView(children);
+
+  @override
+  Map<InGameItem, List<Edge>> get inputEdges {
+    _cachedInputEdges ??= NodeElement.calculateInputEdges(parents, children);
+    return _cachedInputEdges!;
+  }
+
+  @override
+  Map<InGameItem, List<Edge>> get outputEdges {
+    _cachedOutputEdges ??= NodeElement.calculateOutputEdges(parents, children);
+    return _cachedOutputEdges!;
+  }
 
   factory ProdLineNodeStateBuilder._new(ProdLineNode node) {
     var builder = ProdLineNodeStateBuilder._from(node);
@@ -264,14 +289,28 @@ class ProdLineNodeStateBuilder
       _nodeGeometry = nodeGeometry;
 
   @override
-  void addParent(Edge parent) => _parents.add(parent);
-  @override
-  void removeParent(Edge parent) => _parents.remove(parent);
+  void addParent(Edge parent) {
+    _parents.add(parent);
+    _invalidateCache();
+  }
 
   @override
-  void addChild(Edge child) => _children.add(child);
+  void addChild(Edge child) {
+    _children.add(child);
+    _invalidateCache();
+  }
+
   @override
-  void removeChild(Edge child) => _children.remove(child);
+  void removeParent(Edge parent) {
+    _parents.remove(parent);
+    _invalidateCache();
+  }
+
+  @override
+  void removeChild(Edge child) {
+    _children.remove(child);
+    _invalidateCache();
+  }
 
   @override
   ProdLineNodeStateImpl build() => ProdLineNodeStateImpl._(
@@ -287,5 +326,10 @@ class ProdLineNodeStateBuilder
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
+  }
+
+  void _invalidateCache() {
+    _cachedInputEdges = null;
+    _cachedOutputEdges = null;
   }
 }
