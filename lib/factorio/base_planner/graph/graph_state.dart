@@ -1,6 +1,6 @@
 part of 'graph.dart';
 
-abstract class GraphState implements ToJson {
+abstract class GraphState {
   String get name;
   EntityPrototype? get icon;
   Set<ProdLineNode> get prodLineNodes;
@@ -17,7 +17,7 @@ abstract class GraphState implements ToJson {
   GraphIo? get io;
 }
 
-class GraphStateImpl implements GraphState {
+class GraphStateImpl implements GraphState, ToJson {
   @override
   final String name;
   @override
@@ -259,12 +259,6 @@ class GraphStateBuilder
     outputItems: outputItems,
     io: io,
   );
-
-  @override
-  Map<String, dynamic> toJson() {
-    // TODO: implement toJson
-    throw UnimplementedError();
-  }
 
   void _invalidateCache() {
     _cachedInputEdges = null;

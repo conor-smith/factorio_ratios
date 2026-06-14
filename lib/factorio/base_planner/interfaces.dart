@@ -7,7 +7,7 @@ abstract interface class EventNotifier<T> {
   void notifyListeners(T event);
 }
 
-abstract interface class BasePlannerElement<St extends ToJson, E>
+abstract interface class BasePlannerElement<St, E>
     implements EventNotifier<E>, ToJson {
   static final Random _random = Random(DateTime.now().millisecondsSinceEpoch);
   static int generateId() => _random.nextInt(1000000000);

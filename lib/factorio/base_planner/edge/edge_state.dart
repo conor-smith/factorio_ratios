@@ -1,13 +1,13 @@
 part of 'edge.dart';
 
-abstract class EdgeState implements ToJson {
+abstract class EdgeState {
   double? get amount;
   double get percentage;
 
   EdgeGeometry get edgeGeometry;
 }
 
-class EdgeStateImpl implements EdgeState {
+class EdgeStateImpl implements EdgeState, ToJson {
   @override
   final double? amount;
   @override
@@ -85,10 +85,4 @@ class EdgeStateBuilder implements Builder<EdgeStateImpl>, EdgeState {
     percentage: _percentage,
     edgeGeometry: _edgeGeometry,
   );
-
-  @override
-  Map<String, dynamic> toJson() {
-    // TODO: implement toJson
-    throw UnimplementedError();
-  }
 }

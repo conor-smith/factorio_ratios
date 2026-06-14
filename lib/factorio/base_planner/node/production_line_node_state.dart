@@ -1,6 +1,6 @@
 part of 'node.dart';
 
-abstract class ProdLineNodeState implements ToJson {
+abstract class ProdLineNodeState {
   ItemIo? get requirements;
 
   ProductionLine get productionLine;
@@ -15,7 +15,7 @@ abstract class ProdLineNodeState implements ToJson {
   Map<InGameItem, List<Edge>> get inputEdges;
 }
 
-class ProdLineNodeStateImpl implements ProdLineNodeState {
+class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   @override
   final ItemIo? requirements;
 
@@ -321,12 +321,6 @@ class ProdLineNodeStateBuilder
     parents: _parents,
     children: _children,
   );
-
-  @override
-  Map<String, dynamic> toJson() {
-    // TODO: implement toJson
-    throw UnimplementedError();
-  }
 
   void _invalidateCache() {
     _cachedInputEdges = null;

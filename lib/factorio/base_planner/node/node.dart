@@ -11,7 +11,7 @@ import 'package:factorio_ratios/json/json.dart';
 part 'production_line_node_state.dart';
 part 'production_line_node.dart';
 
-abstract interface class NodeElement<St extends ToJson, E>
+abstract interface class NodeElement<St, E>
     implements BasePlannerElement<St, E> {
   Graph? get parentGraph;
   NodeType get nodeType;
@@ -94,8 +94,7 @@ abstract interface class NodeElement<St extends ToJson, E>
   }
 }
 
-abstract interface class NodeStateBuilder<T extends ToJson>
-    implements Builder<T> {
+abstract interface class NodeStateBuilder<T> implements Builder<T> {
   void updateGeometry(NodeGeometry nodeGeometry);
   void addParent(Edge parentEdge);
   void removeParent(Edge parentEdge);

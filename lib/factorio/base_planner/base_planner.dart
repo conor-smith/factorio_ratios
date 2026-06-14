@@ -177,16 +177,16 @@ class BasePlannerEvent {
 }
 
 class Snapshot {
-  final Map<BasePlannerElement, ToJson> states;
+  final Map<BasePlannerElement, dynamic> states;
 
-  Snapshot._(Map<BasePlannerElement, ToJson> states)
+  Snapshot._(Map<BasePlannerElement, dynamic> states)
     : states = Map.unmodifiable(states);
 }
 
 class SnapshotBuilder extends Builder<Snapshot> {
   final Snapshot _previousSnapshot;
 
-  final Map<BasePlannerElement, Builder<ToJson>> _updatedElements = {};
+  final Map<BasePlannerElement, Builder<dynamic>> _updatedElements = {};
   final Set<BasePlannerElement> _removedElements = {};
 
   bool get hasChanges =>
@@ -196,7 +196,7 @@ class SnapshotBuilder extends Builder<Snapshot> {
 
   void addToSnapsnot<
     E extends BasePlannerElement<St, dynamic>,
-    St extends ToJson,
+    St,
     B extends Builder<St>
   >(E element, B builder) => _updatedElements[element] = builder;
 
@@ -217,7 +217,7 @@ class SnapshotBuilder extends Builder<Snapshot> {
     var updatedStates = _updatedElements.map(
       (element, builder) => MapEntry(element, builder.build()),
     );
-    Map<BasePlannerElement, ToJson> newStateMap = Map.from(
+    Map<BasePlannerElement, dynamic> newStateMap = Map.from(
       _previousSnapshot.states,
     );
     newStateMap.addAll(updatedStates);
