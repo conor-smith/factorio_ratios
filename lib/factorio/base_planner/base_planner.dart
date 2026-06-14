@@ -156,11 +156,6 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
 
     newSnapshot.states.forEach((element, newState) {
       element.state = newState;
-
-      var oldState = oldSnapshot.states[element];
-      if (oldState != null && oldState != newState) {
-        element.notifyListenersOfStateChange(oldState, newState);
-      }
     });
     _mutationLock--;
   }
@@ -206,12 +201,8 @@ class SnapshotBuilder extends Builder<Snapshot> {
   @override
   Snapshot build() {
     for (var removedElement in _removedElements) {
-      // Just setting the new state here to ensure no unfinished changes
-      var builder = _updatedElements[removedElement];
-      if (builder != null) {
-        removedElement.state = builder.build();
-        _updatedElements.remove(removedElement);
-      }
+      removedElement.cancelStateBuilder();
+      _updatedElements.remove(removedElement);
     }
 
     var updatedStates = _updatedElements.map(

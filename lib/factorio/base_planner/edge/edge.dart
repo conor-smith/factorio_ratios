@@ -93,7 +93,7 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
     required double percentage,
   }) : _basePlanner = basePlanner,
        id = BasePlannerElement.generateId(),
-       _state = EdgeStateImpl._(percentage: percentage);
+       _state = EdgeStateImpl._(percentage: percentage, firstState: true);
 
   @override
   EdgeState get state => _builder ?? _state;
@@ -101,7 +101,7 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   set state(EdgeStateImpl state) {
     _basePlanner.throwIfMutationNotPermitted();
 
-    // TODO: validate state
+    // TODO: validate state, update listeners
     _state = state;
   }
 
@@ -116,6 +116,9 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   }
 
   @override
+  void cancelStateBuilder() => _builder = null;
+
+  @override
   void addListener(Object listener, Function(EdgeEvent event) callback) =>
       _notifier.addListener(listener, callback);
   @override
@@ -124,12 +127,6 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   void clearListeners() => _notifier.clearListeners();
   @override
   void notifyListeners(EdgeEvent event) => _notifier.notifyListeners(event);
-
-  @override
-  void notifyListenersOfStateChange(EdgeState oldState, EdgeState newState) {
-    // TODO: implement notifyListenerOfStateChange
-    throw UnimplementedError();
-  }
 
   @override
   void notifyListenersOfGeometryUpdate(EdgeGeometry edgeGeometry) {

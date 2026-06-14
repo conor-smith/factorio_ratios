@@ -75,7 +75,7 @@ class Graph
     EntityPrototype? icon,
   }) : _basePlanner = basePlanner,
        id = BasePlannerElement.generateId(),
-       _state = GraphStateImpl._(icon: icon ?? surface),
+       _state = GraphStateImpl._(icon: icon ?? surface, isFirstState: true),
        _surfaceProperties =
            basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
     _builder = GraphStateBuilder._new(this);
@@ -99,7 +99,7 @@ class Graph
     _basePlanner.throwIfMutationNotPermitted();
     _builder = null;
 
-    // Validate state
+    // Validate state, update listeners
     _state = state;
   }
 
@@ -111,6 +111,9 @@ class Graph
   }
 
   @override
+  void cancelStateBuilder() => _builder = null;
+
+  @override
   void addListener(Object listener, Function(GraphEvent event) callback) =>
       _notifier.addListener(listener, callback);
   @override
@@ -119,12 +122,6 @@ class Graph
   void clearListeners() => _notifier.clearListeners();
   @override
   void notifyListeners(GraphEvent event) => _notifier.notifyListeners(event);
-
-  @override
-  void notifyListenersOfStateChange(GraphState oldState, GraphState newState) {
-    // TODO: implement notifyListenerOfStateChange
-    throw UnimplementedError();
-  }
 
   @override
   void notifyListenersOfGeometryUpdate(NodeGeometry nodeGeometry) {

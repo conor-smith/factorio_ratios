@@ -39,6 +39,8 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   late final Map<InGameItem, List<Edge>> inputEdges =
       NodeElement.calculateInputEdges(parents, children);
 
+  final bool _isFirstState;
+
   ProdLineNodeStateImpl._({
     this.requirements,
     required this.productionLine,
@@ -46,8 +48,10 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
     this.nodeGeometry = NodeGeometry.uninitialised,
     Iterable<Edge> parents = const {},
     Iterable<Edge> children = const {},
+    bool isFirstState = false,
   }) : parents = Set.unmodifiable(parents),
-       children = Set.unmodifiable(children);
+       children = Set.unmodifiable(children),
+       _isFirstState = isFirstState;
 
   @override
   Map<String, dynamic> toJson() {

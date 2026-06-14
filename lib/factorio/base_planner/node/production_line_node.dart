@@ -44,7 +44,10 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
     required ProductionLine productionLine,
   }) : _basePlanner = basePlanner,
        id = BasePlannerElement.generateId(),
-       _state = ProdLineNodeStateImpl._(productionLine: productionLine) {
+       _state = ProdLineNodeStateImpl._(
+         productionLine: productionLine,
+         isFirstState: true,
+       ) {
     _builder = ProdLineNodeStateBuilder._new(this);
   }
 
@@ -54,7 +57,7 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   set state(ProdLineNodeStateImpl state) {
     _basePlanner.throwIfMutationNotPermitted();
 
-    // Validate state
+    // Validate state, update listeners
     _state = state;
   }
 
@@ -69,6 +72,9 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   }
 
   @override
+  void cancelStateBuilder() => _builder = null;
+
+  @override
   void addListener(Object listener, Function(NodeEvent event) callback) =>
       _notifier.addListener(listener, callback);
   @override
@@ -77,15 +83,6 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   void clearListeners() => _notifier.clearListeners();
   @override
   void notifyListeners(NodeEvent event) => _notifier.notifyListeners(event);
-
-  @override
-  void notifyListenersOfStateChange(
-    ProdLineNodeState oldState,
-    ProdLineNodeState newState,
-  ) {
-    // TODO: implement notifyListenerOfStateChange
-    throw UnimplementedError();
-  }
 
   @override
   void notifyListenersOfGeometryUpdate(NodeGeometry nodeGeometry) {

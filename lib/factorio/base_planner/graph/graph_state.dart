@@ -53,6 +53,8 @@ class GraphStateImpl implements GraphState, ToJson {
   late final Map<InGameItem, List<Edge>> inputEdges =
       NodeElement.calculateInputEdges(parents, children);
 
+  final bool _isFirstState;
+
   GraphStateImpl._({
     this.name = 'graph',
     this.icon,
@@ -65,7 +67,9 @@ class GraphStateImpl implements GraphState, ToJson {
     Iterable<InGameItem> inputItems = const {},
     Iterable<InGameItem> outputItems = const {},
     this.io,
-  }) : prodLineNodes = Set.unmodifiable(prodLineNodes),
+    bool isFirstState = false,
+  }) : _isFirstState = isFirstState,
+       prodLineNodes = Set.unmodifiable(prodLineNodes),
        graphNodes = Set.unmodifiable(graphNodes),
        edges = Set.unmodifiable(edges),
        parents = Set.unmodifiable(parents),

@@ -20,8 +20,8 @@ abstract interface class BasePlannerElement<St, E>
   void remove();
 
   Builder<St> getStateBuilder();
+  void cancelStateBuilder();
 
-  void notifyListenersOfStateChange(St oldState, St newState);
   void notifyListenersOfGeometryUpdate(covariant Geometry geometry);
 }
 
