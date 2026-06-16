@@ -13,6 +13,7 @@ part 'recipe.dart';
 part 'resource.dart';
 part 'subgroup.dart';
 part 'surface.dart';
+part 'technology.dart';
 
 final Map<String, double> _multipliers = {
   "k": pow(10, 3).toDouble(),

@@ -1,0 +1,60 @@
+part of 'models.dart';
+
+class Technology extends Prototype {
+  final FactorioDatabase factorioDb;
+
+  @override
+  final String name;
+  @override
+  final String order;
+  @override
+  final String type;
+  @override
+  final String localisedName;
+  @override
+  late final ItemSubgroup? subgroup =
+      factorioDb.itemSubgroupMap[_subgroupString];
+
+  final Icon? icon;
+  final List<Modifier> effects;
+
+  final String? _subgroupString;
+
+  Technology._({
+    required this.factorioDb,
+    required this.name,
+    required this.order,
+    required this.type,
+    required this.localisedName,
+    required String? subgroup,
+    required this.icon,
+    required Iterable<Modifier> effects,
+  }) : _subgroupString = subgroup,
+       effects = List.unmodifiable(effects);
+
+  factory Technology.fromJson(FactorioDatabase factorioDb, Map json) =>
+      Technology._(
+        factorioDb: factorioDb,
+        name: json['name'],
+        order: json['order'] ?? '',
+        type: json['type'],
+        localisedName: json['name'],
+        subgroup: json['subgroup'],
+        icon: Icon.fromTopLevelJson(json, Item._expectedIconSize),
+        effects: (json['effects'] as List? ?? const []).cast<Map>().map(
+          (effectJson) => Modifier.fromJson(factorioDb, effectJson),
+        ),
+      );
+}
+
+class Modifier {
+  final FactorioDatabase factorioDb;
+
+  final String type;
+  late final Recipe? recipe = factorioDb.recipeMap[_recipeString];
+  final String? _recipeString;
+
+  Modifier.fromJson(this.factorioDb, Map json)
+    : type = json['type']!,
+      _recipeString = json['recipe'];
+}

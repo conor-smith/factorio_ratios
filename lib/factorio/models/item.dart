@@ -22,7 +22,9 @@ abstract class Item extends EntityPrototype {
   @override
   double get defaultScale => _defaultScale;
 
+  @override
   final String type;
+  @override
   final String localisedName;
 
   final double? fuelValue;
