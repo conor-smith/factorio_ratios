@@ -35,6 +35,8 @@ abstract interface class BasePlannerElement<St, E>
   static final Random _random = Random(DateTime.now().millisecondsSinceEpoch);
   static int generateId() => _random.nextInt(1000000000);
 
+  Graph get parentGraph;
+
   /// Unique id for this [BasePlannerElement]
   int get id;
 

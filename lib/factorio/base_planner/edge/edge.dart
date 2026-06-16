@@ -13,6 +13,7 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   @override
   final int id;
 
+  @override
   final Graph parentGraph;
   final EdgeType edgeType;
   final ProdLineNode parentProductionLine;

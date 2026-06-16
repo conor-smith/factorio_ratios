@@ -24,7 +24,7 @@ class Graph
   final int id;
   final Surface? surface;
   @override
-  final Graph? parentGraph;
+  late final Graph parentGraph;
   final SurfaceProperties _surfaceProperties;
 
   final EventNotifier<GraphEvent> _notifier = EventNotifierImpl();
@@ -71,7 +71,7 @@ class Graph
 
   Graph.addToBasePlanner(
     BasePlanner basePlanner, {
-    this.parentGraph,
+    required this.parentGraph,
     this.surface,
     EntityPrototype? icon,
   }) : _basePlanner = basePlanner,
@@ -85,10 +85,11 @@ class Graph
   Graph.rootGraph(BasePlanner basePlanner, [this.surface])
     : _basePlanner = basePlanner,
       id = BasePlannerElement.generateId(),
-      parentGraph = null,
       _state = GraphStateImpl._(icon: surface),
       _surfaceProperties =
-          basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty;
+          basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
+    parentGraph = this;
+  }
 
   @override
   void remove() => GraphStateBuilder._remove(this);

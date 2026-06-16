@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
@@ -33,30 +32,38 @@ part 'event_notifier_impl.dart';
 /// one from there, all subsequent snapshots will be deleted.
 ///
 /// [activeGraph] represents the current [Graph] to be displayed.
-/// Everytime [activeGraph] is updated, [selectedNodes] will be cleared.
+/// Everytime [activeGraph] is updated, [selectedElements] will be cleared.
 class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
   static const maxSnapshots = 20;
 
   final FactorioDatabase db;
-
   late final Graph rootGraph;
+
+  /// A list of all available machines, in descending order by speed
   final List<InGameMachine> sortedMachines;
   final Map<Surface, SurfaceProperties> surfaceProperties;
 
+  /// Current graph to display in UI
   Graph get activeGraph => _activeGraph;
-  late final Set<NodeElement> selectedNodes = UnmodifiableSetView(
-    _selectedNodes,
+
+  /// Currently selected elements
+  late final Set<BasePlannerElement> selectedElements = UnmodifiableSetView(
+    _selectedElements,
   );
 
+  /// Current active snapshot in [snapshots]
+  int get snapshotIndex => _snapshotIndex;
+
+  /// List of saved snapshots. Current snapshot is given by [snapshotIndex]
+  late final List<Snapshot> snapshots = UnmodifiableListView(_snapshots);
+
   late Graph _activeGraph;
-  final Set<NodeElement> _selectedNodes = {};
+  final Set<BasePlannerElement> _selectedElements = {};
 
   final EventNotifier<BasePlannerEvent> _notifier = EventNotifierImpl();
 
   final List<Snapshot> _snapshots = [];
-  late final List<Snapshot> snapshots = UnmodifiableListView(_snapshots);
   int _snapshotIndex = 0;
-  int get snapshotIndex => _snapshotIndex;
   SnapshotBuilder? _snapshotBuilder;
 
   int _mutationLock = 0;
@@ -88,6 +95,7 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
       ) {
     // Create first snapshot and root graph
     rootGraph = Graph.rootGraph(this, db.surfaceMap['nauvis']);
+    _activeGraph = rootGraph;
     _snapshots.add(Snapshot._({rootGraph: rootGraph.state}));
   }
 
@@ -104,6 +112,9 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
   void notifyListeners(BasePlannerEvent event) =>
       _notifier.notifyListeners(event);
 
+  void selectElement(BasePlannerElement element) {}
+
+  /// Throws an exception if mutation is not permitted
   void throwIfMutationNotPermitted() {
     if (_mutationLock == 0) {
       throw const BasePlannerException(
@@ -112,6 +123,8 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
     }
   }
 
+  /// Check out a particular snapshot in [snapshots].
+  /// Will reset [BasePlannerElement.state] of all elements in tree.
   void goToSnapshot(int snapshotIndex) {
     if (snapshotIndex < 0 || snapshotIndex >= _snapshots.length) {
       throw BasePlannerException(
@@ -120,6 +133,11 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
     }
   }
 
+  /// Any updates to element state via [BasePlannerElement.getStateBuilder]
+  /// must happen in here.
+  /// Once [function] is complete, states will be saved and a new [Snapshot] will
+  /// be created and added to [snapshots].
+  /// [snapshotIndex] will be updated to the index of this new snapshot.
   void buildNextSnapshot(Function function) {
     var firstCall = _mutationLock == 0;
     try {
@@ -159,6 +177,8 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
     }
   }
 
+  /// Can only be called within [buildNextSnapshot].
+  /// Will throw an exception otherwise
   SnapshotBuilder getSnapshotBuilder() {
     if (_snapshotBuilder == null) {
       throw const BasePlannerException('No snapshot currently being built');
@@ -202,6 +222,7 @@ class BasePlannerEvent {
   // TODO
 }
 
+/// Represents a snapshot of all states of elements in [BasePlanner].
 class Snapshot {
   final Map<BasePlannerElement, dynamic> states;
 

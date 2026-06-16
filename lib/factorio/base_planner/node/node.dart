@@ -13,7 +13,6 @@ part 'production_line_node.dart';
 
 abstract interface class NodeElement<St, E>
     implements BasePlannerElement<St, E> {
-  Graph? get parentGraph;
   NodeType get nodeType;
 
   ProductionLine get productionLine;
