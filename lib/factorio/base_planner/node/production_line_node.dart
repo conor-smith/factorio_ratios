@@ -85,6 +85,15 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   void notifyListeners(NodeEvent event) => _notifier.notifyListeners(event);
 
   @override
+  bool get isSelected => _basePlanner.selectedElements.contains(this);
+
+  @override
+  void select() => _basePlanner.selectElement(this);
+
+  @override
+  void deselect() => _basePlanner.deselectElement(this);
+
+  @override
   void notifyListenersOfGeometryUpdate(NodeGeometry nodeGeometry) {
     // TODO: implement notifyListenersOfGeometryUpdate
     throw UnimplementedError();

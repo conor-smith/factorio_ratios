@@ -43,6 +43,10 @@ abstract interface class BasePlannerElement<St, E>
   /// Returns immutable object representing state
   St get state;
 
+  bool get isSelected;
+  void select();
+  void deselect();
+
   /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
   set state(covariant St state);
 

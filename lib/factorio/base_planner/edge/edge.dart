@@ -120,6 +120,15 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   void cancelStateBuilder() => _builder = null;
 
   @override
+  bool get isSelected => _basePlanner.selectedElements.contains(this);
+
+  @override
+  void select() => _basePlanner.selectElement(this);
+
+  @override
+  void deselect() => _basePlanner.deselectElement(this);
+
+  @override
   void addListener(Object listener, Function(EdgeEvent event) callback) =>
       _notifier.addListener(listener, callback);
   @override

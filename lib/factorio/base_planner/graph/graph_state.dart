@@ -147,7 +147,7 @@ class GraphStateBuilder
     var builder = GraphStateBuilder._from(graph);
 
     var parentGraph = graph.parentGraph;
-    if (parentGraph != null) {
+    if (parentGraph != graph) {
       parentGraph.getStateBuilder()
         ..addChildGraph(graph)
         ..clearIo();
@@ -167,7 +167,7 @@ class GraphStateBuilder
     }
 
     var parentGraph = graph.parentGraph;
-    if (parentGraph != null) {
+    if (parentGraph != graph) {
       parentGraph.getStateBuilder()
         ..removeChildGraph(graph)
         ..clearIo();

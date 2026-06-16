@@ -31,6 +31,9 @@ class Graph
   GraphStateImpl _state;
   GraphStateBuilder? _builder;
 
+  @override
+  GraphState get state => _builder ?? _state;
+
   // For convenience
   @override
   String get name => state.name;
@@ -66,6 +69,7 @@ class Graph
   @override
   ProductionLine get productionLine => this;
 
+  // TODO
   @override
   ItemIo? get ioRatios => null;
 
@@ -95,8 +99,6 @@ class Graph
   void remove() => GraphStateBuilder._remove(this);
 
   @override
-  GraphState get state => _builder ?? _state;
-  @override
   set state(GraphStateImpl state) {
     _basePlanner.throwIfMutationNotPermitted();
     _builder = null;
@@ -124,6 +126,15 @@ class Graph
   void clearListeners() => _notifier.clearListeners();
   @override
   void notifyListeners(GraphEvent event) => _notifier.notifyListeners(event);
+
+  @override
+  bool get isSelected => _basePlanner.selectedElements.contains(this);
+
+  @override
+  void select() => _basePlanner.selectElement(this);
+
+  @override
+  void deselect() => _basePlanner.deselectElement(this);
 
   @override
   void notifyListenersOfGeometryUpdate(NodeGeometry nodeGeometry) {

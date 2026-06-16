@@ -112,7 +112,21 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
   void notifyListeners(BasePlannerEvent event) =>
       _notifier.notifyListeners(event);
 
-  void selectElement(BasePlannerElement element) {}
+  void selectElement(BasePlannerElement element) {
+    if (element.parentGraph != _activeGraph) {
+      _selectedElements.add(element);
+    }
+  }
+
+  void deselectElement(BasePlannerElement element) {
+    _selectedElements.remove(element);
+  }
+
+  void updateActiveGraph(Graph newActiveGraph) {
+    if (newActiveGraph != activeGraph) {
+      _updateActiveGraph(newActiveGraph);
+    }
+  }
 
   /// Throws an exception if mutation is not permitted
   void throwIfMutationNotPermitted() {
@@ -169,7 +183,13 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
     } catch (e) {
       _mutationLock--;
       if (firstCall) {
-        _applySnapshot(_snapshots[_snapshotIndex]);
+        // Reset all states to current snapshot
+        _mutationLock++;
+        _snapshots[_snapshotIndex].states.forEach(
+          (element, newState) => element.state = newState,
+        );
+        _mutationLock--;
+
         throw BasePlannerException('Encountered exception during mutation', e);
       } else {
         rethrow;
@@ -193,33 +213,60 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
     throw UnimplementedError();
   }
 
+  void _updateActiveGraph(Graph newActiveGraph, [bool updateListeners = true]) {
+    _activeGraph = newActiveGraph;
+    _selectedElements.clear();
+
+    if (updateListeners) {
+      notifyListeners(BasePlannerEvent._(newActiveGraph: newActiveGraph));
+    }
+  }
+
   void _applySnapshotAndUpdateListeners(
     Snapshot oldSnapshot,
     Snapshot newSnapshot,
   ) {
     _mutationLock++;
-    for (var element in oldSnapshot.states.keys) {
-      if (!newSnapshot.states.containsKey(element)) {
-        // Clear listeners on removed items
-        element.clearListeners();
-      }
+    newSnapshot.states.forEach((element, state) => element.state = state);
+    _mutationLock--;
+
+    var removedElements = oldSnapshot.states.keys.toSet().difference(
+      newSnapshot.states.keys.toSet(),
+    );
+
+    _selectedElements.removeAll(removedElements);
+    for (var element in removedElements) {
+      element.clearListeners();
     }
 
-    newSnapshot.states.forEach((element, newState) {
-      element.state = newState;
-    });
-    _mutationLock--;
-  }
+    var removedGraphs = removedElements.whereType<Graph>().toSet();
+    if (removedGraphs.isNotEmpty) {
+      // If _activeGraph was removed, replace it with closest available parent graph
+      Graph? newActiveGraph;
+      if (removedGraphs.contains(_activeGraph)) {
+        newActiveGraph = _activeGraph.parentGraph;
+        while (removedGraphs.contains(newActiveGraph)) {
+          newActiveGraph = newActiveGraph!.parentGraph;
+        }
 
-  void _applySnapshot(Snapshot snapshot) {
-    _mutationLock++;
-    snapshot.states.forEach((element, newState) => element.state = newState);
-    _mutationLock--;
+        _updateActiveGraph(newActiveGraph!, false);
+      }
+
+      notifyListeners(
+        BasePlannerEvent._(
+          removedGraphs: removedGraphs,
+          newActiveGraph: newActiveGraph,
+        ),
+      );
+    }
   }
 }
 
 class BasePlannerEvent {
-  // TODO
+  Graph? newActiveGraph;
+  Set<Graph> removedGraphs;
+
+  BasePlannerEvent._({this.removedGraphs = const {}, this.newActiveGraph});
 }
 
 /// Represents a snapshot of all states of elements in [BasePlanner].
@@ -252,16 +299,18 @@ class SnapshotBuilder extends Builder<Snapshot> {
 
   @override
   Snapshot build() {
+    Map<BasePlannerElement, dynamic> newStateMap = Map.from(
+      _previousSnapshot.states,
+    );
+
     for (var removedElement in _removedElements) {
       removedElement.cancelStateBuilder();
       _updatedElements.remove(removedElement);
+      newStateMap.remove(removedElement);
     }
 
     var updatedStates = _updatedElements.map(
       (element, builder) => MapEntry(element, builder.build()),
-    );
-    Map<BasePlannerElement, dynamic> newStateMap = Map.from(
-      _previousSnapshot.states,
     );
     newStateMap.addAll(updatedStates);
 
