@@ -15,6 +15,7 @@ import 'package:sorted_list/sorted_list.dart';
 
 part 'graph_state.dart';
 
+/// Represents a graph of [NodeElement]s connected by [Edge]s.
 class Graph
     implements NodeElement<GraphState, GraphEvent>, ProductionLine<GraphIo> {
   final BasePlanner _basePlanner;

@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
@@ -11,6 +12,28 @@ import 'package:factorio_ratios/json/json.dart';
 part 'interfaces.dart';
 part 'event_notifier_impl.dart';
 
+/// The single source of truth for the application.
+///
+/// Ultimately represents a tree. Each [Graph] can have an arbitrary amount of
+/// [Graph.graphNodes], and each graph node can have only one parent.
+/// The only [Graph] with no value for [Graph.parentGraph] is the [rootGraph].
+///
+/// State changes can only be made within [buildNextSnapshot].
+/// Any attempts to call [BasePlannerElement.getStateBuilder] outside of this
+/// method will throw an exception.
+/// Once the function passed to [buildNextSnapshot] is complete, a new
+/// [Snapshot] will be created and added to [snapshots].
+/// Snapshots can be navigated via [goToSnapshot], at which point, the state of
+/// all objects will be reset to the state they were in during that snapshot.
+///
+/// [snapshots] cannot be longer than [maxSnapshots]. If a new snapshot is added
+/// after it reaches this length, the first snapshot will be removed, and all
+/// elements will be moved back 1.
+/// Alternatively, if the user navigates to a previous snapshot and builds a new
+/// one from there, all subsequent snapshots will be deleted.
+///
+/// [activeGraph] represents the current [Graph] to be displayed.
+/// Everytime [activeGraph] is updated, [selectedNodes] will be cleared.
 class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
   static const maxSnapshots = 20;
 
@@ -19,6 +42,14 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
   late final Graph rootGraph;
   final List<InGameMachine> sortedMachines;
   final Map<Surface, SurfaceProperties> surfaceProperties;
+
+  Graph get activeGraph => _activeGraph;
+  late final Set<NodeElement> selectedNodes = UnmodifiableSetView(
+    _selectedNodes,
+  );
+
+  late Graph _activeGraph;
+  final Set<NodeElement> _selectedNodes = {};
 
   final EventNotifier<BasePlannerEvent> _notifier = EventNotifierImpl();
 
