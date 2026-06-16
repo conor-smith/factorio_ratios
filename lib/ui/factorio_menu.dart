@@ -4,7 +4,7 @@ import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/ui/icon_widgets.dart';
 import 'package:flutter/material.dart';
 
-class FactorioGroupMenuWidget<T extends OrderedWithSubgroup>
+class FactorioGroupMenuWidget<T extends EntityPrototype>
     extends StatefulWidget {
   final Function(T item) onSelected;
 
@@ -21,7 +21,7 @@ class FactorioGroupMenuWidget<T extends OrderedWithSubgroup>
       _FactorioGroupMenuWidgetState<T>();
 }
 
-class _FactorioGroupMenuWidgetState<T extends OrderedWithSubgroup>
+class _FactorioGroupMenuWidgetState<T extends EntityPrototype>
     extends State<FactorioGroupMenuWidget<T>> {
   ItemGroup? selectedGroup;
 
@@ -93,7 +93,7 @@ class _FactorioGroupMenuWidgetState<T extends OrderedWithSubgroup>
 }
 
 Map<ItemGroup?, Map<ItemSubgroup?, List<T>>>
-_groupAndSortItems<T extends OrderedWithSubgroup>(List<T> items) {
+_groupAndSortItems<T extends EntityPrototype>(List<T> items) {
   Map<ItemGroup?, Map<ItemSubgroup?, List<T>>> groupMap = {};
 
   for (var item in items) {

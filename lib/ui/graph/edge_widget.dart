@@ -1,10 +1,9 @@
-import 'package:factorio_ratios/factorio/old_base_planner/geometry/geometry.dart';
-import 'package:factorio_ratios/factorio/old_base_planner/base_planner.dart';
-import 'package:factorio_ratios/factorio/old_base_planner/state/state.dart';
+import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:flutter/material.dart';
 
 class EdgeWidget extends StatefulWidget {
-  final DirectedEdge edge;
+  final Edge edge;
 
   const EdgeWidget({super.key, required this.edge});
 
@@ -13,40 +12,11 @@ class EdgeWidget extends StatefulWidget {
 }
 
 class _EdgeWidgetState extends State<EdgeWidget> {
-  bool selected = false;
-  late EdgeGeometry geometry;
-
-  @override
-  void initState() {
-    super.initState();
-
-    geometry = widget.edge.geometry;
-
-    // All relevant state is stored within edge object
-    widget.edge.addListener((event) {
-      for (var mutation in event.mutations) {
-        switch (mutation) {
-          case EdgeEventType.selectToggle:
-            selected = event.selected!;
-
-          case EdgeEventType.tempGeometry:
-          case EdgeEventType.newGeometry:
-            geometry = event.newGeometry!;
-
-          default:
-            break;
-        }
-      }
-
-      if (mounted) {
-        setState(() {});
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: LinesPainter(geometry.lines[0], selected));
+    // return CustomPaint(painter: LinesPainter(geometry.lines[0], selected));
+
+    return Placeholder();
   }
 }
 

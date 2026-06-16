@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:factorio_ratios/factorio/old_base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
-import 'package:factorio_ratios/ui/graph/factorio_base_widget.dart';
+import 'package:factorio_ratios/ui/graph/base_planner_widget.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -48,6 +48,6 @@ class FactorioRatiosApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FactorioBaseWidget(base: BasePlanner(factorioDb));
+    return BasePlannerWidget(base: BasePlanner(factorioDb));
   }
 }
