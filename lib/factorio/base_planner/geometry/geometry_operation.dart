@@ -49,57 +49,59 @@ class GeometryOperation {
   }
 
   void performOperation(Offset shiftFromStart) {
-    _nodeGeometries.forEach((node, geometry) {
-      geometry.shift(shiftFromStart);
-      node.notifyListenersOfGeometryUpdate(geometry);
-    });
-    _edgeGeometries.forEach((edge, geometry) {
-      geometry.shift(shiftFromStart);
-      edge.notifyListenersOfGeometryUpdate(geometry);
+    _nodeGeometries.forEach((node, builder) {
+      builder.shift(shiftFromStart);
+      node.notifyListenersOfGeometryUpdate(builder);
     });
 
-    _affectedEdgeGeometries.forEach((edge, geometry) {
-      geometry.nodeUpdateRedraw();
-      edge.notifyListenersOfGeometryUpdate(geometry);
+    _edgeGeometries.forEach((edge, builder) {
+      builder.shift(shiftFromStart);
+      edge.notifyListenersOfGeometryUpdate(builder);
+    });
+
+    _affectedEdgeGeometries.forEach((edge, builder) {
+      builder.nodeUpdateRedraw();
+      edge.notifyListenersOfGeometryUpdate(builder);
     });
   }
 
   void applyUpdate() {
     _basePlanner.buildNextSnapshot(() {
       _nodeGeometries.forEach(
-        (node, geometry) => node.getStateBuilder().updateGeometry(geometry),
+        (node, builder) =>
+            node.getStateBuilder().updateGeometry(builder.build()),
       );
 
       Map<Edge, EdgeGeometryBuilder>.from(_edgeGeometries)
         ..addAll(_affectedEdgeGeometries)
         ..forEach(
-          (edge, geometry) => edge.getStateBuilder().updateGeometry(geometry),
+          (edge, builder) =>
+              edge.getStateBuilder().updateGeometry(builder.build()),
         );
     });
   }
 }
 
 class NodeGeometryBuilder
-    implements GeometryBuilder<NodeGeometry>, NodeGeometry {
-  final NodeGeometry _original;
+    implements GeometryBuilder<NodeGeometryImpl>, NodeGeometry {
+  final NodeGeometryImpl _original;
 
   Rect _minimalRect;
 
   @override
-  Rect get minimalRect => _minimalRect;
+  Rect get rect => _minimalRect;
 
-  NodeGeometryBuilder.from(NodeGeometry nodeGeometry)
+  NodeGeometryBuilder.from(NodeGeometryImpl nodeGeometry)
     : _original = nodeGeometry,
-      _minimalRect = nodeGeometry.minimalRect;
+      _minimalRect = nodeGeometry.rect;
 
   @override
-  void shift(Offset offset) =>
-      _minimalRect = _original.minimalRect.shift(offset);
+  void shift(Offset offset) => _minimalRect = _original.rect.shift(offset);
 
   void updateRect(Rect newRect) => _minimalRect = newRect;
 
   @override
-  NodeGeometry build() => NodeGeometry(_minimalRect);
+  NodeGeometryImpl build() => NodeGeometryImpl(_minimalRect);
 
   @override
   Map<String, dynamic> toJson() {
@@ -109,45 +111,39 @@ class NodeGeometryBuilder
 }
 
 class EdgeGeometryBuilder
-    implements GeometryBuilder<EdgeGeometry>, EdgeGeometry {
-  final EdgeGeometry _original;
-  final NodeGeometry _parent;
-  final NodeGeometry _child;
+    implements GeometryBuilder<EdgeGeometryImpl>, EdgeGeometry {
+  final EdgeGeometryImpl original;
+  final NodeGeometry parent;
+  final NodeGeometry child;
 
   final List<Line> _lines;
 
   @override
-  EdgeGeometryType get geometryType => _original.geometryType;
+  EdgeGeometryType get geometryType => original.geometryType;
   @override
-  Rect get minimalRect => _original.minimalRect;
+  Rect get rect => original.rect;
   @override
   late final List<Line> lines = UnmodifiableListView(_lines);
 
-  EdgeGeometryBuilder.from(
-    EdgeGeometry edgeGeometry,
-    NodeGeometry parent,
-    NodeGeometry child,
-  ) : _original = edgeGeometry,
-      _parent = parent,
-      _child = child,
-      _lines = List.from(edgeGeometry.lines);
+  EdgeGeometryBuilder.from(this.original, this.parent, this.child)
+    : _lines = List.from(original.lines);
 
   @override
   void shift(Offset offset) {
-    for (var i = 0; i < _original.lines.length; i++) {
-      _lines[i] = _original.lines[i].shift(offset);
+    for (var i = 0; i < original.lines.length; i++) {
+      _lines[i] = original.lines[i].shift(offset);
     }
   }
 
   void nodeUpdateRedraw() {
-    switch (_original.geometryType) {
+    switch (original.geometryType) {
       case EdgeGeometryType.shortestPath:
-        _lines[0] = Line.shortestLine(_parent.minimalRect, _child.minimalRect);
+        _lines[0] = Line.shortestLine(parent.rect, child.rect);
     }
   }
 
   @override
-  EdgeGeometry build() => EdgeGeometry(_original.geometryType, _lines);
+  EdgeGeometryImpl build() => EdgeGeometryImpl(original.geometryType, _lines);
 
   @override
   Map<String, dynamic> toJson() {

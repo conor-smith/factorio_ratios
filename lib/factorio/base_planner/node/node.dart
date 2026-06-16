@@ -20,7 +20,7 @@ abstract interface class NodeElement<St, E>
 
   ItemIo? get requirements;
 
-  NodeGeometry get nodeGeometry;
+  NodeGeometryImpl get nodeGeometry;
 
   @override
   NodeStateBuilder<St> getStateBuilder();
@@ -94,7 +94,7 @@ abstract interface class NodeElement<St, E>
 }
 
 abstract interface class NodeStateBuilder<T> implements Builder<T> {
-  void updateGeometry(NodeGeometry nodeGeometry);
+  void updateGeometry(NodeGeometryImpl nodeGeometry);
   void addParent(Edge parentEdge);
   void removeParent(Edge parentEdge);
   void addChild(Edge chidEdge);

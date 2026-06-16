@@ -6,7 +6,7 @@ abstract class ProdLineNodeState {
   ProductionLine get productionLine;
   ProductionLineIo? get io;
 
-  NodeGeometry get nodeGeometry;
+  NodeGeometryImpl get nodeGeometry;
 
   Set<Edge> get parents;
   Set<Edge> get children;
@@ -25,7 +25,7 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   final ProductionLineIo? io;
 
   @override
-  final NodeGeometry nodeGeometry;
+  final NodeGeometryImpl nodeGeometry;
 
   @override
   final Set<Edge> parents;
@@ -45,7 +45,7 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
     this.requirements,
     required this.productionLine,
     this.io,
-    this.nodeGeometry = NodeGeometry.uninitialised,
+    this.nodeGeometry = NodeGeometryImpl.uninitialised,
     Iterable<Edge> parents = const {},
     Iterable<Edge> children = const {},
     bool isFirstState = false,
@@ -70,7 +70,7 @@ class ProdLineNodeStateBuilder
 
   ProductionLineIo? _io;
 
-  NodeGeometry _nodeGeometry;
+  NodeGeometryImpl _nodeGeometry;
 
   final Set<Edge> _parents;
   final Set<Edge> _children;
@@ -87,7 +87,7 @@ class ProdLineNodeStateBuilder
   ProductionLineIo? get io => _io;
 
   @override
-  NodeGeometry get nodeGeometry => _nodeGeometry;
+  NodeGeometryImpl get nodeGeometry => _nodeGeometry;
 
   @override
   late final Set<Edge> parents = UnmodifiableSetView(parents);
@@ -289,7 +289,7 @@ class ProdLineNodeStateBuilder
   }
 
   @override
-  void updateGeometry(NodeGeometry nodeGeometry) =>
+  void updateGeometry(NodeGeometryImpl nodeGeometry) =>
       _nodeGeometry = nodeGeometry;
 
   @override

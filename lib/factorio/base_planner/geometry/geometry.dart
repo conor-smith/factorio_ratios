@@ -4,7 +4,7 @@ import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/json/json.dart';
 
 abstract interface class Geometry implements ToJson {
-  Rect get minimalRect;
+  Rect get rect;
 }
 
 abstract interface class GeometryBuilder<G extends Geometry>

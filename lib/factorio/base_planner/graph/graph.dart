@@ -40,7 +40,7 @@ class Graph
   @override
   EntityPrototype? get icon => state.icon;
   @override
-  NodeGeometry get nodeGeometry => state.nodeGeometry;
+  NodeGeometryImpl get nodeGeometry => state.nodeGeometry;
   @override
   Set<Edge> get parents => state.parents;
   @override
@@ -137,7 +137,7 @@ class Graph
   void deselect() => _basePlanner.deselectElement(this);
 
   @override
-  void notifyListenersOfGeometryUpdate(NodeGeometry nodeGeometry) {
+  void notifyListenersOfGeometryUpdate(NodeGeometryImpl nodeGeometry) {
     // TODO: implement notifyListenersOfGeometryUpdate
     throw UnimplementedError();
   }
@@ -214,29 +214,31 @@ class Graph
       for (var row = 0; row < rows.length; row++) {
         for (var column = 0; column < rows[row].length; column++) {
           var topLeftCorner = Offset(
-            NodeGeometry.defaultPadding +
-                (NodeGeometry.defaultWidth + NodeGeometry.defaultPadding) *
+            NodeGeometryImpl.defaultPadding +
+                (NodeGeometryImpl.defaultWidth +
+                        NodeGeometryImpl.defaultPadding) *
                     column,
-            NodeGeometry.defaultPadding +
-                (NodeGeometry.defaultHeight + NodeGeometry.defaultPadding) *
+            NodeGeometryImpl.defaultPadding +
+                (NodeGeometryImpl.defaultHeight +
+                        NodeGeometryImpl.defaultPadding) *
                     row,
           );
           var bottomRightCorner =
               topLeftCorner +
               const Offset(
-                NodeGeometry.defaultWidth,
-                NodeGeometry.defaultHeight,
+                NodeGeometryImpl.defaultWidth,
+                NodeGeometryImpl.defaultHeight,
               );
 
           rows[row][column].getStateBuilder().updateGeometry(
-            NodeGeometry(Rect.fromPoints(topLeftCorner, bottomRightCorner)),
+            NodeGeometryImpl(Rect.fromPoints(topLeftCorner, bottomRightCorner)),
           );
         }
       }
 
       for (var edge in edges) {
         edge.getStateBuilder().updateGeometry(
-          EdgeGeometry.shortestPath(
+          EdgeGeometryImpl.shortestPath(
             edge.parent.nodeGeometry,
             edge.child.nodeGeometry,
           ),
@@ -459,7 +461,7 @@ class GraphIo extends ProductionLineIo {
 }
 
 class GraphEvent {
-  GraphEvent.geometryOp(NodeGeometry nodeGeometry) {
+  GraphEvent.geometryOp(NodeGeometryImpl nodeGeometry) {
     // TODO
     throw UnimplementedError();
   }

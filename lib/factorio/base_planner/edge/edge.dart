@@ -1,5 +1,6 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
@@ -29,7 +30,7 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   // For convenience
   double? get amount => state.amount;
   double get percentage => state.percentage;
-  EdgeGeometry get edgeGeometry => state.edgeGeometry;
+  EdgeGeometryImpl get edgeGeometry => state.edgeGeometry;
 
   factory Edge.addToBasePlanner({
     required BasePlanner basePlanner,
@@ -152,7 +153,7 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
 }
 
 class EdgeEvent {
-  EdgeEvent.geometryOp(EdgeGeometry edgeGeometry) {
+  EdgeEvent.geometryOp(EdgeGeometryImpl edgeGeometry) {
     // TODO
     throw UnimplementedError();
   }

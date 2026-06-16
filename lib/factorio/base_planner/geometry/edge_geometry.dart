@@ -3,28 +3,33 @@ import 'dart:ui';
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 
-class EdgeGeometry implements Geometry {
-  static const uninitialised = EdgeGeometry._uninitialised();
+abstract interface class EdgeGeometry implements Geometry {
+  EdgeGeometryType get geometryType;
+  List<Line> get lines;
+}
+
+class EdgeGeometryImpl implements EdgeGeometry {
+  static const uninitialised = EdgeGeometryImpl._uninitialised();
 
   @override
-  final Rect minimalRect;
+  final Rect rect;
 
+  @override
   final EdgeGeometryType geometryType;
+  @override
   final List<Line> lines;
 
-  EdgeGeometry(this.geometryType, List<Line> lines)
+  EdgeGeometryImpl(this.geometryType, List<Line> lines)
     : lines = List.unmodifiable(lines),
-      minimalRect = determineMinimalRect(lines);
+      rect = determineMinimalRect(lines);
 
-  EdgeGeometry.shortestPath(NodeGeometry start, NodeGeometry end)
+  EdgeGeometryImpl.shortestPath(NodeGeometryImpl start, NodeGeometryImpl end)
     : geometryType = EdgeGeometryType.shortestPath,
-      lines = List.unmodifiable([
-        Line(start.minimalRect.center, end.minimalRect.center),
-      ]),
-      minimalRect = Rect.fromPoints(start.minimalRect.center, end.minimalRect.center);
+      lines = List.unmodifiable([Line(start.rect.center, end.rect.center)]),
+      rect = Rect.fromPoints(start.rect.center, end.rect.center);
 
-  const EdgeGeometry._uninitialised()
-    : minimalRect = Rect.zero,
+  const EdgeGeometryImpl._uninitialised()
+    : rect = Rect.zero,
       geometryType = EdgeGeometryType.shortestPath,
       lines = const [];
 

@@ -17,7 +17,7 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   @override
   ProductionLine get productionLine => _state.productionLine;
   @override
-  NodeGeometry get nodeGeometry => state.nodeGeometry;
+  NodeGeometryImpl get nodeGeometry => state.nodeGeometry;
   @override
   Set<Edge> get parents => state.parents;
   @override
@@ -94,7 +94,7 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   void deselect() => _basePlanner.deselectElement(this);
 
   @override
-  void notifyListenersOfGeometryUpdate(NodeGeometry nodeGeometry) {
+  void notifyListenersOfGeometryUpdate(NodeGeometryImpl nodeGeometry) {
     // TODO: implement notifyListenersOfGeometryUpdate
     throw UnimplementedError();
   }
@@ -107,7 +107,7 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
 }
 
 class NodeEvent {
-  NodeEvent.geometryOp(NodeGeometry nodeGeometry) {
+  NodeEvent.geometryOp(NodeGeometryImpl nodeGeometry) {
     throw UnimplementedError();
   }
 }

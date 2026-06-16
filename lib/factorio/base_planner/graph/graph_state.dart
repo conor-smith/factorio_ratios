@@ -7,7 +7,7 @@ abstract class GraphState {
   Set<Graph> get graphNodes;
   Set<NodeElement> get allNodes;
   Set<Edge> get edges;
-  NodeGeometry get nodeGeometry;
+  NodeGeometryImpl get nodeGeometry;
   Set<Edge> get parents;
   Set<Edge> get children;
   Map<InGameItem, List<Edge>> get outputEdges;
@@ -29,7 +29,7 @@ class GraphStateImpl implements GraphState, ToJson {
   @override
   final Set<Edge> edges;
   @override
-  final NodeGeometry nodeGeometry;
+  final NodeGeometryImpl nodeGeometry;
   @override
   final Set<Edge> parents;
   @override
@@ -61,7 +61,7 @@ class GraphStateImpl implements GraphState, ToJson {
     Iterable<ProdLineNode> prodLineNodes = const {},
     Iterable<Graph> graphNodes = const {},
     Iterable<Edge> edges = const {},
-    this.nodeGeometry = NodeGeometry.uninitialised,
+    this.nodeGeometry = NodeGeometryImpl.uninitialised,
     Iterable<Edge> parents = const {},
     Iterable<Edge> children = const {},
     Iterable<InGameItem> inputItems = const {},
@@ -93,7 +93,7 @@ class GraphStateBuilder
   final Set<ProdLineNode> _prodLineNodes;
   final Set<Edge> _edges;
   final Set<Graph> _graphNodes;
-  NodeGeometry _nodeGeometry;
+  NodeGeometryImpl _nodeGeometry;
   final Set<Edge> _parents;
   final Set<Edge> _children;
   final Set<InGameItem> _inputItems;
@@ -116,7 +116,7 @@ class GraphStateBuilder
   @override
   late final Set<Graph> graphNodes = UnmodifiableSetView(_graphNodes);
   @override
-  NodeGeometry get nodeGeometry => _nodeGeometry;
+  NodeGeometryImpl get nodeGeometry => _nodeGeometry;
   @override
   Set<Edge> get parents => UnmodifiableSetView(_parents);
   @override
@@ -203,7 +203,7 @@ class GraphStateBuilder
   void removeChildGraph(Graph childGraph) => _graphNodes.remove(childGraph);
 
   @override
-  void updateGeometry(NodeGeometry nodeGeometry) =>
+  void updateGeometry(NodeGeometryImpl nodeGeometry) =>
       _nodeGeometry = nodeGeometry;
 
   @override

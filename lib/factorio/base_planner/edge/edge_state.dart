@@ -4,7 +4,7 @@ abstract class EdgeState {
   double? get amount;
   double get percentage;
 
-  EdgeGeometry get edgeGeometry;
+  EdgeGeometryImpl get edgeGeometry;
 }
 
 class EdgeStateImpl implements EdgeState, ToJson {
@@ -14,14 +14,14 @@ class EdgeStateImpl implements EdgeState, ToJson {
   final double percentage;
 
   @override
-  final EdgeGeometry edgeGeometry;
+  final EdgeGeometryImpl edgeGeometry;
 
   final bool _isFirstState;
 
   EdgeStateImpl._({
     this.amount,
     required this.percentage,
-    this.edgeGeometry = EdgeGeometry.uninitialised,
+    this.edgeGeometry = EdgeGeometryImpl.uninitialised,
     bool firstState = false,
   }) : _isFirstState = firstState;
 
@@ -35,14 +35,14 @@ class EdgeStateImpl implements EdgeState, ToJson {
 class EdgeStateBuilder implements Builder<EdgeStateImpl>, EdgeState {
   double? _amount;
   double _percentage;
-  EdgeGeometry _edgeGeometry;
+  EdgeGeometryImpl _edgeGeometry;
 
   @override
   double? get amount => _amount;
   @override
   double get percentage => _percentage;
   @override
-  EdgeGeometry get edgeGeometry => _edgeGeometry;
+  EdgeGeometryImpl get edgeGeometry => _edgeGeometry;
 
   factory EdgeStateBuilder._new(Edge edge) {
     var builder = EdgeStateBuilder._from(edge);
@@ -79,7 +79,7 @@ class EdgeStateBuilder implements Builder<EdgeStateImpl>, EdgeState {
   void clearAmount() => _amount = 0;
   void updatePercentage(double percentage) => _percentage = percentage;
 
-  void updateGeometry(EdgeGeometry edgeGeometry) =>
+  void updateGeometry(EdgeGeometryImpl edgeGeometry) =>
       _edgeGeometry = edgeGeometry;
 
   @override
