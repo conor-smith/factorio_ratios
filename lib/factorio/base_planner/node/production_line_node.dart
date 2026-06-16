@@ -94,10 +94,8 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   void deselect() => _basePlanner.deselectElement(this);
 
   @override
-  void notifyListenersOfGeometryUpdate(NodeGeometryImpl nodeGeometry) {
-    // TODO: implement notifyListenersOfGeometryUpdate
-    throw UnimplementedError();
-  }
+  void notifyListenersOfGeometryUpdate(NodeGeometryImpl nodeGeometry) =>
+      notifyListeners(ProdLineNodeEvent.geometryOp(nodeGeometry));
 
   @override
   Map<String, dynamic> toJson() {
@@ -106,8 +104,9 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   }
 }
 
-class NodeEvent {
-  NodeEvent.geometryOp(NodeGeometryImpl nodeGeometry) {
-    throw UnimplementedError();
-  }
+class ProdLineNodeEvent extends NodeEvent {
+  @override
+  final NodeGeometry? nodeGeometry;
+
+  ProdLineNodeEvent.geometryOp(NodeGeometry this.nodeGeometry);
 }

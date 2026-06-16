@@ -137,10 +137,8 @@ class Graph
   void deselect() => _basePlanner.deselectElement(this);
 
   @override
-  void notifyListenersOfGeometryUpdate(NodeGeometryImpl nodeGeometry) {
-    // TODO: implement notifyListenersOfGeometryUpdate
-    throw UnimplementedError();
-  }
+  void notifyListenersOfGeometryUpdate(NodeGeometry nodeGeometry) =>
+      notifyListeners(GraphEvent.geometryOp(nodeGeometry));
 
   void addConsumerNodeAndTree(InGameItem item) {
     if (surface == null) {
@@ -460,11 +458,11 @@ class GraphIo extends ProductionLineIo {
   });
 }
 
-class GraphEvent {
-  GraphEvent.geometryOp(NodeGeometryImpl nodeGeometry) {
-    // TODO
-    throw UnimplementedError();
-  }
+class GraphEvent implements NodeEvent {
+  @override
+  final NodeGeometry? nodeGeometry;
+
+  GraphEvent.geometryOp(NodeGeometry this.nodeGeometry);
 }
 
 class GraphException extends BasePlannerException {

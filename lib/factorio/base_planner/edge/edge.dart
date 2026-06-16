@@ -1,6 +1,5 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
@@ -140,10 +139,8 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   void notifyListeners(EdgeEvent event) => _notifier.notifyListeners(event);
 
   @override
-  void notifyListenersOfGeometryUpdate(EdgeGeometry edgeGeometry) {
-    // TODO: implement notifyListenersOfGeometryUpdate
-    throw UnimplementedError();
-  }
+  void notifyListenersOfGeometryUpdate(EdgeGeometry edgeGeometry) =>
+      notifyListeners(EdgeEvent.geometryOp(edgeGeometry));
 
   @override
   Map<String, dynamic> toJson() {
@@ -153,10 +150,9 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
 }
 
 class EdgeEvent {
-  EdgeEvent.geometryOp(EdgeGeometryImpl edgeGeometry) {
-    // TODO
-    throw UnimplementedError();
-  }
+  final EdgeGeometry? edgeGeometry;
+
+  EdgeEvent.geometryOp(EdgeGeometry this.edgeGeometry);
 }
 
 enum EdgeType { requestItems, acceptExcess }

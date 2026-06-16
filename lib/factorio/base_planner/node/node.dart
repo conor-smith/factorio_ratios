@@ -11,7 +11,7 @@ import 'package:factorio_ratios/json/json.dart';
 part 'production_line_node_state.dart';
 part 'production_line_node.dart';
 
-abstract interface class NodeElement<St, E>
+abstract interface class NodeElement<St, E extends NodeEvent>
     implements BasePlannerElement<St, E> {
   NodeType get nodeType;
 
@@ -150,4 +150,8 @@ enum NodeType implements Comparable<NodeType> {
   @override
   int compareTo(NodeType other) =>
       outputPriority.compareTo(other.outputPriority);
+}
+
+abstract interface class NodeEvent {
+  NodeGeometry? get nodeGeometry;
 }

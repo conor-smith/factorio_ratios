@@ -1,9 +1,8 @@
 import 'dart:ui';
 
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
-import 'package:factorio_ratios/json/json.dart';
 
-abstract interface class Geometry implements ToJson {
+abstract interface class Geometry {
   Rect get rect;
 }
 

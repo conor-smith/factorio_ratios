@@ -102,12 +102,6 @@ class NodeGeometryBuilder
 
   @override
   NodeGeometryImpl build() => NodeGeometryImpl(_minimalRect);
-
-  @override
-  Map<String, dynamic> toJson() {
-    // TODO: implement toJson
-    throw UnimplementedError();
-  }
 }
 
 class EdgeGeometryBuilder
@@ -144,10 +138,4 @@ class EdgeGeometryBuilder
 
   @override
   EdgeGeometryImpl build() => EdgeGeometryImpl(original.geometryType, _lines);
-
-  @override
-  Map<String, dynamic> toJson() {
-    // TODO: implement toJson
-    throw UnimplementedError();
-  }
 }
