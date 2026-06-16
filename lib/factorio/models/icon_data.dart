@@ -79,10 +79,10 @@ class IconData {
     required this.floating,
   }) : hashCode =
            icon.hashCode +
-           iconSize.floor() +
+           iconSize.hashCode +
            tint.hashCode +
            shift.hashCode +
-           scale.floor() +
+           scale.hashCode +
            floating.hashCode;
 
   factory IconData.fromJson(Map json, double expectedIconSize) {
@@ -142,24 +142,14 @@ class IconData {
 }
 
 class IconTint {
-  static const defaultIconTint = IconTint._empty();
+  static const defaultIconTint = IconTint._(1, 1, 1, 1);
 
   final double r;
   final double g;
   final double b;
   final double a;
 
-  @override
-  final int hashCode;
-
-  IconTint._(this.r, this.g, this.b, this.a)
-    : hashCode =
-          (r * 100).floor() +
-          (g * 100).floor() * 100 +
-          (b * 100).floor() * 10000 +
-          (a * 100).floor() * 1000000;
-
-  const IconTint._empty() : r = 1, g = 1, b = 1, a = 1, hashCode = 99999999;
+  const IconTint._(this.r, this.g, this.b, this.a);
 
   factory IconTint.fromJson(dynamic json) {
     double r, g, b, a;
@@ -188,29 +178,29 @@ class IconTint {
   }
 
   @override
-  bool operator ==(Object other) {
-    return super == other ||
-        (other is IconTint &&
-            r == other.r &&
-            g == other.g &&
-            b == other.b &&
-            a == other.a);
-  }
+  bool operator ==(Object other) =>
+      super == other ||
+      (other is IconTint &&
+          r == other.r &&
+          g == other.g &&
+          b == other.b &&
+          a == other.a);
+
+  @override
+  int get hashCode =>
+      r.hashCode +
+      (g * 100).hashCode +
+      (b * 10000).hashCode +
+      (a * 1000000).hashCode;
 }
 
 class Vector {
-  static const defaultVector = Vector._empty();
+  static const defaultVector = Vector._(x: 0, y: 0);
 
   final double x;
   final double y;
 
-  @override
-  final int hashCode;
-
-  Vector._({required this.x, required this.y})
-    : hashCode = x.floor() + y.floor() * 100000;
-
-  const Vector._empty() : x = 0, y = 0, hashCode = 0;
+  const Vector._({required this.x, required this.y});
 
   factory Vector.fromJson(dynamic json) {
     if (json is Map) {
@@ -228,4 +218,7 @@ class Vector {
   @override
   bool operator ==(Object other) =>
       super == other || (other is Vector && x == other.x && y == other.y);
+
+  @override
+  int get hashCode => x.hashCode + (y * 500).hashCode;
 }

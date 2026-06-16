@@ -162,7 +162,7 @@ class ItemIo {
   @override
   int get hashCode => inputs.entries
       .followedBy(outputs.entries)
-      .map((entry) => entry.key.hashCode * entry.value.ceil())
+      .map((entry) => entry.key.hashCode * entry.value.hashCode)
       .reduce((val1, val2) => val1 + val2);
 }
 

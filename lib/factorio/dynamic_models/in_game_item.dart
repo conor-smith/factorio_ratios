@@ -175,7 +175,7 @@ class InGameFluidItem extends InGameItem implements FluidItem {
           temperature == other.temperature;
 
   @override
-  int get hashCode => internalItem.hashCode + temperature.ceil();
+  int get hashCode => internalItem.hashCode + temperature.hashCode;
 
   @override
   Map<String, dynamic> toJson() {
