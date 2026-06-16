@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:factorio_ratios/factorio/models/models.dart';
-import 'package:flutter/material.dart' hide IconData;
+import 'package:flutter/material.dart' hide IconData, Icon;
 
 // TODO - Get working with MacOS and Windows
 final String _homeDir = Platform.environment['HOME']!;
@@ -11,17 +11,25 @@ const String _factorioFilesPath =
     '/.local/share/Steam/steamapps/common/Factorio/data/';
 
 class FactorioIconWidget extends StatelessWidget {
-  final EntityPrototype icon;
+  final Icon? icon;
+  final double expectedIconSize;
+  final double defaultScale;
   final double size;
 
-  const FactorioIconWidget({super.key, required this.icon, required this.size});
+  FactorioIconWidget({
+    super.key,
+    required this.icon,
+    required EntityPrototype entity,
+    required this.size,
+  }) : expectedIconSize = entity.expectedIconSize,
+       defaultScale = entity.defaultScale;
 
   @override
   Widget build(BuildContext context) {
-    double scaleMultiplier = size / (icon.expectedIconSize * icon.defaultScale);
+    double scaleMultiplier = size / (expectedIconSize * defaultScale);
 
     List<IconData> icons =
-        icon.icons ?? [IconData.unknownIcon(icon.expectedIconSize)];
+        icon?.icons ?? [IconData.unknownIcon(expectedIconSize)];
 
     List<Widget> iconWidgets = icons
         .map(

@@ -19,7 +19,7 @@ class ItemGroup extends Prototype {
   @override
   ItemSubgroup? get subgroup => null;
 
-  final List<IconData>? icons;
+  final Icon? icon;
   double get expectedIconSize => _expectedIconSize;
   double get defaultScale => _defaultScale / 2;
 
@@ -29,7 +29,7 @@ class ItemGroup extends Prototype {
     required this.type,
     required this.localisedName,
     required this.order,
-    required this.icons,
+    required this.icon,
   });
 
   factory ItemGroup.fromJson(FactorioDatabase factorioDb, Map json) =>
@@ -39,6 +39,6 @@ class ItemGroup extends Prototype {
         type: json['type'],
         order: json['order'],
         localisedName: json['name'],
-        icons: IconData.fromTopLevelJson(json, ItemGroup._expectedIconSize),
+        icon: Icon.fromTopLevelJson(json, ItemGroup._expectedIconSize),
       );
 }

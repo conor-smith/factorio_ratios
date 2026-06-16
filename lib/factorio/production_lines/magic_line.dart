@@ -10,7 +10,7 @@ class MagicLine implements ProductionLine<MagicLineIo> {
   @override
   final String name;
   @override
-  final EntityPrototype? icon;
+  final Icon? icon;
 
   @override
   ProductionLineType get productionLineType => ProductionLineType.io;
@@ -22,13 +22,13 @@ class MagicLine implements ProductionLine<MagicLineIo> {
     : outputItems = const {},
       inputItems = Set.unmodifiable({item}),
       name = '${item.name} producer',
-      icon = item;
+      icon = item.icon;
 
   MagicLine.singleItemConsumer(InGameItem item)
     : outputItems = Set.unmodifiable({item}),
       inputItems = const {},
       name = '${item.name} consumer',
-      icon = item;
+      icon = item.icon;
 
   @override
   MagicLineIo calculate(ItemIo constraints) {

@@ -9,7 +9,7 @@ class CombinerLine implements ProductionLine<CombinerIo> {
   @override
   ProductionLineType get productionLineType => ProductionLineType.combiner;
   @override
-  EntityPrototype get icon => item;
+  Icon? get icon => item.icon;
 
   @override
   Set<InGameItem> get inputItems => _ioItem;

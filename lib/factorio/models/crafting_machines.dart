@@ -18,7 +18,7 @@ class CraftingMachine extends EntityPrototype {
   @override
   late final ItemSubgroup? subgroup = _determineSubGroup();
   @override
-  late final List<IconData>? icons = _icons ?? item?.icons;
+  late final Icon? icon = _icon ?? item?.icon;
   @override
   double get expectedIconSize => _expectedIconSize;
   @override
@@ -36,7 +36,7 @@ class CraftingMachine extends EntityPrototype {
 
   final String? _orderString;
   final String? _subgroupString;
-  final List<IconData>? _icons;
+  final Icon? _icon;
 
   late final bool needsSolidFuel = energySource is BurnerEnergySource;
   late final List<Item> fuelItems = switch (energySource.type) {
@@ -70,10 +70,10 @@ class CraftingMachine extends EntityPrototype {
     required this.effectReceiver,
     required this.craftingCategories,
     required this.allowedEffects,
-    required List<IconData>? icons,
+    required Icon? icon,
   }) : _orderString = order,
        _subgroupString = subgroup,
-       _icons = icons;
+       _icon = icon;
 
   factory CraftingMachine.fromJson(FactorioDatabase factorioDb, Map json) {
     List<String> allowedEffects = const [];
@@ -108,7 +108,7 @@ class CraftingMachine extends EntityPrototype {
         json['crafting_categories'] as List,
       ).cast(),
       allowedEffects: allowedEffects,
-      icons: IconData.fromTopLevelJson(json, CraftingMachine._expectedIconSize),
+      icon: Icon.fromTopLevelJson(json, CraftingMachine._expectedIconSize),
     );
   }
 

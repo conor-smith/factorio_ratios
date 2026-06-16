@@ -2,7 +2,7 @@ part of 'graph.dart';
 
 abstract class GraphState {
   String get name;
-  EntityPrototype? get icon;
+  Icon? get icon;
   Set<ProdLineNode> get prodLineNodes;
   Set<Graph> get graphNodes;
   Set<NodeElement> get allNodes;
@@ -21,7 +21,7 @@ class GraphStateImpl implements GraphState, ToJson {
   @override
   final String name;
   @override
-  final EntityPrototype? icon;
+  final Icon? icon;
   @override
   final Set<ProdLineNode> prodLineNodes;
   @override
@@ -89,7 +89,7 @@ class GraphStateBuilder
   final Graph _graph;
 
   String _name;
-  EntityPrototype? _icon;
+  Icon? _icon;
   final Set<ProdLineNode> _prodLineNodes;
   final Set<Edge> _edges;
   final Set<Graph> _graphNodes;
@@ -106,7 +106,7 @@ class GraphStateBuilder
   @override
   String get name => _name;
   @override
-  EntityPrototype? get icon => _icon;
+  Icon? get icon => _icon;
   @override
   late final Set<ProdLineNode> prodLineNodes = UnmodifiableSetView(
     _prodLineNodes,
@@ -190,7 +190,7 @@ class GraphStateBuilder
 
   void updateName(String newName) => _name = newName;
 
-  void updateIcon(EntityPrototype newIcon) => _icon = newIcon;
+  void updateIcon(Icon newIcon) => _icon = newIcon;
   void clearIcon() => _icon = null;
 
   void addNode(ProdLineNode node) => _prodLineNodes.add(node);

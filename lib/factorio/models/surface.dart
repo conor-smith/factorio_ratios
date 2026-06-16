@@ -20,7 +20,7 @@ class Surface extends EntityPrototype {
       factorioDb.itemSubgroupMap[_subgroupString];
 
   @override
-  final List<IconData>? icons;
+  final Icon? icon;
   @override
   double get expectedIconSize => _expectedIconSize;
   @override
@@ -51,7 +51,7 @@ class Surface extends EntityPrototype {
     required this.name,
     required this.type,
     required this.localisedName,
-    required this.icons,
+    required this.icon,
     required this.order,
     required String? subgroup,
     required this.surfaceProperties,
@@ -71,7 +71,7 @@ class Surface extends EntityPrototype {
       name: json['name'],
       type: json['type'],
       localisedName: json['name'], // TODO
-      icons: IconData.fromTopLevelJson(json, _expectedIconSize),
+      icon: Icon.fromTopLevelJson(json, _expectedIconSize),
       order: json['order'],
       subgroup: json['subgroup'],
       surfaceProperties: _parseStringDoubleMap(json['surface_properties']),

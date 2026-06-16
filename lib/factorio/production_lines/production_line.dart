@@ -32,7 +32,7 @@ abstract interface class ProductionLine<T extends ProductionLineIo> {
   ProductionLineType get productionLineType;
 
   /// Used in displays
-  EntityPrototype? get icon;
+  Icon? get icon;
 
   /// All items this production line requires
   Set<InGameItem> get inputItems;

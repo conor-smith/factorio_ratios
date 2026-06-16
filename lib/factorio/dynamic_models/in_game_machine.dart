@@ -9,6 +9,8 @@ class InGameMachine implements CraftingMachine, ToJson {
   final String name;
   @override
   final InGameItem? item;
+  @override
+  final Icon? icon;
 
   factory InGameMachine(CraftingMachine internalMachine, [int quality = 1]) {
     if (internalMachine is InGameMachine) {
@@ -22,6 +24,9 @@ class InGameMachine implements CraftingMachine, ToJson {
     : name = internalMachine.name + (quality == 1 ? '' : ': Q$quality'),
       item = internalMachine.item != null
           ? InGameItem(internalMachine.item!, quality: quality)
+          : null,
+      icon = internalMachine.icon != null
+          ? Icon.withQuality(internalMachine.icon!, quality)
           : null;
 
   // Ensure that machines of different quality are separated
@@ -65,8 +70,6 @@ class InGameMachine implements CraftingMachine, ToJson {
   double get defaultScale => internalMachine.defaultScale;
   @override
   double get expectedIconSize => internalMachine.expectedIconSize;
-  @override
-  List<IconData>? get icons => internalMachine.icons;
   @override
   String get order => internalMachine.order;
   @override

@@ -37,7 +37,7 @@ class SingleRecipeLine
   @override
   String get name => recipe.name;
   @override
-  EntityPrototype get icon => recipe;
+  Icon? get icon => recipe.icon;
 
   @override
   final Set<InGameItem> outputItems;

@@ -61,7 +61,11 @@ class _FactorioGroupMenuWidgetState<T extends EntityPrototype>
                     onPressed: () => widget.onSelected(item),
                     child: Tooltip(
                       message: item.name,
-                      child: FactorioIconWidget(icon: item, size: 64),
+                      child: FactorioIconWidget(
+                        icon: item.icon,
+                        entity: item,
+                        size: 64,
+                      ),
                     ),
                   ),
                 )

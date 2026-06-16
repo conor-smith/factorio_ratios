@@ -16,7 +16,7 @@ abstract class Prototype implements Comparable<Prototype> {
 }
 
 abstract class EntityPrototype extends Prototype {
-  List<IconData>? get icons;
+  Icon? get icon;
   double get expectedIconSize;
   double get defaultScale;
 }

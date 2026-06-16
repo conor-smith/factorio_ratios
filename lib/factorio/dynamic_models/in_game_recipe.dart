@@ -11,7 +11,7 @@ class InGameRecipe implements Recipe, ToJson {
   @override
   final List<InGameRecipeProduct> results;
   @override
-  final List<IconData>? icons;
+  final Icon? icon;
   @override
   final InGameItem? mainProduct;
 
@@ -25,7 +25,9 @@ class InGameRecipe implements Recipe, ToJson {
 
   InGameRecipe._(this.internalRecipe, this.quality)
     : name = internalRecipe.name + (quality == 1 ? '' : ': Q$quality'),
-      icons = _verifyQualityAndUpdateIcon(internalRecipe.icons, quality),
+      icon = internalRecipe.icon != null
+          ? Icon.withQuality(internalRecipe.icon!, quality)
+          : null,
       mainProduct = internalRecipe.mainProduct != null
           ? InGameItem(internalRecipe.mainProduct!)
           : null,
@@ -109,7 +111,7 @@ class InGameRecipe implements Recipe, ToJson {
 
   @override
   String toString() => name;
-  
+
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson

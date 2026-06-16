@@ -38,7 +38,7 @@ class Graph
   @override
   String get name => state.name;
   @override
-  EntityPrototype? get icon => state.icon;
+  Icon? get icon => state.icon;
   @override
   NodeGeometryImpl get nodeGeometry => state.nodeGeometry;
   @override
@@ -77,10 +77,13 @@ class Graph
     BasePlanner basePlanner, {
     required this.parentGraph,
     this.surface,
-    EntityPrototype? icon,
+    Icon? icon,
   }) : _basePlanner = basePlanner,
        id = BasePlannerElement.generateId(),
-       _state = GraphStateImpl._(icon: icon ?? surface, isFirstState: true),
+       _state = GraphStateImpl._(
+         icon: icon ?? surface?.icon,
+         isFirstState: true,
+       ),
        _surfaceProperties =
            basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
     _builder = GraphStateBuilder._new(this);
@@ -89,7 +92,7 @@ class Graph
   Graph.rootGraph(BasePlanner basePlanner, [this.surface])
     : _basePlanner = basePlanner,
       id = BasePlannerElement.generateId(),
-      _state = GraphStateImpl._(icon: surface),
+      _state = GraphStateImpl._(icon: surface?.icon),
       _surfaceProperties =
           basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
     parentGraph = this;

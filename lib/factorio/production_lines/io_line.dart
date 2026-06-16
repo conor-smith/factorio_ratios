@@ -9,7 +9,7 @@ class IoLine implements ProductionLine<IoLineIo> {
   @override
   ProductionLineType get productionLineType => ProductionLineType.magic;
   @override
-  EntityPrototype get icon => item;
+  Icon? get icon => item.icon;
 
   @override
   Set<InGameItem> get inputItems => _ioItem;

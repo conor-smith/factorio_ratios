@@ -70,7 +70,7 @@ class InGameSolidItem extends InGameItem implements SolidItem {
   @override
   final String name;
   @override
-  final List<IconData>? icons;
+  final Icon? icon;
 
   @override
   final InGameItem? spoilResult;
@@ -79,7 +79,9 @@ class InGameSolidItem extends InGameItem implements SolidItem {
 
   InGameSolidItem(this.internalItem, [this.quality = 1])
     : name = internalItem.name + (quality == 1 ? '' : ': Q$quality'),
-      icons = _verifyQualityAndUpdateIcon(internalItem.icons, quality),
+      icon = internalItem.icon != null
+          ? Icon.withQuality(internalItem.icon!, quality)
+          : null,
       spoilResult = internalItem.spoilResult != null
           ? InGameItem(internalItem.spoilResult!)
           : null,
@@ -154,7 +156,7 @@ class InGameFluidItem extends InGameItem implements FluidItem {
   }
 
   @override
-  List<IconData>? get icons => internalItem.icons;
+  Icon? get icon => internalItem.icon;
 
   @override
   double get defaultTemperature => internalItem.defaultTemperature;

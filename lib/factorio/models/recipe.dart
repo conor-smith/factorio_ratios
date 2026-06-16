@@ -16,7 +16,7 @@ class Recipe extends EntityPrototype {
   @override
   late final ItemSubgroup? subgroup = _determineSubGroup();
   @override
-  late final List<IconData>? icons = _icons ?? mainProduct?.icons;
+  late final Icon? icon = _icon ?? mainProduct?.icon;
   @override
   double get expectedIconSize => _expectedIconSize;
   @override
@@ -31,7 +31,7 @@ class Recipe extends EntityPrototype {
 
   final String? _mainProductString;
   final String? _subgroupString;
-  final List<IconData>? _icons;
+  final Icon? _icon;
 
   final bool enabled;
   final bool allowConsumption;
@@ -85,7 +85,7 @@ class Recipe extends EntityPrototype {
     required this.order,
     required String? mainProduct,
     required String? subgroup,
-    required List<IconData>? icons,
+    required Icon? icon,
     required this.categories,
     required this.energyRequired,
     required this.maximumProductivity,
@@ -101,7 +101,7 @@ class Recipe extends EntityPrototype {
     required this.surfaceConditions,
   }) : _mainProductString = mainProduct,
        _subgroupString = subgroup,
-       _icons = icons;
+       _icon = icon;
 
   factory Recipe.fromJson(FactorioDatabase factorioDb, Map json) {
     late List<String> categories;
@@ -163,7 +163,7 @@ class Recipe extends EntityPrototype {
       order: json['order'] ?? '',
       mainProduct: json['main_product'],
       subgroup: json['subgroup'],
-      icons: IconData.fromTopLevelJson(json, Recipe._expectedIconSize),
+      icon: Icon.fromTopLevelJson(json, Recipe._expectedIconSize),
       energyRequired:
           json['energy_required']?.toDouble() ?? defaultEnergyRequired,
       maximumProductivity:

@@ -20,7 +20,7 @@ class Resource extends EntityPrototype {
       factorioDb.itemSubgroupMap[_subgroupString];
 
   @override
-  final List<IconData>? icons;
+  final Icon? icon;
   @override
   double get expectedIconSize => _expectedIconSize;
   @override
@@ -45,7 +45,7 @@ class Resource extends EntityPrototype {
     required this.localisedName,
     required this.order,
     required String? subgroup,
-    required this.icons,
+    required this.icon,
     required List<String> resultsString,
   }) : _subgroupString = subgroup,
        _resultsString = resultsString;
@@ -71,7 +71,7 @@ class Resource extends EntityPrototype {
       localisedName: json['name'],
       subgroup: json['subgroup'],
       order: json['order'] ?? '',
-      icons: IconData.fromTopLevelJson(json, Item._expectedIconSize),
+      icon: Icon.fromTopLevelJson(json, Item._expectedIconSize),
       resultsString: resultsString,
     );
   }

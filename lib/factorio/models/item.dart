@@ -16,7 +16,7 @@ abstract class Item extends EntityPrototype {
       factorioDb.itemSubgroupMap[_subgroupString];
 
   @override
-  final List<IconData>? icons;
+  final Icon? icon;
   @override
   double get expectedIconSize => _expectedIconSize;
   @override
@@ -42,7 +42,7 @@ abstract class Item extends EntityPrototype {
     required this.name,
     required this.type,
     required this.localisedName,
-    required this.icons,
+    required this.icon,
     required this.fuelValue,
     required this.order,
     required String? subgroup,
@@ -98,7 +98,7 @@ class SolidItem extends Item {
     required super.type,
     required super.fuelValue,
     required super.localisedName,
-    required super.icons,
+    required super.icon,
     required super.subgroup,
     required super.order,
     required super.hidden,
@@ -123,7 +123,7 @@ class SolidItem extends Item {
         fuelValue: _convertStringToEnergy(json['fuel_value']),
         subgroup: json['subgroup'],
         order: json['order'] ?? '',
-        icons: IconData.fromTopLevelJson(json, Item._expectedIconSize),
+        icon: Icon.fromTopLevelJson(json, Item._expectedIconSize),
         hidden: json['hidden'] ?? false,
         stackSize: json['stack_size'],
         spoilTicks: json['spoil_ticks'],
@@ -150,7 +150,7 @@ class FluidItem extends Item {
     required super.fuelValue,
     required super.subgroup,
     required super.order,
-    required super.icons,
+    required super.icon,
     required super.hidden,
     required this.defaultTemperature,
     required this.heatCapacity,
@@ -167,7 +167,7 @@ class FluidItem extends Item {
         localisedName: Item._getLocalisedName(json),
         order: json['order'] ?? '',
         subgroup: json['subgroup'],
-        icons: IconData.fromTopLevelJson(json, Item._expectedIconSize),
+        icon: Icon.fromTopLevelJson(json, Item._expectedIconSize),
         hidden: json['hidden'] ?? false,
         defaultTemperature: json['default_temperature'].toDouble(),
         heatCapacity: _convertStringToEnergy(json['heat_capacity']) ?? 1000,

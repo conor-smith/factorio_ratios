@@ -8,11 +8,3 @@ part 'in_game_recipe.dart';
 part 'in_game_machine.dart';
 
 typedef ItemAmounts = Map<InGameItem, double>;
-
-// TODO
-List<IconData>? _verifyQualityAndUpdateIcon(
-  List<IconData>? icons,
-  int quality,
-) {
-  return icons;
-}
