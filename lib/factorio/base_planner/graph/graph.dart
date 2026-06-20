@@ -20,9 +20,6 @@ class Graph
     with EventNotifier<GraphEvent>
     implements NodeElement<GraphState, GraphEvent>, ProductionLine<GraphIo> {
   final BasePlanner _basePlanner;
-
-  @override
-  final int id;
   final Surface? surface;
   @override
   late final Graph parentGraph;
@@ -79,7 +76,6 @@ class Graph
     this.surface,
     Icon? icon,
   }) : _basePlanner = basePlanner,
-       id = BasePlannerElement.generateId(),
        _state = GraphStateImpl._initial(icon: icon ?? surface?.icon),
        _surfaceProperties =
            basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
@@ -88,7 +84,6 @@ class Graph
 
   Graph.rootGraph(BasePlanner basePlanner, [this.surface])
     : _basePlanner = basePlanner,
-      id = BasePlannerElement.generateId(),
       _state = GraphStateImpl._initial(icon: surface?.icon),
       _surfaceProperties =
           basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {

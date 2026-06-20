@@ -29,24 +29,10 @@ abstract mixin class EventNotifier<T> {
 /// Any changes to the stateBuilder will be reflected in [state] unless
 /// [cancelStateBuilder] is called, at which point, [state] will be reset.
 ///
-/// Object can be converted to and from JSON in order to have it's state saved
-/// and recalled after the application is shut down.
-/// This is the purpose of the [id] field.
-/// As elements can contain or have relationships with other elements,
-/// relationships will be serialised using the [id] of relevant objects.
-/// [id] must be unique across all elements, but this can be easily achieved
-/// via the static [generateId] method.
-///
 /// [remove] method must be called whenever an element is removed from the [BasePlanner].
 abstract interface class BasePlannerElement<St, E>
     implements EventNotifier<E>, ToJson {
-  static final Random _random = Random(DateTime.now().millisecondsSinceEpoch);
-  static int generateId() => _random.nextInt(1000000000);
-
   Graph get parentGraph;
-
-  /// Unique id for this [BasePlannerElement]
-  int get id;
 
   /// Returns immutable object representing state
   St get state;

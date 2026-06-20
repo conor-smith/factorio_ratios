@@ -13,9 +13,6 @@ class Edge
   final BasePlanner _basePlanner;
 
   @override
-  final int id;
-
-  @override
   final Graph parentGraph;
   final EdgeType edgeType;
   final ProdLineNode parentProductionLine;
@@ -94,7 +91,6 @@ class Edge
     required this.item,
     required double percentage,
   }) : _basePlanner = basePlanner,
-       id = BasePlannerElement.generateId(),
        _state = EdgeStateImpl._(percentage: percentage, firstState: true);
 
   @override

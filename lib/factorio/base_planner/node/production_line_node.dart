@@ -6,9 +6,6 @@ class ProdLineNode
   final BasePlanner _basePlanner;
 
   @override
-  final int id;
-
-  @override
   final Graph parentGraph;
   @override
   final NodeType nodeType;
@@ -44,7 +41,6 @@ class ProdLineNode
     required this.nodeType,
     required ProductionLine productionLine,
   }) : _basePlanner = basePlanner,
-       id = BasePlannerElement.generateId(),
        _state = ProdLineNodeStateImpl._(
          productionLine: productionLine,
          isFirstState: true,
