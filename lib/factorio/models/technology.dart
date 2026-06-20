@@ -1,6 +1,8 @@
 part of 'models.dart';
 
 class Technology extends Prototype {
+  // Only used to determine available recipes for now
+  // But this class might be useful later. Best keep it around
   final FactorioDatabase factorioDb;
 
   @override
@@ -51,7 +53,6 @@ class Modifier {
   final FactorioDatabase factorioDb;
 
   final String type;
-  late final Recipe? recipe = factorioDb.recipeMap[_recipeString];
   final String? _recipeString;
 
   Modifier.fromJson(this.factorioDb, Map json)

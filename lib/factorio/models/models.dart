@@ -121,6 +121,7 @@ class FactorioDatabase {
     Map factorioRawData = jsonDecode(rawJson);
 
     Map<String, Item> items = {};
+    Map<String, Technology> technologies = {};
     Map<String, Recipe> recipes = {};
     Map<String, CraftingMachine> craftingMachines = {};
     Map<String, ItemGroup> itemGroups = {};
@@ -162,7 +163,7 @@ class FactorioDatabase {
 
     rawItems.forEach((name, itemJson) {
       try {
-        if (itemJson['parameter'] != true && itemJson['hidden'] != true) {
+        if (itemJson['parameter'] != true) {
           items[name] = Item.fromJson(this, itemJson);
         }
       } catch (e) {
@@ -172,6 +173,28 @@ class FactorioDatabase {
         );
       }
     });
+
+    Map<String, Map> rawTechnologies = (factorioRawData['technology'] as Map)
+        .cast();
+    rawTechnologies.forEach((name, techJson) {
+      try {
+        if (techJson['parameter'] != true) {
+          technologies[name] = Technology.fromJson(this, techJson);
+        }
+      } catch (e) {
+        throw FactorioException(
+          'Encountered error when decoding technology $name',
+          e,
+        );
+      }
+    });
+
+    Set<String> unlockedRecipes = technologies.values
+        .expand((tech) => tech.effects)
+        .where((modifier) => modifier.type == 'unlock-recipe')
+        .map((modifier) => modifier._recipeString)
+        .nonNulls
+        .toSet();
 
     Map<String, Map> rawRecipes = (factorioRawData['recipe'] as Map).cast();
     rawRecipes.forEach((name, recipeJson) {
@@ -186,6 +209,10 @@ class FactorioDatabase {
         );
       }
     });
+
+    recipes.removeWhere(
+      (name, recipe) => !recipe.enabled && !unlockedRecipes.contains(name),
+    );
 
     Map<String, Map> rawCraftingMachines = {};
     for (var machineSection in machineSections) {
