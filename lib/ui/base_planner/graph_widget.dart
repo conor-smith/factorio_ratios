@@ -1,7 +1,7 @@
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
-import 'package:factorio_ratios/ui/graph/edge_widget.dart';
-import 'package:factorio_ratios/ui/graph/node_widget.dart';
-import 'package:factorio_ratios/ui/graph/base_planner_widget.dart';
+import 'package:factorio_ratios/ui/base_planner/edge_widget.dart';
+import 'package:factorio_ratios/ui/base_planner/node_widget.dart';
+import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:flutter/material.dart';
 
 class GraphWidget extends StatefulWidget {

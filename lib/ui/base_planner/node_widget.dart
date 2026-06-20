@@ -1,7 +1,7 @@
 import 'dart:developer';
 
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
-import 'package:factorio_ratios/ui/graph/base_planner_widget.dart';
+import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:flutter/material.dart';
 
 class NodeWidget extends StatefulWidget {
