@@ -4,7 +4,7 @@ import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/ui/icon_widgets.dart';
 import 'package:flutter/material.dart';
 
-class FactorioGroupMenuWidget<T extends EntityPrototype>
+class FactorioGroupMenuWidget<T extends PrototypeWithIcon>
     extends StatefulWidget {
   final Function(T item) onSelected;
 
@@ -21,7 +21,7 @@ class FactorioGroupMenuWidget<T extends EntityPrototype>
       _FactorioGroupMenuWidgetState<T>();
 }
 
-class _FactorioGroupMenuWidgetState<T extends EntityPrototype>
+class _FactorioGroupMenuWidgetState<T extends PrototypeWithIcon>
     extends State<FactorioGroupMenuWidget<T>> {
   ItemGroup? selectedGroup;
 
@@ -97,7 +97,7 @@ class _FactorioGroupMenuWidgetState<T extends EntityPrototype>
 }
 
 Map<ItemGroup?, Map<ItemSubgroup?, List<T>>>
-_groupAndSortItems<T extends EntityPrototype>(List<T> items) {
+_groupAndSortItems<T extends PrototypeWithIcon>(List<T> items) {
   Map<ItemGroup?, Map<ItemSubgroup?, List<T>>> groupMap = {};
 
   for (var item in items) {

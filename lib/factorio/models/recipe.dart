@@ -1,6 +1,6 @@
 part of 'models.dart';
 
-class Recipe extends EntityPrototype {
+class Recipe extends PrototypeWithIcon {
   static const double _expectedIconSize = 64,
       _defaultScale = (_expectedIconSize / 2) / _expectedIconSize,
       defaultEnergyRequired = 0.5;

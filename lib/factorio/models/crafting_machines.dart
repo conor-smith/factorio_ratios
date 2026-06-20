@@ -1,6 +1,6 @@
 part of 'models.dart';
 
-class CraftingMachine extends EntityPrototype {
+class CraftingMachine extends PrototypeWithIcon {
   // TODO - Quality effects on module and energy usage
   static const double _expectedIconSize = 64,
       _defaultScale = (_expectedIconSize / 2) / _expectedIconSize;

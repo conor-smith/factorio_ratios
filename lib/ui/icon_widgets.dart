@@ -19,7 +19,7 @@ class FactorioIconWidget extends StatelessWidget {
   FactorioIconWidget({
     super.key,
     required this.icon,
-    required EntityPrototype entity,
+    required PrototypeWithIcon entity,
     required this.size,
   }) : expectedIconSize = entity.expectedIconSize,
        defaultScale = entity.defaultScale;

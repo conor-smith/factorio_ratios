@@ -44,7 +44,7 @@ class DisplayData {
     : this._(DisplayDataType.boolean, value, children: children);
 
   DisplayData.icon(
-    EntityPrototype value, {
+    PrototypeWithIcon value, {
     Iterable<DisplayData> children = const [],
   }) : this._(DisplayDataType.hasIcon, value, children: children);
 
@@ -64,7 +64,7 @@ class DisplayData {
   }) : this._row(DisplayDataType.rowAlignedRight, row, children);
 
   DisplayData.iconAndString({
-    required EntityPrototype icon,
+    required PrototypeWithIcon icon,
     required String string,
     Iterable<DisplayData> children = const [],
   }) : this._(DisplayDataType.rowAlignedLeft, [

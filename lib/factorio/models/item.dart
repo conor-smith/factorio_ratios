@@ -1,6 +1,6 @@
 part of 'models.dart';
 
-abstract class Item extends EntityPrototype {
+abstract class Item extends PrototypeWithIcon {
   static const double _expectedIconSize = 64;
   static const double _defaultScale =
       (_expectedIconSize / 2) / _expectedIconSize;
