@@ -1,6 +1,8 @@
 part of 'node.dart';
 
-class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
+class ProdLineNode
+    with EventNotifier<NodeEvent>
+    implements NodeElement<ProdLineNodeState, NodeEvent> {
   final BasePlanner _basePlanner;
 
   @override
@@ -33,7 +35,6 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
   @override
   Set<InGameItem> get outputItems => state.productionLine.outputItems;
 
-  final EventNotifier<NodeEvent> _notifier = EventNotifierImpl();
   ProdLineNodeStateImpl _state;
   ProdLineNodeStateBuilder? _builder;
 
@@ -73,16 +74,6 @@ class ProdLineNode implements NodeElement<ProdLineNodeState, NodeEvent> {
 
   @override
   void cancelStateBuilder() => _builder = null;
-
-  @override
-  void addListener(Object listener, Function(NodeEvent event) callback) =>
-      _notifier.addListener(listener, callback);
-  @override
-  void removeListener(Object listener) => _notifier.removeListener(listener);
-  @override
-  void clearListeners() => _notifier.clearListeners();
-  @override
-  void notifyListeners(NodeEvent event) => _notifier.notifyListeners(event);
 
   @override
   bool get isSelected => _basePlanner.selectedElements.contains(this);

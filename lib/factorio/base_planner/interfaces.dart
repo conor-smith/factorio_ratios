@@ -4,11 +4,19 @@ part of 'base_planner.dart';
 ///
 /// Probably could have used a Flutter class, but I wanted the code here to be
 /// as independent as possible.
-abstract interface class EventNotifier<T> {
-  void addListener(Object listener, Function(T event) callback);
-  void removeListener(Object listener);
-  void clearListeners();
-  void notifyListeners(T event);
+abstract mixin class EventNotifier<T> {
+  final Map<Object, Function(T event)> _listeners = {};
+
+  void addListener(Object listener, Function(T event) callback) =>
+      _listeners[listener] = callback;
+  void removeListener(Object listener) => _listeners.remove(listener);
+  void clearListeners() => _listeners.clear();
+
+  void notifyListeners(T event) {
+    for (var callback in _listeners.values) {
+      callback(event);
+    }
+  }
 }
 
 /// All objects that are part of [BasePlanner] implement this interface.

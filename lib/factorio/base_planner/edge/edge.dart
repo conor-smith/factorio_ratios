@@ -7,7 +7,9 @@ import 'package:factorio_ratios/json/json.dart';
 
 part 'edge_state.dart';
 
-class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
+class Edge
+    with EventNotifier<EdgeEvent>
+    implements BasePlannerElement<EdgeState, EdgeEvent> {
   final BasePlanner _basePlanner;
 
   @override
@@ -22,7 +24,6 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
   final NodeElement child;
   final InGameItem item;
 
-  final EventNotifier<EdgeEvent> _notifier = EventNotifierImpl();
   EdgeStateImpl _state;
   EdgeStateBuilder? _builder;
 
@@ -127,16 +128,6 @@ class Edge implements BasePlannerElement<EdgeState, EdgeEvent> {
 
   @override
   void deselect() => _basePlanner.deselectElement(this);
-
-  @override
-  void addListener(Object listener, Function(EdgeEvent event) callback) =>
-      _notifier.addListener(listener, callback);
-  @override
-  void removeListener(Object listener) => _notifier.removeListener(listener);
-  @override
-  void clearListeners() => _notifier.clearListeners();
-  @override
-  void notifyListeners(EdgeEvent event) => _notifier.notifyListeners(event);
 
   @override
   void notifyListenersOfGeometryUpdate(EdgeGeometry edgeGeometry) =>

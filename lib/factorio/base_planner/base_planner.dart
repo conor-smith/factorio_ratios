@@ -9,7 +9,6 @@ import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/json/json.dart';
 
 part 'interfaces.dart';
-part 'event_notifier_impl.dart';
 
 /// The single source of truth for the application.
 ///
@@ -33,7 +32,9 @@ part 'event_notifier_impl.dart';
 ///
 /// [activeGraph] represents the current [Graph] to be displayed.
 /// Everytime [activeGraph] is updated, [selectedElements] will be cleared.
-class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
+class BasePlanner
+    with EventNotifier<BasePlannerEvent>
+    implements ToJson, EventNotifier<BasePlannerEvent> {
   static const maxSnapshots = 20;
 
   final FactorioDatabase db;
@@ -59,8 +60,6 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
 
   late Graph _activeGraph;
   final Set<BasePlannerElement> _selectedElements = {};
-
-  final EventNotifier<BasePlannerEvent> _notifier = EventNotifierImpl();
 
   final List<Snapshot> _snapshots = [];
   int _snapshotIndex = 0;
@@ -98,19 +97,6 @@ class BasePlanner implements ToJson, EventNotifier<BasePlannerEvent> {
     _activeGraph = rootGraph;
     _snapshots.add(Snapshot._({rootGraph: rootGraph.state}));
   }
-
-  @override
-  void addListener(
-    Object listener,
-    Function(BasePlannerEvent event) callback,
-  ) => _notifier.addListener(listener, callback);
-  @override
-  void removeListener(Object listener) => _notifier.removeListener(listener);
-  @override
-  void clearListeners() => _notifier.clearListeners();
-  @override
-  void notifyListeners(BasePlannerEvent event) =>
-      _notifier.notifyListeners(event);
 
   void selectElement(BasePlannerElement element) {
     if (element.parentGraph != _activeGraph) {

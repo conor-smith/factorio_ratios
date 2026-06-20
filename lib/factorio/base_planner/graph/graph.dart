@@ -17,6 +17,7 @@ part 'graph_state.dart';
 
 /// Represents a graph of [NodeElement]s connected by [Edge]s.
 class Graph
+    with EventNotifier<GraphEvent>
     implements NodeElement<GraphState, GraphEvent>, ProductionLine<GraphIo> {
   final BasePlanner _basePlanner;
 
@@ -27,7 +28,6 @@ class Graph
   late final Graph parentGraph;
   final SurfaceProperties _surfaceProperties;
 
-  final EventNotifier<GraphEvent> _notifier = EventNotifierImpl();
   GraphStateImpl _state;
   GraphStateBuilder? _builder;
 
@@ -119,16 +119,6 @@ class Graph
 
   @override
   void cancelStateBuilder() => _builder = null;
-
-  @override
-  void addListener(Object listener, Function(GraphEvent event) callback) =>
-      _notifier.addListener(listener, callback);
-  @override
-  void removeListener(Object listener) => _notifier.removeListener(listener);
-  @override
-  void clearListeners() => _notifier.clearListeners();
-  @override
-  void notifyListeners(GraphEvent event) => _notifier.notifyListeners(event);
 
   @override
   bool get isSelected => _basePlanner.selectedElements.contains(this);
