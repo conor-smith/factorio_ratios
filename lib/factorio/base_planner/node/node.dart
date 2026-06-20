@@ -5,9 +5,11 @@ import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
+import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/json/json.dart';
 
+part 'io_node.dart';
 part 'production_line_node_state.dart';
 part 'production_line_node.dart';
 
@@ -152,9 +154,19 @@ enum NodeType implements Comparable<NodeType> {
       outputPriority.compareTo(other.outputPriority);
 }
 
-abstract interface class NodeEvent {
-  NodeGeometry? get nodeGeometry;
-  NodeEventType get nodeEventType;
+class NodeEvent {
+  final NodeEventType nodeEventType;
+
+  final NodeGeometry? nodeGeometry;
+
+  NodeEvent.geometryOp(NodeGeometry this.nodeGeometry)
+    : nodeEventType = NodeEventType.geometryOp;
+
+  NodeEvent.stateUpdate()
+    : nodeEventType = NodeEventType.stateUpdate,
+      nodeGeometry = null;
+
+  NodeEvent.other() : nodeEventType = NodeEventType.other, nodeGeometry = null;
 }
 
 enum NodeEventType {

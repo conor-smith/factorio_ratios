@@ -82,22 +82,11 @@ class ProdLineNode
 
   @override
   void notifyListenersOfGeometryUpdate(NodeGeometryImpl nodeGeometry) =>
-      notifyListeners(ProdLineNodeEvent.geometryOp(nodeGeometry));
+      notifyListeners(NodeEvent.geometryOp(nodeGeometry));
 
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
   }
-}
-
-class ProdLineNodeEvent extends NodeEvent {
-  @override
-  final NodeEventType nodeEventType;
-
-  @override
-  final NodeGeometry? nodeGeometry;
-
-  ProdLineNodeEvent.geometryOp(NodeGeometry this.nodeGeometry)
-    : nodeEventType = NodeEventType.geometryOp;
 }
