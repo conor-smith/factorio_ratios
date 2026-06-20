@@ -53,23 +53,33 @@ class GraphStateImpl implements GraphState, ToJson {
   late final Map<InGameItem, List<Edge>> inputEdges =
       NodeElement.calculateInputEdges(parents, children);
 
-  final bool _isFirstState;
-
-  GraphStateImpl._({
+  GraphStateImpl._initial({
     this.name = 'graph',
     this.icon,
-    Iterable<ProdLineNode> prodLineNodes = const {},
-    Iterable<Graph> graphNodes = const {},
-    Iterable<Edge> edges = const {},
     this.nodeGeometry = NodeGeometryImpl.uninitialised,
-    Iterable<Edge> parents = const {},
-    Iterable<Edge> children = const {},
-    Iterable<InGameItem> inputItems = const {},
-    Iterable<InGameItem> outputItems = const {},
-    this.io,
-    bool isFirstState = false,
-  }) : _isFirstState = isFirstState,
-       prodLineNodes = Set.unmodifiable(prodLineNodes),
+  }) : prodLineNodes = const {},
+       graphNodes = const {},
+       edges = const {},
+       parents = const {},
+       children = const {},
+       inputItems = const {},
+       outputItems = const {},
+       io = null;
+
+  GraphStateImpl._({
+    required Graph graph,
+    required this.name,
+    required this.icon,
+    required Iterable<ProdLineNode> prodLineNodes,
+    required Iterable<Graph> graphNodes,
+    required Iterable<Edge> edges,
+    required this.nodeGeometry,
+    required Iterable<Edge> parents,
+    required Iterable<Edge> children,
+    required Iterable<InGameItem> inputItems,
+    required Iterable<InGameItem> outputItems,
+    required this.io,
+  }) : prodLineNodes = Set.unmodifiable(prodLineNodes),
        graphNodes = Set.unmodifiable(graphNodes),
        edges = Set.unmodifiable(edges),
        parents = Set.unmodifiable(parents),
@@ -252,6 +262,8 @@ class GraphStateBuilder
 
   @override
   GraphStateImpl build() => GraphStateImpl._(
+    graph: _graph,
+    icon: _icon,
     name: _name,
     prodLineNodes: _prodLineNodes,
     edges: edges,

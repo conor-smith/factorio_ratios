@@ -80,10 +80,7 @@ class Graph
     Icon? icon,
   }) : _basePlanner = basePlanner,
        id = BasePlannerElement.generateId(),
-       _state = GraphStateImpl._(
-         icon: icon ?? surface?.icon,
-         isFirstState: true,
-       ),
+       _state = GraphStateImpl._initial(icon: icon ?? surface?.icon),
        _surfaceProperties =
            basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
     _builder = GraphStateBuilder._new(this);
@@ -92,7 +89,7 @@ class Graph
   Graph.rootGraph(BasePlanner basePlanner, [this.surface])
     : _basePlanner = basePlanner,
       id = BasePlannerElement.generateId(),
-      _state = GraphStateImpl._(icon: surface?.icon),
+      _state = GraphStateImpl._initial(icon: surface?.icon),
       _surfaceProperties =
           basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
     parentGraph = this;
@@ -453,9 +450,33 @@ class GraphIo extends ProductionLineIo {
 
 class GraphEvent implements NodeEvent {
   @override
+  final NodeEventType nodeEventType;
+  @override
   final NodeGeometry? nodeGeometry;
 
-  GraphEvent.geometryOp(NodeGeometry this.nodeGeometry);
+  final GraphEventType graphEventType;
+
+  final Set<NodeElement> newNodes, removedNodes;
+  final Set<Edge> newEdges, removedEdges;
+
+  GraphEvent.geometryOp(NodeGeometry nodeGeometry)
+    : this._nodeEvent(NodeEventType.geometryOp, nodeGeometry);
+
+  GraphEvent._nodeEvent(this.nodeEventType, [this.nodeGeometry])
+    : graphEventType = GraphEventType.nodeEvent,
+      newNodes = const {},
+      removedNodes = const {},
+      newEdges = const {},
+      removedEdges = const {};
+
+  GraphEvent._graphEvent(
+    this.graphEventType, {
+    this.newNodes = const {},
+    this.removedNodes = const {},
+    this.newEdges = const {},
+    this.removedEdges = const {},
+  }) : nodeEventType = NodeEventType.other,
+       nodeGeometry = null;
 }
 
 class GraphException extends BasePlannerException {
@@ -505,5 +526,7 @@ class GraphIoBuilder implements Builder<GraphIo> {
     emissions: emissions,
   );
 }
+
+enum GraphEventType { updateNodesAndEdges, childrenGeometryUpdate, nodeEvent }
 
 typedef _NodeItemIndex = Map<InGameItem, SortedList<NodeElement>>;

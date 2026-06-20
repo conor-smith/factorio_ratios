@@ -154,4 +154,15 @@ enum NodeType implements Comparable<NodeType> {
 
 abstract interface class NodeEvent {
   NodeGeometry? get nodeGeometry;
+  NodeEventType get nodeEventType;
+}
+
+enum NodeEventType {
+  geometryOp(true),
+  stateUpdate(true),
+  other(false);
+
+  final bool updateRequired;
+
+  const NodeEventType(this.updateRequired);
 }

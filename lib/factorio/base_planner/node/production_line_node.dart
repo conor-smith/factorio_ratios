@@ -97,7 +97,11 @@ class ProdLineNode
 
 class ProdLineNodeEvent extends NodeEvent {
   @override
+  final NodeEventType nodeEventType;
+
+  @override
   final NodeGeometry? nodeGeometry;
 
-  ProdLineNodeEvent.geometryOp(NodeGeometry this.nodeGeometry);
+  ProdLineNodeEvent.geometryOp(NodeGeometry this.nodeGeometry)
+    : nodeEventType = NodeEventType.geometryOp;
 }
