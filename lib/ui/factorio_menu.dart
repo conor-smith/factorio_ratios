@@ -1,7 +1,7 @@
 import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/models/models.dart';
-import 'package:factorio_ratios/ui/icon_widgets.dart';
+import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:flutter/material.dart';
 
 class FactorioGroupMenuWidget<T extends PrototypeWithIcon>
@@ -12,7 +12,7 @@ class FactorioGroupMenuWidget<T extends PrototypeWithIcon>
 
   FactorioGroupMenuWidget({
     super.key,
-    required List<T> items,
+    required Iterable<T> items,
     required this.onSelected,
   }) : sortedItems = _groupAndSortItems(items);
 
@@ -52,6 +52,8 @@ class _FactorioGroupMenuWidgetState<T extends PrototypeWithIcon>
         )
         .toList();
 
+    var cache = BasePlannerWidget.getWidgetCache(context);
+
     List<Widget> subgroups = widget.sortedItems[selectedGroup]!.entries
         .map(
           (entry) => Row(
@@ -59,14 +61,7 @@ class _FactorioGroupMenuWidgetState<T extends PrototypeWithIcon>
                 .map(
                   (item) => TextButton(
                     onPressed: () => widget.onSelected(item),
-                    child: Tooltip(
-                      message: item.name,
-                      child: FactorioIconWidget(
-                        icon: item.icon,
-                        entity: item,
-                        size: 64,
-                      ),
-                    ),
+                    child: Tooltip(message: item.name, child: cache.get(item)),
                   ),
                 )
                 .toList(),
@@ -97,7 +92,7 @@ class _FactorioGroupMenuWidgetState<T extends PrototypeWithIcon>
 }
 
 Map<ItemGroup?, Map<ItemSubgroup?, List<T>>>
-_groupAndSortItems<T extends PrototypeWithIcon>(List<T> items) {
+_groupAndSortItems<T extends PrototypeWithIcon>(Iterable<T> items) {
   Map<ItemGroup?, Map<ItemSubgroup?, List<T>>> groupMap = {};
 
   for (var item in items) {

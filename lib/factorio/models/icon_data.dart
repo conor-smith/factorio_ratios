@@ -17,6 +17,18 @@ class Icon {
     return icon;
   }
 
+  Icon.unknownIcon(double expectedIconSize)
+    : this._([
+        IconData._(
+          icon: '__core__/graphics/icons/unknown.png',
+          iconSize: 64,
+          tint: IconTint.defaultIconTint,
+          shift: Vector.defaultVector,
+          scale: (expectedIconSize / 2) / 64,
+          floating: false,
+        ),
+      ]);
+
   static Icon? fromTopLevelJson(Map json, double expectedIconSize) {
     String? icon = json['icon'];
     List<Map>? iconsJson = (json['icons'] as List?)?.cast();
