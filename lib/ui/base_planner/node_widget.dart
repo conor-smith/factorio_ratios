@@ -1,7 +1,5 @@
-import 'dart:developer';
-
+import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
-import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:flutter/material.dart';
 
 class NodeWidget extends StatefulWidget {
@@ -14,35 +12,52 @@ class NodeWidget extends StatefulWidget {
 }
 
 class _NodeWidgetState extends State<NodeWidget> {
+  late NodeGeometry geometry;
+
+  // For convenience
+  NodeElement get node => widget.node;
+
+  static const unselectedBoxDecoration = BoxDecoration(
+    border: Border.fromBorderSide(BorderSide()),
+    borderRadius: BorderRadius.all(Radius.circular(5)),
+  );
+  static const selectedBoxDecoration = BoxDecoration(
+    border: Border.fromBorderSide(BorderSide(color: Colors.yellow)),
+    borderRadius: BorderRadius.all(Radius.circular(5)),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+
+    geometry = node.nodeGeometry;
+
+    node.addListener(
+      this,
+      (event) =>
+          setState(() => geometry = event.nodeGeometry ?? node.nodeGeometry),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // return Positioned.fromRect(
-    //   rect: geometry.minimalRect,
-    //   child: Container(
-    //     decoration: selected ? selectedBoxDecoration : unselectedBoxDecoration,
-    //     child: GestureDetector(
-    //       onTapDown: (details) {
-    //         if (!selected) {
-    //           widget.graphChangeNotifier.selectNode(widget.node);
-    //         }
-    //       },
-    //       onHorizontalDragStart: (details) {
-    //         geometryOp = widget.graphChangeNotifier.drag();
-    //         startPosition = details.globalPosition;
-    //       },
-    //       onHorizontalDragUpdate: (details) {
-    //         geometryOp!.drag(details.globalPosition - startPosition!);
-    //       },
-    //       onHorizontalDragEnd: (details) {
-    //         widget.graphChangeNotifier.finishGeometryOperation(geometryOp!);
-    //         geometryOp = null;
-    //         startPosition = null;
-    //       },
-    //       child: Center(child: Text(widget.node.toString())),
-    //     ),
-    //   ),
-    // );
+    var selected = node.isSelected;
 
-    return Placeholder();
+    return Positioned.fromRect(
+      rect: geometry.rect,
+      child: Container(
+        decoration: selected ? selectedBoxDecoration : unselectedBoxDecoration,
+        child: GestureDetector(
+          onTapDown: (details) {
+            if (!selected) {
+              node.select();
+            } else {
+              node.deselect();
+            }
+          },
+          child: Center(child: Text(widget.node.toString())),
+        ),
+      ),
+    );
   }
 }

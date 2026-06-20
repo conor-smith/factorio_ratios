@@ -1,4 +1,5 @@
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:flutter/material.dart';
 
@@ -12,11 +13,29 @@ class EdgeWidget extends StatefulWidget {
 }
 
 class _EdgeWidgetState extends State<EdgeWidget> {
+  late EdgeGeometry geometry;
+
+  // For convenience
+  Edge get edge => widget.edge;
+
+  @override
+  void initState() {
+    super.initState();
+
+    geometry = edge.edgeGeometry;
+
+    edge.addListener(
+      this,
+      (event) =>
+          setState(() => geometry = event.edgeGeometry ?? edge.edgeGeometry),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // return CustomPaint(painter: LinesPainter(geometry.lines[0], selected));
-
-    return Placeholder();
+    return CustomPaint(
+      painter: LinesPainter(geometry.lines[0], edge.isSelected),
+    );
   }
 }
 
