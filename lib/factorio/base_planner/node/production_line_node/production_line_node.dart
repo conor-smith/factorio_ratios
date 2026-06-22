@@ -52,10 +52,7 @@ class ProdLineNode
     required this.nodeType,
     required ProductionLine productionLine,
   }) : _basePlanner = basePlanner,
-       _state = ProdLineNodeStateImpl._(
-         productionLine: productionLine,
-         isFirstState: true,
-       ) {
+       _state = ProdLineNodeStateImpl._(productionLine: productionLine) {
     _builder = ProdLineNodeStateBuilder._new(this);
   }
 

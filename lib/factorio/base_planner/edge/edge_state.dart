@@ -16,14 +16,11 @@ class EdgeStateImpl implements EdgeState, ToJson {
   @override
   final EdgeGeometryImpl edgeGeometry;
 
-  final bool _isFirstState;
-
   EdgeStateImpl._({
     this.amount,
     required this.percentage,
     this.edgeGeometry = EdgeGeometryImpl.uninitialised,
-    bool firstState = false,
-  }) : _isFirstState = firstState;
+  });
 
   @override
   Map<String, dynamic> toJson() {

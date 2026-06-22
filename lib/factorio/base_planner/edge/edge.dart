@@ -92,7 +92,7 @@ class Edge
     required this.item,
     required double percentage,
   }) : _basePlanner = basePlanner,
-       _state = EdgeStateImpl._(percentage: percentage, firstState: true);
+       _state = EdgeStateImpl._(percentage: percentage);
 
   @override
   EdgeState get state => _builder ?? _state;
