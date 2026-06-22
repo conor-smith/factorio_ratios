@@ -107,14 +107,8 @@ class ProdLineNodeStateBuilder
 
     var parentGraphStateBuilder = node.parentGraph.getStateBuilder();
     parentGraphStateBuilder
-      ..addNode(node)
+      ..addProdLineNode(node)
       ..clearIo();
-
-    if (node.nodeType == NodeType.output) {
-      parentGraphStateBuilder.addOutputItems(node.productionLine.outputItems);
-    } else if (node.nodeType == NodeType.input) {
-      parentGraphStateBuilder.addInputItems(node.productionLine.inputItems);
-    }
 
     return builder;
   }
@@ -124,16 +118,8 @@ class ProdLineNodeStateBuilder
 
     var parentGraphStateBuilder = node.parentGraph.getStateBuilder();
     parentGraphStateBuilder
-      ..removeNode(node)
+      ..removeProdLineNode(node)
       ..clearIo();
-
-    if (node.nodeType == NodeType.output) {
-      parentGraphStateBuilder.removeOutputItems(
-        node.productionLine.outputItems,
-      );
-    } else if (node.nodeType == NodeType.input) {
-      parentGraphStateBuilder.removeInputItems(node.productionLine.inputItems);
-    }
 
     for (var edge in [...node.parents, ...node.children]) {
       edge.remove();

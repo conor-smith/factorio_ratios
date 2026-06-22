@@ -48,6 +48,8 @@ class IoNode
   Set<Edge> get parents => state.parents;
   @override
   Set<Edge> get children => state.children;
+  Set<Edge> get externalParents => throw UnimplementedError();
+  Set<Edge> get externalChildren => throw UnimplementedError();
   @override
   Map<InGameItem, List<Edge>> get inputEdges => state.inputEdges;
   @override
@@ -216,6 +218,26 @@ class IoNodeStateBuilder
   @override
   void updateGeometry(NodeGeometryImpl nodeGeometry) {
     // TODO: implement updateGeometry
+    throw UnimplementedError();
+  }
+
+  void addExternalParent(Edge externalParent) {
+    // TODO: implement addExternalParent
+    throw UnimplementedError();
+  }
+
+  void addExternalChild(Edge externalChild) {
+    // TODO: implement addExternalChild
+    throw UnimplementedError();
+  }
+
+  void removeExternalParent(Edge externalParent) {
+    // TODO: implement removeExternalParent
+    throw UnimplementedError();
+  }
+
+  void removeExternalChild(Edge externalChild) {
+    // TODO: implement removeExternalChild
     throw UnimplementedError();
   }
 
