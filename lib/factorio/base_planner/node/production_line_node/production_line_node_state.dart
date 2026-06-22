@@ -1,4 +1,4 @@
-part of 'node.dart';
+part of 'production_line_node.dart';
 
 abstract class ProdLineNodeState {
   ItemIo? get requirements;
