@@ -5,6 +5,7 @@ import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/io_node/io_node.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/production_line_node/production_line_node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
@@ -51,6 +52,8 @@ class Graph
   GraphIo? get io => state.io;
   Set<Graph> get graphNodes => state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
+  Map<InGameItem, IoNode> get outputNodes => throw UnimplementedError();
+  Map<InGameItem, IoNode> get inputNodes => throw UnimplementedError();
   Set<NodeElement> get allNodes => state.allNodes;
   Set<Edge> get edges => state.edges;
   @override
@@ -121,6 +124,32 @@ class Graph
 
   @override
   void deselect() => _basePlanner.deselectElement(this);
+
+  @override
+  NodeElement getOutputItemNode(InGameItem item) {
+    var outputNode = outputNodes[item];
+
+    if (outputNode != null) {
+      return outputNode;
+    } else {
+      throw GraphException(
+        'Graph $this does not have an output node for item $item',
+      );
+    }
+  }
+
+  @override
+  NodeElement getInputItemNode(InGameItem item) {
+    var inputNode = inputNodes[item];
+
+    if (inputNode != null) {
+      return inputNode;
+    } else {
+      throw GraphException(
+        'Graph $this does not have an input node for item $item',
+      );
+    }
+  }
 
   @override
   void notifyListenersOfGeometryUpdate(NodeGeometry nodeGeometry) =>

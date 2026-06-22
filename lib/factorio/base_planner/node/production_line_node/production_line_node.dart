@@ -89,6 +89,24 @@ class ProdLineNode
   void deselect() => _basePlanner.deselectElement(this);
 
   @override
+  NodeElement getOutputItemNode(InGameItem item) {
+    if (outputItems.contains(item)) {
+      return this;
+    } else {
+      throw NodeException('Node $this cannot output $item');
+    }
+  }
+
+  @override
+  NodeElement getInputItemNode(InGameItem item) {
+    if (inputItems.contains(item)) {
+      return this;
+    } else {
+      throw NodeException('Node $this cannot accept $item as input');
+    }
+  }
+
+  @override
   void notifyListenersOfGeometryUpdate(NodeGeometryImpl nodeGeometry) =>
       notifyListeners(NodeEvent.geometryOp(nodeGeometry));
 

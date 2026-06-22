@@ -16,8 +16,16 @@ class Edge
   @override
   final Graph parentGraph;
   final EdgeType edgeType;
-  final ProdLineNode parentProductionLine;
-  final ProdLineNode childProductionLine;
+
+  /// This node is the node that items will actually come from / go to.
+  /// It will typically be the same as [parent], unless [parent] is a [Graph],
+  /// in which case, it will be the relevant IoNode.
+  final NodeElement parentItemNode;
+
+  /// This node is the node that items will actually come from / go to.
+  /// It will typically be the same as [child], unless [child] is a [Graph],
+  /// in which case, it will be the relevant IoNode.
+  final NodeElement childItemNode;
   final NodeElement parent;
   final NodeElement child;
   final InGameItem item;
@@ -30,69 +38,36 @@ class Edge
   double get percentage => state.percentage;
   EdgeGeometryImpl get edgeGeometry => state.edgeGeometry;
 
-  factory Edge.addToBasePlanner({
-    required BasePlanner basePlanner,
-    required Graph parentGraph,
-    required EdgeType edgeType,
-    required NodeElement parent,
-    required NodeElement child,
-    required InGameItem item,
-    double percentage = 1.0,
-  }) {
-    ProdLineNode parentProdLine;
-    ProdLineNode childProdLine;
-
-    if (parent is ProdLineNode) {
-      parentProdLine = parent;
-    } else {
-      var parentGraph = parent as Graph;
-
-      parentProdLine = switch (edgeType) {
-        EdgeType.requestItems => _findInputNodeForItem(parentGraph, item),
-        EdgeType.acceptExcess => _findOutputNodeForItem(parentGraph, item),
-      };
-    }
-
-    if (child is ProdLineNode) {
-      childProdLine = child;
-    } else {
-      var childGraph = child as Graph;
-
-      childProdLine = switch (edgeType) {
-        EdgeType.requestItems => _findOutputNodeForItem(childGraph, item),
-        EdgeType.acceptExcess => _findInputNodeForItem(childGraph, item),
-      };
-    }
-
-    var edge = Edge._(
-      basePlanner: basePlanner,
-      parentGraph: parentGraph,
-      edgeType: edgeType,
-      parent: parent,
-      child: child,
-      parentProductionLine: parentProdLine,
-      childProductionLine: childProdLine,
-      item: item,
-      percentage: percentage,
-    );
-
-    edge._builder = EdgeStateBuilder._new(edge);
-
-    return edge;
-  }
-
-  Edge._({
+  Edge.addToBasePlanner({
     required BasePlanner basePlanner,
     required this.parentGraph,
     required this.edgeType,
     required this.parent,
     required this.child,
-    required this.parentProductionLine,
-    required this.childProductionLine,
     required this.item,
-    required double percentage,
+    double percentage = 1.0,
   }) : _basePlanner = basePlanner,
-       _state = EdgeStateImpl._(percentage: percentage);
+       parentItemNode = switch (edgeType) {
+         EdgeType.requestItems => parent.getInputItemNode(item),
+         EdgeType.acceptExcess => parent.getOutputItemNode(item),
+       },
+       childItemNode = switch (edgeType) {
+         EdgeType.requestItems => child.getOutputItemNode(item),
+         EdgeType.acceptExcess => child.getInputItemNode(item),
+       },
+       _state = EdgeStateImpl._(percentage: percentage) {
+    if (parent.parentGraph != parentGraph) {
+      throw EdgeException(
+        'Edge with parentGraph $parentGraph cannot connect to parent node $parent with different parentGraph ${parent.parentGraph}',
+      );
+    } else if (child.parentGraph != parentGraph) {
+      throw EdgeException(
+        'Edge with parentGraph $parentGraph cannot connect to child node $parent with different parentGraph ${parent.parentGraph}',
+      );
+    }
+
+    _builder = EdgeStateBuilder._new(this);
+  }
 
   @override
   EdgeState get state => _builder ?? _state;
@@ -152,7 +127,13 @@ class EdgeEvent {
   EdgeEvent.geometryOp(EdgeGeometry this.edgeGeometry);
 }
 
-enum EdgeType { requestItems, acceptExcess }
+enum EdgeType {
+  /// Items flow from child to parent
+  requestItems,
+
+  /// Items flow from parent to child
+  acceptExcess,
+}
 
 class EdgeException extends BasePlannerException {
   const EdgeException(super.message, [super.cause]);

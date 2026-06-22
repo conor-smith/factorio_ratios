@@ -28,6 +28,9 @@ abstract interface class NodeElement<St, E extends NodeEvent>
   Set<InGameItem> get inputItems;
   Set<InGameItem> get outputItems;
 
+  NodeElement getOutputItemNode(InGameItem item);
+  NodeElement getInputItemNode(InGameItem item);
+
   static Map<InGameItem, List<Edge>> calculateOutputEdges(
     Set<Edge> parents,
     Set<Edge> children,
@@ -169,4 +172,8 @@ enum NodeEventType {
   final bool updateRequired;
 
   const NodeEventType(this.updateRequired);
+}
+
+class NodeException extends BasePlannerException {
+  const NodeException(super.message, [super.cause]);
 }

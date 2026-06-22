@@ -49,9 +49,6 @@ class EdgeStateBuilder implements Builder<EdgeStateImpl>, EdgeState {
     edge.parent.getStateBuilder().addChild(edge);
     edge.child.getStateBuilder().addParent(edge);
 
-    edge.parentProductionLine.getStateBuilder().addChild(edge);
-    edge.childProductionLine.getStateBuilder().addParent(edge);
-
     return builder;
   }
 
@@ -61,8 +58,8 @@ class EdgeStateBuilder implements Builder<EdgeStateImpl>, EdgeState {
     edge.parent.getStateBuilder().removeChild(edge);
     edge.child.getStateBuilder().removeParent(edge);
 
-    edge.parentProductionLine.getStateBuilder().removeChild(edge);
-    edge.childProductionLine.getStateBuilder().removeParent(edge);
+    edge.parentItemNode.getStateBuilder().removeChild(edge);
+    edge.childItemNode.getStateBuilder().removeParent(edge);
   }
 
   EdgeStateBuilder._from(Edge edge)

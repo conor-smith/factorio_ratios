@@ -93,6 +93,19 @@ class IoNode
   void deselect() => _basePlanner.deselectElement(this);
 
   @override
+  NodeElement<dynamic, NodeEvent> getInputItemNode(InGameItem item) {
+    if (ioItem == item) {
+      return this;
+    } else {
+      throw NodeException('Node $this cannot produce / consume item $item');
+    }
+  }
+
+  @override
+  NodeElement<dynamic, NodeEvent> getOutputItemNode(InGameItem item) =>
+      getInputItemNode(item);
+
+  @override
   void notifyListenersOfGeometryUpdate(NodeGeometryImpl nodeGeometry) =>
       notifyListeners(NodeEvent.geometryOp(nodeGeometry));
 
