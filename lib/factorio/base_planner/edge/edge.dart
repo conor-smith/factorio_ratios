@@ -2,6 +2,7 @@ import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/production_line_node/production_line_node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/json/json.dart';
 
@@ -128,6 +129,15 @@ class Edge
   @override
   void notifyListenersOfGeometryUpdate(EdgeGeometry edgeGeometry) =>
       notifyListeners(EdgeEvent.geometryOp(edgeGeometry));
+
+  @override
+  void notifyListenersOfStateUpdate(
+    EdgeStateImpl oldState,
+    EdgeStateImpl newState,
+  ) {
+    // TODO: implement notifyListenersOfStateUpdate
+    throw UnimplementedError();
+  }
 
   @override
   Map<String, dynamic> toJson() {

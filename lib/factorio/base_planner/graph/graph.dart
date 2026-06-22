@@ -6,6 +6,7 @@ import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/production_line_node/production_line_node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
@@ -124,6 +125,15 @@ class Graph
   @override
   void notifyListenersOfGeometryUpdate(NodeGeometry nodeGeometry) =>
       notifyListeners(GraphEvent.geometryOp(nodeGeometry));
+
+  @override
+  void notifyListenersOfStateUpdate(
+    GraphStateImpl oldState,
+    GraphStateImpl newState,
+  ) {
+    // TODO: implement notifyListenersOfStateUpdate
+    throw UnimplementedError();
+  }
 
   void addConsumerNodeAndTree(InGameItem item) {
     if (surface == null) {

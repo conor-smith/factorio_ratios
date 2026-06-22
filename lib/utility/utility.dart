@@ -22,3 +22,9 @@ bool compareMaps<K, V>(Map<K, V> map1, Map<K, V> map2) =>
 bool compareSets<T>(Set<T> set1, Set<T> set2) =>
     set1 == set2 || (set1.length == set2.length && set1.containsAll(set2));
 
+class Pair<A, B> {
+  final A item1;
+  final B item2;
+
+  const Pair(this.item1, this.item2);
+}

@@ -107,6 +107,15 @@ class IoNode
     // TODO: implement calculate
     throw UnimplementedError();
   }
+
+  @override
+  void notifyListenersOfStateUpdate(
+    IoNodeStateImpl oldState,
+    IoNodeStateImpl newState,
+  ) {
+    // TODO: implement notifyListenersOfStateUpdate
+    throw UnimplementedError();
+  }
 }
 
 abstract class IoNodeState {

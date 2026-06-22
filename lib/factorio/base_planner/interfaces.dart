@@ -54,6 +54,12 @@ abstract interface class BasePlannerElement<St, E>
   /// Used in the event of a dragging or resizing operation.
   /// Allows notifying listeners of some [Geometry] object without updating [state].
   void notifyListenersOfGeometryUpdate(covariant Geometry geometry);
+
+  /// Used whenever state is updated
+  void notifyListenersOfStateUpdate(
+    covariant St oldState,
+    covariant St newState,
+  );
 }
 
 abstract interface class Builder<T> {

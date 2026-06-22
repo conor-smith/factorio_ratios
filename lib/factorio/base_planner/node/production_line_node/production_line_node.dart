@@ -96,6 +96,15 @@ class ProdLineNode
       notifyListeners(NodeEvent.geometryOp(nodeGeometry));
 
   @override
+  void notifyListenersOfStateUpdate(
+    ProdLineNodeStateImpl oldState,
+    ProdLineNodeStateImpl newState,
+  ) {
+    // TODO: implement notifyListenersOfStateUpdate
+    throw UnimplementedError();
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();

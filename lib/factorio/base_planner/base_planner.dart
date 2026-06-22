@@ -1,5 +1,4 @@
 import 'dart:collection';
-import 'dart:math';
 
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
@@ -7,6 +6,7 @@ import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/json/json.dart';
+import 'package:factorio_ratios/utility/utility.dart';
 
 part 'interfaces.dart';
 
@@ -212,9 +212,28 @@ class BasePlanner
     Snapshot oldSnapshot,
     Snapshot newSnapshot,
   ) {
+    Map<BasePlannerElement, Pair> stateUpdates = {};
+
     _mutationLock++;
-    newSnapshot.states.forEach((element, state) => element.state = state);
+    newSnapshot.states.forEach((element, newState) {
+      var oldState = oldSnapshot.states[element];
+
+      if (newState != oldState) {
+        element.state = newState;
+      }
+
+      if (oldState != null) {
+        stateUpdates[element] = Pair(oldState, newState);
+      }
+    });
     _mutationLock--;
+
+    stateUpdates.forEach(
+      (element, stateUpdate) => element.notifyListenersOfStateUpdate(
+        stateUpdate.item1,
+        stateUpdate.item2,
+      ),
+    );
 
     var removedElements = oldSnapshot.states.keys.toSet().difference(
       newSnapshot.states.keys.toSet(),
