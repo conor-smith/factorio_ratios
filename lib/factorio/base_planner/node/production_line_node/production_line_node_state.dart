@@ -198,8 +198,27 @@ class ProdLineNodeStateBuilder
   void updateRequirements(ItemIo requirements) => _requirements = requirements;
   void clearRequirements() => _requirements = null;
 
-  void updateProductionLineAndClearIo(ProductionLine productionLine) {
-    _productionLine = productionLine;
+  void updateProductionLine(ProductionLine newProdLine) {
+    // Remove any edges that can no longer connect
+    var parentsToRemove = _productionLine.outputItems
+        .difference(newProdLine.outputItems)
+        .expand(
+          (removedOutput) =>
+              _parents.where((parent) => parent.item == removedOutput),
+        );
+    var childrenToRemove = _productionLine.inputItems
+        .difference(newProdLine.inputItems)
+        .expand(
+          (removedOutput) =>
+              _children.where((child) => child.item == removedOutput),
+        );
+
+    for (var toRemove in parentsToRemove.followedBy(childrenToRemove)) {
+      toRemove.getStateBuilder().removeSelf();
+    }
+
+    _productionLine = newProdLine;
+
     clearIo();
   }
 

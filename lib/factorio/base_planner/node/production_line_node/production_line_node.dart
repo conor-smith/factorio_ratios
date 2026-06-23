@@ -49,7 +49,16 @@ class ProdLineNode
     required ProductionLine productionLine,
     NodeGeometryImpl nodeGeometry = NodeGeometryImpl.uninitialised,
   }) : _basePlanner = basePlanner,
-       _state = ProdLineNodeStateImpl._initial(productionLine: productionLine, nodeGeometry: nodeGeometry) {
+       _state = ProdLineNodeStateImpl._initial(
+         productionLine: productionLine,
+         nodeGeometry: nodeGeometry,
+       ) {
+    if (nodeType.isIo) {
+      throw NodeException(
+        'ProdLineNode is not permitted to be of nodeType $nodeType',
+      );
+    }
+
     _builder = ProdLineNodeStateBuilder._from(this);
     _builder!.addSelf();
   }

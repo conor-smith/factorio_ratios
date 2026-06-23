@@ -1,6 +1,5 @@
 part of 'io_node.dart';
 
-
 abstract class IoNodeState {
   IoNodeIo? get io;
   String get name;
@@ -9,9 +8,6 @@ abstract class IoNodeState {
 
   Set<Edge> get parents;
   Set<Edge> get children;
-
-  Map<InGameItem, List<Edge>> get outputEdges;
-  Map<InGameItem, List<Edge>> get inputEdges;
 }
 
 class IoNodeStateImpl implements IoNodeState, ToJson {
@@ -27,13 +23,6 @@ class IoNodeStateImpl implements IoNodeState, ToJson {
   final Set<Edge> parents;
   @override
   final Set<Edge> children;
-
-  @override
-  late final Map<InGameItem, List<Edge>> outputEdges =
-      NodeElement.calculateOutputEdges(parents, children);
-  @override
-  late final Map<InGameItem, List<Edge>> inputEdges =
-      NodeElement.calculateInputEdges(parents, children);
 
   IoNodeStateImpl._({
     this.io,
