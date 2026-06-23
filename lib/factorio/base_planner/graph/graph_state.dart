@@ -141,6 +141,8 @@ class GraphStateBuilder
     implements NodeStateBuilder<GraphStateImpl>, GraphState {
   final Graph _graph;
 
+  bool toRemove = false;
+
   String _name;
   Icon? _icon;
   final Set<ProdLineNode> _prodLineNodes;
@@ -312,10 +314,8 @@ class GraphStateBuilder
     if (_io != null) {
       _io = null;
 
-      Graph? parentGraph = _graph.parentGraph;
-      while (parentGraph != null) {
-        parentGraph.getStateBuilder().clearIo();
-        parentGraph = parentGraph.parentGraph;
+      if (_graph != _graph._basePlanner.rootGraph) {
+        _graph.parentGraph.getStateBuilder().clearIo();
       }
     }
   }
