@@ -2,12 +2,13 @@ import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
-import 'package:factorio_ratios/factorio/base_planner/node/production_line_node/production_line_node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/json/json.dart';
 
 part 'edge_state.dart';
 
+/// Represents an edge connecting two [NodeElement]s.
+/// Items flow from child to parent
 class Edge
     with EventNotifier<EdgeEvent>
     implements BasePlannerElement<EdgeState, EdgeEvent> {
@@ -51,11 +52,11 @@ class Edge
   }) : _basePlanner = basePlanner,
        parentItemNode = switch (edgeType) {
          EdgeType.requestItems => parent.getInputItemNode(item),
-         EdgeType.acceptExcess => parent.getOutputItemNode(item),
+         EdgeType.pushExcess => parent.getOutputItemNode(item),
        },
        childItemNode = switch (edgeType) {
          EdgeType.requestItems => child.getOutputItemNode(item),
-         EdgeType.acceptExcess => child.getInputItemNode(item),
+         EdgeType.pushExcess => child.getInputItemNode(item),
        },
        _state = EdgeStateImpl._initial(
          amount: initialAmount,
@@ -132,35 +133,13 @@ class EdgeEvent {
 }
 
 enum EdgeType {
-  /// Items flow from child to parent
+  /// Parent is requesting items from child
   requestItems,
 
-  /// Items flow from parent to child
-  acceptExcess,
+  /// Child is pushing excess items onto parent
+  pushExcess,
 }
 
 class EdgeException extends BasePlannerException {
   const EdgeException(super.message, [super.cause]);
-}
-
-ProdLineNode _findInputNodeForItem(Graph graph, InGameItem item) {
-  if (!graph.inputItems.contains(item)) {
-    throw EdgeException('Graph $graph contains no input node for item $item');
-  } else {
-    return graph.prodLineNodes.firstWhere(
-      (node) =>
-          node.nodeType == NodeType.input && node.inputItems.contains(item),
-    );
-  }
-}
-
-ProdLineNode _findOutputNodeForItem(Graph graph, InGameItem item) {
-  if (!graph.outputItems.contains(item)) {
-    throw EdgeException('Graph $graph contains no output node for item $item');
-  } else {
-    return graph.prodLineNodes.firstWhere(
-      (node) =>
-          node.nodeType == NodeType.output && node.outputItems.contains(item),
-    );
-  }
 }

@@ -10,15 +10,6 @@ abstract class ProdLineNodeState {
 
   Set<Edge> get parents;
   Set<Edge> get children;
-
-  Set<Edge> get internalParents;
-  Set<Edge> get externalParents;
-
-  Set<Edge> get internalChildren;
-  Set<Edge> get externalChildren;
-
-  Map<InGameItem, List<Edge>> get outputEdges;
-  Map<InGameItem, List<Edge>> get inputEdges;
 }
 
 class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
@@ -38,13 +29,6 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   @override
   final Set<Edge> children;
 
-  @override
-  late final Map<InGameItem, List<Edge>> outputEdges =
-      NodeElement.calculateOutputEdges(parents, children);
-  @override
-  late final Map<InGameItem, List<Edge>> inputEdges =
-      NodeElement.calculateInputEdges(parents, children);
-
   ProdLineNodeStateImpl._initial({
     required this.productionLine,
     required this.nodeGeometry,
@@ -63,50 +47,60 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
     required Iterable<Edge> children,
   }) : parents = Set.unmodifiable(parents),
        children = Set.unmodifiable(children) {
+    Map<InGameItem, double> excessOutputPercentages = {};
+
     for (var parent in this.parents) {
       if (parent.child != node) {
         throw NodeException('Edge $parent is not a parent of node $node');
       }
+      if (!productionLine.outputItems.contains(parent.item)) {
+        throw NodeException('Node $node cannot produce item ${parent.item}');
+      }
+      if (parent.edgeType == EdgeType.pushExcess) {
+        excessOutputPercentages.update(
+          parent.item,
+          (percentage) => percentage + parent.percentage,
+          ifAbsent: () => 0.0,
+        );
+      }
     }
+
+    excessOutputPercentages.forEach((item, totalPercentage) {
+      // Round up to lowest 0.01
+      var roundedPercentage = (totalPercentage * 100).floor();
+
+      if (roundedPercentage > 100) {
+        throw NodeException(
+          'Node $node pushExcess edges for item $item percentage sum == $totalPercentage',
+        );
+      }
+    });
+
+    Map<InGameItem, double> requestInputPercentages = {};
 
     for (var child in this.children) {
       if (child.parent != node) {
         throw NodeException('Edge $child is not a parent of node $node');
       }
-    }
-
-    outputEdges.forEach((item, itemEdges) {
-      if(!productionLine.outputItems.contains(item)) {
-        throw NodeException('Node $node cannot output item $item');
+      if (!productionLine.inputItems.contains(child.item)) {
+        throw NodeException('Node $node cannot consume item ${child.item}');
       }
-
-      var aeTotalPercentage = itemEdges
-          .where((edge) => edge.edgeType == EdgeType.acceptExcess)
-          .map((edge) => edge.percentage)
-          .fold(0.0, (perc1, perc2) => perc1 + perc2);
-
-      // Round to nearest 0.01 before checking
-      if ((aeTotalPercentage * 100).floor() > 100) {
-        throw NodeException(
-          'Ouput AcceptExcess edges for item $item on node $node sum up to value $aeTotalPercentage',
+      if (child.edgeType == EdgeType.requestItems) {
+        requestInputPercentages.update(
+          child.item,
+          (percentage) => percentage + child.percentage,
+          ifAbsent: () => 0.0,
         );
       }
-    });
+    }
 
-    inputEdges.forEach((item, itemEdges) {
-      if(!productionLine.inputItems.contains(item)) {
-        throw NodeException('Node $node cannot consume item $item');
-      }
+    requestInputPercentages.forEach((item, totalPercentage) {
+      // Round up to lowest 0.01
+      var roundedPercentage = (totalPercentage * 100).floor();
 
-      var reTotalPercentage = itemEdges
-          .where((edge) => edge.edgeType == EdgeType.requestItems)
-          .map((edge) => edge.percentage)
-          .fold(0.0, (perc1, perc2) => perc1 + perc2);
-
-      // Round to nearest 0.01 before checking
-      if ((reTotalPercentage * 100).floor() > 100) {
+      if (roundedPercentage > 100) {
         throw NodeException(
-          'Ouput AcceptExcess edges for item $item on node $node sum up to value $reTotalPercentage',
+          'Node $node requestItem edges for item $item percentage sum == $totalPercentage',
         );
       }
     });
@@ -143,14 +137,6 @@ class ProdLineNodeStateBuilder
   late final Set<Edge> parents = UnmodifiableSetView(parents);
   @override
   late final Set<Edge> children = UnmodifiableSetView(children);
-
-  // TODO - Cache these
-  @override
-  Map<InGameItem, List<Edge>> get inputEdges =>
-      NodeElement.calculateInputEdges(parents, children);
-  @override
-  Map<InGameItem, List<Edge>> get outputEdges =>
-      NodeElement.calculateOutputEdges(parents, children);
 
   ProdLineNodeStateBuilder._from(this._node)
     : _requirements = _node._state.requirements,
@@ -229,117 +215,121 @@ class ProdLineNodeStateBuilder
     _node.parentGraph.getStateBuilder().clearIo();
   }
 
-  void calculateIoFromParentEdges() {
-    ItemAmounts inputConstraints = {};
-    ItemAmounts outputConstraints = {};
+  void calculateIoFromEdgeConstraints() =>
+      calculateIo(_calculateConstraintsFromEdges());
 
-    for (var parent in _parents) {
-      var newAmount = parent.amount ?? 0;
-      switch (parent.edgeType) {
-        case EdgeType.requestItems:
-          outputConstraints.update(
-            parent.item,
-            (amount) => amount + newAmount,
-            ifAbsent: () => newAmount,
-          );
-        case EdgeType.acceptExcess:
-          inputConstraints.update(
-            parent.item,
-            (amount) => amount + newAmount,
-            ifAbsent: () => newAmount,
-          );
+  ItemIo updateEdgesAndReturnUnfulfilledIo() {
+    // TODO: optimise
+    var ioData = _io;
+    if (ioData == null) {
+      for (var edge
+          in _parents
+              .where((parent) => parent.edgeType == EdgeType.pushExcess)
+              .followedBy(
+                _children.where(
+                  (child) => child.edgeType == EdgeType.requestItems,
+                ),
+              )) {
+        edge.getStateBuilder().clearAmount();
       }
 
-      calculateIo(ItemIo(inputs: inputConstraints, outputs: outputConstraints));
+      return ItemIo.empty;
+    } else {
+      var excessOutput = ItemAmounts.from(ioData.io.outputs);
+      var requiredInput = ItemAmounts.from(ioData.io.inputs);
+
+      var edgeConstraints = _calculateConstraintsFromEdges();
+
+      edgeConstraints.outputs.forEach(
+        (output, amount) =>
+            excessOutput.update(output, (unconsumed) => unconsumed - amount),
+      );
+      edgeConstraints.inputs.forEach(
+        (input, amount) =>
+            requiredInput.update(input, (unfulfilled) => unfulfilled - amount),
+      );
+
+      ItemAmounts removedExcess = {};
+      ItemAmounts fulfilledInput = {};
+
+      for (var pushExcessEdge in _parents.where(
+        (edge) => edge.edgeType == EdgeType.pushExcess,
+      )) {
+        if (!excessOutput.containsKey(pushExcessEdge.item)) {
+          throw NodeException(
+            'Node $_node cannot produce item ${pushExcessEdge.item}',
+          );
+        }
+
+        var edgeAmount =
+            excessOutput[pushExcessEdge.item]! * pushExcessEdge.percentage;
+        removedExcess.update(
+          pushExcessEdge.item,
+          (amount) => amount + edgeAmount,
+          ifAbsent: () => edgeAmount,
+        );
+        pushExcessEdge.getStateBuilder().updateAmount(edgeAmount);
+      }
+
+      for (var requestItemsEdge in _children.where(
+        (edge) => edge.edgeType == EdgeType.requestItems,
+      )) {
+        if (!requiredInput.containsKey(requestItemsEdge.item)) {
+          throw NodeException(
+            'Node $_node cannot consume item ${requestItemsEdge.item}',
+          );
+        }
+
+        var edgeAmount =
+            excessOutput[requestItemsEdge.item]! * requestItemsEdge.percentage;
+        fulfilledInput.update(
+          requestItemsEdge.item,
+          (amount) => amount + edgeAmount,
+          ifAbsent: () => edgeAmount,
+        );
+        requestItemsEdge.getStateBuilder().updateAmount(edgeAmount);
+      }
+
+      excessOutput.updateAll(
+        (item, amount) => amount - (removedExcess[item] ?? 0),
+      );
+      requiredInput.updateAll(
+        (item, amount) => amount - (fulfilledInput[item] ?? 0),
+      );
+
+      return ItemIo(inputs: requiredInput, outputs: excessOutput);
     }
   }
 
-  ItemIo updateChildrenAndReturnUnfulfilledIo() {
-    // TODO: optimise
-    var io = _io;
-    if (io == null) {
-      for (var child in _children) {
-        child.getStateBuilder().clearAmount();
-      }
+  ItemIo _calculateConstraintsFromEdges() {
+    ItemAmounts outputConstraints = {};
+    ItemAmounts inputConstraints = {};
 
-      return ItemIo();
-    } else {
-      ItemAmounts consumedOutput = {};
-      ItemAmounts providedInput = {};
-
-      for (var parent in _parents) {
-        var parentAmount = parent.amount ?? 0;
-
-        switch (parent.edgeType) {
-          case EdgeType.requestItems:
-            consumedOutput.update(
-              parent.item,
-              (amount) => amount + parentAmount,
-              ifAbsent: () => parentAmount,
-            );
-
-          case EdgeType.acceptExcess:
-            providedInput.update(
-              parent.item,
-              (amount) => amount + parentAmount,
-              ifAbsent: () => parentAmount,
-            );
-        }
-      }
-
-      var remainingOutput = io.io.outputs.map(
-        (item, amount) => MapEntry(item, amount - (consumedOutput[item] ?? 0)),
+    var outputConstraintParents = _parents.where(
+      (parent) =>
+          parent.edgeType == EdgeType.requestItems && parent.amount != null,
+    );
+    for (var parent in outputConstraintParents) {
+      outputConstraints.update(
+        parent.item,
+        (itemConstraint) => itemConstraint + parent.amount!,
+        ifAbsent: () => parent.amount!,
       );
-      var unfulfilledInput = io.io.inputs.map(
-        (item, amount) => MapEntry(item, amount - (providedInput[item] ?? 0)),
-      );
-
-      Map<InGameItem, Map<EdgeType, List<Edge>>> itemToChildMap = {};
-      for (var child in _children) {
-        itemToChildMap.update(
-          child.item,
-          (edgeTypeMap) => edgeTypeMap
-            ..update(
-              child.edgeType,
-              (edges) => edges..add(child),
-              ifAbsent: () => [child],
-            ),
-          ifAbsent: () => {
-            child.edgeType: [child],
-          },
-        );
-      }
-
-      remainingOutput.updateAll((item, amount) {
-        double totalRemovedOutput = 0;
-        List<Edge> acceptExcessEdges =
-            itemToChildMap[item]?[EdgeType.acceptExcess] ?? const [];
-
-        for (var aeEdge in acceptExcessEdges) {
-          var removedOutput = amount * aeEdge.percentage;
-          totalRemovedOutput += removedOutput;
-          aeEdge.getStateBuilder().updateAmount(removedOutput);
-        }
-
-        return amount - totalRemovedOutput;
-      });
-
-      unfulfilledInput.updateAll((item, amount) {
-        double totalFulfilledInput = 0;
-        List<Edge> requestItemsEdges =
-            itemToChildMap[item]?[EdgeType.requestItems] ?? const [];
-
-        for (var riEdge in requestItemsEdges) {
-          var fulfilledInput = amount * riEdge.percentage;
-          totalFulfilledInput += fulfilledInput;
-          riEdge.getStateBuilder().updateAmount(fulfilledInput);
-        }
-
-        return amount - totalFulfilledInput;
-      });
-
-      return ItemIo(inputs: unfulfilledInput, outputs: remainingOutput);
     }
+
+    var inputConstraintChildren = _parents.where(
+      (parent) =>
+          parent.edgeType == EdgeType.requestItems && parent.amount != null,
+    );
+    for (var child in inputConstraintChildren) {
+      inputConstraints.update(
+        child.item,
+        (itemConstraint) => itemConstraint + child.amount!,
+        ifAbsent: () => child.amount!,
+      );
+    }
+
+    return ItemIo(inputs: inputConstraints, outputs: outputConstraints);
   }
 
   @override

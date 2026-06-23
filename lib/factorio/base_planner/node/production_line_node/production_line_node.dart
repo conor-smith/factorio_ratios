@@ -33,10 +33,6 @@ class ProdLineNode
   @override
   Set<Edge> get children => state.children;
   @override
-  Map<InGameItem, List<Edge>> get inputEdges => state.inputEdges;
-  @override
-  Map<InGameItem, List<Edge>> get outputEdges => state.outputEdges;
-  @override
   ProductionLineIo? get io => state.io;
   @override
   Set<InGameItem> get inputItems => state.productionLine.inputItems;

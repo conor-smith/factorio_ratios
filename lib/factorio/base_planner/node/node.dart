@@ -22,72 +22,11 @@ abstract interface class NodeElement<St, E extends NodeEvent>
   Set<Edge> get parents;
   Set<Edge> get children;
 
-  Map<InGameItem, List<Edge>> get outputEdges;
-  Map<InGameItem, List<Edge>> get inputEdges;
-
   Set<InGameItem> get inputItems;
   Set<InGameItem> get outputItems;
 
   NodeElement getOutputItemNode(InGameItem item);
   NodeElement getInputItemNode(InGameItem item);
-
-  static Map<InGameItem, List<Edge>> calculateOutputEdges(
-    Set<Edge> parents,
-    Set<Edge> children,
-  ) {
-    Map<InGameItem, List<Edge>> outputEdges = {};
-
-    for (var edge in parents) {
-      if (edge.edgeType == EdgeType.requestItems) {
-        outputEdges.update(
-          edge.item,
-          (edges) => edges..add(edge),
-          ifAbsent: () => [edge],
-        );
-      }
-    }
-    for (var edge in children) {
-      if (edge.edgeType == EdgeType.acceptExcess) {
-        outputEdges.update(
-          edge.item,
-          (edges) => edges..add(edge),
-          ifAbsent: () => [edge],
-        );
-      }
-    }
-
-    outputEdges.updateAll((item, edges) => List.unmodifiable(edges));
-    return Map.unmodifiable(outputEdges);
-  }
-
-  static Map<InGameItem, List<Edge>> calculateInputEdges(
-    Set<Edge> parents,
-    Set<Edge> children,
-  ) {
-    Map<InGameItem, List<Edge>> inputEdges = {};
-
-    for (var edge in parents) {
-      if (edge.edgeType == EdgeType.acceptExcess) {
-        inputEdges.update(
-          edge.item,
-          (edges) => edges..add(edge),
-          ifAbsent: () => [edge],
-        );
-      }
-    }
-    for (var edge in children) {
-      if (edge.edgeType == EdgeType.requestItems) {
-        inputEdges.update(
-          edge.item,
-          (edges) => edges..add(edge),
-          ifAbsent: () => [edge],
-        );
-      }
-    }
-
-    inputEdges.updateAll((item, edges) => List.unmodifiable(edges));
-    return Map.unmodifiable(inputEdges);
-  }
 }
 
 abstract interface class NodeStateBuilder<T> implements StateBuilder<T> {
