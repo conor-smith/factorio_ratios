@@ -210,7 +210,7 @@ class GraphStateBuilder
     var parentGraph = graph.parentGraph;
     if (parentGraph != graph) {
       parentGraph.getStateBuilder()
-        ..addChildGraph(graph)
+        ..addGraphNode(graph)
         ..clearIo();
     }
 
@@ -218,19 +218,14 @@ class GraphStateBuilder
   }
 
   static void _remove(Graph graph) {
-    graph._basePlanner.getSnapshotBuilder().removeFromSnapshot(graph);
-
-    for (var edge in [...graph.edges]) {
-      edge.remove();
-    }
-    for (var node in [...graph.allNodes]) {
-      node.remove();
+    for (BasePlannerElement element in [...graph.allNodes, ...graph.edges]) {
+      element.remove();
     }
 
     var parentGraph = graph.parentGraph;
     if (parentGraph != graph) {
       parentGraph.getStateBuilder()
-        ..removeChildGraph(graph)
+        ..removeGraphNode(graph)
         ..clearIo();
     }
   }
@@ -286,8 +281,8 @@ class GraphStateBuilder
   void addEdge(Edge edge) => _edges.add(edge);
   void removeEdge(Edge edge) => _edges.remove(edge);
 
-  void addChildGraph(Graph childGraph) => _graphNodes.add(childGraph);
-  void removeChildGraph(Graph childGraph) => _graphNodes.remove(childGraph);
+  void addGraphNode(Graph childGraph) => _graphNodes.add(childGraph);
+  void removeGraphNode(Graph childGraph) => _graphNodes.remove(childGraph);
 
   @override
   void updateGeometry(NodeGeometryImpl nodeGeometry) =>
