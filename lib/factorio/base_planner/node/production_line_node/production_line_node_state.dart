@@ -240,16 +240,14 @@ class ProdLineNodeStateBuilder
 
       var edgeConstraints = _calculateConstraintsFromEdges();
 
-      edgeConstraints.outputs.forEach(
-        (output, amount) =>
-            excessOutput.update(output, (unconsumed) => unconsumed - amount),
+      excessOutput.updateAll(
+        (item, amount) => amount - (edgeConstraints.outputs[item] ?? 0),
       );
-      edgeConstraints.inputs.forEach(
-        (input, amount) =>
-            requiredInput.update(input, (unfulfilled) => unfulfilled - amount),
+      requiredInput.updateAll(
+        (item, amount) => amount - (edgeConstraints.inputs[item] ?? 0),
       );
 
-      ItemAmounts removedExcess = {};
+      ItemAmounts consumedOutput = {};
       ItemAmounts fulfilledInput = {};
 
       for (var pushExcessEdge in _parents.where(
@@ -263,7 +261,7 @@ class ProdLineNodeStateBuilder
 
         var edgeAmount =
             excessOutput[pushExcessEdge.item]! * pushExcessEdge.percentage;
-        removedExcess.update(
+        consumedOutput.update(
           pushExcessEdge.item,
           (amount) => amount + edgeAmount,
           ifAbsent: () => edgeAmount,
@@ -291,7 +289,7 @@ class ProdLineNodeStateBuilder
       }
 
       excessOutput.updateAll(
-        (item, amount) => amount - (removedExcess[item] ?? 0),
+        (item, amount) => amount - (consumedOutput[item] ?? 0),
       );
       requiredInput.updateAll(
         (item, amount) => amount - (fulfilledInput[item] ?? 0),
