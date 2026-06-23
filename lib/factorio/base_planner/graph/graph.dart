@@ -13,7 +13,6 @@ import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/json/json.dart';
 import 'package:factorio_ratios/utility/utility.dart';
-import 'package:sorted_list/sorted_list.dart';
 
 part 'graph_state.dart';
 
@@ -45,10 +44,6 @@ class Graph
   @override
   Set<Edge> get children => state.children;
   @override
-  Map<InGameItem, List<Edge>> get inputEdges => state.inputEdges;
-  @override
-  Map<InGameItem, List<Edge>> get outputEdges => state.outputEdges;
-  @override
   GraphIo? get io => state.io;
   Set<Graph> get graphNodes => state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
@@ -75,6 +70,9 @@ class Graph
   // TODO
   @override
   ItemIo? get ioRatios => null;
+
+  // Just putting this here for convenient access
+  Map<InGameItem, List<NodeElement>>? _cachedNodeOutputLists;
 
   Graph.addToBasePlanner(
     BasePlanner basePlanner, {
@@ -181,14 +179,11 @@ class Graph
       );
     }
 
-    var existingConsumerNode = prodLineNodes
-        .where(
-          (node) =>
-              node.nodeType == NodeType.consumer &&
-              node.inputItems.contains(item),
-        )
-        .firstOrNull;
-    if (existingConsumerNode != null) {
+    // Check if consumer node already exists
+    if (prodLineNodes.any(
+      (node) =>
+          node.nodeType == NodeType.consumer && node.inputItems.contains(item),
+    )) {
       return;
     }
 
@@ -200,14 +195,9 @@ class Graph
         productionLine: MagicLine.singleItemConsumer(item),
       );
 
-      _NodeItemIndex outputIndex = {};
-      for (var node in allNodes.where(
-        (node) => node.nodeType.parentsPermitted,
-      )) {
-        _addOutputToIndex(outputIndex, node);
-      }
+      _populateCachedNodeOutputs();
 
-      _createNodeTree(consumerNode, outputIndex, {});
+      _createNodeTree(consumerNode);
 
       // TODO: Is this the best layout?
       defaultLayout();
@@ -220,23 +210,46 @@ class Graph
     }
 
     _basePlanner.buildNextSnapshot(() {
-      int numberOfRows = 0;
       Map<NodeElement, int> nodeToRowNumber = {};
 
-      for (var rootNode in allNodes.where((node) => node.parents.isEmpty)) {
-        var newNumberOfRows = _determineRowsAndReturnNumberOfRows(
-          rootNode,
-          0,
-          nodeToRowNumber,
-          {},
-        );
-        if (newNumberOfRows > numberOfRows) {
-          numberOfRows = newNumberOfRows;
+      var consumerNodesFirstRow = 0;
+      var maxRowNumber = 0;
+
+      if (outputNodes.isNotEmpty) {
+        consumerNodesFirstRow = 1;
+
+        maxRowNumber = outputNodes.values
+            .map(
+              (outputNode) => _determineAndReturnMaxRowNumber(
+                outputNode,
+                0,
+                nodeToRowNumber,
+              ),
+            )
+            .reduce(_returnLargest);
+      }
+
+      maxRowNumber = allNodes
+          .where((node) => !node.nodeType.isIo && node.parents.isEmpty)
+          .map(
+            (node) => _determineAndReturnMaxRowNumber(
+              node,
+              consumerNodesFirstRow,
+              nodeToRowNumber,
+            ),
+          )
+          .fold(maxRowNumber, _returnLargest);
+
+      if (inputNodes.isNotEmpty) {
+        for (var inputNode in inputNodes.values) {
+          nodeToRowNumber[inputNode] = maxRowNumber;
         }
+
+        maxRowNumber++;
       }
 
       List<List<NodeElement>> rows = List.generate(
-        numberOfRows + 1,
+        maxRowNumber,
         (_) => [],
         growable: false,
       );
@@ -296,39 +309,25 @@ class Graph
     throw UnimplementedError();
   }
 
-  void _addOutputToIndex(_NodeItemIndex nodeOutputIndex, NodeElement node) {
-    for (var output in node.outputItems) {
-      // TODO: optimise this
-      nodeOutputIndex.update(
-        output,
-        (nodeList) => nodeList..add(node),
-        ifAbsent: () => SortedList(
-          (node1, node2) => node1.nodeType.compareTo(node2.nodeType),
-        )..add(node),
-      );
-    }
-  }
+  void _createNodeTree(NodeElement startNode) {
+    // Ignore items that already have an input edge
+    var requiredInputs = startNode.children
+        .map((edge) => edge.item)
+        .toSet()
+        .difference(startNode.inputItems);
 
-  void _createNodeTree(
-    NodeElement startNode,
-    _NodeItemIndex outputIndex,
-    Set<NodeElement> visitedNodes,
-  ) {
-    visitedNodes.add(startNode);
-
-    var inputEdges = startNode.inputEdges;
-
-    for (var inputItem in startNode.inputItems.where(
-      (input) => inputEdges.containsKey(input),
-    )) {
-      var nextNode = outputIndex[inputItem]?.firstOrNull;
+    for (var input in requiredInputs) {
+      var nextNode = _cachedNodeOutputLists![input]?.firstOrNull;
 
       if (nextNode == null) {
         nextNode =
-            _createResourceNode(inputItem) ??
-            _createRecipeNode(outputIndex, inputItem) ??
-            _createMagicResourceNode(inputItem);
-        _addOutputToIndex(outputIndex, nextNode);
+            _createResourceNode(input) ??
+            _createRecipeNode(input) ??
+            _createMagicResourceNode(input);
+
+        _addNodeToOutputCache(nextNode);
+
+        _createNodeTree(nextNode);
       }
 
       Edge.addToBasePlanner(
@@ -337,12 +336,8 @@ class Graph
         edgeType: EdgeType.requestItems,
         parent: startNode,
         child: nextNode,
-        item: inputItem,
+        item: input,
       );
-
-      if (!visitedNodes.contains(nextNode)) {
-        _createNodeTree(nextNode, outputIndex, visitedNodes);
-      }
     }
   }
 
@@ -359,10 +354,7 @@ class Graph
     }
   }
 
-  ProdLineNode? _createRecipeNode(
-    _NodeItemIndex outputIndex,
-    InGameItem requiredOutput,
-  ) {
+  ProdLineNode? _createRecipeNode(InGameItem requiredOutput) {
     // TODO - check for valid fluid temperatures
     var baseRecipe = _surfaceProperties.defaultRecipes
         .where(
@@ -390,7 +382,10 @@ class Graph
 
         // Search existing nodes for valid fuel
         var existingNodeFuel = burner.fuelItems
-            .where((fuelItem) => outputIndex[InGameItem(fuelItem)] != null)
+            .where(
+              (fuelItem) =>
+                  _cachedNodeOutputLists![InGameSolidItem(fuelItem)] != null,
+            )
             .map((item) => InGameSolidItem(item));
 
         // Search surface for valid fuel
@@ -406,7 +401,13 @@ class Graph
         fuel = existingNodeFuel
             .followedBy(surfaceFuels)
             .followedBy(machineFuels)
-            .first;
+            .firstOrNull;
+
+        if (fuel == null) {
+          throw GraphException(
+            'Machine $inGameMachine somehow has no acceptable fuels despite requiring fuel to run',
+          );
+        }
       }
 
       return ProdLineNode.addToBasePlanner(
@@ -433,41 +434,67 @@ class Graph
         productionLine: MagicLine.singleItemProducer(requiredOutput),
       );
 
-  int _determineRowsAndReturnNumberOfRows(
+  int _determineAndReturnMaxRowNumber(
     NodeElement node,
     int rowNumber,
     Map<NodeElement, int> nodeToRowNumber,
-    Set<NodeElement> visitedNodes,
   ) {
-    visitedNodes.add(node);
-    int maxRowNumber = rowNumber;
-
-    if (rowNumber > (nodeToRowNumber[node] ?? 0)) {
+    if ((nodeToRowNumber[node] ?? 0) > rowNumber) {
+      return rowNumber;
+    } else {
       nodeToRowNumber[node] = rowNumber;
+      int nextRow = rowNumber + 1;
 
-      var childNodes = node.children
-          .map((edge) => edge.child)
-          .where(
-            (childNode) =>
-                childNode.parentGraph == this &&
-                !visitedNodes.contains(childNode),
-          );
+      return node.children
+          .where((edge) => edge.child.nodeType != NodeType.input)
+          .map(
+            (edge) => _determineAndReturnMaxRowNumber(
+              edge.child,
+              nextRow,
+              nodeToRowNumber,
+            ),
+          )
+          .fold(nextRow, _returnLargest);
+    }
+  }
 
-      for (var childNode in childNodes) {
-        var newMaxRowNumber = _determineRowsAndReturnNumberOfRows(
-          childNode,
-          rowNumber + 1,
-          nodeToRowNumber,
-          visitedNodes,
+  void _populateCachedNodeOutputs() {
+    _cachedNodeOutputLists = {};
+
+    for (NodeElement node in [
+      ...prodLineNodes,
+      ...graphNodes,
+      ...inputNodes.values,
+    ]) {
+      for (var output in node.outputItems) {
+        _cachedNodeOutputLists!.update(
+          output,
+          (nodes) => nodes..add(node),
+          ifAbsent: () => [node],
         );
-
-        if (newMaxRowNumber > maxRowNumber) {
-          maxRowNumber = newMaxRowNumber;
-        }
       }
     }
 
-    return rowNumber;
+    _cachedNodeOutputLists!.updateAll(
+      (item, nodes) => nodes..sort(_compareNodesUsingType),
+    );
+  }
+
+  void _addNodeToOutputCache(NodeElement node) {
+    // TODO: Optimise?
+    if (_cachedNodeOutputLists == null) {
+      _populateCachedNodeOutputs();
+    } else {
+      for (var output in node.outputItems) {
+        _cachedNodeOutputLists!.update(
+          output,
+          (nodes) => nodes
+            ..add(node)
+            ..sort(_compareNodesUsingType),
+          ifAbsent: () => [node],
+        );
+      }
+    }
   }
 }
 
@@ -573,4 +600,9 @@ class GraphIoBuilder implements Builder<GraphIo> {
 
 enum GraphEventType { updateNodesAndEdges, childrenGeometryUpdate, nodeEvent }
 
-typedef _NodeItemIndex = Map<InGameItem, SortedList<NodeElement>>;
+Comparator<NodeElement> _compareNodesUsingType =
+    (NodeElement node1, NodeElement node2) =>
+        node1.nodeType.compareTo(node2.nodeType);
+
+int Function(int, int) _returnLargest = (val1, val2) =>
+    val1 > val2 ? val1 : val2;

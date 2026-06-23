@@ -12,8 +12,6 @@ abstract class GraphState {
   NodeGeometryImpl get nodeGeometry;
   Set<Edge> get parents;
   Set<Edge> get children;
-  Map<InGameItem, List<Edge>> get outputEdges;
-  Map<InGameItem, List<Edge>> get inputEdges;
   Set<InGameItem> get inputItems;
   Set<InGameItem> get outputItems;
   GraphIo? get io;
@@ -74,14 +72,6 @@ class GraphStateImpl implements GraphState, ToJson {
 
   @override
   final Set<NodeElement> allNodes;
-
-  // TODO - Do I still need these?
-  @override
-  late final Map<InGameItem, List<Edge>> outputEdges =
-      NodeElement.calculateOutputEdges(parents, children);
-  @override
-  late final Map<InGameItem, List<Edge>> inputEdges =
-      NodeElement.calculateInputEdges(parents, children);
 
   GraphStateImpl._initial({
     required this.name,
@@ -242,14 +232,6 @@ class GraphStateBuilder
     _inputNodes,
     _outputNodes,
   ).toSet();
-
-  @override
-  Map<InGameItem, List<Edge>> get inputEdges =>
-      NodeElement.calculateInputEdges(parents, children);
-
-  @override
-  Map<InGameItem, List<Edge>> get outputEdges =>
-      NodeElement.calculateOutputEdges(parents, children);
 
   GraphStateBuilder._from(this._graph)
     : _name = _graph._state.name,
