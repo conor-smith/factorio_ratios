@@ -39,15 +39,72 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   late final Map<InGameItem, List<Edge>> inputEdges =
       NodeElement.calculateInputEdges(parents, children);
 
-  ProdLineNodeStateImpl._({
+  ProdLineNodeStateImpl._initial({
+    required this.productionLine,
+    required this.nodeGeometry,
+  }) : requirements = null,
+       io = null,
+       parents = const {},
+       children = const {};
+
+  ProdLineNodeStateImpl._(
+    ProdLineNode node, {
     this.requirements,
     required this.productionLine,
-    this.io,
-    this.nodeGeometry = NodeGeometryImpl.uninitialised,
-    Iterable<Edge> parents = const {},
-    Iterable<Edge> children = const {},
+    required this.io,
+    required this.nodeGeometry,
+    required Iterable<Edge> parents,
+    required Iterable<Edge> children,
   }) : parents = Set.unmodifiable(parents),
-       children = Set.unmodifiable(children);
+       children = Set.unmodifiable(children) {
+    for (var parent in this.parents) {
+      if (parent.child != node) {
+        throw NodeException('Edge $parent is not a parent of node $node');
+      }
+    }
+
+    for (var child in this.children) {
+      if (child.parent != node) {
+        throw NodeException('Edge $child is not a parent of node $node');
+      }
+    }
+
+    outputEdges.forEach((item, itemEdges) {
+      if(!productionLine.outputItems.contains(item)) {
+        throw NodeException('Node $node cannot output item $item');
+      }
+
+      var aeTotalPercentage = itemEdges
+          .where((edge) => edge.edgeType == EdgeType.acceptExcess)
+          .map((edge) => edge.percentage)
+          .fold(0.0, (perc1, perc2) => perc1 + perc2);
+
+      // Round to nearest 0.01 before checking
+      if ((aeTotalPercentage * 100).floor() > 100) {
+        throw NodeException(
+          'Ouput AcceptExcess edges for item $item on node $node sum up to value $aeTotalPercentage',
+        );
+      }
+    });
+
+    inputEdges.forEach((item, itemEdges) {
+      if(!productionLine.inputItems.contains(item)) {
+        throw NodeException('Node $node cannot consume item $item');
+      }
+
+      var reTotalPercentage = itemEdges
+          .where((edge) => edge.edgeType == EdgeType.requestItems)
+          .map((edge) => edge.percentage)
+          .fold(0.0, (perc1, perc2) => perc1 + perc2);
+
+      // Round to nearest 0.01 before checking
+      if ((reTotalPercentage * 100).floor() > 100) {
+        throw NodeException(
+          'Ouput AcceptExcess edges for item $item on node $node sum up to value $reTotalPercentage',
+        );
+      }
+    });
+  }
 
   @override
   Map<String, dynamic> toJson() {
@@ -60,71 +117,34 @@ class ProdLineNodeStateBuilder
     implements NodeStateBuilder<ProdLineNodeStateImpl>, ProdLineNodeState {
   final ProdLineNode _node;
 
+  bool _removingSelf = false;
   ItemIo? _requirements;
-
   ProductionLine _productionLine;
-
   ProductionLineIo? _io;
-
   NodeGeometryImpl _nodeGeometry;
-
   final Set<Edge> _parents;
   final Set<Edge> _children;
 
-  Map<InGameItem, List<Edge>>? _cachedInputEdges;
-  Map<InGameItem, List<Edge>>? _cachedOutputEdges;
-
   @override
   ItemIo? get requirements => _requirements;
-
   @override
   ProductionLine get productionLine => _productionLine;
   @override
   ProductionLineIo? get io => _io;
-
   @override
   NodeGeometryImpl get nodeGeometry => _nodeGeometry;
-
   @override
   late final Set<Edge> parents = UnmodifiableSetView(parents);
   @override
   late final Set<Edge> children = UnmodifiableSetView(children);
 
+  // TODO - Cache these
   @override
-  Map<InGameItem, List<Edge>> get inputEdges {
-    _cachedInputEdges ??= NodeElement.calculateInputEdges(parents, children);
-    return _cachedInputEdges!;
-  }
-
+  Map<InGameItem, List<Edge>> get inputEdges =>
+      NodeElement.calculateInputEdges(parents, children);
   @override
-  Map<InGameItem, List<Edge>> get outputEdges {
-    _cachedOutputEdges ??= NodeElement.calculateOutputEdges(parents, children);
-    return _cachedOutputEdges!;
-  }
-
-  factory ProdLineNodeStateBuilder._new(ProdLineNode node) {
-    var builder = ProdLineNodeStateBuilder._from(node);
-
-    var parentGraphStateBuilder = node.parentGraph.getStateBuilder();
-    parentGraphStateBuilder
-      ..addProdLineNode(node)
-      ..clearIo();
-
-    return builder;
-  }
-
-  static void _remove(ProdLineNode node) {
-    node._basePlanner.getSnapshotBuilder().removeFromSnapshot(node);
-
-    var parentGraphStateBuilder = node.parentGraph.getStateBuilder();
-    parentGraphStateBuilder
-      ..removeProdLineNode(node)
-      ..clearIo();
-
-    for (var edge in [...node.parents, ...node.children]) {
-      edge.remove();
-    }
-  }
+  Map<InGameItem, List<Edge>> get outputEdges =>
+      NodeElement.calculateOutputEdges(parents, children);
 
   ProdLineNodeStateBuilder._from(this._node)
     : _requirements = _node._state.requirements,
@@ -136,8 +156,54 @@ class ProdLineNodeStateBuilder
     _node._basePlanner.getSnapshotBuilder().addToSnapsnot(_node, this);
   }
 
-  void updateRequirements(ItemIo requirements) => _requirements = requirements;
+  @override
+  void addSelf() {
+    _node.parentGraph.getStateBuilder().addProdLineNode(_node);
+  }
 
+  @override
+  void removeSelf() {
+    if (!_removingSelf) {
+      _removingSelf = true;
+      _node._basePlanner.getSnapshotBuilder().removeFromSnapshot(_node);
+
+      var edgesToRemove = [...parents, ...children];
+
+      _parents.clear();
+      _children.clear();
+
+      for (var edge in edgesToRemove) {
+        edge.getStateBuilder().removeSelf();
+      }
+    }
+  }
+
+  @override
+  void updateGeometry(NodeGeometryImpl nodeGeometry) =>
+      _nodeGeometry = nodeGeometry;
+
+  @override
+  void addParent(Edge parent) => _parents.add(parent);
+  @override
+  void addChild(Edge child) => _children.add(child);
+
+  @override
+  void removeParent(Edge parent) {
+    if (!_removingSelf) {
+      parent.getStateBuilder().removeSelf();
+      _parents.remove(parent);
+    }
+  }
+
+  @override
+  void removeChild(Edge child) {
+    if (!_removingSelf) {
+      child.getStateBuilder().removeSelf();
+      _children.remove(child);
+    }
+  }
+
+  void updateRequirements(ItemIo requirements) => _requirements = requirements;
   void clearRequirements() => _requirements = null;
 
   void updateProductionLineAndClearIo(ProductionLine productionLine) {
@@ -271,35 +337,8 @@ class ProdLineNodeStateBuilder
   }
 
   @override
-  void updateGeometry(NodeGeometryImpl nodeGeometry) =>
-      _nodeGeometry = nodeGeometry;
-
-  @override
-  void addParent(Edge parent) {
-    _parents.add(parent);
-    _invalidateCache();
-  }
-
-  @override
-  void addChild(Edge child) {
-    _children.add(child);
-    _invalidateCache();
-  }
-
-  @override
-  void removeParent(Edge parent) {
-    _parents.remove(parent);
-    _invalidateCache();
-  }
-
-  @override
-  void removeChild(Edge child) {
-    _children.remove(child);
-    _invalidateCache();
-  }
-
-  @override
   ProdLineNodeStateImpl build() => ProdLineNodeStateImpl._(
+    _node,
     requirements: _requirements,
     productionLine: _productionLine,
     io: _io,
@@ -307,9 +346,4 @@ class ProdLineNodeStateBuilder
     parents: _parents,
     children: _children,
   );
-
-  void _invalidateCache() {
-    _cachedInputEdges = null;
-    _cachedOutputEdges = null;
-  }
 }

@@ -74,6 +74,8 @@ class GraphStateImpl implements GraphState, ToJson {
 
   @override
   final Set<NodeElement> allNodes;
+
+  // TODO - Do I still need these?
   @override
   late final Map<InGameItem, List<Edge>> outputEdges =
       NodeElement.calculateOutputEdges(parents, children);
@@ -82,9 +84,9 @@ class GraphStateImpl implements GraphState, ToJson {
       NodeElement.calculateInputEdges(parents, children);
 
   GraphStateImpl._initial({
-    this.name = 'graph',
-    this.icon,
-    this.nodeGeometry = NodeGeometryImpl.uninitialised,
+    required this.name,
+    required this.icon,
+    required this.nodeGeometry,
   }) : prodLineNodes = const {},
        graphNodes = const {},
        inputNodes = const {},
@@ -128,7 +130,46 @@ class GraphStateImpl implements GraphState, ToJson {
          GraphState._calculateChildren(inputNodes, outputNodes),
        ),
        inputItems = Set.unmodifiable(inputNodes.keys),
-       outputItems = Set.unmodifiable(outputNodes.keys);
+       outputItems = Set.unmodifiable(outputNodes.keys) {
+    var allElements = allNodes.cast<BasePlannerElement>().followedBy(edges);
+    for (var element in allElements) {
+      if (element.parentGraph != graph) {
+        throw GraphException(
+          'Cannot add element $element with parent graph ${element.parentGraph} to graph $graph',
+        );
+      }
+    }
+
+    for (var edge in this.edges) {
+      if (!allNodes.contains(edge.parent) || !allNodes.contains(edge.child)) {
+        throw GraphException(
+          'Cannot add edge $edge to graph $graph as either parent or child are not present',
+        );
+      }
+    }
+
+    if (graph.isRoot &&
+        (this.inputNodes.isNotEmpty || this.outputNodes.isNotEmpty)) {
+      throw const GraphException(
+        'Root graph is not permitted to have output or input nodes',
+      );
+    }
+
+    for (var inputNode in this.inputNodes.values) {
+      if (inputNode.nodeType != NodeType.input) {
+        throw GraphException(
+          'IO node of type ${inputNode.nodeType} was incorrectly added to input nodes',
+        );
+      }
+    }
+    for (var outputNode in this.outputNodes.values) {
+      if (outputNode.nodeType != NodeType.input) {
+        throw GraphException(
+          'IO node of type ${outputNode.nodeType} was incorrectly added to output nodes',
+        );
+      }
+    }
+  }
 
   @override
   Map<String, dynamic> toJson() {
@@ -137,11 +178,15 @@ class GraphStateImpl implements GraphState, ToJson {
   }
 }
 
+// Due to the complexity of state interactions, I've tried to make every
+// "remove...()" function still carry out all necessary actions, even if unnecessary
+// eg. If graph.getStateBuilder().removeEdge(edge) is called before
+// edge.getStateBuilder().removeSelf(), edgeStateBuilder.removeSelf() will still be called
 class GraphStateBuilder
     implements NodeStateBuilder<GraphStateImpl>, GraphState {
   final Graph _graph;
 
-  bool toRemove = false;
+  bool _removingSelf = false;
 
   String _name;
   Icon? _icon;
@@ -206,32 +251,6 @@ class GraphStateBuilder
   Map<InGameItem, List<Edge>> get outputEdges =>
       NodeElement.calculateOutputEdges(parents, children);
 
-  factory GraphStateBuilder._new(Graph graph) {
-    var builder = GraphStateBuilder._from(graph);
-
-    var parentGraph = graph.parentGraph;
-    if (parentGraph != graph) {
-      parentGraph.getStateBuilder()
-        ..addGraphNode(graph)
-        ..clearIo();
-    }
-
-    return builder;
-  }
-
-  static void _remove(Graph graph) {
-    for (BasePlannerElement element in [...graph.allNodes, ...graph.edges]) {
-      element.remove();
-    }
-
-    var parentGraph = graph.parentGraph;
-    if (parentGraph != graph) {
-      parentGraph.getStateBuilder()
-        ..removeGraphNode(graph)
-        ..clearIo();
-    }
-  }
-
   GraphStateBuilder._from(this._graph)
     : _name = _graph._state.name,
       _icon = _graph._state.icon,
@@ -244,13 +263,71 @@ class GraphStateBuilder
     _graph._basePlanner.getSnapshotBuilder().addToSnapsnot(_graph, this);
   }
 
+  @override
+  void addSelf() {
+    if (!_graph.isRoot) {
+      _graph.parentGraph.getStateBuilder().addGraphNode(_graph);
+    }
+  }
+
+  @override
+  void removeSelf() {
+    if (!_removingSelf) {
+      _removingSelf = true;
+
+      _graph._basePlanner.getSnapshotBuilder().removeFromSnapshot(_graph);
+
+      // When nodes are removed, they automatically remove all attached edges
+      var nodesToRemove = [...allNodes];
+
+      _prodLineNodes.clear();
+      _graphNodes.clear();
+      _inputNodes.clear();
+      _outputNodes.clear();
+
+      for (var node in nodesToRemove) {
+        node.getStateBuilder().removeSelf();
+      }
+
+      if (!_graph.parentGraph.isRoot) {
+        _graph.parentGraph.getStateBuilder().removeGraphNode(_graph);
+      }
+    }
+  }
+
   void updateName(String newName) => _name = newName;
 
   void updateIcon(Icon newIcon) => _icon = newIcon;
   void clearIcon() => _icon = null;
 
-  void addProdLineNode(ProdLineNode node) => _prodLineNodes.add(node);
-  void removeProdLineNode(ProdLineNode node) => _prodLineNodes.remove(node);
+  @override
+  void updateGeometry(NodeGeometryImpl nodeGeometry) =>
+      _nodeGeometry = nodeGeometry;
+
+  void addProdLineNode(ProdLineNode node) {
+    _prodLineNodes.add(node);
+    clearIo();
+  }
+
+  void removeProdLineNode(ProdLineNode node) {
+    if (!_removingSelf) {
+      node.getStateBuilder().removeSelf();
+      _prodLineNodes.remove(node);
+      clearIo();
+    }
+  }
+
+  void addGraphNode(Graph graphNode) {
+    _graphNodes.add(graphNode);
+    clearIo();
+  }
+
+  void removeGraphNode(Graph graphNode) {
+    if (!_removingSelf) {
+      graphNode.getStateBuilder().removeSelf();
+      _graphNodes.remove(graphNode);
+    }
+  }
 
   void addIoNode(IoNode node) {
     if (node.nodeType == NodeType.output) {
@@ -270,25 +347,30 @@ class GraphStateBuilder
         _inputNodes[node.ioItem] = node;
       }
     }
+
+    clearIo();
   }
 
   void removeIoNode(IoNode node) {
-    if (node.nodeType == NodeType.output) {
-      _outputNodes.remove(node.ioItem);
-    } else {
-      _inputNodes.remove(node.ioItem);
+    if (!_removingSelf) {
+      node.getStateBuilder().removeSelf();
+      if (node.nodeType == NodeType.output) {
+        _outputNodes.remove(node.ioItem);
+      } else {
+        _inputNodes.remove(node.ioItem);
+      }
+
+      clearIo();
     }
   }
 
   void addEdge(Edge edge) => _edges.add(edge);
-  void removeEdge(Edge edge) => _edges.remove(edge);
-
-  void addGraphNode(Graph childGraph) => _graphNodes.add(childGraph);
-  void removeGraphNode(Graph childGraph) => _graphNodes.remove(childGraph);
-
-  @override
-  void updateGeometry(NodeGeometryImpl nodeGeometry) =>
-      _nodeGeometry = nodeGeometry;
+  void removeEdge(Edge edge) {
+    if (!_removingSelf) {
+      edge.getStateBuilder().removeSelf();
+      _edges.remove(edge);
+    }
+  }
 
   @override
   void addParent(Edge parent) => (parent.childItemNode as IoNode)
@@ -314,7 +396,7 @@ class GraphStateBuilder
     if (_io != null) {
       _io = null;
 
-      if (_graph != _graph._basePlanner.rootGraph) {
+      if (!_graph.parentGraph.isRoot) {
         _graph.parentGraph.getStateBuilder().clearIo();
       }
     }
@@ -329,8 +411,8 @@ class GraphStateBuilder
     graphNodes: _graphNodes,
     inputNodes: _inputNodes,
     outputNodes: _outputNodes,
-    edges: edges,
+    edges: _edges,
     nodeGeometry: _nodeGeometry,
-    io: io,
+    io: _io,
   );
 }

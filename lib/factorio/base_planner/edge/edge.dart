@@ -16,6 +16,8 @@ class Edge
   @override
   final Graph parentGraph;
   final EdgeType edgeType;
+  final NodeElement parent;
+  final NodeElement child;
 
   /// This node is the node that items will actually come from / go to.
   /// It will typically be the same as [parent], unless [parent] is a [Graph],
@@ -26,8 +28,6 @@ class Edge
   /// It will typically be the same as [child], unless [child] is a [Graph],
   /// in which case, it will be the relevant IoNode.
   final NodeElement childItemNode;
-  final NodeElement parent;
-  final NodeElement child;
   final InGameItem item;
 
   EdgeStateImpl _state;
@@ -46,6 +46,8 @@ class Edge
     required this.child,
     required this.item,
     double percentage = 1.0,
+    double? initialAmount,
+    EdgeGeometryImpl edgeGeometry = EdgeGeometryImpl.uninitialised,
   }) : _basePlanner = basePlanner,
        parentItemNode = switch (edgeType) {
          EdgeType.requestItems => parent.getInputItemNode(item),
@@ -55,7 +57,11 @@ class Edge
          EdgeType.requestItems => child.getOutputItemNode(item),
          EdgeType.acceptExcess => child.getInputItemNode(item),
        },
-       _state = EdgeStateImpl._(percentage: percentage) {
+       _state = EdgeStateImpl._initial(
+         amount: initialAmount,
+         percentage: percentage,
+         edgeGeometry: edgeGeometry,
+       ) {
     if (parent.parentGraph != parentGraph) {
       throw EdgeException(
         'Edge with parentGraph $parentGraph cannot connect to parent node $parent with different parentGraph ${parent.parentGraph}',
@@ -66,7 +72,8 @@ class Edge
       );
     }
 
-    _builder = EdgeStateBuilder._new(this);
+    _builder = EdgeStateBuilder._from(this);
+    _builder!.addSelf();
   }
 
   @override
@@ -78,9 +85,6 @@ class Edge
     // TODO: validate state, update listeners
     _state = state;
   }
-
-  @override
-  void remove() => EdgeStateBuilder._remove(this);
 
   @override
   EdgeStateBuilder getStateBuilder() {

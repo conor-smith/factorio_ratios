@@ -77,9 +77,6 @@ class IoNode
   }
 
   @override
-  void remove() => throw UnimplementedError();
-
-  @override
   IoNodeStateBuilder getStateBuilder() => throw UnimplementedError();
 
   @override
@@ -268,6 +265,11 @@ class IoNodeStateBuilder
   @override
   // TODO: implement name
   String get name => throw UnimplementedError();
+
+  @override
+  void removeSelf() {
+    // TODO: implement removeSelf
+  }
 }
 
 class IoNodeIo extends ProductionLineIo {

@@ -16,11 +16,26 @@ class EdgeStateImpl implements EdgeState, ToJson {
   @override
   final EdgeGeometryImpl edgeGeometry;
 
-  EdgeStateImpl._({
-    this.amount,
+  EdgeStateImpl._initial({
+    required this.amount,
     required this.percentage,
-    this.edgeGeometry = EdgeGeometryImpl.uninitialised,
+    required this.edgeGeometry,
   });
+
+  EdgeStateImpl._(
+    Edge edge, {
+    required this.amount,
+    required this.percentage,
+    required this.edgeGeometry,
+  }) {
+    if (percentage > 1.0 || percentage < 0.0) {
+      throw EdgeException('Edge $edge had invalid percentage: $percentage');
+    }
+
+    if (amount != null && amount! < 0) {
+      throw EdgeException('Edge $edge had invalid amount: $amount');
+    }
+  }
 
   @override
   Map<String, dynamic> toJson() {
@@ -29,7 +44,11 @@ class EdgeStateImpl implements EdgeState, ToJson {
   }
 }
 
-class EdgeStateBuilder implements Builder<EdgeStateImpl>, EdgeState {
+class EdgeStateBuilder implements StateBuilder<EdgeStateImpl>, EdgeState {
+  final Edge _edge;
+
+  bool _removingSelf = false;
+
   double? _amount;
   double _percentage;
   EdgeGeometryImpl _edgeGeometry;
@@ -41,32 +60,33 @@ class EdgeStateBuilder implements Builder<EdgeStateImpl>, EdgeState {
   @override
   EdgeGeometryImpl get edgeGeometry => _edgeGeometry;
 
-  factory EdgeStateBuilder._new(Edge edge) {
-    var builder = EdgeStateBuilder._from(edge);
-
-    edge.parentGraph.getStateBuilder().addEdge(edge);
-
-    edge.parent.getStateBuilder().addChild(edge);
-    edge.child.getStateBuilder().addParent(edge);
-
-    return builder;
+  EdgeStateBuilder._from(this._edge)
+    : _amount = _edge._state.amount,
+      _percentage = _edge._state.percentage,
+      _edgeGeometry = _edge._state.edgeGeometry {
+    _edge._basePlanner.getSnapshotBuilder().addToSnapsnot(_edge, this);
   }
 
-  static void _remove(Edge edge) {
-    edge.parentGraph.getStateBuilder().removeEdge(edge);
-
-    edge.parent.getStateBuilder().removeChild(edge);
-    edge.child.getStateBuilder().removeParent(edge);
-
-    edge.parentItemNode.getStateBuilder().removeChild(edge);
-    edge.childItemNode.getStateBuilder().removeParent(edge);
+  @override
+  void addSelf() {
+    _edge.parentGraph.getStateBuilder().addEdge(_edge);
+    _edge.parent.getStateBuilder().addChild(_edge);
+    _edge.child.getStateBuilder().addParent(_edge);
   }
 
-  EdgeStateBuilder._from(Edge edge)
-    : _amount = edge._state.amount,
-      _percentage = edge._state.percentage,
-      _edgeGeometry = edge._state.edgeGeometry {
-    edge._basePlanner.getSnapshotBuilder().addToSnapsnot(edge, this);
+  @override
+  void removeSelf() {
+    if (!_removingSelf) {
+      _removingSelf = true;
+      _edge._basePlanner.getSnapshotBuilder().removeFromSnapshot(_edge);
+
+      _edge.parentGraph.getStateBuilder().removeEdge(_edge);
+
+      _edge.parent.getStateBuilder().removeChild(_edge);
+      _edge.parentItemNode.getStateBuilder().removeChild(_edge);
+      _edge.child.getStateBuilder().removeParent(_edge);
+      _edge.childItemNode.getStateBuilder().removeParent(_edge);
+    }
   }
 
   void updateAmount(double amount) => _amount = amount;
@@ -78,6 +98,7 @@ class EdgeStateBuilder implements Builder<EdgeStateImpl>, EdgeState {
 
   @override
   EdgeStateImpl build() => EdgeStateImpl._(
+    _edge,
     amount: amount,
     percentage: _percentage,
     edgeGeometry: _edgeGeometry,

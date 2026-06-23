@@ -44,11 +44,9 @@ abstract interface class BasePlannerElement<St, E>
   /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
   set state(covariant St state);
 
-  void remove();
-
   /// Return mutable object representing [state].
   /// All changes will be reflected unless [cancelStateBuilder] is called.
-  Builder<St> getStateBuilder();
+  StateBuilder<St> getStateBuilder();
   void cancelStateBuilder();
 
   /// Used in the event of a dragging or resizing operation.
@@ -64,4 +62,9 @@ abstract interface class BasePlannerElement<St, E>
 
 abstract interface class Builder<T> {
   T build();
+}
+
+abstract interface class StateBuilder<T> implements Builder<T> {
+  void addSelf();
+  void removeSelf();
 }

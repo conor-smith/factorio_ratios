@@ -70,6 +70,8 @@ class Graph
   @override
   ProductionLine get productionLine => this;
 
+  bool get isRoot => this == parentGraph;
+
   // TODO
   @override
   ItemIo? get ioRatios => null;
@@ -78,24 +80,32 @@ class Graph
     BasePlanner basePlanner, {
     required this.parentGraph,
     this.surface,
+    String name = 'graph',
     Icon? icon,
+    NodeGeometryImpl nodeGeometry = NodeGeometryImpl.uninitialised,
   }) : _basePlanner = basePlanner,
-       _state = GraphStateImpl._initial(icon: icon ?? surface?.icon),
+       _state = GraphStateImpl._initial(
+         name: name,
+         icon: icon ?? surface?.icon,
+         nodeGeometry: nodeGeometry,
+       ),
        _surfaceProperties =
            basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
-    _builder = GraphStateBuilder._new(this);
+    _builder = GraphStateBuilder._from(this);
+    _builder!.addSelf();
   }
 
   Graph.rootGraph(BasePlanner basePlanner, [this.surface])
     : _basePlanner = basePlanner,
-      _state = GraphStateImpl._initial(icon: surface?.icon),
+      _state = GraphStateImpl._initial(
+        name: 'Root Graph',
+        icon: surface?.icon,
+        nodeGeometry: NodeGeometryImpl.uninitialised,
+      ),
       _surfaceProperties =
           basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
     parentGraph = this;
   }
-
-  @override
-  void remove() => GraphStateBuilder._remove(this);
 
   @override
   set state(GraphStateImpl state) {

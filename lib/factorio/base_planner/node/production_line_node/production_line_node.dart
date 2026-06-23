@@ -51,9 +51,11 @@ class ProdLineNode
     required this.parentGraph,
     required this.nodeType,
     required ProductionLine productionLine,
+    NodeGeometryImpl nodeGeometry = NodeGeometryImpl.uninitialised,
   }) : _basePlanner = basePlanner,
-       _state = ProdLineNodeStateImpl._(productionLine: productionLine) {
-    _builder = ProdLineNodeStateBuilder._new(this);
+       _state = ProdLineNodeStateImpl._initial(productionLine: productionLine, nodeGeometry: nodeGeometry) {
+    _builder = ProdLineNodeStateBuilder._from(this);
+    _builder!.addSelf();
   }
 
   @override
@@ -65,9 +67,6 @@ class ProdLineNode
     // Validate state, update listeners
     _state = state;
   }
-
-  @override
-  void remove() => ProdLineNodeStateBuilder._remove(this);
 
   @override
   ProdLineNodeStateBuilder getStateBuilder() {
