@@ -11,6 +11,12 @@ abstract class ProdLineNodeState {
   Set<Edge> get parents;
   Set<Edge> get children;
 
+  Set<Edge> get internalParents;
+  Set<Edge> get externalParents;
+
+  Set<Edge> get internalChildren;
+  Set<Edge> get externalChildren;
+
   Map<InGameItem, List<Edge>> get outputEdges;
   Map<InGameItem, List<Edge>> get inputEdges;
 }
