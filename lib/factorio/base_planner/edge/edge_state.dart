@@ -64,7 +64,7 @@ class EdgeStateBuilder implements StateBuilder<EdgeStateImpl>, EdgeState {
     : _amount = _edge._state.amount,
       _percentage = _edge._state.percentage,
       _edgeGeometry = _edge._state.edgeGeometry {
-    _edge._basePlanner.getSnapshotBuilder().addToSnapsnot(_edge, this);
+    _edge.basePlanner.getSnapshotBuilder().addToSnapsnot(_edge, this);
   }
 
   @override
@@ -78,7 +78,7 @@ class EdgeStateBuilder implements StateBuilder<EdgeStateImpl>, EdgeState {
   void removeSelf() {
     if (!_removingSelf) {
       _removingSelf = true;
-      _edge._basePlanner.getSnapshotBuilder().removeFromSnapshot(_edge);
+      _edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(_edge);
 
       _edge.parentGraph.getStateBuilder().removeEdge(_edge);
 

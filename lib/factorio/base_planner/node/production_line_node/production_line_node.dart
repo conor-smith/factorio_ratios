@@ -14,7 +14,8 @@ part 'production_line_node_state.dart';
 class ProdLineNode
     with EventNotifier<NodeEvent>
     implements NodeElement<ProdLineNodeState, NodeEvent> {
-  final BasePlanner _basePlanner;
+  @override
+  final BasePlanner basePlanner;
 
   @override
   final Graph parentGraph;
@@ -43,15 +44,16 @@ class ProdLineNode
   ProdLineNodeStateBuilder? _builder;
 
   ProdLineNode.addToBasePlanner({
-    required BasePlanner basePlanner,
+    required this.basePlanner,
     required this.parentGraph,
     required this.nodeType,
     required ProductionLine productionLine,
     NodeGeometryImpl nodeGeometry = NodeGeometryImpl.uninitialised,
-  }) : _basePlanner = basePlanner,
-       _state = ProdLineNodeStateImpl._initial(
+    ProductionLineIo? io,
+  }) : _state = ProdLineNodeStateImpl._initial(
          productionLine: productionLine,
          nodeGeometry: nodeGeometry,
+         io: io,
        ) {
     if (nodeType.isIo) {
       throw NodeException(
@@ -67,7 +69,7 @@ class ProdLineNode
   ProdLineNodeState get state => _builder ?? _state;
   @override
   set state(ProdLineNodeStateImpl state) {
-    _basePlanner.throwIfMutationNotPermitted();
+    basePlanner.throwIfMutationNotPermitted();
 
     // Validate state, update listeners
     _state = state;
@@ -84,13 +86,13 @@ class ProdLineNode
   void cancelStateBuilder() => _builder = null;
 
   @override
-  bool get isSelected => _basePlanner.selectedElements.contains(this);
+  bool get isSelected => basePlanner.selectedElements.contains(this);
 
   @override
-  void select() => _basePlanner.selectElement(this);
+  void select() => basePlanner.selectElement(this);
 
   @override
-  void deselect() => _basePlanner.deselectElement(this);
+  void deselect() => basePlanner.deselectElement(this);
 
   @override
   NodeElement getOutputItemNode(InGameItem item) {

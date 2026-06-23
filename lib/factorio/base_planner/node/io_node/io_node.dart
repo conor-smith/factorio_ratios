@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
@@ -19,20 +21,20 @@ class IoNode
   final Graph parentGraph;
   @override
   final NodeType nodeType;
+  @override
+  final String name;
 
   final InGameItem ioItem;
 
   @override
-  final Set<InGameItem> inputItems;
+  Set<InGameItem> get inputItems => _ioItems;
   @override
-  Set<InGameItem> get outputItems => inputItems;
+  Set<InGameItem> get outputItems => _ioItems;
 
   @override
   Icon? get icon => ioItem.icon;
   @override
   final ItemIo? ioRatios;
-  @override
-  String get name => state.name;
   @override
   ProductionLineType get productionLineType => ProductionLineType.io;
 
@@ -50,24 +52,30 @@ class IoNode
   Set<Edge> get parents => state.parents;
   @override
   Set<Edge> get children => state.children;
-  Set<Edge> get externalParents => throw UnimplementedError();
-  Set<Edge> get externalChildren => throw UnimplementedError();
   @override
-  Map<InGameItem, List<Edge>> get inputEdges => state.inputEdges;
-  @override
-  Map<InGameItem, List<Edge>> get outputEdges => state.outputEdges;
-  @override
-  ProductionLineIo? get io => state.io;
+  IoNodeIo? get io => state.io;
+
+  final Set<InGameItem> _ioItems;
 
   IoNode.addToBasePlanner({
     required BasePlanner basePlanner,
     required this.parentGraph,
     required this.nodeType,
     required this.ioItem,
+    NodeGeometryImpl nodeGeometry = NodeGeometryImpl.uninitialised,
+    IoNodeIo? io,
   }) : _basePlanner = basePlanner,
-       _state = IoNodeStateImpl._(name: 'TODO'),
-       inputItems = Set.unmodifiable([ioItem]),
-       ioRatios = ItemIo(inputs: {ioItem: 1.0}, outputs: {ioItem: 1.0});
+       _state = IoNodeStateImpl._initial(nodeGeometry: nodeGeometry, io: io),
+       _ioItems = Set.unmodifiable([ioItem]),
+       name = '$ioItem $nodeType',
+       ioRatios = ItemIo(inputs: {ioItem: 1.0}, outputs: {ioItem: 1.0}) {
+    if (!nodeType.isIo) {
+      throw NodeException('IO node cannot have node type $nodeType');
+    }
+
+    _builder = IoNodeStateBuilder._(this);
+    _builder!.addSelf();
+  }
 
   @override
   IoNodeState get state => _builder ?? _state;
@@ -131,7 +139,6 @@ class IoNode
     throw UnimplementedError();
   }
 }
-
 
 class IoNodeIo extends ProductionLineIo {
   IoNodeIo({

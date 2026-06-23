@@ -2,7 +2,6 @@ part of 'io_node.dart';
 
 abstract class IoNodeState {
   IoNodeIo? get io;
-  String get name;
 
   NodeGeometryImpl get nodeGeometry;
 
@@ -13,8 +12,6 @@ abstract class IoNodeState {
 class IoNodeStateImpl implements IoNodeState, ToJson {
   @override
   final IoNodeIo? io;
-  @override
-  final String name;
 
   @override
   final NodeGeometryImpl nodeGeometry;
@@ -24,14 +21,55 @@ class IoNodeStateImpl implements IoNodeState, ToJson {
   @override
   final Set<Edge> children;
 
-  IoNodeStateImpl._({
-    this.io,
-    required this.name,
-    this.nodeGeometry = NodeGeometryImpl.uninitialised,
+  IoNodeStateImpl._initial({required this.io, required this.nodeGeometry})
+    : parents = const {},
+      children = const {};
+
+  IoNodeStateImpl._(
+    IoNode node, {
+    required this.io,
+    required this.nodeGeometry,
     Iterable<Edge> parents = const {},
     Iterable<Edge> children = const {},
   }) : parents = Set.unmodifiable(parents),
-       children = Set.unmodifiable(children);
+       children = Set.unmodifiable(children) {
+    Set<Edge> internalEdges, externalEdges;
+
+    for(var parent in this.parents) {
+      if(parent.child != node) {
+        throw NodeException('Edge $parent is not parent of node $node');
+      }
+    }
+    for(var child in this.children) {
+      if(child.parent != node) {
+        throw NodeException('Edge $child is not child of node $node');
+      }
+    }
+
+    if (node.nodeType == NodeType.output) {
+      internalEdges = this.children;
+      externalEdges = this.parents;
+    } else {
+      internalEdges = this.parents;
+      externalEdges = this.children;
+    }
+
+    for (var edge in internalEdges) {
+      if (edge.parentGraph != node.parentGraph) {
+        throw NodeException(
+          'Edge $edge connected to node $this belongs to graph ${edge.parentGraph}',
+        );
+      }
+    }
+
+    for (var edge in externalEdges) {
+      if (edge.parentGraph != node.parentGraph.parentGraph) {
+        throw NodeException(
+          'Edge $edge connected to node $this must be part of parent graph ${node.parentGraph.parentGraph} to allow for IO',
+        );
+      }
+    }
+  }
 
   @override
   Map<String, dynamic> toJson() {
@@ -42,17 +80,34 @@ class IoNodeStateImpl implements IoNodeState, ToJson {
 
 class IoNodeStateBuilder
     implements NodeStateBuilder<IoNodeStateImpl>, IoNodeState {
-  @override
-  void addChild(Edge chidEdge) {
-    // TODO: implement addChild
-    throw UnimplementedError();
-  }
+  final IoNode _node;
+
+  IoNodeIo? _io;
+  NodeGeometryImpl _nodeGeometry;
+  Set<Edge> _parents;
+  Set<Edge> _children;
 
   @override
-  void addParent(Edge parentEdge) {
-    // TODO: implement addParent
-    throw UnimplementedError();
-  }
+  IoNodeIo? get io => _io;
+  @override
+  NodeGeometryImpl get nodeGeometry => _nodeGeometry;
+  @override
+  late final Set<Edge> parents = UnmodifiableSetView(_parents);
+  @override
+  late final Set<Edge> children = UnmodifiableSetView(_children);
+
+  IoNodeStateBuilder._(this._node)
+    : _io = _node.io,
+      _nodeGeometry = _node.nodeGeometry,
+      _parents = Set.from(_node.parents),
+      _children = Set.from(_node.children);
+
+  @override
+  void addChild(Edge child) =>
+    _children.add(child);
+
+  @override
+  void addParent(Edge parentEdge) =>  
 
   @override
   IoNodeStateImpl build() {

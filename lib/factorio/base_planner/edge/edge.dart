@@ -12,7 +12,8 @@ part 'edge_state.dart';
 class Edge
     with EventNotifier<EdgeEvent>
     implements BasePlannerElement<EdgeState, EdgeEvent> {
-  final BasePlanner _basePlanner;
+  @override
+  final BasePlanner basePlanner;
 
   @override
   final Graph parentGraph;
@@ -40,7 +41,7 @@ class Edge
   EdgeGeometryImpl get edgeGeometry => state.edgeGeometry;
 
   Edge.addToBasePlanner({
-    required BasePlanner basePlanner,
+    required this.basePlanner,
     required this.parentGraph,
     required this.edgeType,
     required this.parent,
@@ -49,8 +50,7 @@ class Edge
     double percentage = 1.0,
     double? initialAmount,
     EdgeGeometryImpl edgeGeometry = EdgeGeometryImpl.uninitialised,
-  }) : _basePlanner = basePlanner,
-       parentItemNode = switch (edgeType) {
+  }) : parentItemNode = switch (edgeType) {
          EdgeType.requestItems => parent.getInputItemNode(item),
          EdgeType.pushExcess => parent.getOutputItemNode(item),
        },
@@ -81,7 +81,7 @@ class Edge
   EdgeState get state => _builder ?? _state;
   @override
   set state(EdgeStateImpl state) {
-    _basePlanner.throwIfMutationNotPermitted();
+    basePlanner.throwIfMutationNotPermitted();
 
     // TODO: validate state, update listeners
     _state = state;
@@ -98,13 +98,13 @@ class Edge
   void cancelStateBuilder() => _builder = null;
 
   @override
-  bool get isSelected => _basePlanner.selectedElements.contains(this);
+  bool get isSelected => basePlanner.selectedElements.contains(this);
 
   @override
-  void select() => _basePlanner.selectElement(this);
+  void select() => basePlanner.selectElement(this);
 
   @override
-  void deselect() => _basePlanner.deselectElement(this);
+  void deselect() => basePlanner.deselectElement(this);
 
   @override
   void notifyListenersOfGeometryUpdate(EdgeGeometry edgeGeometry) =>

@@ -32,6 +32,7 @@ abstract mixin class EventNotifier<T> {
 /// [remove] method must be called whenever an element is removed from the [BasePlanner].
 abstract interface class BasePlannerElement<St, E>
     implements EventNotifier<E>, ToJson {
+  BasePlanner get basePlanner;
   Graph get parentGraph;
 
   /// Returns immutable object representing state

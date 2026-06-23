@@ -26,20 +26,6 @@ abstract class GraphState {
       .followedBy(graphNodes)
       .followedBy(inputNodes.values)
       .followedBy(outputNodes.values);
-
-  static Iterable<Edge> _calculateParents(
-    Map<InGameItem, IoNode> inputNodes,
-    Map<InGameItem, IoNode> outputNodes,
-  ) => inputNodes.values
-      .followedBy(outputNodes.values)
-      .expand((ioNode) => ioNode.externalParents);
-
-  static Iterable<Edge> _calculateChildren(
-    Map<InGameItem, IoNode> inputNodes,
-    Map<InGameItem, IoNode> outputNodes,
-  ) => inputNodes.values
-      .followedBy(outputNodes.values)
-      .expand((ioNode) => ioNode.externalChildren);
 }
 
 class GraphStateImpl implements GraphState, ToJson {
@@ -114,10 +100,10 @@ class GraphStateImpl implements GraphState, ToJson {
          ),
        ),
        parents = Set.unmodifiable(
-         GraphState._calculateParents(inputNodes, outputNodes),
+         outputNodes.values.expand((node) => node.parents),
        ),
        children = Set.unmodifiable(
-         GraphState._calculateChildren(inputNodes, outputNodes),
+         inputNodes.values.expand((node) => node.children),
        ),
        inputItems = Set.unmodifiable(inputNodes.keys),
        outputItems = Set.unmodifiable(outputNodes.keys) {
@@ -176,6 +162,7 @@ class GraphStateBuilder
     implements NodeStateBuilder<GraphStateImpl>, GraphState {
   final Graph _graph;
 
+  // These booleans exist to stop loops where they might arise
   bool _removingSelf = false;
 
   String _name;
@@ -216,10 +203,10 @@ class GraphStateBuilder
   // TODO - Cache these values
   @override
   Set<Edge> get parents =>
-      GraphState._calculateParents(_inputNodes, _outputNodes).toSet();
+      _outputNodes.values.expand((node) => node.parents).toSet();
   @override
   Set<Edge> get children =>
-      GraphState._calculateChildren(_inputNodes, outputNodes).toSet();
+      _inputNodes.values.expand((node) => node.children).toSet();
   @override
   Set<InGameItem> get inputItems => _inputNodes.keys.toSet();
   @override
@@ -242,7 +229,7 @@ class GraphStateBuilder
       _outputNodes = Map.from(_graph.outputNodes),
       _edges = Set.from(_graph._state.edges),
       _nodeGeometry = _graph._state.nodeGeometry {
-    _graph._basePlanner.getSnapshotBuilder().addToSnapsnot(_graph, this);
+    _graph.basePlanner.getSnapshotBuilder().addToSnapsnot(_graph, this);
   }
 
   @override
@@ -257,7 +244,7 @@ class GraphStateBuilder
     if (!_removingSelf) {
       _removingSelf = true;
 
-      _graph._basePlanner.getSnapshotBuilder().removeFromSnapshot(_graph);
+      _graph.basePlanner.getSnapshotBuilder().removeFromSnapshot(_graph);
 
       // When nodes are removed, they automatically remove all attached edges
       var nodesToRemove = [...allNodes];
@@ -355,30 +342,26 @@ class GraphStateBuilder
   }
 
   @override
-  void addParent(Edge parent) => (parent.childItemNode as IoNode)
-      .getStateBuilder()
-      .addExternalParent(parent);
+  void addParent(Edge parent) =>
+      (parent.childItemNode as IoNode).getStateBuilder().addParent(parent);
 
   @override
-  void addChild(Edge child) => (child.parentItemNode as IoNode)
-      .getStateBuilder()
-      .addExternalChild(child);
+  void addChild(Edge child) =>
+      (child.parentItemNode as IoNode).getStateBuilder().addChild(child);
 
   @override
-  void removeParent(Edge parent) => (parent.childItemNode as IoNode)
-      .getStateBuilder()
-      .removeExternalParent(parent);
+  void removeParent(Edge parent) =>
+      (parent.child as IoNode).getStateBuilder().removeParent(parent);
 
   @override
-  void removeChild(Edge child) => (child.parentItemNode as IoNode)
-      .getStateBuilder()
-      .removeExternalChild(child);
+  void removeChild(Edge child) =>
+      (child.parentItemNode as IoNode).getStateBuilder().removeChild(child);
 
   void clearIo() {
     if (_io != null) {
       _io = null;
 
-      if (!_graph.parentGraph.isRoot) {
+      if (!_graph.isRoot) {
         _graph.parentGraph.getStateBuilder().clearIo();
       }
     }

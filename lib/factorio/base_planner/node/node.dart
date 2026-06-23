@@ -1,9 +1,13 @@
+import 'dart:collection';
+
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
+
+part 'abstract_node_state.dart';
 
 abstract interface class NodeElement<St, E extends NodeEvent>
     implements BasePlannerElement<St, E> {
@@ -48,14 +52,14 @@ enum NodeType implements Comparable<NodeType> {
 
   /// Represents a leaf node in the a [Graph] that outputs items.
   /// This node is not allowed to have children.
-  resource(outputPriority: 3, childrenPermitted: false),
+  resource(outputPriority: 3),
 
   /// Represents a production line.
   productionLine(outputPriority: 4),
 
   /// Represents a leaf node in the a [Graph] that consumes items.
   /// This node is not allowed to have children.
-  disposal(childrenPermitted: false),
+  disposal(),
 
   /// Node can connect to and output to nodes in [NodeElement.parentGraph].
   /// All [EdgeType]s are permitted so long as edges connecting to external nodes are outputs.
@@ -64,24 +68,17 @@ enum NodeType implements Comparable<NodeType> {
   /// Represents a root node in the graph that consumes items. Parents are not permitted.
   ///
   /// Only these nodes and [producer] nodes are permitted to set [NodeElement.requirements].
-  consumer(parentsPermitted: false),
+  consumer(),
 
   /// Represents a root node in the graph that produces items. Parents are not permitted.
   ///
   /// Only these nodes and [consumer] nodes are permitted to set [NodeElement.requirements].
-  producer(parentsPermitted: false, outputPriority: 3);
+  producer(outputPriority: 3);
 
   final bool isIo;
-  final bool parentsPermitted;
-  final bool childrenPermitted;
   final int outputPriority;
 
-  const NodeType({
-    this.isIo = false,
-    this.parentsPermitted = true,
-    this.childrenPermitted = false,
-    this.outputPriority = 100,
-  });
+  const NodeType({this.isIo = false, this.outputPriority = 100});
 
   @override
   int compareTo(NodeType other) =>

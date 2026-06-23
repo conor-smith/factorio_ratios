@@ -20,7 +20,8 @@ part 'graph_state.dart';
 class Graph
     with EventNotifier<GraphEvent>
     implements NodeElement<GraphState, GraphEvent>, ProductionLine<GraphIo> {
-  final BasePlanner _basePlanner;
+  @override
+  final BasePlanner basePlanner;
   final Surface? surface;
   @override
   late final Graph parentGraph;
@@ -75,14 +76,13 @@ class Graph
   Map<InGameItem, List<NodeElement>>? _cachedNodeOutputLists;
 
   Graph.addToBasePlanner(
-    BasePlanner basePlanner, {
+    this.basePlanner, {
     required this.parentGraph,
     this.surface,
     String name = 'graph',
     Icon? icon,
     NodeGeometryImpl nodeGeometry = NodeGeometryImpl.uninitialised,
-  }) : _basePlanner = basePlanner,
-       _state = GraphStateImpl._initial(
+  }) : _state = GraphStateImpl._initial(
          name: name,
          icon: icon ?? surface?.icon,
          nodeGeometry: nodeGeometry,
@@ -93,9 +93,8 @@ class Graph
     _builder!.addSelf();
   }
 
-  Graph.rootGraph(BasePlanner basePlanner, [this.surface])
-    : _basePlanner = basePlanner,
-      _state = GraphStateImpl._initial(
+  Graph.rootGraph(this.basePlanner, [this.surface])
+    : _state = GraphStateImpl._initial(
         name: 'Root Graph',
         icon: surface?.icon,
         nodeGeometry: NodeGeometryImpl.uninitialised,
@@ -107,7 +106,7 @@ class Graph
 
   @override
   set state(GraphStateImpl state) {
-    _basePlanner.throwIfMutationNotPermitted();
+    basePlanner.throwIfMutationNotPermitted();
     _builder = null;
 
     // Validate state, update listeners
@@ -125,13 +124,13 @@ class Graph
   void cancelStateBuilder() => _builder = null;
 
   @override
-  bool get isSelected => _basePlanner.selectedElements.contains(this);
+  bool get isSelected => basePlanner.selectedElements.contains(this);
 
   @override
-  void select() => _basePlanner.selectElement(this);
+  void select() => basePlanner.selectElement(this);
 
   @override
-  void deselect() => _basePlanner.deselectElement(this);
+  void deselect() => basePlanner.deselectElement(this);
 
   @override
   NodeElement getOutputItemNode(InGameItem item) {
@@ -187,9 +186,9 @@ class Graph
       return;
     }
 
-    _basePlanner.buildNextSnapshot(() {
+    basePlanner.buildNextSnapshot(() {
       var consumerNode = ProdLineNode.addToBasePlanner(
-        basePlanner: _basePlanner,
+        basePlanner: basePlanner,
         parentGraph: this,
         nodeType: NodeType.consumer,
         productionLine: MagicLine.singleItemConsumer(item),
@@ -209,7 +208,7 @@ class Graph
       return;
     }
 
-    _basePlanner.buildNextSnapshot(() {
+    basePlanner.buildNextSnapshot(() {
       Map<NodeElement, int> nodeToRowNumber = {};
 
       var consumerNodesFirstRow = 0;
@@ -331,7 +330,7 @@ class Graph
       }
 
       Edge.addToBasePlanner(
-        basePlanner: _basePlanner,
+        basePlanner: basePlanner,
         parentGraph: this,
         edgeType: EdgeType.requestItems,
         parent: startNode,
@@ -344,7 +343,7 @@ class Graph
   ProdLineNode? _createResourceNode(InGameItem requiredOutput) {
     if (_surfaceProperties.resources.contains(requiredOutput)) {
       return ProdLineNode.addToBasePlanner(
-        basePlanner: _basePlanner,
+        basePlanner: basePlanner,
         parentGraph: this,
         nodeType: NodeType.resource,
         productionLine: MagicLine.singleItemProducer(requiredOutput),
@@ -371,7 +370,7 @@ class Graph
       var inGameRecipe = InGameRecipe(baseRecipe, quality);
 
       var inGameMachine = InGameMachine(
-        _basePlanner.sortedMachines.firstWhere(
+        basePlanner.sortedMachines.firstWhere(
           (machine) => machine.recipes.contains(baseRecipe),
         ),
       );
@@ -411,7 +410,7 @@ class Graph
       }
 
       return ProdLineNode.addToBasePlanner(
-        basePlanner: _basePlanner,
+        basePlanner: basePlanner,
         parentGraph: this,
         nodeType: NodeType.productionLine,
         productionLine: SingleRecipeLine.fromBaseMachine(
@@ -428,7 +427,7 @@ class Graph
 
   ProdLineNode _createMagicResourceNode(InGameItem requiredOutput) =>
       ProdLineNode.addToBasePlanner(
-        basePlanner: _basePlanner,
+        basePlanner: basePlanner,
         parentGraph: this,
         nodeType: NodeType.resource,
         productionLine: MagicLine.singleItemProducer(requiredOutput),
