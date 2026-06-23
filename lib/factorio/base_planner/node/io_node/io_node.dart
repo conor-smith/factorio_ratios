@@ -15,7 +15,8 @@ part 'io_node_state.dart';
 class IoNode
     with EventNotifier<NodeEvent>
     implements NodeElement<IoNodeState, NodeEvent>, ProductionLine<IoNodeIo> {
-  final BasePlanner _basePlanner;
+  @override
+  final BasePlanner basePlanner;
 
   @override
   final Graph parentGraph;
@@ -58,14 +59,13 @@ class IoNode
   final Set<InGameItem> _ioItems;
 
   IoNode.addToBasePlanner({
-    required BasePlanner basePlanner,
+    required this.basePlanner,
     required this.parentGraph,
     required this.nodeType,
     required this.ioItem,
     NodeGeometryImpl nodeGeometry = NodeGeometryImpl.uninitialised,
     IoNodeIo? io,
-  }) : _basePlanner = basePlanner,
-       _state = IoNodeStateImpl._initial(nodeGeometry: nodeGeometry, io: io),
+  }) : _state = IoNodeStateImpl._initial(nodeGeometry: nodeGeometry, io: io),
        _ioItems = Set.unmodifiable([ioItem]),
        name = '$ioItem $nodeType',
        ioRatios = ItemIo(inputs: {ioItem: 1.0}, outputs: {ioItem: 1.0}) {
@@ -73,7 +73,7 @@ class IoNode
       throw NodeException('IO node cannot have node type $nodeType');
     }
 
-    _builder = IoNodeStateBuilder._(this);
+    _builder = IoNodeStateBuilder._from(this);
     _builder!.addSelf();
   }
 
@@ -81,7 +81,7 @@ class IoNode
   IoNodeState get state => _builder ?? _state;
   @override
   set state(IoNodeStateImpl state) {
-    _basePlanner.throwIfMutationNotPermitted();
+    basePlanner.throwIfMutationNotPermitted();
 
     _state = state;
   }
@@ -93,13 +93,13 @@ class IoNode
   void cancelStateBuilder() => _builder = null;
 
   @override
-  bool get isSelected => _basePlanner.selectedElements.contains(this);
+  bool get isSelected => basePlanner.selectedElements.contains(this);
 
   @override
-  void select() => _basePlanner.selectElement(this);
+  void select() => basePlanner.selectElement(this);
 
   @override
-  void deselect() => _basePlanner.deselectElement(this);
+  void deselect() => basePlanner.deselectElement(this);
 
   @override
   NodeElement<dynamic, NodeEvent> getInputItemNode(InGameItem item) {

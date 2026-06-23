@@ -20,10 +20,13 @@ class ProdLineNodeStateImpl extends AbstractNodeState
   @override
   final ProductionLine productionLine;
 
+  @override
+  final ProductionLineIo? io;
+
   ProdLineNodeStateImpl._initial({
     required this.productionLine,
     required super.nodeGeometry,
-    required super.io,
+    required this.io,
   }) : requirements = null,
        super.initial();
 
@@ -31,7 +34,7 @@ class ProdLineNodeStateImpl extends AbstractNodeState
     ProdLineNode node, {
     this.requirements,
     required this.productionLine,
-    required super.io,
+    required this.io,
     required super.nodeGeometry,
     required super.parents,
     required super.children,
@@ -110,11 +113,14 @@ class ProdLineNodeStateBuilder
 
   ItemIo? _requirements;
   ProductionLine _productionLine;
+  ProductionLineIo? _io;
 
   @override
   ItemIo? get requirements => _requirements;
   @override
   ProductionLine get productionLine => _productionLine;
+  @override
+  ProductionLineIo? get io => _io;
 
   ProdLineNodeStateBuilder._from(this.node)
     : _requirements = node._state.requirements,
@@ -156,8 +162,18 @@ class ProdLineNodeStateBuilder
     }
 
     _productionLine = newProdLine;
+  }
 
-    clearIo();
+  @override
+  void clearIo() {
+    _io = null;
+    clearParentIo();
+  }
+
+  @override
+  void calculateIo(ItemIo constraints) {
+    _io = productionLine.calculate(constraints);
+    clearParentIo();
   }
 
   @override

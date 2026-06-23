@@ -1,21 +1,18 @@
 part of 'node.dart';
 
 abstract class AbstractNodeState {
-  final ProductionLineIo? io;
-
   final NodeGeometryImpl nodeGeometry;
 
   final Set<Edge> parents;
   final Set<Edge> children;
 
-  AbstractNodeState.initial({required this.io, required this.nodeGeometry})
+  AbstractNodeState.initial({required this.nodeGeometry})
     : parents = const {},
       children = const {};
 
   AbstractNodeState(
     NodeElement node, {
     required ProductionLine productionLine,
-    required this.io,
     required this.nodeGeometry,
     required Iterable<Edge> parents,
     required Iterable<Edge> children,
@@ -83,21 +80,22 @@ abstract class AbstractNodeState {
 
 abstract class AbstractNodeStateBuilder<St> implements NodeStateBuilder<St> {
   NodeElement get node;
+  ProductionLine get productionLine;
+  ProductionLineIo? get io;
+  void calculateIo(ItemIo constraints);
+  void clearIo();
 
   bool _removingSelf = false;
-  ProductionLineIo? _io;
   NodeGeometryImpl _nodeGeometry;
   final Set<Edge> _parents;
   final Set<Edge> _children;
 
-  ProductionLineIo? get io => _io;
   NodeGeometryImpl get nodeGeometry => _nodeGeometry;
   late final Set<Edge> parents = UnmodifiableSetView(parents);
   late final Set<Edge> children = UnmodifiableSetView(children);
 
   AbstractNodeStateBuilder.from(NodeElement node)
-    : _io = node.io,
-      _nodeGeometry = node.nodeGeometry,
+    : _nodeGeometry = node.nodeGeometry,
       _parents = Set.from(node.parents),
       _children = Set.from(node.children) {
     node.basePlanner.getSnapshotBuilder().addToSnapsnot(node, this);
@@ -145,24 +143,12 @@ abstract class AbstractNodeStateBuilder<St> implements NodeStateBuilder<St> {
     }
   }
 
-  void clearIo() {
-    if (_io != null) {
-      _io = null;
-      clearParentIo();
-    }
-  }
-
-  void calculateIo(ItemIo constraints) {
-    _io = node.productionLine.calculate(constraints);
-    clearParentIo();
-  }
-
   void calculateIoFromEdgeConstraints() =>
       calculateIo(calculateConstraintsFromEdges());
 
   ItemIo updateEdgesAndReturnUnfulfilledIo() {
     // TODO: optimise
-    var ioData = _io;
+    var ioData = io;
     if (ioData == null) {
       for (var edge
           in _parents
