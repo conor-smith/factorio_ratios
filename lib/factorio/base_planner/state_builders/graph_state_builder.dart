@@ -136,7 +136,6 @@ class GraphStateBuilder
 
   void _removeProdLineNode(ProdLineNode node) {
     if (!_removingSelf) {
-      node.getStateBuilder().removeSelf();
       _prodLineNodes.remove(node);
       clearIo();
     }
@@ -149,7 +148,6 @@ class GraphStateBuilder
 
   void _removeGraphNode(Graph graphNode) {
     if (!_removingSelf) {
-      graphNode.getStateBuilder().removeSelf();
       _graphNodes.remove(graphNode);
     }
   }
@@ -178,7 +176,6 @@ class GraphStateBuilder
 
   void _removeIoNode(IoNode node) {
     if (!_removingSelf) {
-      node.getStateBuilder().removeSelf();
       if (node.nodeType == NodeType.output) {
         _outputNodes.remove(node.ioItem);
       } else {
@@ -192,7 +189,6 @@ class GraphStateBuilder
   void _addEdge(Edge edge) => _edges.add(edge);
   void _removeEdge(Edge edge) {
     if (!_removingSelf) {
-      edge.getStateBuilder().removeSelf();
       _edges.remove(edge);
     }
   }

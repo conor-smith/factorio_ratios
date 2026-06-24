@@ -183,6 +183,16 @@ class Graph
     }
   }
 
+  /// Clears all nodes except IO nodes
+  void clear() {
+    basePlanner.buildNextSnapshot(() {
+      var nonIoNodes = allNodes.where((node) => !node.nodeType.isIo).toList();
+      for (var node in nonIoNodes) {
+        node.getStateBuilder().removeSelf();
+      }
+    });
+  }
+
   void addConsumerNodeAndTree(InGameItem item) {
     if (surface == null) {
       throw const GraphException(

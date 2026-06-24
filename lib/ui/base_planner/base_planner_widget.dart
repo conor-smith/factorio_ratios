@@ -69,6 +69,18 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
           toggleConsumerMenu: toggleConsumerMenu,
         ),
       ),
+      Positioned(
+        left: 20,
+        top: 20,
+        child: TextButton(
+          onPressed: () {
+            if (!consumerMenuActive) {
+              basePlanner.activeGraph.clear();
+            }
+          },
+          child: const Text('x'),
+        ),
+      ),
     ];
 
     if (consumerMenuActive) {
