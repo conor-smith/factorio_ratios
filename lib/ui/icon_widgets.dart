@@ -25,7 +25,7 @@ class FactorioIconWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // TODO - Get this from an inherited widget or something
-    double appScaleMultiplier = 2;
+    double appScaleMultiplier = 1;
 
     double scaleMultiplier = appScaleMultiplier * defaultScale;
     double size = expectedIconSize * scaleMultiplier;

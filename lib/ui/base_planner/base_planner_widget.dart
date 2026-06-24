@@ -55,16 +55,22 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     }
 
     if (event.newActiveGraph) {
-      setState(() {});
+      setState(() => consumerMenuActive = false);
     }
   }
+
+  void toggleConsumerMenu() =>
+      setState(() => consumerMenuActive = !consumerMenuActive);
 
   @override
   Widget build(BuildContext context) {
     List<Widget> children = [
       graphWidgets.putIfAbsent(
         basePlanner.activeGraph,
-        () => GraphWidget(graph: basePlanner.activeGraph),
+        () => GraphWidget(
+          graph: basePlanner.activeGraph,
+          toggleConsumerMenu: toggleConsumerMenu,
+        ),
       ),
     ];
 
