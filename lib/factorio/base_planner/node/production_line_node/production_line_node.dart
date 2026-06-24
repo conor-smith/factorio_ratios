@@ -69,8 +69,7 @@ class ProdLineNode
   @override
   set state(ProdLineNodeStateImpl state) {
     basePlanner.throwIfMutationNotPermitted();
-
-    // Validate state, update listeners
+    _builder = null;
     _state = state;
   }
 

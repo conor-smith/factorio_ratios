@@ -109,8 +109,6 @@ class Graph
   set state(GraphStateImpl state) {
     basePlanner.throwIfMutationNotPermitted();
     _builder = null;
-
-    // Validate state, update listeners
     _state = state;
   }
 
@@ -324,10 +322,9 @@ class Graph
 
   void _createNodeTree(NodeElement startNode) {
     // Ignore items that already have an input edge
-    var requiredInputs = startNode.children
-        .map((edge) => edge.item)
-        .toSet()
-        .difference(startNode.inputItems);
+    var requiredInputs = startNode.inputItems.difference(
+      startNode.children.map((edge) => edge.item).toSet(),
+    );
 
     for (var input in requiredInputs) {
       var nextNode = _cachedNodeOutputLists![input]?.firstOrNull;

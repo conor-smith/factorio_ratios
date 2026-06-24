@@ -81,7 +81,7 @@ class IoNode
   @override
   set state(IoNodeStateImpl state) {
     basePlanner.throwIfMutationNotPermitted();
-
+    _builder = null;
     _state = state;
   }
 

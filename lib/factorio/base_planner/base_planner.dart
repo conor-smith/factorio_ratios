@@ -171,9 +171,10 @@ class BasePlanner
     } catch (e) {
       if (firstCall) {
         // Reset all states to current snapshot
-        _snapshots[_snapshotIndex].states.forEach(
-          (element, newState) => element.state = newState,
-        );
+        _snapshots[_snapshotIndex].states.forEach((element, newState) {
+          element.cancelStateBuilder();
+          element.state = newState;
+        });
       }
       _mutationLock--;
 
@@ -210,57 +211,61 @@ class BasePlanner
     Snapshot oldSnapshot,
     Snapshot newSnapshot,
   ) {
-    Map<BasePlannerElement, Pair> stateUpdates = {};
-
     _mutationLock++;
-    newSnapshot.states.forEach((element, newState) {
-      var oldState = oldSnapshot.states[element];
+    try {
+      Map<BasePlannerElement, Pair> stateUpdates = {};
+      newSnapshot.states.forEach((element, newState) {
+        var oldState = oldSnapshot.states[element];
 
-      if (newState != oldState) {
-        element.state = newState;
-      }
-
-      if (oldState != null) {
-        stateUpdates[element] = Pair(oldState, newState);
-      }
-    });
-    _mutationLock--;
-
-    stateUpdates.forEach(
-      (element, stateUpdate) => element.notifyListenersOfStateUpdate(
-        stateUpdate.item1,
-        stateUpdate.item2,
-      ),
-    );
-
-    var removedElements = oldSnapshot.states.keys.toSet().difference(
-      newSnapshot.states.keys.toSet(),
-    );
-
-    _selectedElements.removeAll(removedElements);
-    for (var element in removedElements) {
-      element.clearListeners();
-    }
-
-    var removedGraphs = removedElements.whereType<Graph>().toSet();
-    if (removedGraphs.isNotEmpty) {
-      // If _activeGraph was removed, replace it with closest available parent graph
-      Graph? newActiveGraph;
-      if (removedGraphs.contains(_activeGraph)) {
-        newActiveGraph = _activeGraph.parentGraph;
-        while (removedGraphs.contains(newActiveGraph)) {
-          newActiveGraph = newActiveGraph!.parentGraph;
+        if (newState != oldState) {
+          element.state = newState;
         }
 
-        _updateActiveGraph(newActiveGraph!, false);
-      }
+        if (oldState != null) {
+          stateUpdates[element] = Pair(oldState, newState);
+        }
+      });
+      _mutationLock--;
 
-      notifyListeners(
-        BasePlannerEvent._(
-          removedGraphs: removedGraphs,
-          newActiveGraph: newActiveGraph != null,
+      stateUpdates.forEach(
+        (element, stateUpdate) => element.notifyListenersOfStateUpdate(
+          stateUpdate.item1,
+          stateUpdate.item2,
         ),
       );
+
+      var removedElements = oldSnapshot.states.keys.toSet().difference(
+        newSnapshot.states.keys.toSet(),
+      );
+
+      _selectedElements.removeAll(removedElements);
+      for (var element in removedElements) {
+        element.clearListeners();
+      }
+
+      var removedGraphs = removedElements.whereType<Graph>().toSet();
+      if (removedGraphs.isNotEmpty) {
+        // If _activeGraph was removed, replace it with closest available parent graph
+        Graph? newActiveGraph;
+        if (removedGraphs.contains(_activeGraph)) {
+          newActiveGraph = _activeGraph.parentGraph;
+          while (removedGraphs.contains(newActiveGraph)) {
+            newActiveGraph = newActiveGraph!.parentGraph;
+          }
+
+          _updateActiveGraph(newActiveGraph!, false);
+        }
+
+        notifyListeners(
+          BasePlannerEvent._(
+            removedGraphs: removedGraphs,
+            newActiveGraph: newActiveGraph != null,
+          ),
+        );
+      }
+    } catch (e) {
+      _mutationLock--;
+      rethrow;
     }
   }
 }

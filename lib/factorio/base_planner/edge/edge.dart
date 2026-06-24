@@ -83,8 +83,7 @@ class Edge
   @override
   set state(EdgeStateImpl state) {
     basePlanner.throwIfMutationNotPermitted();
-
-    // TODO: validate state, update listeners
+    _builder = null;
     _state = state;
   }
 
