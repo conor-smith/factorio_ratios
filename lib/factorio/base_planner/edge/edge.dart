@@ -51,14 +51,8 @@ class Edge
     double percentage = 1.0,
     double? initialAmount,
     EdgeGeometryImpl edgeGeometry = EdgeGeometryImpl.uninitialised,
-  }) : parentItemNode = switch (edgeType) {
-         EdgeType.requestItems => parent.getInputItemNode(item),
-         EdgeType.pushExcess => parent.getOutputItemNode(item),
-       },
-       childItemNode = switch (edgeType) {
-         EdgeType.requestItems => child.getOutputItemNode(item),
-         EdgeType.pushExcess => child.getInputItemNode(item),
-       },
+  }) : parentItemNode = parent.getInputItemNode(item),
+       childItemNode = child.getOutputItemNode(item),
        _state = EdgeStateImpl._initial(
          amount: initialAmount,
          percentage: percentage,

@@ -10,11 +10,7 @@ import 'package:flutter/material.dart';
 class BasePlannerWidget extends StatefulWidget {
   final BasePlanner basePlanner;
 
-  BasePlannerWidget({super.key, required this.basePlanner}) {
-    basePlanner.activeGraph.addConsumerNodeAndTree(
-      InGameItem(basePlanner.db.itemMap['production-science-pack']!),
-    );
-  }
+  const BasePlannerWidget({super.key, required this.basePlanner});
 
   static IconWidgetCache getWidgetCache(BuildContext context) =>
       context.findAncestorStateOfType<_BasePlannerWidgetState>()?.cache ??
@@ -45,9 +41,10 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     basePlanner.addListener(this, onEvent);
   }
 
-  void addConsumerNodeToActiveGraph(Item item) {
+  void addConsumerNodeToActiveGraph(Item item) => setState(() {
     basePlanner.activeGraph.addConsumerNodeAndTree(InGameItem(item));
-  }
+    consumerMenuActive = false;
+  });
 
   void onEvent(BasePlannerEvent event) {
     for (var removedGraph in event.removedGraphs) {
