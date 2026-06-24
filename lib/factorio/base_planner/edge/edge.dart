@@ -2,6 +2,7 @@ import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/json/json.dart';
 
@@ -73,7 +74,7 @@ class Edge
       );
     }
 
-    _builder = EdgeStateBuilder._from(this);
+    _builder = EdgeStateBuilder.from(this, _state);
     _builder!.addSelf();
   }
 
@@ -89,7 +90,7 @@ class Edge
 
   @override
   EdgeStateBuilder getStateBuilder() {
-    _builder ??= EdgeStateBuilder._from(this);
+    _builder ??= EdgeStateBuilder.from(this, _state);
 
     return _builder!;
   }

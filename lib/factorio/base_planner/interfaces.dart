@@ -28,8 +28,6 @@ abstract mixin class EventNotifier<T> {
 /// However, [getStateBuilder] will return a relevant builder.
 /// Any changes to the stateBuilder will be reflected in [state] unless
 /// [cancelStateBuilder] is called, at which point, [state] will be reset.
-///
-/// [remove] method must be called whenever an element is removed from the [BasePlanner].
 abstract interface class BasePlannerElement<St, E>
     implements EventNotifier<E>, ToJson {
   BasePlanner get basePlanner;
@@ -63,9 +61,4 @@ abstract interface class BasePlannerElement<St, E>
 
 abstract interface class Builder<T> {
   T build();
-}
-
-abstract interface class StateBuilder<T> implements Builder<T> {
-  void addSelf();
-  void removeSelf();
 }

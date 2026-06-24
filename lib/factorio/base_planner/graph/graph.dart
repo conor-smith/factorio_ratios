@@ -8,6 +8,7 @@ import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dar
 import 'package:factorio_ratios/factorio/base_planner/node/io_node/io_node.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/production_line_node/production_line_node.dart';
+import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
@@ -89,7 +90,7 @@ class Graph
        ),
        _surfaceProperties =
            basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
-    _builder = GraphStateBuilder._from(this);
+    _builder = GraphStateBuilder.from(this, _state);
     _builder!.addSelf();
   }
 
@@ -115,7 +116,7 @@ class Graph
 
   @override
   GraphStateBuilder getStateBuilder() {
-    _builder ??= GraphStateBuilder._from(this);
+    _builder ??= GraphStateBuilder.from(this, _state);
 
     return _builder!;
   }

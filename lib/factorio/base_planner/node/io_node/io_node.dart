@@ -1,10 +1,9 @@
-import 'dart:collection';
-
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
@@ -73,7 +72,7 @@ class IoNode
       throw NodeException('IO node cannot have node type $nodeType');
     }
 
-    _builder = IoNodeStateBuilder._from(this);
+    _builder = IoNodeStateBuilder.from(this, _state);
     _builder!.addSelf();
   }
 
@@ -87,7 +86,11 @@ class IoNode
   }
 
   @override
-  IoNodeStateBuilder getStateBuilder() => throw UnimplementedError();
+  IoNodeStateBuilder getStateBuilder() {
+    _builder ??= IoNodeStateBuilder.from(this, _state);
+
+    return _builder!;
+  }
 
   @override
   void cancelStateBuilder() => _builder = null;
@@ -102,17 +105,10 @@ class IoNode
   void deselect() => basePlanner.deselectElement(this);
 
   @override
-  NodeElement<dynamic, NodeEvent> getInputItemNode(InGameItem item) {
-    if (ioItem == item) {
-      return this;
-    } else {
-      throw NodeException('Node $this cannot produce / consume item $item');
-    }
-  }
+  IoNode getInputItemNode(InGameItem item) => _getIoNode(item);
 
   @override
-  NodeElement<dynamic, NodeEvent> getOutputItemNode(InGameItem item) =>
-      getInputItemNode(item);
+  IoNode getOutputItemNode(InGameItem item) => _getIoNode(item);
 
   @override
   void notifyListenersOfGeometryUpdate(NodeGeometryImpl nodeGeometry) =>
@@ -137,6 +133,14 @@ class IoNode
   ) {
     // TODO: implement notifyListenersOfStateUpdate
     throw UnimplementedError();
+  }
+
+  IoNode _getIoNode(InGameItem item) {
+    if (ioItem == item) {
+      return this;
+    } else {
+      throw NodeException('Node $this cannot produce / consume item $item');
+    }
   }
 }
 

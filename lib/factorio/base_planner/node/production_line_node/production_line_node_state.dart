@@ -1,15 +1,9 @@
 part of 'production_line_node.dart';
 
-abstract class ProdLineNodeState {
+abstract class ProdLineNodeState implements NodeState {
   ItemIo? get requirements;
 
   ProductionLine get productionLine;
-  ProductionLineIo? get io;
-
-  NodeGeometryImpl get nodeGeometry;
-
-  Set<Edge> get parents;
-  Set<Edge> get children;
 }
 
 class ProdLineNodeStateImpl extends AbstractNodeState
@@ -30,7 +24,7 @@ class ProdLineNodeStateImpl extends AbstractNodeState
   }) : requirements = null,
        super.initial();
 
-  ProdLineNodeStateImpl._(
+  ProdLineNodeStateImpl(
     ProdLineNode node, {
     this.requirements,
     required this.productionLine,
@@ -39,14 +33,6 @@ class ProdLineNodeStateImpl extends AbstractNodeState
     required super.parents,
     required super.children,
   }) : super(node, productionLine: productionLine) {
-    for (var edge in parents.followedBy(children)) {
-      if (edge.parentGraph != node.parentGraph) {
-        throw NodeException(
-          'Edge belonging to parent graph ${edge.parentGraph} cannot be added to node $node',
-        );
-      }
-    }
-
     switch (node.nodeType) {
       case NodeType.consumer:
         if (productionLine.outputItems.isNotEmpty ||
@@ -103,87 +89,4 @@ class ProdLineNodeStateImpl extends AbstractNodeState
     // TODO: implement toJson
     throw UnimplementedError();
   }
-}
-
-class ProdLineNodeStateBuilder
-    extends AbstractNodeStateBuilder<ProdLineNodeStateImpl>
-    implements ProdLineNodeState {
-  @override
-  final ProdLineNode node;
-
-  ItemIo? _requirements;
-  ProductionLine _productionLine;
-  ProductionLineIo? _io;
-
-  @override
-  ItemIo? get requirements => _requirements;
-  @override
-  ProductionLine get productionLine => _productionLine;
-  @override
-  ProductionLineIo? get io => _io;
-
-  ProdLineNodeStateBuilder._from(this.node)
-    : _requirements = node._state.requirements,
-      _productionLine = node._state.productionLine,
-      super.from(node);
-
-  @override
-  void addSelf() {
-    node.parentGraph.getStateBuilder().addProdLineNode(node);
-  }
-
-  @override
-  void removeSelf() {
-    super.removeSelf();
-
-    node.parentGraph.getStateBuilder().removeProdLineNode(node);
-  }
-
-  void updateRequirements(ItemIo requirements) => _requirements = requirements;
-  void clearRequirements() => _requirements = null;
-
-  void updateProductionLine(ProductionLine newProdLine) {
-    // Remove any edges that can no longer connect
-    var parentsToRemove = _productionLine.outputItems
-        .difference(newProdLine.outputItems)
-        .expand(
-          (removedOutput) =>
-              parents.where((parent) => parent.item == removedOutput),
-        );
-    var childrenToRemove = _productionLine.inputItems
-        .difference(newProdLine.inputItems)
-        .expand(
-          (removedOutput) =>
-              children.where((child) => child.item == removedOutput),
-        );
-
-    for (var toRemove in parentsToRemove.followedBy(childrenToRemove)) {
-      toRemove.getStateBuilder().removeSelf();
-    }
-
-    _productionLine = newProdLine;
-  }
-
-  @override
-  void clearIo() {
-    _io = null;
-    clearParentIo();
-  }
-
-  @override
-  void calculateIo(ItemIo constraints) {
-    _io = productionLine.calculate(constraints);
-    clearParentIo();
-  }
-
-  @override
-  ProdLineNodeStateImpl build() => ProdLineNodeStateImpl._(
-    node,
-    requirements: _requirements,
-    productionLine: _productionLine,
-    io: io,
-    nodeGeometry: nodeGeometry,
-    parents: parents,
-    children: children,
-  );
 }

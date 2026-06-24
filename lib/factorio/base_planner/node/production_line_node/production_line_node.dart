@@ -1,10 +1,9 @@
-import 'dart:collection';
-
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/json/json.dart';
@@ -61,7 +60,7 @@ class ProdLineNode
       );
     }
 
-    _builder = ProdLineNodeStateBuilder._from(this);
+    _builder = ProdLineNodeStateBuilder.from(this, _state);
     _builder!.addSelf();
   }
 
@@ -77,7 +76,7 @@ class ProdLineNode
 
   @override
   ProdLineNodeStateBuilder getStateBuilder() {
-    _builder ??= ProdLineNodeStateBuilder._from(this);
+    _builder ??= ProdLineNodeStateBuilder.from(this, _state);
 
     return _builder!;
   }
@@ -99,7 +98,7 @@ class ProdLineNode
     if (outputItems.contains(item)) {
       return this;
     } else {
-      throw NodeException('Node $this cannot output $item');
+      throw NodeException('Node $this cannot produce $item');
     }
   }
 
@@ -108,7 +107,7 @@ class ProdLineNode
     if (inputItems.contains(item)) {
       return this;
     } else {
-      throw NodeException('Node $this cannot accept $item as input');
+      throw NodeException('Node $this cannot consume $item');
     }
   }
 

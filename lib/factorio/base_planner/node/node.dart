@@ -1,15 +1,14 @@
-import 'dart:collection';
-
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
+import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 
 part 'abstract_node_state.dart';
 
-abstract interface class NodeElement<St, E extends NodeEvent>
+abstract interface class NodeElement<St extends NodeState, E extends NodeEvent>
     implements BasePlannerElement<St, E> {
   NodeType get nodeType;
 
@@ -33,12 +32,11 @@ abstract interface class NodeElement<St, E extends NodeEvent>
   NodeElement getInputItemNode(InGameItem item);
 }
 
-abstract interface class NodeStateBuilder<T> implements StateBuilder<T> {
-  void updateGeometry(NodeGeometryImpl nodeGeometry);
-  void addParent(Edge parentEdge);
-  void removeParent(Edge parentEdge);
-  void addChild(Edge chidEdge);
-  void removeChild(Edge childEdge);
+abstract interface class NodeState {
+  Set<Edge> get parents;
+  Set<Edge> get children;
+  ProductionLineIo? get io;
+  NodeGeometryImpl get nodeGeometry;
 }
 
 enum NodeType implements Comparable<NodeType> {

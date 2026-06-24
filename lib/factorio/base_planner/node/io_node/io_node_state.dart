@@ -1,12 +1,8 @@
 part of 'io_node.dart';
 
-abstract class IoNodeState {
+abstract class IoNodeState implements NodeState {
+  @override
   IoNodeIo? get io;
-
-  NodeGeometryImpl get nodeGeometry;
-
-  Set<Edge> get parents;
-  Set<Edge> get children;
 }
 
 class IoNodeStateImpl extends AbstractNodeState implements IoNodeState, ToJson {
@@ -16,7 +12,7 @@ class IoNodeStateImpl extends AbstractNodeState implements IoNodeState, ToJson {
   IoNodeStateImpl._initial({required this.io, required super.nodeGeometry})
     : super.initial();
 
-  IoNodeStateImpl._(
+  IoNodeStateImpl(
     IoNode node, {
     required this.io,
     required super.nodeGeometry,
@@ -55,53 +51,4 @@ class IoNodeStateImpl extends AbstractNodeState implements IoNodeState, ToJson {
     // TODO: implement toJson
     throw UnimplementedError();
   }
-}
-
-class IoNodeStateBuilder extends AbstractNodeStateBuilder<IoNodeStateImpl>
-    implements IoNodeState {
-  @override
-  final IoNode node;
-
-  IoNodeIo? _io;
-
-  @override
-  IoNodeIo? get io => _io;
-
-  IoNodeStateBuilder._from(this.node) : _io = node.io, super.from(node);
-
-  @override
-  void addSelf() {
-    node.parentGraph.getStateBuilder().addIoNode(node);
-  }
-
-  @override
-  void removeSelf() {
-    super.removeSelf();
-
-    node.parentGraph.getStateBuilder().removeIoNode(node);
-  }
-
-  @override
-  ProductionLine<ProductionLineIo> get productionLine => node;
-
-  @override
-  void calculateIo(ItemIo constraints) {
-    _io = node.calculate(constraints);
-    clearParentIo();
-  }
-
-  @override
-  void clearIo() {
-    _io = null;
-    clearParentIo();
-  }
-
-  @override
-  IoNodeStateImpl build() => IoNodeStateImpl._(
-    node,
-    io: io,
-    nodeGeometry: nodeGeometry,
-    parents: parents,
-    children: children,
-  );
 }
