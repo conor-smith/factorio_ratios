@@ -53,22 +53,8 @@ class Icon {
   }
 
   @override
-  bool operator ==(Object other) {
-    if (super == other) {
-      return true;
-    }
-
-    if (other is Icon && other.icons.length == icons.length) {
-      for (var i = 0; i < icons.length; i++) {
-        if (icons[i] != other.icons[i]) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    return false;
-  }
+  bool operator ==(Object other) =>
+      super == other || (other is Icon && compareLists(other.icons, icons));
 }
 
 class IconData {

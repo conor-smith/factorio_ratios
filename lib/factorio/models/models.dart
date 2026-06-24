@@ -3,10 +3,11 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:factorio_ratios/factorio/factorio.dart';
+import 'package:factorio_ratios/utility/utility.dart';
 
 part 'crafting_machines.dart';
 part 'group.dart';
-part 'icon_data.dart';
+part 'icon.dart';
 part 'item.dart';
 part 'other_interfaces.dart';
 part 'recipe.dart';

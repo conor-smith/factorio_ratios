@@ -22,6 +22,21 @@ bool compareMaps<K, V>(Map<K, V> map1, Map<K, V> map2) =>
 bool compareSets<T>(Set<T> set1, Set<T> set2) =>
     set1 == set2 || (set1.length == set2.length && set1.containsAll(set2));
 
+bool compareLists<T>(List<T> list1, List<T> list2) {
+  if (list1 == list2) {
+    return true;
+  } else if (list1.length == list2.length) {
+    for (var i = 0; i < list1.length; i++) {
+      if (list1[i] != list2[i]) {
+        return false;
+      }
+    }
+    return true;
+  } else {
+    return false;
+  }
+}
+
 class Pair<A, B> {
   final A item1;
   final B item2;

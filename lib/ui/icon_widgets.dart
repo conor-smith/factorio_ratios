@@ -14,21 +14,19 @@ class FactorioIconWidget extends StatelessWidget {
   final Icon icon;
   final double expectedIconSize;
   final double defaultScale;
+  final double size;
 
   const FactorioIconWidget({
     super.key,
     required this.icon,
     required this.expectedIconSize,
     required this.defaultScale,
+    required this.size,
   });
 
   @override
   Widget build(BuildContext context) {
-    // TODO - Get this from an inherited widget or something
-    double appScaleMultiplier = 1;
-
-    double scaleMultiplier = appScaleMultiplier * defaultScale;
-    double size = expectedIconSize * scaleMultiplier;
+    double scaleMultiplier = size / (expectedIconSize * defaultScale);
 
     List<Widget> iconWidgets = icon.icons
         .map(
@@ -109,6 +107,7 @@ class IconWidgetCache {
         icon: icon,
         expectedIconSize: prototype.expectedIconSize,
         defaultScale: prototype.defaultScale,
+        size: prototype.expectedIconSize,
       ),
     );
   }

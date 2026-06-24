@@ -24,7 +24,7 @@ class ItemGroup extends PrototypeWithIcon {
   @override
   double get expectedIconSize => _expectedIconSize;
   @override
-  double get defaultScale => _defaultScale / 2;
+  double get defaultScale => _defaultScale;
 
   ItemGroup._({
     required this.factorioDb,
