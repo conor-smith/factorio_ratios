@@ -4,7 +4,6 @@ import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/utility/utility.dart';
 
 part 'combiner.dart';
-part 'io_line.dart';
 part 'magic_line.dart';
 part 'single_recipe.dart';
 part 'single_machine_impl.dart';
