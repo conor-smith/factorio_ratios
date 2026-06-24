@@ -72,6 +72,6 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
       children.add(Center(child: consumerMenu));
     }
 
-    return Stack(children: children);
+    return Stack(fit: StackFit.expand, children: children);
   }
 }

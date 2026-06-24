@@ -15,7 +15,6 @@ class GraphWidget extends StatefulWidget {
 }
 
 class _GraphWidgetState extends State<GraphWidget> {
-  @override
   Graph get graph => widget.graph;
 
   final Map<NodeElement, NodeWidget> nodeWidgets = {};

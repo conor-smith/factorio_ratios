@@ -13,17 +13,17 @@ part 'single_machine.dart';
 /// A production line is anything capable of inputting or outputting items.
 /// Eg. A collection of mining drills counts as a "production line".
 ///
-/// A call to [calculate] must not have any effect on [outputItems], [inputItems], [inputRatios], or [outputRatios].
+/// A call to [calculate] must not have any effect on [outputItems], [inputItems], [ioRatios].
 /// This means that all of these values must be determined independently.
 ///
 /// In some scenarios, it is possible to calculate the input / output ratios.
 /// before any constraints are passed.
-/// If this is the case, both [inputRatios] and [outputRatios] will be populate.
+/// In such cases, [ioRatios] should be calculated.
 /// The smallest value in inputs or outputs will be set to 1.
 /// All other values across both maps will be calculated relative to this.
 /// This field must be calculated independently of [calculate].
 /// If this isn't possible, these fields will be null.
-abstract interface class ProductionLine<T extends ProductionLineIo> {
+abstract mixin class ProductionLine<T extends ProductionLineIo> {
   /// Used in [toString]
   String get name;
 
@@ -55,17 +55,17 @@ abstract interface class ProductionLine<T extends ProductionLineIo> {
   T calculate(ItemIo constraints);
 
   // TODO: Document
-  static void verifyConstraints(
-    ItemIo constraints,
-    ProductionLine productionLine,
-  ) {
-    if (!productionLine.inputItems.containsAll(constraints.inputs.keys) ||
-        !productionLine.outputItems.containsAll(constraints.outputs.keys)) {
+  void verifyConstraints(ItemIo constraints) {
+    if (!inputItems.containsAll(constraints.inputs.keys) ||
+        !outputItems.containsAll(constraints.outputs.keys)) {
       throw ProductionLineException(
-        'Production line $productionLine with inputs ${productionLine.inputItems} and outputs ${productionLine.outputItems} could not accept constraints $constraints',
+        'Production line $this with inputs $inputItems and outputs $outputItems could not accept constraints $constraints',
       );
     }
   }
+
+  @override
+  String toString() => name;
 }
 
 /// Represents a line output given a set of constraints.
@@ -145,9 +145,6 @@ class ItemIo {
         );
       }
     });
-
-    @override
-    String toString() => 'inputs: $inputs, outputs: $outputs';
   }
 
   @override
@@ -163,6 +160,9 @@ class ItemIo {
       .followedBy(outputs.entries)
       .map((entry) => entry.key.hashCode * entry.value.hashCode)
       .reduce((val1, val2) => val1 + val2);
+
+  @override
+  String toString() => 'inputs: $inputs, outputs: $outputs';
 }
 
 enum ProductionLineType { io, magic, singleRecipe, combiner, graph }

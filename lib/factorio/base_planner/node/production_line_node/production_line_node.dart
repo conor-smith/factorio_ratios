@@ -129,4 +129,7 @@ class ProdLineNode
     // TODO: implement toJson
     throw UnimplementedError();
   }
+
+  @override
+  String toString() => productionLine.toString();
 }

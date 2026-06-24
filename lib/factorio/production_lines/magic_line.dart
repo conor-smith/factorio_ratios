@@ -2,7 +2,7 @@ part of 'production_line.dart';
 
 /// Represents a 'magic' line that consumes / produces items at no cost
 /// Inputs and outputs are decided at creation and cannot be changed
-class MagicLine implements ProductionLine<MagicLineIo> {
+class MagicLine with ProductionLine<MagicLineIo> {
   @override
   final Set<InGameItem> outputItems;
   @override
@@ -32,7 +32,7 @@ class MagicLine implements ProductionLine<MagicLineIo> {
 
   @override
   MagicLineIo calculate(ItemIo constraints) {
-    ProductionLine.verifyConstraints(constraints, this);
+    verifyConstraints(constraints);
 
     return MagicLineIo(constraints: constraints);
   }

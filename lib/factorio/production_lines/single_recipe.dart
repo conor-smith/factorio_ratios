@@ -1,7 +1,8 @@
 part of 'production_line.dart';
 
 class SingleRecipeLine
-    implements ProdLineCraftingMachine, ProductionLine<SingleRecipeLineIo> {
+    with ProductionLine<SingleRecipeLineIo>
+    implements ProdLineCraftingMachine {
   final InGameRecipe recipe;
   final ProdLineCraftingMachineImpl craftingMachine;
   final Surface? surface;
@@ -273,7 +274,7 @@ class SingleRecipeLine
 
   @override
   SingleRecipeLineIo calculate(ItemIo constraints) {
-    ProductionLine.verifyConstraints(constraints, this);
+    verifyConstraints(constraints);
 
     var machineCount = 0.0;
 

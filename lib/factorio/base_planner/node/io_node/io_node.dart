@@ -12,8 +12,8 @@ import 'package:factorio_ratios/json/json.dart';
 part 'io_node_state.dart';
 
 class IoNode
-    with EventNotifier<NodeEvent>
-    implements NodeElement<IoNodeState, NodeEvent>, ProductionLine<IoNodeIo> {
+    with EventNotifier<NodeEvent>, ProductionLine<IoNodeIo>
+    implements NodeElement<IoNodeState, NodeEvent> {
   @override
   final BasePlanner basePlanner;
 

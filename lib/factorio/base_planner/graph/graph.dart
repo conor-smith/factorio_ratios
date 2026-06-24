@@ -19,8 +19,8 @@ part 'graph_state.dart';
 
 /// Represents a graph of [NodeElement]s connected by [Edge]s.
 class Graph
-    with EventNotifier<GraphEvent>
-    implements NodeElement<GraphState, GraphEvent>, ProductionLine<GraphIo> {
+    with EventNotifier<GraphEvent>, ProductionLine<GraphIo>
+    implements NodeElement<GraphState, GraphEvent> {
   @override
   final BasePlanner basePlanner;
   final Surface? surface;
