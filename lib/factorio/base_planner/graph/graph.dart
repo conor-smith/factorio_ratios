@@ -49,8 +49,8 @@ class Graph
   GraphIo? get io => state.io;
   Set<Graph> get graphNodes => state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
-  Map<InGameItem, IoNode> get outputNodes => throw UnimplementedError();
-  Map<InGameItem, IoNode> get inputNodes => throw UnimplementedError();
+  Map<InGameItem, IoNode> get outputNodes => state.outputNodes;
+  Map<InGameItem, IoNode> get inputNodes => state.inputNodes;
   Set<NodeElement> get allNodes => state.allNodes;
   Set<Edge> get edges => state.edges;
   @override
@@ -168,8 +168,21 @@ class Graph
     GraphStateImpl oldState,
     GraphStateImpl newState,
   ) {
-    // TODO: implement notifyListenersOfStateUpdate
-    throw UnimplementedError();
+    if (hasListeners) {
+      if (oldState.nodeGeometry != newState.nodeGeometry) {
+        notifyListeners(GraphEvent.geometryOp(newState.nodeGeometry));
+      } else if (!compareSets(oldState.allNodes, newState.allNodes) ||
+          compareSets(oldState.edges, newState.edges)) {
+        notifyListeners(
+          GraphEvent.updateNodesAndEdges(
+            oldNodes: oldState.allNodes,
+            newNodes: newState.allNodes,
+            oldEdges: oldState.edges,
+            newEdges: newState.edges,
+          ),
+        );
+      }
+    }
   }
 
   void addConsumerNodeAndTree(InGameItem item) {
@@ -532,6 +545,19 @@ class GraphEvent implements NodeEvent {
 
   GraphEvent.geometryOp(NodeGeometry nodeGeometry)
     : this._nodeEvent(NodeEventType.geometryOp, nodeGeometry);
+
+  GraphEvent.updateNodesAndEdges({
+    required Set<NodeElement> oldNodes,
+    required Set<NodeElement> newNodes,
+    required Set<Edge> oldEdges,
+    required Set<Edge> newEdges,
+  }) : this._graphEvent(
+         GraphEventType.updateNodesAndEdges,
+         removedNodes: oldNodes.difference(newNodes),
+         newNodes: newNodes.difference(oldNodes),
+         removedEdges: oldEdges.difference(newEdges),
+         newEdges: newEdges.difference(oldEdges),
+       );
 
   GraphEvent._nodeEvent(this.nodeEventType, [this.nodeGeometry])
     : graphEventType = GraphEventType.nodeEvent,

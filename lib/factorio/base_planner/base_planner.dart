@@ -142,13 +142,12 @@ class BasePlanner
   void buildNextSnapshot(Function function) {
     var firstCall = _mutationLock == 0;
     try {
+      _mutationLock++;
       if (firstCall) {
         _snapshotBuilder = SnapshotBuilder._from(_snapshots[_snapshotIndex]);
       }
 
-      _mutationLock++;
       function();
-      _mutationLock--;
 
       if (firstCall && _snapshotBuilder!.hasChanges) {
         var oldSnapshot = _snapshots[_snapshotIndex];
@@ -167,20 +166,18 @@ class BasePlanner
       } else if (firstCall && !_snapshotBuilder!.hasChanges) {
         _snapshotBuilder = null;
       }
-    } catch (e) {
+
       _mutationLock--;
+    } catch (e) {
       if (firstCall) {
         // Reset all states to current snapshot
-        _mutationLock++;
         _snapshots[_snapshotIndex].states.forEach(
           (element, newState) => element.state = newState,
         );
-        _mutationLock--;
-
-        throw BasePlannerException('Encountered exception during mutation', e);
-      } else {
-        rethrow;
       }
+      _mutationLock--;
+
+      rethrow;
     }
   }
 
@@ -205,7 +202,7 @@ class BasePlanner
     _selectedElements.clear();
 
     if (updateListeners) {
-      notifyListeners(BasePlannerEvent._(newActiveGraph: newActiveGraph));
+      notifyListeners(BasePlannerEvent._(newActiveGraph: true));
     }
   }
 
@@ -261,7 +258,7 @@ class BasePlanner
       notifyListeners(
         BasePlannerEvent._(
           removedGraphs: removedGraphs,
-          newActiveGraph: newActiveGraph,
+          newActiveGraph: newActiveGraph != null,
         ),
       );
     }
@@ -269,10 +266,13 @@ class BasePlanner
 }
 
 class BasePlannerEvent {
-  Graph? newActiveGraph;
+  bool newActiveGraph;
   Set<Graph> removedGraphs;
 
-  BasePlannerEvent._({this.removedGraphs = const {}, this.newActiveGraph});
+  BasePlannerEvent._({
+    this.removedGraphs = const {},
+    this.newActiveGraph = false,
+  });
 }
 
 /// Represents a snapshot of all states of elements in [BasePlanner].

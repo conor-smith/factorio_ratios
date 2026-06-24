@@ -13,8 +13,8 @@ abstract class AbstractNodeStateBuilder<St> implements NodeStateBuilder<St> {
   final Set<Edge> _children;
 
   NodeGeometryImpl get nodeGeometry => _nodeGeometry;
-  late final Set<Edge> parents = UnmodifiableSetView(parents);
-  late final Set<Edge> children = UnmodifiableSetView(children);
+  late final Set<Edge> parents = UnmodifiableSetView(_parents);
+  late final Set<Edge> children = UnmodifiableSetView(_children);
 
   AbstractNodeStateBuilder.from(NodeElement node, NodeState previousState)
     : _nodeGeometry = previousState.nodeGeometry,

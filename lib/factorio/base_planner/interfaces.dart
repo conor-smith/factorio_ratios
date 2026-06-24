@@ -7,6 +7,7 @@ part of 'base_planner.dart';
 abstract mixin class EventNotifier<T> {
   final Map<Object, Function(T event)> _listeners = {};
 
+  bool get hasListeners => _listeners.isNotEmpty;
   void addListener(Object listener, Function(T event) callback) =>
       _listeners[listener] = callback;
   void removeListener(Object listener) => _listeners.remove(listener);

@@ -31,9 +31,10 @@ class MainApp extends StatelessWidget {
         body: FutureBuilder(
           future: _db,
           builder: (context, snapShot) => switch (snapShot.connectionState) {
-            ConnectionState.waiting => CircularProgressIndicator(),
-            // _ => GraphUi(db: snapShot.data!),
-            _ => FactorioRatiosApp(factorioDb: snapShot.data!),
+            ConnectionState.done => FactorioRatiosApp(
+              factorioDb: snapShot.data!,
+            ),
+            _ => CircularProgressIndicator(),
           },
         ),
       ),
@@ -48,6 +49,6 @@ class FactorioRatiosApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BasePlannerWidget(base: BasePlanner(factorioDb));
+    return BasePlannerWidget(basePlanner: BasePlanner(factorioDb));
   }
 }

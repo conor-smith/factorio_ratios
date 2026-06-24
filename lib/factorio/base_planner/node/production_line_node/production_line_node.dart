@@ -25,7 +25,7 @@ class ProdLineNode
   @override
   ItemIo? get requirements => state.requirements;
   @override
-  ProductionLine get productionLine => _state.productionLine;
+  ProductionLine get productionLine => state.productionLine;
   @override
   NodeGeometryImpl get nodeGeometry => state.nodeGeometry;
   @override
@@ -120,8 +120,9 @@ class ProdLineNode
     ProdLineNodeStateImpl oldState,
     ProdLineNodeStateImpl newState,
   ) {
-    // TODO: implement notifyListenersOfStateUpdate
-    throw UnimplementedError();
+    if (oldState.nodeGeometry != newState.nodeGeometry) {
+      notifyListeners(NodeEvent.geometryOp(newState.nodeGeometry));
+    }
   }
 
   @override

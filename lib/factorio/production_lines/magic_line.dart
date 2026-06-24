@@ -19,14 +19,14 @@ class MagicLine implements ProductionLine<MagicLineIo> {
   ItemIo? get ioRatios => null;
 
   MagicLine.singleItemProducer(InGameItem item)
-    : outputItems = const {},
-      inputItems = Set.unmodifiable({item}),
+    : inputItems = const {},
+      outputItems = Set.unmodifiable({item}),
       name = '${item.name} producer',
       icon = item.icon;
 
   MagicLine.singleItemConsumer(InGameItem item)
-    : outputItems = Set.unmodifiable({item}),
-      inputItems = const {},
+    : inputItems = Set.unmodifiable({item}),
+      outputItems = const {},
       name = '${item.name} consumer',
       icon = item.icon;
 

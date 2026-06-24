@@ -47,16 +47,7 @@ class _NodeWidgetState extends State<NodeWidget> {
       rect: geometry.rect,
       child: Container(
         decoration: selected ? selectedBoxDecoration : unselectedBoxDecoration,
-        child: GestureDetector(
-          onTapDown: (details) {
-            if (!selected) {
-              node.select();
-            } else {
-              node.deselect();
-            }
-          },
-          child: Center(child: Text(widget.node.toString())),
-        ),
+        child: Center(child: Text(widget.node.toString())),
       ),
     );
   }

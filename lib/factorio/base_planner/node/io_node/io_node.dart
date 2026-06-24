@@ -131,8 +131,9 @@ class IoNode
     IoNodeStateImpl oldState,
     IoNodeStateImpl newState,
   ) {
-    // TODO: implement notifyListenersOfStateUpdate
-    throw UnimplementedError();
+    if (oldState.nodeGeometry != newState.nodeGeometry) {
+      notifyListeners(NodeEvent.geometryOp(newState.nodeGeometry));
+    }
   }
 
   IoNode _getIoNode(InGameItem item) {

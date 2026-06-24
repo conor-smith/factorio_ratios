@@ -116,8 +116,9 @@ class Edge
     EdgeStateImpl oldState,
     EdgeStateImpl newState,
   ) {
-    // TODO: implement notifyListenersOfStateUpdate
-    throw UnimplementedError();
+    if (oldState.edgeGeometry != newState.edgeGeometry) {
+      notifyListeners(EdgeEvent.geometryOp(edgeGeometry));
+    }
   }
 
   @override
