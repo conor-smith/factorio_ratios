@@ -1,7 +1,7 @@
 part of 'edge.dart';
 
 abstract class EdgeState {
-  double? get amount;
+  double get amount;
   double get percentage;
 
   EdgeGeometryImpl get geometry;
@@ -9,7 +9,7 @@ abstract class EdgeState {
 
 class EdgeStateImpl implements EdgeState, ToJson {
   @override
-  final double? amount;
+  final double amount;
   @override
   final double percentage;
 
@@ -32,7 +32,7 @@ class EdgeStateImpl implements EdgeState, ToJson {
       throw EdgeException('Edge $edge had invalid percentage: $percentage');
     }
 
-    if (amount != null && amount! < 0) {
+    if (amount < 0) {
       throw EdgeException('Edge $edge had invalid amount: $amount');
     }
   }

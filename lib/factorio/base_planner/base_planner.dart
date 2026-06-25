@@ -294,6 +294,8 @@ class SnapshotBuilder extends Builder<Snapshot> {
   final Map<BasePlannerElement, Builder<dynamic>> _updatedElements = {};
   final Set<BasePlannerElement> _removedElements = {};
 
+  final Set<Graph> _graphsToUpdateIo = {};
+
   bool get hasChanges =>
       _updatedElements.isNotEmpty || _removedElements.isNotEmpty;
 
@@ -308,8 +310,24 @@ class SnapshotBuilder extends Builder<Snapshot> {
   void removeFromSnapshot(BasePlannerElement element) =>
       _removedElements.add(element);
 
+  void queueGraphIoUpdate(Graph graph) {
+    while (!_graphsToUpdateIo.contains(graph)) {
+      _graphsToUpdateIo.add(graph);
+      graph = graph.parentGraph;
+
+      if (graph.isRoot) {
+        break;
+      }
+    }
+  }
+
   @override
   Snapshot build() {
+    Set<Graph> solvedGraphs = {};
+    for (var graphToSolve in _graphsToUpdateIo) {
+      _recursivelyUpdateChildGraphs(graphToSolve, solvedGraphs);
+    }
+
     Map<BasePlannerElement, dynamic> newStateMap = Map.from(
       _previousSnapshot.states,
     );
@@ -326,6 +344,24 @@ class SnapshotBuilder extends Builder<Snapshot> {
     newStateMap.addAll(updatedStates);
 
     return Snapshot._(newStateMap);
+  }
+
+  void _recursivelyUpdateChildGraphs(
+    Graph graphToSolve,
+    Set<Graph> solvedGraphs,
+  ) {
+    if (solvedGraphs.contains(graphToSolve)) {
+      return;
+    }
+
+    for (var graphNodeToSolve in _graphsToUpdateIo.union(
+      graphToSolve.graphNodes,
+    )) {
+      _recursivelyUpdateChildGraphs(graphNodeToSolve, solvedGraphs);
+    }
+
+    graphToSolve.getStateBuilder().calculateIo();
+    solvedGraphs.add(graphToSolve);
   }
 }
 

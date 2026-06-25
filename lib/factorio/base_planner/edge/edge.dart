@@ -37,7 +37,7 @@ class Edge
   EdgeStateBuilder? _builder;
 
   // For convenience
-  double? get amount => state.amount;
+  double get amount => state.amount;
   double get percentage => state.percentage;
   @override
   EdgeGeometryImpl get geometry => state.geometry;
@@ -50,7 +50,7 @@ class Edge
     required this.child,
     required this.item,
     double percentage = 1.0,
-    double? initialAmount,
+    double initialAmount = 0.0,
     EdgeGeometryImpl geometry = EdgeGeometryImpl.uninitialised,
   }) : parentItemNode = parent.getInputItemNode(item),
        childItemNode = child.getOutputItemNode(item),

@@ -2,12 +2,12 @@ part of 'io_node.dart';
 
 abstract class IoNodeState implements NodeState {
   @override
-  IoNodeIo? get io;
+  IoNodeIo get io;
 }
 
 class IoNodeStateImpl extends AbstractNodeState implements IoNodeState, ToJson {
   @override
-  final IoNodeIo? io;
+  final IoNodeIo io;
 
   IoNodeStateImpl._initial({required this.io, required super.geometry})
     : super.initial();

@@ -8,18 +8,19 @@ class ProdLineNodeStateBuilder
 
   ItemIo? _requirements;
   ProductionLine _productionLine;
-  ProductionLineIo? _io;
+  ProductionLineIo _io;
 
   @override
   ItemIo? get requirements => _requirements;
   @override
   ProductionLine get productionLine => _productionLine;
   @override
-  ProductionLineIo? get io => _io;
+  ProductionLineIo get io => _io;
 
   ProdLineNodeStateBuilder.from(this.node, ProdLineNodeStateImpl previousState)
     : _requirements = previousState.requirements,
       _productionLine = previousState.productionLine,
+      _io = previousState.io,
       super.from(node, previousState) {
     node.basePlanner.getSnapshotBuilder().addToSnapsnot(node, this);
   }
@@ -27,6 +28,8 @@ class ProdLineNodeStateBuilder
   @override
   void addSelf() {
     node.parentGraph.getStateBuilder()._addProdLineNode(node);
+
+    updateParentIo();
   }
 
   @override
@@ -34,6 +37,8 @@ class ProdLineNodeStateBuilder
     super.removeSelf();
 
     node.parentGraph.getStateBuilder()._removeProdLineNode(node);
+
+    updateParentIo();
   }
 
   void updateRequirements(ItemIo requirements) => _requirements = requirements;
@@ -59,18 +64,15 @@ class ProdLineNodeStateBuilder
     }
 
     _productionLine = newProdLine;
-  }
 
-  @override
-  void clearIo() {
-    _io = null;
-    clearParentIo();
+    calculateIo(ItemIo.empty);
   }
 
   @override
   void calculateIo(ItemIo constraints) {
     _io = productionLine.calculate(constraints);
-    clearParentIo();
+
+    updateParentIo();
   }
 
   @override

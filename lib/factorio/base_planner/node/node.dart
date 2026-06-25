@@ -13,7 +13,7 @@ abstract interface class NodeElement<St extends NodeState, E extends NodeEvent>
   NodeType get nodeType;
 
   ProductionLine get productionLine;
-  ProductionLineIo? get io;
+  ProductionLineIo get io;
 
   ItemIo? get requirements;
 
@@ -36,7 +36,7 @@ abstract interface class NodeElement<St extends NodeState, E extends NodeEvent>
 abstract interface class NodeState {
   Set<Edge> get parents;
   Set<Edge> get children;
-  ProductionLineIo? get io;
+  ProductionLineIo get io;
   NodeGeometryImpl get geometry;
 }
 

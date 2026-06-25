@@ -3,9 +3,8 @@ part of 'state_builders.dart';
 abstract class AbstractNodeStateBuilder<St> implements NodeStateBuilder<St> {
   NodeElement get node;
   ProductionLine get productionLine;
-  ProductionLineIo? get io;
+  ProductionLineIo get io;
   void calculateIo(ItemIo constraints);
-  void clearIo();
 
   bool _removingSelf = false;
   NodeGeometryImpl _geometry;
@@ -67,8 +66,7 @@ abstract class AbstractNodeStateBuilder<St> implements NodeStateBuilder<St> {
 
   ItemIo updateEdgesAndReturnUnfulfilledIo() {
     // TODO: optimise
-    var ioData = io;
-    if (ioData == null) {
+    if (io.io.isEmpty) {
       for (var edge
           in _parents
               .where((parent) => parent.edgeType == EdgeType.pushExcess)
@@ -77,13 +75,13 @@ abstract class AbstractNodeStateBuilder<St> implements NodeStateBuilder<St> {
                   (child) => child.edgeType == EdgeType.requestItems,
                 ),
               )) {
-        edge.getStateBuilder().clearAmount();
+        edge.getStateBuilder().updateAmount(0);
       }
 
       return ItemIo.empty;
     } else {
-      var excessOutput = ItemAmounts.from(ioData.io.outputs);
-      var requiredInput = ItemAmounts.from(ioData.io.inputs);
+      var excessOutput = ItemAmounts.from(io.io.outputs);
+      var requiredInput = ItemAmounts.from(io.io.inputs);
 
       var edgeConstraints = calculateConstraintsFromEdges();
 
@@ -147,39 +145,39 @@ abstract class AbstractNodeStateBuilder<St> implements NodeStateBuilder<St> {
   }
 
   ItemIo calculateConstraintsFromEdges() {
-    ItemAmounts outputConstraints = {};
-    ItemAmounts inputConstraints = {};
+    ItemAmounts outputConstraints = Map.fromIterable(
+      productionLine.outputItems,
+      value: (item) => 0,
+    );
+    ItemAmounts inputConstraints = Map.fromIterable(
+      productionLine.inputItems,
+      value: (item) => 0,
+    );
 
     var outputConstraintParents = _parents.where(
-      (parent) =>
-          parent.edgeType == EdgeType.requestItems && parent.amount != null,
+      (parent) => parent.edgeType == EdgeType.requestItems,
     );
     for (var parent in outputConstraintParents) {
       outputConstraints.update(
         parent.item,
-        (itemConstraint) => itemConstraint + parent.amount!,
-        ifAbsent: () => parent.amount!,
+        (itemConstraint) => itemConstraint + parent.amount,
       );
     }
 
     var inputConstraintChildren = _parents.where(
-      (parent) =>
-          parent.edgeType == EdgeType.requestItems && parent.amount != null,
+      (parent) => parent.edgeType == EdgeType.requestItems,
     );
     for (var child in inputConstraintChildren) {
       inputConstraints.update(
         child.item,
-        (itemConstraint) => itemConstraint + child.amount!,
-        ifAbsent: () => child.amount!,
+        (itemConstraint) => itemConstraint + child.amount,
       );
     }
 
     return ItemIo(inputs: inputConstraints, outputs: outputConstraints);
   }
 
-  void clearParentIo() {
-    if (node.parentGraph.io != null) {
-      node.parentGraph.getStateBuilder().clearIo();
-    }
+  void updateParentIo() {
+    node.basePlanner.getSnapshotBuilder().queueGraphIoUpdate(node.parentGraph);
   }
 }

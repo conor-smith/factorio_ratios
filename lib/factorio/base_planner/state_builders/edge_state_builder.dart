@@ -5,12 +5,12 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
 
   bool _removingSelf = false;
 
-  double? _amount;
+  double _amount;
   double _percentage;
   EdgeGeometryImpl _geometry;
 
   @override
-  double? get amount => _amount;
+  double get amount => _amount;
   @override
   double get percentage => _percentage;
   @override
@@ -44,7 +44,6 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   }
 
   void updateAmount(double amount) => _amount = amount;
-  void clearAmount() => _amount = 0;
   void updatePercentage(double percentage) => _percentage = percentage;
 
   void updateGeometry(EdgeGeometryImpl geometry) => _geometry = geometry;

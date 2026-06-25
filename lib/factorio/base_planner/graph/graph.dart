@@ -46,7 +46,7 @@ class Graph
   @override
   Set<Edge> get children => state.children;
   @override
-  GraphIo? get io => state.io;
+  GraphIo get io => state.io;
   Set<Graph> get graphNodes => state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
   Map<InGameItem, IoNode> get outputNodes => state.outputNodes;
@@ -314,7 +314,7 @@ class Graph
   }
 
   @override
-  GraphIo calculate(ItemIo constraints) {
+  GraphIo calculate([ItemIo constraints = ItemIo.empty]) {
     var ioBuilder = GraphIoBuilder();
 
     for (var node in allNodes) {
@@ -537,6 +537,8 @@ class GraphIo extends ProductionLineIo {
     super.displayData = const [],
     required super.emissions,
   });
+
+  const GraphIo.empty() : super.empty();
 }
 
 class GraphEvent implements NodeEvent {
@@ -600,22 +602,20 @@ class GraphIoBuilder implements Builder<GraphIo> {
   void add(NodeElement node) {
     var io = node.io;
 
-    if (io != null) {
-      if (node.nodeType == NodeType.input) {
-        sumMaps(inputConstraints, io.constraints.inputs);
-        sumMaps(input, io.io.inputs);
-      } else if (node.nodeType == NodeType.output) {
-        sumMaps(outputConstraints, io.constraints.outputs);
-        sumMaps(output, io.io.outputs);
-      }
-
-      sumMaps(consumption, io.totalProductionAndConsumption.inputs);
-      sumMaps(production, io.totalProductionAndConsumption.outputs);
-
-      electricPowerConsumption += io.electricPowerConsumption;
-
-      sumMaps(emissions, io.emissions);
+    if (node.nodeType == NodeType.input) {
+      sumMaps(inputConstraints, io.constraints.inputs);
+      sumMaps(input, io.io.inputs);
+    } else if (node.nodeType == NodeType.output) {
+      sumMaps(outputConstraints, io.constraints.outputs);
+      sumMaps(output, io.io.outputs);
     }
+
+    sumMaps(consumption, io.totalProductionAndConsumption.inputs);
+    sumMaps(production, io.totalProductionAndConsumption.outputs);
+
+    electricPowerConsumption += io.electricPowerConsumption;
+
+    sumMaps(emissions, io.emissions);
   }
 
   @override

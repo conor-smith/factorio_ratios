@@ -32,8 +32,8 @@ class MagicLine with ProductionLine<ProductionLineIo> {
       ioRatios = ItemIo(inputs: {item: 1});
 
   @override
-  ProductionLineIo calculate(ItemIo constraints) {
-    if (constraints == ItemIo.empty) {
+  ProductionLineIo calculate([ItemIo constraints = ItemIo.empty]) {
+    if (constraints.isEmpty) {
       return const ProductionLineIo.empty();
     }
 

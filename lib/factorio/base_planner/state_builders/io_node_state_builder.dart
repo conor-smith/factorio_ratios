@@ -5,10 +5,10 @@ class IoNodeStateBuilder extends AbstractNodeStateBuilder<IoNodeStateImpl>
   @override
   final IoNode node;
 
-  IoNodeIo? _io;
+  IoNodeIo _io;
 
   @override
-  IoNodeIo? get io => _io;
+  IoNodeIo get io => _io;
 
   IoNodeStateBuilder.from(this.node, IoNodeStateImpl previousState)
     : _io = node.io,
@@ -19,6 +19,8 @@ class IoNodeStateBuilder extends AbstractNodeStateBuilder<IoNodeStateImpl>
   @override
   void addSelf() {
     node.parentGraph.getStateBuilder()._addIoNode(node);
+
+    updateParentIo();
   }
 
   @override
@@ -26,6 +28,8 @@ class IoNodeStateBuilder extends AbstractNodeStateBuilder<IoNodeStateImpl>
     super.removeSelf();
 
     node.parentGraph.getStateBuilder()._removeIoNode(node);
+
+    updateParentIo();
   }
 
   @override
@@ -34,13 +38,8 @@ class IoNodeStateBuilder extends AbstractNodeStateBuilder<IoNodeStateImpl>
   @override
   void calculateIo(ItemIo constraints) {
     _io = node.calculate(constraints);
-    clearParentIo();
-  }
 
-  @override
-  void clearIo() {
-    _io = null;
-    clearParentIo();
+    updateParentIo();
   }
 
   @override

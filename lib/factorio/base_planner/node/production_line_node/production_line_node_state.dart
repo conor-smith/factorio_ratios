@@ -15,7 +15,7 @@ class ProdLineNodeStateImpl extends AbstractNodeState
   final ProductionLine productionLine;
 
   @override
-  final ProductionLineIo? io;
+  final ProductionLineIo io;
 
   ProdLineNodeStateImpl._initial({
     required this.productionLine,

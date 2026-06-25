@@ -12,7 +12,7 @@ abstract class GraphState implements NodeState {
   Set<InGameItem> get inputItems;
   Set<InGameItem> get outputItems;
   @override
-  GraphIo? get io;
+  GraphIo get io;
 
   static Iterable<NodeElement> calculateAllNodes(
     Iterable<ProdLineNode> prodLineNodes,
@@ -52,7 +52,7 @@ class GraphStateImpl implements GraphState, ToJson {
   @override
   final Set<InGameItem> outputItems;
   @override
-  final GraphIo? io;
+  final GraphIo io;
 
   @override
   final Set<NodeElement> allNodes;
@@ -71,7 +71,7 @@ class GraphStateImpl implements GraphState, ToJson {
        inputItems = const {},
        outputItems = const {},
        allNodes = const {},
-       io = null;
+       io = const GraphIo.empty();
 
   GraphStateImpl({
     required Graph graph,

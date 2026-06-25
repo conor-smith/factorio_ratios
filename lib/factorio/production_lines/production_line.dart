@@ -52,7 +52,7 @@ abstract mixin class ProductionLine<T extends ProductionLineIo> {
   /// The same rule applies to input constraints.
   ///
   /// [ItemIo.inputs] and [ItemIo.outputs] must be given in items per minute
-  T calculate(ItemIo constraints);
+  T calculate([ItemIo constraints]);
 
   // TODO: Document
   void verifyConstraints(ItemIo constraints) {
@@ -163,6 +163,9 @@ class ItemIo {
       }
     });
   }
+
+  bool get isEmpty => inputs.isEmpty && outputs.isEmpty;
+  bool get isNotEmpty => inputs.isNotEmpty || outputs.isNotEmpty;
 
   @override
   bool operator ==(Object other) {

@@ -19,7 +19,7 @@ class GraphStateBuilder
   final Map<InGameItem, IoNode> _outputNodes;
   final Set<Edge> _edges;
   NodeGeometryImpl _geometry;
-  GraphIo? _io;
+  GraphIo _io;
 
   @override
   String get name => _name;
@@ -44,7 +44,7 @@ class GraphStateBuilder
   @override
   NodeGeometryImpl get geometry => _geometry;
   @override
-  GraphIo? get io => _io;
+  GraphIo get io => _io;
 
   // TODO - Cache these values
   @override
@@ -74,7 +74,8 @@ class GraphStateBuilder
       _inputNodes = Map.from(previousState.inputNodes),
       _outputNodes = Map.from(previousState.outputNodes),
       _edges = Set.from(previousState.edges),
-      _geometry = previousState.geometry {
+      _geometry = previousState.geometry,
+      _io = previousState.io {
     graph.basePlanner.getSnapshotBuilder().addToSnapsnot(graph, this);
   }
 
@@ -118,31 +119,22 @@ class GraphStateBuilder
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
-  void clearIo() {
-    if (_io != null) {
-      _io = null;
-
-      if (!graph.isRoot) {
-        graph.parentGraph.getStateBuilder().clearIo();
-      }
-    }
+  void calculateIo() {
+    _io = graph.calculate(ItemIo.empty);
   }
 
   void _addProdLineNode(ProdLineNode node) {
     _prodLineNodes.add(node);
-    clearIo();
   }
 
   void _removeProdLineNode(ProdLineNode node) {
     if (!_removingSelf) {
       _prodLineNodes.remove(node);
-      clearIo();
     }
   }
 
   void _addGraphNode(Graph graphNode) {
     _graphNodes.add(graphNode);
-    clearIo();
   }
 
   void _removeGraphNode(Graph graphNode) {
@@ -169,8 +161,6 @@ class GraphStateBuilder
         _inputNodes[node.ioItem] = node;
       }
     }
-
-    clearIo();
   }
 
   void _removeIoNode(IoNode node) {
@@ -180,8 +170,6 @@ class GraphStateBuilder
       } else {
         _inputNodes.remove(node.ioItem);
       }
-
-      clearIo();
     }
   }
 

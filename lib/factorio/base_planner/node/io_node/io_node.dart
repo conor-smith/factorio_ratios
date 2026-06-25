@@ -53,7 +53,7 @@ class IoNode
   @override
   Set<Edge> get children => state.children;
   @override
-  IoNodeIo? get io => state.io;
+  IoNodeIo get io => state.io;
 
   final Set<InGameItem> _ioItems;
 
@@ -63,7 +63,7 @@ class IoNode
     required this.nodeType,
     required this.ioItem,
     NodeGeometryImpl geometry = NodeGeometryImpl.uninitialised,
-    IoNodeIo? io,
+    IoNodeIo io = const IoNodeIo.empty(),
   }) : _state = IoNodeStateImpl._initial(geometry: geometry, io: io),
        _ioItems = Set.unmodifiable([ioItem]),
        name = '$ioItem $nodeType',
@@ -121,7 +121,7 @@ class IoNode
   }
 
   @override
-  IoNodeIo calculate(ItemIo constraints) {
+  IoNodeIo calculate([ItemIo constraints = ItemIo.empty]) {
     // TODO: implement calculate
     throw UnimplementedError();
   }
@@ -146,12 +146,8 @@ class IoNode
 }
 
 class IoNodeIo extends ProductionLineIo {
-  IoNodeIo({
-    required super.constraints,
-    required super.io,
-    required super.totalProductionAndConsumption,
-    required super.electricPowerConsumption,
-    super.displayData = const [],
-    required super.emissions,
-  });
+  IoNodeIo({required super.constraints})
+    : super(totalProductionAndConsumption: ItemIo.empty);
+
+  const IoNodeIo.empty() : super.empty();
 }

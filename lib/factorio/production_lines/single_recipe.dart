@@ -273,8 +273,8 @@ class SingleRecipeLine
        consumptionData = List.unmodifiable(consumptionData);
 
   @override
-  SingleRecipeLineIo calculate(ItemIo constraints) {
-    if (constraints == ItemIo.empty) {
+  SingleRecipeLineIo calculate([ItemIo constraints = ItemIo.empty]) {
+    if (constraints.isEmpty) {
       return const SingleRecipeLineIo.empty();
     }
 
