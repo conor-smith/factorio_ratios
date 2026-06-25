@@ -40,7 +40,7 @@ class Graph
   @override
   Icon? get icon => state.icon;
   @override
-  NodeGeometryImpl get nodeGeometry => state.nodeGeometry;
+  NodeGeometryImpl get geometry => state.geometry;
   @override
   Set<Edge> get parents => state.parents;
   @override
@@ -82,11 +82,11 @@ class Graph
     this.surface,
     String name = 'graph',
     Icon? icon,
-    NodeGeometryImpl nodeGeometry = NodeGeometryImpl.uninitialised,
+    NodeGeometryImpl geometry = NodeGeometryImpl.uninitialised,
   }) : _state = GraphStateImpl._initial(
          name: name,
          icon: icon ?? surface?.icon,
-         nodeGeometry: nodeGeometry,
+         geometry: geometry,
        ),
        _surfaceProperties =
            basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
@@ -98,7 +98,7 @@ class Graph
     : _state = GraphStateImpl._initial(
         name: 'Root Graph',
         icon: surface?.icon,
-        nodeGeometry: NodeGeometryImpl.uninitialised,
+        geometry: NodeGeometryImpl.uninitialised,
       ),
       _surfaceProperties =
           basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
@@ -158,8 +158,8 @@ class Graph
   }
 
   @override
-  void notifyListenersOfGeometryUpdate(NodeGeometry nodeGeometry) =>
-      notifyListeners(GraphEvent.geometryOp(nodeGeometry));
+  void notifyListenersOfGeometryUpdate(NodeGeometry geometry) =>
+      notifyListeners(GraphEvent.geometryOp(geometry));
 
   @override
   void notifyListenersOfStateUpdate(
@@ -167,8 +167,8 @@ class Graph
     GraphStateImpl newState,
   ) {
     if (hasListeners) {
-      if (oldState.nodeGeometry != newState.nodeGeometry) {
-        notifyListeners(GraphEvent.geometryOp(newState.nodeGeometry));
+      if (oldState.geometry != newState.geometry) {
+        notifyListeners(GraphEvent.geometryOp(newState.geometry));
       } else if (!compareSets(oldState.allNodes, newState.allNodes) ||
           compareSets(oldState.edges, newState.edges)) {
         notifyListeners(
@@ -305,8 +305,8 @@ class Graph
       for (var edge in edges) {
         edge.getStateBuilder().updateGeometry(
           EdgeGeometryImpl.shortestPath(
-            edge.parent.nodeGeometry,
-            edge.child.nodeGeometry,
+            edge.parent.geometry,
+            edge.child.geometry,
           ),
         );
       }
@@ -543,15 +543,15 @@ class GraphEvent implements NodeEvent {
   @override
   final NodeEventType nodeEventType;
   @override
-  final NodeGeometry? nodeGeometry;
+  final NodeGeometry? geometry;
 
   final GraphEventType graphEventType;
 
   final Set<NodeElement> newNodes, removedNodes;
   final Set<Edge> newEdges, removedEdges;
 
-  GraphEvent.geometryOp(NodeGeometry nodeGeometry)
-    : this._nodeEvent(NodeEventType.geometryOp, nodeGeometry);
+  GraphEvent.geometryOp(NodeGeometry geometry)
+    : this._nodeEvent(NodeEventType.geometryOp, geometry);
 
   GraphEvent.updateNodesAndEdges({
     required Set<NodeElement> oldNodes,
@@ -566,7 +566,7 @@ class GraphEvent implements NodeEvent {
          newEdges: newEdges.difference(oldEdges),
        );
 
-  GraphEvent._nodeEvent(this.nodeEventType, [this.nodeGeometry])
+  GraphEvent._nodeEvent(this.nodeEventType, [this.geometry])
     : graphEventType = GraphEventType.nodeEvent,
       newNodes = const {},
       removedNodes = const {},
@@ -580,7 +580,7 @@ class GraphEvent implements NodeEvent {
     this.newEdges = const {},
     this.removedEdges = const {},
   }) : nodeEventType = NodeEventType.other,
-       nodeGeometry = null;
+       geometry = null;
 }
 
 class GraphException extends BasePlannerException {

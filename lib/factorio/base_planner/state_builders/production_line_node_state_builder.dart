@@ -79,7 +79,7 @@ class ProdLineNodeStateBuilder
     requirements: _requirements,
     productionLine: _productionLine,
     io: io,
-    nodeGeometry: nodeGeometry,
+    geometry: geometry,
     parents: parents,
     children: children,
   );

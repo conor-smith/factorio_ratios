@@ -2,21 +2,21 @@ part of 'node.dart';
 
 abstract class AbstractNodeState implements NodeState {
   @override
-  final NodeGeometryImpl nodeGeometry;
+  final NodeGeometryImpl geometry;
 
   @override
   final Set<Edge> parents;
   @override
   final Set<Edge> children;
 
-  AbstractNodeState.initial({required this.nodeGeometry})
+  AbstractNodeState.initial({required this.geometry})
     : parents = const {},
       children = const {};
 
   AbstractNodeState(
     NodeElement node, {
     required ProductionLine productionLine,
-    required this.nodeGeometry,
+    required this.geometry,
     required Iterable<Edge> parents,
     required Iterable<Edge> children,
   }) : parents = Set.unmodifiable(parents),

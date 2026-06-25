@@ -20,10 +20,10 @@ class GraphWidget extends StatefulWidget {
 }
 
 class _GraphWidgetState extends State<GraphWidget> {
-  Graph get graph => widget.graph;
-
   final Map<NodeElement, NodeWidget> nodeWidgets = {};
   final Map<Edge, EdgeWidget> edgeWidgets = {};
+
+  Graph get graph => widget.graph;
 
   @override
   void initState() {
@@ -49,27 +49,35 @@ class _GraphWidgetState extends State<GraphWidget> {
   void onEvent(GraphEvent event) {
     switch (event.graphEventType) {
       case GraphEventType.updateNodesAndEdges:
-        setState(() {
-          for (var newNode in event.newNodes) {
-            nodeWidgets[newNode] = NodeWidget(node: newNode);
-          }
-          for (var newEdge in event.newEdges) {
-            edgeWidgets[newEdge] = EdgeWidget(edge: newEdge);
-          }
-
-          for (var removedNode in event.removedNodes) {
-            nodeWidgets.remove(removedNode);
-          }
-          for (var removedEdge in event.removedEdges) {
-            edgeWidgets.remove(removedEdge);
-          }
-        });
+        if (mounted) {
+          setState(() => addNewElements(event));
+        } else {
+          addNewElements(event);
+        }
       case GraphEventType.childrenGeometryUpdate:
       case GraphEventType.nodeEvent:
         // Do nothing
         break;
     }
   }
+
+  void addNewElements(GraphEvent event) {
+    for (var newNode in event.newNodes) {
+      nodeWidgets[newNode] = NodeWidget(node: newNode);
+    }
+    for (var newEdge in event.newEdges) {
+      edgeWidgets[newEdge] = EdgeWidget(edge: newEdge);
+    }
+
+    for (var removedNode in event.removedNodes) {
+      nodeWidgets.remove(removedNode);
+    }
+    for (var removedEdge in event.removedEdges) {
+      edgeWidgets.remove(removedEdge);
+    }
+  }
+
+  void updateMinBounds() {}
 
   @override
   Widget build(BuildContext context) {

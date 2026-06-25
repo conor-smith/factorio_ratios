@@ -22,7 +22,7 @@ class GeometryOperation {
     Iterable<NodeElement> selectedNodes = const [],
   }) : _basePlanner = basePlanner {
     for (var node in selectedNodes) {
-      _nodeGeometries[node] = NodeGeometryBuilder.from(node.nodeGeometry);
+      _nodeGeometries[node] = NodeGeometryBuilder.from(node.geometry);
     }
 
     var allEdges = selectedNodes
@@ -34,15 +34,15 @@ class GeometryOperation {
 
       if (parentGeometry != null && childGeometry != null) {
         _edgeGeometries[edge] = EdgeGeometryBuilder.from(
-          edge.edgeGeometry,
+          edge.geometry,
           parentGeometry,
           childGeometry,
         );
       } else {
         _affectedEdgeGeometries[edge] = EdgeGeometryBuilder.from(
-          edge.edgeGeometry,
-          parentGeometry ?? edge.parent.nodeGeometry,
-          childGeometry ?? edge.child.nodeGeometry,
+          edge.geometry,
+          parentGeometry ?? edge.parent.geometry,
+          childGeometry ?? edge.child.geometry,
         );
       }
     }
@@ -91,9 +91,9 @@ class NodeGeometryBuilder
   @override
   Rect get rect => _minimalRect;
 
-  NodeGeometryBuilder.from(NodeGeometryImpl nodeGeometry)
-    : _original = nodeGeometry,
-      _minimalRect = nodeGeometry.rect;
+  NodeGeometryBuilder.from(NodeGeometryImpl geometry)
+    : _original = geometry,
+      _minimalRect = geometry.rect;
 
   @override
   void shift(Offset offset) => _minimalRect = _original.rect.shift(offset);

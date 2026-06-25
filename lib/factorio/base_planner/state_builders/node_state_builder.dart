@@ -8,22 +8,21 @@ abstract class AbstractNodeStateBuilder<St> implements NodeStateBuilder<St> {
   void clearIo();
 
   bool _removingSelf = false;
-  NodeGeometryImpl _nodeGeometry;
+  NodeGeometryImpl _geometry;
   final Set<Edge> _parents;
   final Set<Edge> _children;
 
-  NodeGeometryImpl get nodeGeometry => _nodeGeometry;
+  NodeGeometryImpl get geometry => _geometry;
   late final Set<Edge> parents = UnmodifiableSetView(_parents);
   late final Set<Edge> children = UnmodifiableSetView(_children);
 
   AbstractNodeStateBuilder.from(NodeElement node, NodeState previousState)
-    : _nodeGeometry = previousState.nodeGeometry,
+    : _geometry = previousState.geometry,
       _parents = Set.from(previousState.parents),
       _children = Set.from(previousState.children);
 
   @override
-  void updateGeometry(NodeGeometryImpl nodeGeometry) =>
-      _nodeGeometry = nodeGeometry;
+  void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
   @override
   void removeSelf() {

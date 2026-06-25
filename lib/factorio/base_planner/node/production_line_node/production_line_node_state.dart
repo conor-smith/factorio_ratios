@@ -19,7 +19,7 @@ class ProdLineNodeStateImpl extends AbstractNodeState
 
   ProdLineNodeStateImpl._initial({
     required this.productionLine,
-    required super.nodeGeometry,
+    required super.geometry,
     required this.io,
   }) : requirements = null,
        super.initial();
@@ -29,7 +29,7 @@ class ProdLineNodeStateImpl extends AbstractNodeState
     this.requirements,
     required this.productionLine,
     required this.io,
-    required super.nodeGeometry,
+    required super.geometry,
     required super.parents,
     required super.children,
   }) : super(node, productionLine: productionLine) {

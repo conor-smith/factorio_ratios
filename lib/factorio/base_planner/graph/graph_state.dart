@@ -42,7 +42,7 @@ class GraphStateImpl implements GraphState, ToJson {
   @override
   final Set<Edge> edges;
   @override
-  final NodeGeometryImpl nodeGeometry;
+  final NodeGeometryImpl geometry;
   @override
   final Set<Edge> parents;
   @override
@@ -60,7 +60,7 @@ class GraphStateImpl implements GraphState, ToJson {
   GraphStateImpl._initial({
     required this.name,
     required this.icon,
-    required this.nodeGeometry,
+    required this.geometry,
   }) : prodLineNodes = const {},
        graphNodes = const {},
        inputNodes = const {},
@@ -82,7 +82,7 @@ class GraphStateImpl implements GraphState, ToJson {
     required Iterable<Edge> edges,
     required Map<InGameItem, IoNode> inputNodes,
     required Map<InGameItem, IoNode> outputNodes,
-    required this.nodeGeometry,
+    required this.geometry,
     required this.io,
   }) : prodLineNodes = Set.unmodifiable(prodLineNodes),
        graphNodes = Set.unmodifiable(graphNodes),

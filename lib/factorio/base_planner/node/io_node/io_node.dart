@@ -47,7 +47,7 @@ class IoNode
   @override
   ProductionLine get productionLine => this;
   @override
-  NodeGeometryImpl get nodeGeometry => state.nodeGeometry;
+  NodeGeometryImpl get geometry => state.geometry;
   @override
   Set<Edge> get parents => state.parents;
   @override
@@ -62,9 +62,9 @@ class IoNode
     required this.parentGraph,
     required this.nodeType,
     required this.ioItem,
-    NodeGeometryImpl nodeGeometry = NodeGeometryImpl.uninitialised,
+    NodeGeometryImpl geometry = NodeGeometryImpl.uninitialised,
     IoNodeIo? io,
-  }) : _state = IoNodeStateImpl._initial(nodeGeometry: nodeGeometry, io: io),
+  }) : _state = IoNodeStateImpl._initial(geometry: geometry, io: io),
        _ioItems = Set.unmodifiable([ioItem]),
        name = '$ioItem $nodeType',
        ioRatios = ItemIo(inputs: {ioItem: 1.0}, outputs: {ioItem: 1.0}) {
@@ -111,8 +111,8 @@ class IoNode
   IoNode getOutputItemNode(InGameItem item) => _getIoNode(item);
 
   @override
-  void notifyListenersOfGeometryUpdate(NodeGeometryImpl nodeGeometry) =>
-      notifyListeners(NodeEvent.geometryOp(nodeGeometry));
+  void notifyListenersOfGeometryUpdate(NodeGeometryImpl geometry) =>
+      notifyListeners(NodeEvent.geometryOp(geometry));
 
   @override
   Map<String, dynamic> toJson() {
@@ -131,8 +131,8 @@ class IoNode
     IoNodeStateImpl oldState,
     IoNodeStateImpl newState,
   ) {
-    if (oldState.nodeGeometry != newState.nodeGeometry) {
-      notifyListeners(NodeEvent.geometryOp(newState.nodeGeometry));
+    if (oldState.geometry != newState.geometry) {
+      notifyListeners(NodeEvent.geometryOp(newState.geometry));
     }
   }
 

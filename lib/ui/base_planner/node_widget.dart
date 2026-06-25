@@ -30,12 +30,11 @@ class _NodeWidgetState extends State<NodeWidget> {
   void initState() {
     super.initState();
 
-    geometry = node.nodeGeometry;
+    geometry = node.geometry;
 
     node.addListener(
       this,
-      (event) =>
-          setState(() => geometry = event.nodeGeometry ?? node.nodeGeometry),
+      (event) => setState(() => geometry = event.geometry ?? node.geometry),
     );
   }
 

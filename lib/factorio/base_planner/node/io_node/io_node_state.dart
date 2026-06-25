@@ -9,13 +9,13 @@ class IoNodeStateImpl extends AbstractNodeState implements IoNodeState, ToJson {
   @override
   final IoNodeIo? io;
 
-  IoNodeStateImpl._initial({required this.io, required super.nodeGeometry})
+  IoNodeStateImpl._initial({required this.io, required super.geometry})
     : super.initial();
 
   IoNodeStateImpl(
     IoNode node, {
     required this.io,
-    required super.nodeGeometry,
+    required super.geometry,
     required super.parents,
     required super.children,
   }) : super(node, productionLine: node) {

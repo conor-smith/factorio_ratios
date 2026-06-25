@@ -22,12 +22,11 @@ class _EdgeWidgetState extends State<EdgeWidget> {
   void initState() {
     super.initState();
 
-    geometry = edge.edgeGeometry;
+    geometry = edge.geometry;
 
     edge.addListener(
       this,
-      (event) =>
-          setState(() => geometry = event.edgeGeometry ?? edge.edgeGeometry),
+      (event) => setState(() => geometry = event.geometry ?? edge.geometry),
     );
   }
 
@@ -40,8 +39,11 @@ class _EdgeWidgetState extends State<EdgeWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: LinesPainter(geometry.lines[0], edge.isSelected),
+    return IgnorePointer(
+      child: CustomPaint(
+        size: Size.infinite,
+        painter: LinesPainter(geometry.lines[0], edge.isSelected),
+      ),
     );
   }
 }

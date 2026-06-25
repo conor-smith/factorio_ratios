@@ -20,4 +20,7 @@ class Line {
   Line.shortestLine(Rect start, Rect end) : this(start.center, end.center);
 
   Line shift(Offset offset) => Line(start + offset, end + offset);
+
+  @override
+  String toString() => 'Line($start, $end)';
 }

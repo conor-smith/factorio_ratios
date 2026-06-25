@@ -47,7 +47,7 @@ class IoNodeStateBuilder extends AbstractNodeStateBuilder<IoNodeStateImpl>
   IoNodeStateImpl build() => IoNodeStateImpl(
     node,
     io: io,
-    nodeGeometry: nodeGeometry,
+    geometry: geometry,
     parents: parents,
     children: children,
   );

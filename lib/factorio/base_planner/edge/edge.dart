@@ -39,7 +39,8 @@ class Edge
   // For convenience
   double? get amount => state.amount;
   double get percentage => state.percentage;
-  EdgeGeometryImpl get edgeGeometry => state.edgeGeometry;
+  @override
+  EdgeGeometryImpl get geometry => state.geometry;
 
   Edge.addToBasePlanner({
     required this.basePlanner,
@@ -50,13 +51,13 @@ class Edge
     required this.item,
     double percentage = 1.0,
     double? initialAmount,
-    EdgeGeometryImpl edgeGeometry = EdgeGeometryImpl.uninitialised,
+    EdgeGeometryImpl geometry = EdgeGeometryImpl.uninitialised,
   }) : parentItemNode = parent.getInputItemNode(item),
        childItemNode = child.getOutputItemNode(item),
        _state = EdgeStateImpl._initial(
          amount: initialAmount,
          percentage: percentage,
-         edgeGeometry: edgeGeometry,
+         geometry: geometry,
        ) {
     if (parent.parentGraph != parentGraph) {
       throw EdgeException(
@@ -101,16 +102,16 @@ class Edge
   void deselect() => basePlanner.deselectElement(this);
 
   @override
-  void notifyListenersOfGeometryUpdate(EdgeGeometry edgeGeometry) =>
-      notifyListeners(EdgeEvent.geometryOp(edgeGeometry));
+  void notifyListenersOfGeometryUpdate(EdgeGeometry geometry) =>
+      notifyListeners(EdgeEvent.geometryOp(geometry));
 
   @override
   void notifyListenersOfStateUpdate(
     EdgeStateImpl oldState,
     EdgeStateImpl newState,
   ) {
-    if (oldState.edgeGeometry != newState.edgeGeometry) {
-      notifyListeners(EdgeEvent.geometryOp(edgeGeometry));
+    if (oldState.geometry != newState.geometry) {
+      notifyListeners(EdgeEvent.geometryOp(geometry));
     }
   }
 
@@ -122,9 +123,9 @@ class Edge
 }
 
 class EdgeEvent {
-  final EdgeGeometry? edgeGeometry;
+  final EdgeGeometry? geometry;
 
-  EdgeEvent.geometryOp(EdgeGeometry this.edgeGeometry);
+  EdgeEvent.geometryOp(EdgeGeometry this.geometry);
 }
 
 enum EdgeType {

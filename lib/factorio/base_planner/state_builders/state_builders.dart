@@ -24,7 +24,7 @@ abstract interface class StateBuilder<T> implements Builder<T> {
 }
 
 abstract interface class NodeStateBuilder<T> implements StateBuilder<T> {
-  void updateGeometry(NodeGeometryImpl nodeGeometry);
+  void updateGeometry(NodeGeometryImpl geometry);
   void _addParent(Edge parentEdge);
   void _removeParent(Edge parentEdge);
   void _addChild(Edge chidEdge);

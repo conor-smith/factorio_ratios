@@ -33,6 +33,7 @@ abstract interface class BasePlannerElement<St, E>
     implements EventNotifier<E>, ToJson {
   BasePlanner get basePlanner;
   Graph get parentGraph;
+  Geometry get geometry;
 
   /// Returns immutable object representing state
   St get state;

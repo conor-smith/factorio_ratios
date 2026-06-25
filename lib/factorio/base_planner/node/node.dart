@@ -17,7 +17,8 @@ abstract interface class NodeElement<St extends NodeState, E extends NodeEvent>
 
   ItemIo? get requirements;
 
-  NodeGeometryImpl get nodeGeometry;
+  @override
+  NodeGeometryImpl get geometry;
 
   @override
   NodeStateBuilder<St> getStateBuilder();
@@ -36,7 +37,7 @@ abstract interface class NodeState {
   Set<Edge> get parents;
   Set<Edge> get children;
   ProductionLineIo? get io;
-  NodeGeometryImpl get nodeGeometry;
+  NodeGeometryImpl get geometry;
 }
 
 enum NodeType implements Comparable<NodeType> {
@@ -86,16 +87,16 @@ enum NodeType implements Comparable<NodeType> {
 class NodeEvent {
   final NodeEventType nodeEventType;
 
-  final NodeGeometry? nodeGeometry;
+  final NodeGeometry? geometry;
 
-  NodeEvent.geometryOp(NodeGeometry this.nodeGeometry)
+  NodeEvent.geometryOp(NodeGeometry this.geometry)
     : nodeEventType = NodeEventType.geometryOp;
 
   NodeEvent.stateUpdate()
     : nodeEventType = NodeEventType.stateUpdate,
-      nodeGeometry = null;
+      geometry = null;
 
-  NodeEvent.other() : nodeEventType = NodeEventType.other, nodeGeometry = null;
+  NodeEvent.other() : nodeEventType = NodeEventType.other, geometry = null;
 }
 
 enum NodeEventType {

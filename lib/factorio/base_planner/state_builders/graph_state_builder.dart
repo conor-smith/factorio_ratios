@@ -18,7 +18,7 @@ class GraphStateBuilder
   final Map<InGameItem, IoNode> _inputNodes;
   final Map<InGameItem, IoNode> _outputNodes;
   final Set<Edge> _edges;
-  NodeGeometryImpl _nodeGeometry;
+  NodeGeometryImpl _geometry;
   GraphIo? _io;
 
   @override
@@ -42,7 +42,7 @@ class GraphStateBuilder
   @override
   late final Set<Edge> edges = UnmodifiableSetView(_edges);
   @override
-  NodeGeometryImpl get nodeGeometry => _nodeGeometry;
+  NodeGeometryImpl get geometry => _geometry;
   @override
   GraphIo? get io => _io;
 
@@ -74,7 +74,7 @@ class GraphStateBuilder
       _inputNodes = Map.from(previousState.inputNodes),
       _outputNodes = Map.from(previousState.outputNodes),
       _edges = Set.from(previousState.edges),
-      _nodeGeometry = previousState.nodeGeometry {
+      _geometry = previousState.geometry {
     graph.basePlanner.getSnapshotBuilder().addToSnapsnot(graph, this);
   }
 
@@ -116,8 +116,7 @@ class GraphStateBuilder
   void clearIcon() => _icon = null;
 
   @override
-  void updateGeometry(NodeGeometryImpl nodeGeometry) =>
-      _nodeGeometry = nodeGeometry;
+  void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
   void clearIo() {
     if (_io != null) {
@@ -219,7 +218,7 @@ class GraphStateBuilder
     inputNodes: _inputNodes,
     outputNodes: _outputNodes,
     edges: _edges,
-    nodeGeometry: _nodeGeometry,
+    geometry: _geometry,
     io: _io,
   );
 }

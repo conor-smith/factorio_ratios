@@ -27,7 +27,7 @@ class ProdLineNode
   @override
   ProductionLine get productionLine => state.productionLine;
   @override
-  NodeGeometryImpl get nodeGeometry => state.nodeGeometry;
+  NodeGeometryImpl get geometry => state.geometry;
   @override
   Set<Edge> get parents => state.parents;
   @override
@@ -47,11 +47,11 @@ class ProdLineNode
     required this.parentGraph,
     required this.nodeType,
     required ProductionLine productionLine,
-    NodeGeometryImpl nodeGeometry = NodeGeometryImpl.uninitialised,
+    NodeGeometryImpl geometry = NodeGeometryImpl.uninitialised,
     ProductionLineIo? io,
   }) : _state = ProdLineNodeStateImpl._initial(
          productionLine: productionLine,
-         nodeGeometry: nodeGeometry,
+         geometry: geometry,
          io: io,
        ) {
     if (nodeType.isIo) {
@@ -111,16 +111,16 @@ class ProdLineNode
   }
 
   @override
-  void notifyListenersOfGeometryUpdate(NodeGeometryImpl nodeGeometry) =>
-      notifyListeners(NodeEvent.geometryOp(nodeGeometry));
+  void notifyListenersOfGeometryUpdate(NodeGeometryImpl geometry) =>
+      notifyListeners(NodeEvent.geometryOp(geometry));
 
   @override
   void notifyListenersOfStateUpdate(
     ProdLineNodeStateImpl oldState,
     ProdLineNodeStateImpl newState,
   ) {
-    if (oldState.nodeGeometry != newState.nodeGeometry) {
-      notifyListeners(NodeEvent.geometryOp(newState.nodeGeometry));
+    if (oldState.geometry != newState.geometry) {
+      notifyListeners(NodeEvent.geometryOp(newState.geometry));
     }
   }
 
