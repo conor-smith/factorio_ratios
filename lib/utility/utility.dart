@@ -37,6 +37,9 @@ bool compareLists<T>(List<T> list1, List<T> list2) {
   }
 }
 
+Map<K, double> multiplyMap<K>(Map<K, double> toMultiply, double multiplier) =>
+    toMultiply.map((key, value) => MapEntry(key, value * multiplier));
+
 class Pair<A, B> {
   final A item1;
   final B item2;

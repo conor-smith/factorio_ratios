@@ -79,35 +79,52 @@ class ProductionLineIo {
   /// Constraints that were used to generate this IO
   final ItemIo constraints;
 
-  /// Net input / output in items per minute
+  /// Net input / output in items per minute.
+  ///
+  /// Defaults to [constraints] when no value is set.
   final ItemIo io;
 
   /// Total production and comsumption in items per minute.
+  ///
   /// May differ from [io] in situations where a production line consumes
-  /// part of it's own output, or in the case of [IoLineIo] where the [IoLine]
-  /// doesn't actually do any production, and merely passes items through.
+  /// part of it's own output.
+  /// Also differs in production lines like [CombinerLine] where
+  /// no production actually takes place, and items are just passed through.
+  ///
+  /// Defaults to [io] when no value is set.
   final ItemIo totalProductionAndConsumption;
 
-  /// Electrical power consumed given in watts
+  /// Electrical power consumed, given in watts
   final double electricPowerConsumption;
 
   /// Given in emissions per minute
   final Map<String, double> emissions;
 
-  /// DisplayData for end user
-  /// No data in here should be used for math or further operations
-  /// If any useful data exists, it should be made it's own field
+  /// DisplayData for end user.
+  /// No data in here should be used for further calculations.
+  /// If any useful data exists, it should be made it's own field.
   final List<DisplayData> displayData;
 
   ProductionLineIo({
-    required this.constraints,
-    required this.io,
-    required this.totalProductionAndConsumption,
-    required this.electricPowerConsumption,
-    required Map<String, double> emissions,
-    required Iterable<DisplayData> displayData,
-  }) : emissions = Map.unmodifiable(emissions),
+    this.constraints = ItemIo.empty,
+    ItemIo? io = ItemIo.empty,
+    ItemIo? totalProductionAndConsumption,
+    this.electricPowerConsumption = 0,
+    Map<String, double> emissions = const {},
+    Iterable<DisplayData> displayData = const [],
+  }) : io = io ?? constraints,
+       totalProductionAndConsumption =
+           totalProductionAndConsumption ?? io ?? constraints,
+       emissions = Map.unmodifiable(emissions),
        displayData = List.unmodifiable(displayData);
+
+  const ProductionLineIo.empty()
+    : constraints = ItemIo.empty,
+      io = ItemIo.empty,
+      totalProductionAndConsumption = ItemIo.empty,
+      electricPowerConsumption = 0,
+      emissions = const {},
+      displayData = const [];
 }
 
 class ProductionLineException extends FactorioException {

@@ -274,6 +274,10 @@ class SingleRecipeLine
 
   @override
   SingleRecipeLineIo calculate(ItemIo constraints) {
+    if (constraints == ItemIo.empty) {
+      return const SingleRecipeLineIo.empty();
+    }
+
     verifyConstraints(constraints);
 
     var machineCount = 0.0;
@@ -305,15 +309,15 @@ class SingleRecipeLine
       machineCount: machineCount,
       totalCyclesPerMinute: machineCyclesPerMinute,
       io: ItemIo(
-        inputs: _multiplyMap(machineNetIo.inputs, machineCount),
-        outputs: _multiplyMap(machineNetIo.outputs, machineCount),
+        inputs: multiplyMap(machineNetIo.inputs, machineCount),
+        outputs: multiplyMap(machineNetIo.outputs, machineCount),
       ),
       totalProductionAndConsumption: ItemIo(
-        inputs: _multiplyMap(machineTotalIo.inputs, machineCount),
-        outputs: _multiplyMap(machineTotalIo.outputs, machineCount),
+        inputs: multiplyMap(machineTotalIo.inputs, machineCount),
+        outputs: multiplyMap(machineTotalIo.outputs, machineCount),
       ),
       electricPowerConsumption: electricPowerConsumption,
-      emissions: _multiplyMap(singleMachineEmissions, machineCount),
+      emissions: multiplyMap(singleMachineEmissions, machineCount),
     );
   }
 }
@@ -332,7 +336,9 @@ class SingleRecipeLineIo extends ProductionLineIo {
     required this.machineCount,
     required this.totalCyclesPerMinute,
   });
-}
 
-Map<K, double> _multiplyMap<K>(Map<K, double> toMultiply, double multiplier) =>
-    toMultiply.map((key, value) => MapEntry(key, value * multiplier));
+  const SingleRecipeLineIo.empty()
+    : machineCount = 0,
+      totalCyclesPerMinute = 0,
+      super.empty();
+}
