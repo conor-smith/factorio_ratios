@@ -40,6 +40,13 @@ class _NodeWidgetState extends State<NodeWidget> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+
+    node.removeListener(this);
+  }
+
+  @override
   Widget build(BuildContext context) {
     var selected = node.isSelected;
 

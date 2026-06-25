@@ -39,6 +39,13 @@ class _GraphWidgetState extends State<GraphWidget> {
     graph.addListener(this, onEvent);
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+
+    graph.removeListener(this);
+  }
+
   void onEvent(GraphEvent event) {
     switch (event.graphEventType) {
       case GraphEventType.updateNodesAndEdges:

@@ -41,6 +41,13 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     basePlanner.addListener(this, onEvent);
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+
+    basePlanner.removeListener(this);
+  }
+
   void addConsumerNodeToActiveGraph(Item item) => setState(() {
     basePlanner.activeGraph.addConsumerNodeAndTree(InGameItem(item));
     consumerMenuActive = false;

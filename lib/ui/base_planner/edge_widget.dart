@@ -32,6 +32,13 @@ class _EdgeWidgetState extends State<EdgeWidget> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+
+    edge.removeListener(this);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return CustomPaint(
       painter: LinesPainter(geometry.lines[0], edge.isSelected),
