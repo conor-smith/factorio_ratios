@@ -38,6 +38,10 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
   void initState() {
     super.initState();
 
+    basePlanner.rootGraph.addConsumerNodeAndTree(
+      InGameItem(basePlanner.db.itemMap['production-science-pack']!),
+    );
+
     basePlanner.addListener(this, onEvent);
   }
 

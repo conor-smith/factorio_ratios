@@ -1,3 +1,4 @@
+import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
@@ -22,6 +23,8 @@ class GraphWidget extends StatefulWidget {
 class _GraphWidgetState extends State<GraphWidget> {
   final Map<NodeElement, NodeWidget> nodeWidgets = {};
   final Map<Edge, EdgeWidget> edgeWidgets = {};
+  Rect minBounds = Rect.zero;
+  final TransformationController controller = TransformationController();
 
   Graph get graph => widget.graph;
 
@@ -37,6 +40,7 @@ class _GraphWidgetState extends State<GraphWidget> {
     }
 
     graph.addListener(this, onEvent);
+    updateMinBounds();
   }
 
   @override
@@ -49,12 +53,14 @@ class _GraphWidgetState extends State<GraphWidget> {
   void onEvent(GraphEvent event) {
     switch (event.graphEventType) {
       case GraphEventType.updateNodesAndEdges:
-        if (mounted) {
-          setState(() => addNewElements(event));
-        } else {
+        setState(() {
           addNewElements(event);
-        }
+          updateMinBounds();
+        });
       case GraphEventType.childrenGeometryUpdate:
+        setState(() {
+          updateMinBounds();
+        });
       case GraphEventType.nodeEvent:
         // Do nothing
         break;
@@ -77,19 +83,46 @@ class _GraphWidgetState extends State<GraphWidget> {
     }
   }
 
-  void updateMinBounds() {}
+  void updateMinBounds() {
+    var allGeometry = Iterable<BasePlannerElement>.empty()
+        .followedBy(graph.allNodes)
+        .followedBy(graph.edges)
+        .map((element) => element.geometry.rect);
+
+    if (allGeometry.isEmpty) {
+      minBounds = Rect.zero;
+    } else {
+      var first = allGeometry.first;
+      double left = first.left;
+      double top = first.top;
+      double right = first.right;
+      double bottom = first.bottom;
+
+      for (var rect in allGeometry.skip(1)) {
+        left = rect.left < left ? rect.left : left;
+        top = rect.top < top ? rect.top : top;
+        right = rect.right > right ? rect.right : right;
+        bottom = rect.bottom > bottom ? rect.bottom : bottom;
+      }
+
+      minBounds = Rect.fromLTRB(left, top, right, bottom);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => widget.toggleConsumerMenu(),
-        ),
-        ...nodeWidgets.values,
-        ...edgeWidgets.values,
-      ],
+    return InteractiveViewer(
+      transformationController: controller,
+      child: Stack(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => widget.toggleConsumerMenu(),
+          ),
+          ...nodeWidgets.values,
+          ...edgeWidgets.values,
+        ],
+      ),
     );
   }
 }
