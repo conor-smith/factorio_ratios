@@ -64,7 +64,6 @@ class LinesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant LinesPainter oldDelegate) {
-    return oldDelegate.line != line || oldDelegate.selected != selected;
-  }
+  bool shouldRepaint(LinesPainter oldDelegate) =>
+      oldDelegate.line != line || oldDelegate.selected != selected;
 }
