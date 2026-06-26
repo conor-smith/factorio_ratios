@@ -5,8 +5,8 @@ abstract class GraphState implements NodeState {
   Icon? get icon;
   Set<ProdLineNode> get prodLineNodes;
   Set<Graph> get graphNodes;
-  Map<InGameItem, IoNode> get inputNodes;
-  Map<InGameItem, IoNode> get outputNodes;
+  Map<InGameItem, ProdLineNode> get inputNodes;
+  Map<InGameItem, ProdLineNode> get outputNodes;
   Set<NodeElement> get allNodes;
   Set<Edge> get edges;
   Set<InGameItem> get inputItems;
@@ -17,10 +17,10 @@ abstract class GraphState implements NodeState {
   static Iterable<NodeElement> calculateAllNodes(
     Iterable<ProdLineNode> prodLineNodes,
     Iterable<Graph> graphNodes,
-    Map<InGameItem, IoNode> inputNodes,
-    Map<InGameItem, IoNode> outputNodes,
-  ) => prodLineNodes
-      .cast<NodeElement>()
+    Map<InGameItem, ProdLineNode> inputNodes,
+    Map<InGameItem, ProdLineNode> outputNodes,
+  ) => Iterable<NodeElement>.empty()
+      .followedBy(prodLineNodes)
       .followedBy(graphNodes)
       .followedBy(inputNodes.values)
       .followedBy(outputNodes.values);
@@ -36,9 +36,9 @@ class GraphStateImpl implements GraphState, ToJson {
   @override
   final Set<Graph> graphNodes;
   @override
-  final Map<InGameItem, IoNode> inputNodes;
+  final Map<InGameItem, ProdLineNode> inputNodes;
   @override
-  final Map<InGameItem, IoNode> outputNodes;
+  final Map<InGameItem, ProdLineNode> outputNodes;
   @override
   final Set<Edge> edges;
   @override
@@ -80,8 +80,8 @@ class GraphStateImpl implements GraphState, ToJson {
     required Iterable<ProdLineNode> prodLineNodes,
     required Iterable<Graph> graphNodes,
     required Iterable<Edge> edges,
-    required Map<InGameItem, IoNode> inputNodes,
-    required Map<InGameItem, IoNode> outputNodes,
+    required Map<InGameItem, ProdLineNode> inputNodes,
+    required Map<InGameItem, ProdLineNode> outputNodes,
     required this.geometry,
     required this.io,
   }) : prodLineNodes = Set.unmodifiable(prodLineNodes),

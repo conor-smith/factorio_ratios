@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
@@ -10,6 +11,7 @@ import 'package:factorio_ratios/json/json.dart';
 import 'package:factorio_ratios/utility/utility.dart';
 
 part 'interfaces.dart';
+part 'snapshot.dart';
 
 /// The single source of truth for the application.
 ///
@@ -278,91 +280,6 @@ class BasePlannerEvent {
     this.removedGraphs = const {},
     this.newActiveGraph = false,
   });
-}
-
-/// Represents a snapshot of all states of elements in [BasePlanner].
-class Snapshot {
-  final Map<BasePlannerElement, dynamic> states;
-
-  Snapshot._(Map<BasePlannerElement, dynamic> states)
-    : states = Map.unmodifiable(states);
-}
-
-class SnapshotBuilder extends Builder<Snapshot> {
-  final Snapshot _previousSnapshot;
-
-  final Map<BasePlannerElement, Builder<dynamic>> _updatedElements = {};
-  final Set<BasePlannerElement> _removedElements = {};
-
-  final Set<Graph> _graphsToUpdateIo = {};
-
-  bool get hasChanges =>
-      _updatedElements.isNotEmpty || _removedElements.isNotEmpty;
-
-  SnapshotBuilder._from(this._previousSnapshot);
-
-  void addToSnapsnot<
-    E extends BasePlannerElement<St, dynamic>,
-    St,
-    B extends Builder<St>
-  >(E element, B builder) => _updatedElements[element] = builder;
-
-  void removeFromSnapshot(BasePlannerElement element) =>
-      _removedElements.add(element);
-
-  void queueGraphIoUpdate(Graph graph) {
-    while (!_graphsToUpdateIo.contains(graph)) {
-      _graphsToUpdateIo.add(graph);
-      graph = graph.parentGraph;
-
-      if (graph.isRoot) {
-        break;
-      }
-    }
-  }
-
-  @override
-  Snapshot build() {
-    Set<Graph> solvedGraphs = {};
-    for (var graphToSolve in _graphsToUpdateIo) {
-      _recursivelyUpdateChildGraphs(graphToSolve, solvedGraphs);
-    }
-
-    Map<BasePlannerElement, dynamic> newStateMap = Map.from(
-      _previousSnapshot.states,
-    );
-
-    for (var removedElement in _removedElements) {
-      removedElement.cancelStateBuilder();
-      _updatedElements.remove(removedElement);
-      newStateMap.remove(removedElement);
-    }
-
-    var updatedStates = _updatedElements.map(
-      (element, builder) => MapEntry(element, builder.build()),
-    );
-    newStateMap.addAll(updatedStates);
-
-    return Snapshot._(newStateMap);
-  }
-
-  void _recursivelyUpdateChildGraphs(
-    Graph graphToSolve,
-    Set<Graph> solvedGraphs,
-  ) {
-    if (solvedGraphs.contains(graphToSolve)) {
-      return;
-    }
-
-    for (var graphNodeToSolve in _graphsToUpdateIo.union(
-      graphToSolve.graphNodes,
-    )) {
-      _recursivelyUpdateChildGraphs(graphNodeToSolve, solvedGraphs);
-    }
-
-    graphToSolve.getStateBuilder().calculateIo();
-    solvedGraphs.add(graphToSolve);
-  }
 }
 
 class SurfaceProperties {

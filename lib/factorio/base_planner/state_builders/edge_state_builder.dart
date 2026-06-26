@@ -3,8 +3,6 @@ part of 'state_builders.dart';
 class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   final Edge edge;
 
-  bool _removingSelf = false;
-
   double _amount;
   double _percentage;
   EdgeGeometryImpl _geometry;
@@ -32,15 +30,12 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
 
   @override
   void removeSelf() {
-    if (!_removingSelf) {
-      _removingSelf = true;
-      edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(edge);
+    edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(edge);
 
-      edge.parentGraph.getStateBuilder()._removeEdge(edge);
+    edge.parentGraph.getStateBuilder()._removeEdge(edge);
 
-      edge.parent.getStateBuilder()._removeChild(edge);
-      edge.child.getStateBuilder()._removeParent(edge);
-    }
+    edge.parent.getStateBuilder()._removeChild(edge);
+    edge.child.getStateBuilder()._removeParent(edge);
   }
 
   void updateAmount(double amount) => _amount = amount;
@@ -55,4 +50,9 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
     percentage: _percentage,
     geometry: _geometry,
   );
+
+  @override
+  void _parentGraphRemoval() {
+    edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(edge);
+  }
 }

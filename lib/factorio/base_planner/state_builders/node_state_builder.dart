@@ -1,68 +1,144 @@
 part of 'state_builders.dart';
 
-abstract class AbstractNodeStateBuilder<St> implements NodeStateBuilder<St> {
-  NodeElement get node;
-  ProductionLine get productionLine;
-  ProductionLineIo get io;
-  void calculateIo(ItemIo constraints);
+class ProdLineNodeStateBuilder
+    implements NodeStateBuilder<ProdLineNodeStateImpl>, ProdLineNodeState {
+  final ProdLineNode node;
 
-  bool _removingSelf = false;
+  ItemIo? _requirements;
   NodeGeometryImpl _geometry;
+  ProductionLine _productionLine;
+  ProductionLineIo _io;
   final Set<Edge> _parents;
   final Set<Edge> _children;
 
+  @override
+  ItemIo? get requirements => _requirements;
+  @override
   NodeGeometryImpl get geometry => _geometry;
+  @override
+  ProductionLine get productionLine => _productionLine;
+  @override
+  ProductionLineIo get io => _io;
+  @override
   late final Set<Edge> parents = UnmodifiableSetView(_parents);
+  @override
   late final Set<Edge> children = UnmodifiableSetView(_children);
 
-  AbstractNodeStateBuilder.from(NodeElement node, NodeState previousState)
-    : _geometry = previousState.geometry,
+  ProdLineNodeStateBuilder.from(this.node, ProdLineNodeStateImpl previousState)
+    : _requirements = previousState.requirements,
+      _productionLine = previousState.productionLine,
+      _geometry = previousState.geometry,
       _parents = Set.from(previousState.parents),
-      _children = Set.from(previousState.children);
+      _children = Set.from(previousState.children),
+      _io = previousState.io;
+
+  @override
+  void addSelf() {
+    switch (node.nodeType) {
+      case NodeType.input:
+        node.parentGraph.getStateBuilder()._addInputNode(
+          node,
+          (_productionLine as IoLine).ioItem,
+        );
+
+      case NodeType.output:
+        node.parentGraph.getStateBuilder()._addOutputNode(
+          node,
+          (_productionLine as IoLine).ioItem,
+        );
+
+      default:
+        node.parentGraph.getStateBuilder()._addProdLineNode(node);
+    }
+  }
+
+  @override
+  void removeSelf() {
+    node.basePlanner.getSnapshotBuilder().removeFromSnapshot(node);
+
+    var edgesToRemove = [...parents, ...children];
+
+    _parents.clear();
+    _children.clear();
+
+    for (var edge in edgesToRemove) {
+      edge.getStateBuilder().removeSelf();
+    }
+
+    switch (node.nodeType) {
+      case NodeType.input:
+        node.parentGraph.getStateBuilder()._removeInputNode(
+          (_productionLine as IoLine).ioItem,
+        );
+
+      case NodeType.output:
+        node.parentGraph.getStateBuilder()._removeOutputNode(
+          (_productionLine as IoLine).ioItem,
+        );
+
+      default:
+        node.parentGraph.getStateBuilder()._removeProdLineNode(node);
+    }
+  }
 
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
-  @override
-  void removeSelf() {
-    if (!_removingSelf) {
-      _removingSelf = true;
-      node.basePlanner.getSnapshotBuilder().removeFromSnapshot(node);
+  void updateProductionLine(ProductionLine newLine) {
+    var removedInputs = _productionLine.inputItems.difference(
+      newLine.inputItems,
+    );
+    var childrenToRemove = _children.where(
+      (child) => removedInputs.contains(child.item),
+    );
 
-      var edgesToRemove = [...parents, ...children];
+    var removedOutputs = _productionLine.outputItems.difference(
+      newLine.outputItems,
+    );
+    var parentsToRemove = _parents.where(
+      (parent) => removedOutputs.contains(parent.item),
+    );
 
-      _parents.clear();
-      _children.clear();
-
-      for (var edge in edgesToRemove) {
-        edge.getStateBuilder().removeSelf();
-      }
+    for (var edgeToRemove in [...childrenToRemove, ...parentsToRemove]) {
+      edgeToRemove.getStateBuilder().removeSelf();
     }
   }
 
-  @override
-  void _addParent(Edge parent) => _parents.add(parent);
-  @override
-  void _addChild(Edge child) => _children.add(child);
+  void calculateIo(ItemIo constraints) =>
+      _io = productionLine.calculate(constraints);
 
-  @override
-  void _removeParent(Edge parent) {
-    if (!_removingSelf) {
-      parent.getStateBuilder().removeSelf();
-      _parents.remove(parent);
+  ItemIo calculateConstraintsFromEdges() {
+    ItemAmounts outputConstraints = Map.fromIterable(
+      productionLine.outputItems,
+      value: (item) => 0,
+    );
+    ItemAmounts inputConstraints = Map.fromIterable(
+      productionLine.inputItems,
+      value: (item) => 0,
+    );
+
+    var outputConstraintParents = _parents.where(
+      (parent) => parent.edgeType == EdgeType.requestItems,
+    );
+    for (var parent in outputConstraintParents) {
+      outputConstraints.update(
+        parent.item,
+        (itemConstraint) => itemConstraint + parent.amount,
+      );
     }
-  }
 
-  @override
-  void _removeChild(Edge child) {
-    if (!_removingSelf) {
-      child.getStateBuilder().removeSelf();
-      _children.remove(child);
+    var inputConstraintChildren = _parents.where(
+      (parent) => parent.edgeType == EdgeType.requestItems,
+    );
+    for (var child in inputConstraintChildren) {
+      inputConstraints.update(
+        child.item,
+        (itemConstraint) => itemConstraint + child.amount,
+      );
     }
-  }
 
-  void calculateIoFromEdgeConstraints() =>
-      calculateIo(calculateConstraintsFromEdges());
+    return ItemIo(inputs: inputConstraints, outputs: outputConstraints);
+  }
 
   ItemIo updateEdgesAndReturnUnfulfilledIo() {
     // TODO: optimise
@@ -144,40 +220,31 @@ abstract class AbstractNodeStateBuilder<St> implements NodeStateBuilder<St> {
     }
   }
 
-  ItemIo calculateConstraintsFromEdges() {
-    ItemAmounts outputConstraints = Map.fromIterable(
-      productionLine.outputItems,
-      value: (item) => 0,
-    );
-    ItemAmounts inputConstraints = Map.fromIterable(
-      productionLine.inputItems,
-      value: (item) => 0,
-    );
+  @override
+  ProdLineNodeStateImpl build() => ProdLineNodeStateImpl(
+    node,
+    productionLine: productionLine,
+    io: io,
+    geometry: geometry,
+    parents: parents,
+    children: children,
+  );
 
-    var outputConstraintParents = _parents.where(
-      (parent) => parent.edgeType == EdgeType.requestItems,
-    );
-    for (var parent in outputConstraintParents) {
-      outputConstraints.update(
-        parent.item,
-        (itemConstraint) => itemConstraint + parent.amount,
-      );
-    }
+  @override
+  void _parentGraphRemoval() {
+    node.basePlanner.getSnapshotBuilder().removeFromSnapshot(node);
 
-    var inputConstraintChildren = _parents.where(
-      (parent) => parent.edgeType == EdgeType.requestItems,
-    );
-    for (var child in inputConstraintChildren) {
-      inputConstraints.update(
-        child.item,
-        (itemConstraint) => itemConstraint + child.amount,
-      );
-    }
-
-    return ItemIo(inputs: inputConstraints, outputs: outputConstraints);
+    _children.clear();
+    _parents.clear();
   }
 
-  void updateParentIo() {
-    node.basePlanner.getSnapshotBuilder().queueGraphIoUpdate(node.parentGraph);
-  }
+  @override
+  void _addParent(Edge parent) => _parents.add(parent);
+  @override
+  void _addChild(Edge child) => _children.add(child);
+
+  @override
+  void _removeParent(Edge parent) => _parents.remove(parent);
+  @override
+  void _removeChild(Edge child) => _children.remove(child);
 }

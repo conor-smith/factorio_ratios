@@ -6,17 +6,14 @@ part of 'state_builders.dart';
 // edge.getStateBuilder().removeSelf(), edgeStateBuilder.removeSelf() will still be called
 class GraphStateBuilder
     implements NodeStateBuilder<GraphStateImpl>, GraphState {
-  final Graph graph;
-
-  // These booleans exist to stop loops where they might arise
-  bool _removingSelf = false;
+  final Graph _graph;
 
   String _name;
   Icon? _icon;
   final Set<ProdLineNode> _prodLineNodes;
   final Set<Graph> _graphNodes;
-  final Map<InGameItem, IoNode> _inputNodes;
-  final Map<InGameItem, IoNode> _outputNodes;
+  final Map<InGameItem, ProdLineNode> _inputNodes;
+  final Map<InGameItem, ProdLineNode> _outputNodes;
   final Set<Edge> _edges;
   NodeGeometryImpl _geometry;
   GraphIo _io;
@@ -32,11 +29,11 @@ class GraphStateBuilder
   @override
   late final Set<Graph> graphNodes = UnmodifiableSetView(_graphNodes);
   @override
-  late final Map<InGameItem, IoNode> inputNodes = UnmodifiableMapView(
+  late final Map<InGameItem, ProdLineNode> inputNodes = UnmodifiableMapView(
     _inputNodes,
   );
   @override
-  late final Map<InGameItem, IoNode> outputNodes = UnmodifiableMapView(
+  late final Map<InGameItem, ProdLineNode> outputNodes = UnmodifiableMapView(
     _outputNodes,
   );
   @override
@@ -66,7 +63,7 @@ class GraphStateBuilder
     _outputNodes,
   ).toSet();
 
-  GraphStateBuilder.from(this.graph, GraphStateImpl previousState)
+  GraphStateBuilder.from(this._graph, GraphStateImpl previousState)
     : _name = previousState.name,
       _icon = previousState.icon,
       _prodLineNodes = Set.from(previousState.prodLineNodes),
@@ -76,38 +73,22 @@ class GraphStateBuilder
       _edges = Set.from(previousState.edges),
       _geometry = previousState.geometry,
       _io = previousState.io {
-    graph.basePlanner.getSnapshotBuilder().addToSnapsnot(graph, this);
+    _graph.basePlanner.getSnapshotBuilder().addToSnapsnot(_graph, this);
   }
 
   @override
   void addSelf() {
-    if (!graph.isRoot) {
-      graph.parentGraph.getStateBuilder()._addGraphNode(graph);
+    if (!_graph.isRoot) {
+      _graph.parentGraph.getStateBuilder()._addGraphNode(_graph);
     }
   }
 
   @override
   void removeSelf() {
-    if (!_removingSelf) {
-      _removingSelf = true;
+    _removeAllElementsAndSelfFromSnapshot();
 
-      graph.basePlanner.getSnapshotBuilder().removeFromSnapshot(graph);
-
-      // When nodes are removed, they automatically remove all attached edges
-      var nodesToRemove = [...allNodes];
-
-      _prodLineNodes.clear();
-      _graphNodes.clear();
-      _inputNodes.clear();
-      _outputNodes.clear();
-
-      for (var node in nodesToRemove) {
-        node.getStateBuilder().removeSelf();
-      }
-
-      if (!graph.parentGraph.isRoot) {
-        graph.parentGraph.getStateBuilder()._removeGraphNode(graph);
-      }
+    if (!_graph.isRoot) {
+      _graph.parentGraph.getStateBuilder()._removeGraphNode(_graph);
     }
   }
 
@@ -119,66 +100,52 @@ class GraphStateBuilder
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
-  void calculateIo() {
-    _io = graph.calculate(ItemIo.empty);
-  }
+  void calculateIo() => _io = _graph.calculate(ItemIo.empty);
 
-  void _addProdLineNode(ProdLineNode node) {
-    _prodLineNodes.add(node);
-  }
+  @override
+  GraphStateImpl build() => GraphStateImpl(
+    graph: _graph,
+    icon: _icon,
+    name: _name,
+    prodLineNodes: _prodLineNodes,
+    graphNodes: _graphNodes,
+    inputNodes: _inputNodes,
+    outputNodes: _outputNodes,
+    edges: _edges,
+    geometry: _geometry,
+    io: _io,
+  );
 
-  void _removeProdLineNode(ProdLineNode node) {
-    if (!_removingSelf) {
-      _prodLineNodes.remove(node);
+  @override
+  void _parentGraphRemoval() => _removeAllElementsAndSelfFromSnapshot();
+
+  void _addProdLineNode(ProdLineNode node) => _prodLineNodes.add(node);
+  void _removeProdLineNode(ProdLineNode node) => _prodLineNodes.remove(node);
+
+  void _addGraphNode(Graph graphNode) => _graphNodes.add(graphNode);
+  void _removeGraphNode(Graph graphNode) => _graphNodes.remove(graphNode);
+
+  void _addInputNode(ProdLineNode node, InGameItem item) {
+    if (_inputNodes.containsKey(item)) {
+      throw GraphException('Input node for item $item already exists');
     }
+
+    _inputNodes[item] = node;
   }
 
-  void _addGraphNode(Graph graphNode) {
-    _graphNodes.add(graphNode);
-  }
-
-  void _removeGraphNode(Graph graphNode) {
-    if (!_removingSelf) {
-      _graphNodes.remove(graphNode);
+  void _addOutputNode(ProdLineNode node, InGameItem item) {
+    if (_outputNodes.containsKey(item)) {
+      throw GraphException('Output node for item $item already exists');
     }
+
+    _outputNodes[item] = node;
   }
 
-  void _addIoNode(IoNode node) {
-    if (node.nodeType == NodeType.output) {
-      if (_outputNodes.containsKey(node.ioItem)) {
-        throw GraphException(
-          'Output node for item ${node.ioItem} in graph $graph already exists',
-        );
-      } else {
-        _outputNodes[node.ioItem] = node;
-      }
-    } else {
-      if (_inputNodes.containsKey(node.ioItem)) {
-        throw GraphException(
-          'Input node for item ${node.ioItem} in graph $graph already exists',
-        );
-      } else {
-        _inputNodes[node.ioItem] = node;
-      }
-    }
-  }
-
-  void _removeIoNode(IoNode node) {
-    if (!_removingSelf) {
-      if (node.nodeType == NodeType.output) {
-        _outputNodes.remove(node.ioItem);
-      } else {
-        _inputNodes.remove(node.ioItem);
-      }
-    }
-  }
+  void _removeInputNode(InGameItem item) => _inputNodes.remove(item);
+  void _removeOutputNode(InGameItem item) => _outputNodes.remove(item);
 
   void _addEdge(Edge edge) => _edges.add(edge);
-  void _removeEdge(Edge edge) {
-    if (!_removingSelf) {
-      _edges.remove(edge);
-    }
-  }
+  void _removeEdge(Edge edge) => _edges.remove(edge);
 
   @override
   void _addParent(Edge parent) =>
@@ -196,17 +163,20 @@ class GraphStateBuilder
   void _removeChild(Edge child) =>
       child.parentItemNode.getStateBuilder()._removeChild(child);
 
-  @override
-  GraphStateImpl build() => GraphStateImpl(
-    graph: graph,
-    icon: _icon,
-    name: _name,
-    prodLineNodes: _prodLineNodes,
-    graphNodes: _graphNodes,
-    inputNodes: _inputNodes,
-    outputNodes: _outputNodes,
-    edges: _edges,
-    geometry: _geometry,
-    io: _io,
-  );
+  void _removeAllElementsAndSelfFromSnapshot() {
+    for (var edge in [...parents, ...children]) {
+      edge.getStateBuilder().removeSelf();
+    }
+    for (BasePlannerElement element in [...allNodes, ...edges]) {
+      element.getStateBuilder()._parentGraphRemoval();
+    }
+
+    _prodLineNodes.clear();
+    _inputNodes.clear();
+    _outputNodes.clear();
+    _graphNodes.clear();
+    _edges.clear();
+
+    _graph.basePlanner.getSnapshotBuilder().removeFromSnapshot(_graph);
+  }
 }

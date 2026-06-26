@@ -5,9 +5,7 @@ import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/node/io_node/io_node.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
-import 'package:factorio_ratios/factorio/base_planner/node/production_line_node/production_line_node.dart';
 import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
@@ -49,8 +47,8 @@ class Graph
   GraphIo get io => state.io;
   Set<Graph> get graphNodes => state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
-  Map<InGameItem, IoNode> get outputNodes => state.outputNodes;
-  Map<InGameItem, IoNode> get inputNodes => state.inputNodes;
+  Map<InGameItem, ProdLineNode> get outputNodes => state.outputNodes;
+  Map<InGameItem, ProdLineNode> get inputNodes => state.inputNodes;
   Set<NodeElement> get allNodes => state.allNodes;
   Set<Edge> get edges => state.edges;
   @override
@@ -132,7 +130,7 @@ class Graph
   void deselect() => basePlanner.deselectElement(this);
 
   @override
-  NodeElement getOutputItemNode(InGameItem item) {
+  ProdLineNode getOutputItemNode(InGameItem item) {
     var outputNode = outputNodes[item];
 
     if (outputNode != null) {
@@ -145,7 +143,7 @@ class Graph
   }
 
   @override
-  NodeElement getInputItemNode(InGameItem item) {
+  ProdLineNode getInputItemNode(InGameItem item) {
     var inputNode = inputNodes[item];
 
     if (inputNode != null) {
