@@ -44,36 +44,50 @@ abstract interface class NodeState {
 
 enum NodeType implements Comparable<NodeType> {
   /// Node can connect to and accept inputs from nodes in [NodeElement.parentGraph].
-  /// All [EdgeType]s are permitted so long as edges connecting to external nodes are inputs.
+  /// Child edges must belong to parentGraph of parentGraph
   input(true, false, 1),
 
   /// If a [Graph] has multiple nodes that produce the same output, a combiner node
-  /// can be used to combine all those outputs into one. Exists primarily for convenience
+  /// can be used to combine all those outputs into one.
   combiner(false, false, 2),
 
-  /// Represents a leaf node in the a [Graph] that outputs items.
-  /// This node is not allowed to have children.
+  /// Represents a resource available on the surface (eg. ore, crop, etc).
+  ///
+  /// Parents of type [EdgeType.pushExcess] are not permitted.
+  /// Children of type [EdgeType.pushExcess] are permitted, but the node
+  /// will only consume as much as is required to fulfil requests from parents
+  /// of type [EdgeType.requestItems].
   resource(false, false, 3),
 
-  /// Represents a production line.
+  /// Represents a player made production line.
   productionLine(false, false, 4),
 
-  /// Represents a root node in the graph that produces items. Parents are not permitted.
+  /// Represents a root node in the graph that produces items. Children are not permitted.
   ///
   /// Only these nodes and [consumer] nodes are permitted to set [NodeElement.requirements].
+  /// All edge types are permitted in both [NodeElement.parents] and [NodeElement.children],
+  /// and each indivual item requirement will be set to the highest value between
+  /// [NodeElement.requirements] and out of all constraints set by edges.
   producer(false, true, 5),
 
   /// Represents a leaf node in the a [Graph] that consumes items.
-  /// This node is not allowed to have children.
+  ///
+  /// Children of type [EdgeType.requestItems] are not permitted.
+  /// Parents of type [EdgeType.requestItems] are permitted, but the node will
+  /// only request as much as is required to fulfil requests from children
+  /// of type [EdgeType.pushExcess].
   disposal(false, false, 100),
 
   /// Node can connect to and output to nodes in [NodeElement.parentGraph].
-  /// All [EdgeType]s are permitted so long as edges connecting to external nodes are outputs.
+  /// Parent edges must belong to parentGraph of parentGraph.
   output(true, false, 100),
 
   /// Represents a root node in the graph that consumes items. Parents are not permitted.
   ///
   /// Only these nodes and [producer] nodes are permitted to set [NodeElement.requirements].
+  /// All edge types are permitted in both [NodeElement.parents] and [NodeElement.children],
+  /// and each indivual item requirement will be set to the highest value between
+  /// [NodeElement.requirements] and out of all constraints set by edges.
   consumer(false, true, 100);
 
   final bool isIo;
