@@ -66,6 +66,7 @@ class Graph
   ProductionLine get productionLine => this;
 
   bool get isRoot => this == parentGraph;
+  bool get hasBuilder => _builder != null;
 
   // TODO
   @override

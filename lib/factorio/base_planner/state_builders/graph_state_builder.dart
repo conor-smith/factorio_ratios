@@ -18,6 +18,9 @@ class GraphStateBuilder
   NodeGeometryImpl _geometry;
   GraphIo _io;
 
+  Map<InGameItem, List<NodeElement>>? _cachedNodeOutputIndex;
+  Map<InGameItem, NodeElement>? _cachedDisposalNodes;
+
   @override
   String get name => _name;
   @override
@@ -62,6 +65,20 @@ class GraphStateBuilder
     _inputNodes,
     _outputNodes,
   ).toSet();
+
+  /// DO NOT modify this value yourself
+  Map<InGameItem, List<NodeElement>> get cachedNodeOutputIndex {
+    _cachedNodeOutputIndex ??= _createNodeOutputIndex();
+
+    return _cachedNodeOutputIndex!;
+  }
+
+  /// DO NOT modify this value yourself
+  Map<InGameItem, List<NodeElement>> get cachedDisposalNodes {
+    _cachedDisposalNodes = _createCachedDisposalNodes();
+
+    return _cachedNodeOutputIndex!;
+  }
 
   GraphStateBuilder.from(this._graph, GraphStateImpl previousState)
     : _name = previousState.name,
@@ -119,11 +136,25 @@ class GraphStateBuilder
   @override
   void _parentGraphRemoval() => _removeAllElementsAndSelfFromSnapshot();
 
-  void _addProdLineNode(ProdLineNode node) => _prodLineNodes.add(node);
-  void _removeProdLineNode(ProdLineNode node) => _prodLineNodes.remove(node);
+  void _addProdLineNode(ProdLineNode node) {
+    _prodLineNodes.add(node);
+    _addNodeToCaches(node);
+  }
 
-  void _addGraphNode(Graph graphNode) => _graphNodes.add(graphNode);
-  void _removeGraphNode(Graph graphNode) => _graphNodes.remove(graphNode);
+  void _removeProdLineNode(ProdLineNode node) {
+    _prodLineNodes.remove(node);
+    _removeNodeFromCaches(node);
+  }
+
+  void _addGraphNode(Graph graphNode) {
+    _graphNodes.add(graphNode);
+    _addNodeToCaches(graphNode);
+  }
+
+  void _removeGraphNode(Graph graphNode) {
+    _graphNodes.remove(graphNode);
+    _removeNodeFromCaches(graphNode);
+  }
 
   void _addInputNode(ProdLineNode node, InGameItem item) {
     if (_inputNodes.containsKey(item)) {
@@ -131,6 +162,7 @@ class GraphStateBuilder
     }
 
     _inputNodes[item] = node;
+    _addNodeToCaches(node);
   }
 
   void _addOutputNode(ProdLineNode node, InGameItem item) {
@@ -139,10 +171,19 @@ class GraphStateBuilder
     }
 
     _outputNodes[item] = node;
+    if (_graph.parentGraph.hasBuilder) {
+      _graph.parentGraph.getStateBuilder()._clearCachedOutputIndex();
+    }
   }
 
-  void _removeInputNode(InGameItem item) => _inputNodes.remove(item);
-  void _removeOutputNode(InGameItem item) => _outputNodes.remove(item);
+  void _removeInputNode(InGameItem item) {
+    var removedNode = _inputNodes.remove(item)!;
+    _removeNodeFromCaches(removedNode);
+  }
+
+  void _removeOutputNode(InGameItem item) {
+    _outputNodes.remove(item);
+  }
 
   void _addEdge(Edge edge) => _edges.add(edge);
   void _removeEdge(Edge edge) => _edges.remove(edge);
@@ -178,5 +219,83 @@ class GraphStateBuilder
     _edges.clear();
 
     _graph.basePlanner.getSnapshotBuilder().removeFromSnapshot(_graph);
+
+    _clearCachedDisposalNodes();
+    _clearCachedOutputIndex();
   }
+
+  Map<InGameItem, List<NodeElement>> _createNodeOutputIndex() {
+    Map<InGameItem, List<NodeElement>> nodeOutputIndex = {};
+
+    for (var node in allNodes.where(
+      (node) => node.nodeType.outputPriority < 100,
+    )) {
+      for (var nodeOutput in node.outputItems) {
+        _cachedNodeOutputIndex!.update(
+          nodeOutput,
+          (nodes) => nodes..add(node),
+          ifAbsent: () => [node],
+        );
+      }
+    }
+
+    _cachedNodeOutputIndex!.updateAll(
+      (item, nodes) => nodes..sort(_orderByNodeType),
+    );
+
+    return nodeOutputIndex;
+  }
+
+  Map<InGameItem, NodeElement> _createCachedDisposalNodes() {
+    // If two disposal nodes exist for one item, this will only account for
+    // one of them. This is intentional, but also means we need to clear
+    // the cache every time a disposal node is removed or updated
+    Map<InGameItem, NodeElement> cachedNodes = {};
+
+    for (var node in _prodLineNodes.where(
+      (node) => node.nodeType == NodeType.disposal,
+    )) {
+      for (var input in node.inputItems) {
+        cachedNodes[input] = node;
+      }
+    }
+
+    return cachedNodes;
+  }
+
+  void _addNodeToCaches(NodeElement node) {
+    if (_cachedNodeOutputIndex != null && node.nodeType.outputPriority < 100) {
+      for (var output in node.outputItems) {
+        _cachedNodeOutputIndex!.update(
+          output,
+          (nodes) => nodes
+            ..add(node)
+            ..sort(_orderByNodeType),
+          ifAbsent: () => [node],
+        );
+      }
+    } else if (_cachedDisposalNodes != null &&
+        node.nodeType == NodeType.disposal) {
+      for (var input in node.inputItems) {
+        _cachedDisposalNodes![input] = node;
+      }
+    }
+  }
+
+  void _removeNodeFromCaches(NodeElement node) {
+    if (_cachedNodeOutputIndex != null && node.nodeType.outputPriority < 100) {
+      for (var output in node.outputItems) {
+        _cachedNodeOutputIndex![output]?.remove(node);
+      }
+    } else if (_cachedDisposalNodes != null &&
+        node.nodeType == NodeType.disposal) {
+      _clearCachedDisposalNodes();
+    }
+  }
+
+  void _clearCachedOutputIndex() => _cachedNodeOutputIndex = null;
+  void _clearCachedDisposalNodes() => _cachedDisposalNodes = null;
+
+  int _orderByNodeType(NodeElement node1, NodeElement node2) =>
+      node1.nodeType.compareTo(node2.nodeType);
 }

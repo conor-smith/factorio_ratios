@@ -1,7 +1,7 @@
 part of 'state_builders.dart';
 
 class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
-  final Edge edge;
+  final Edge _edge;
 
   double _amount;
   double _percentage;
@@ -14,28 +14,28 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   @override
   EdgeGeometryImpl get geometry => _geometry;
 
-  EdgeStateBuilder.from(this.edge, EdgeStateImpl previousState)
+  EdgeStateBuilder.from(this._edge, EdgeStateImpl previousState)
     : _amount = previousState.amount,
       _percentage = previousState.percentage,
       _geometry = previousState.geometry {
-    edge.basePlanner.getSnapshotBuilder().addToSnapsnot(edge, this);
+    _edge.basePlanner.getSnapshotBuilder().addToSnapsnot(_edge, this);
   }
 
   @override
   void addSelf() {
-    edge.parentGraph.getStateBuilder()._addEdge(edge);
-    edge.parent.getStateBuilder()._addChild(edge);
-    edge.child.getStateBuilder()._addParent(edge);
+    _edge.parentGraph.getStateBuilder()._addEdge(_edge);
+    _edge.parent.getStateBuilder()._addChild(_edge);
+    _edge.child.getStateBuilder()._addParent(_edge);
   }
 
   @override
   void removeSelf() {
-    edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(edge);
+    _edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(_edge);
 
-    edge.parentGraph.getStateBuilder()._removeEdge(edge);
+    _edge.parentGraph.getStateBuilder()._removeEdge(_edge);
 
-    edge.parent.getStateBuilder()._removeChild(edge);
-    edge.child.getStateBuilder()._removeParent(edge);
+    _edge.parent.getStateBuilder()._removeChild(_edge);
+    _edge.child.getStateBuilder()._removeParent(_edge);
   }
 
   void updateAmount(double amount) => _amount = amount;
@@ -45,7 +45,7 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
 
   @override
   EdgeStateImpl build() => EdgeStateImpl(
-    edge,
+    _edge,
     amount: amount,
     percentage: _percentage,
     geometry: _geometry,
@@ -53,6 +53,6 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
 
   @override
   void _parentGraphRemoval() {
-    edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(edge);
+    _edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(_edge);
   }
 }

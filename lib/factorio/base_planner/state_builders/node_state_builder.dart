@@ -2,7 +2,7 @@ part of 'state_builders.dart';
 
 class ProdLineNodeStateBuilder
     implements NodeStateBuilder<ProdLineNodeStateImpl>, ProdLineNodeState {
-  final ProdLineNode node;
+  final ProdLineNode _node;
 
   ItemIo? _requirements;
   NodeGeometryImpl _geometry;
@@ -24,7 +24,7 @@ class ProdLineNodeStateBuilder
   @override
   late final Set<Edge> children = UnmodifiableSetView(_children);
 
-  ProdLineNodeStateBuilder.from(this.node, ProdLineNodeStateImpl previousState)
+  ProdLineNodeStateBuilder.from(this._node, ProdLineNodeStateImpl previousState)
     : _requirements = previousState.requirements,
       _productionLine = previousState.productionLine,
       _geometry = previousState.geometry,
@@ -34,27 +34,27 @@ class ProdLineNodeStateBuilder
 
   @override
   void addSelf() {
-    switch (node.nodeType) {
+    switch (_node.nodeType) {
       case NodeType.input:
-        node.parentGraph.getStateBuilder()._addInputNode(
-          node,
+        _node.parentGraph.getStateBuilder()._addInputNode(
+          _node,
           (_productionLine as IoLine).ioItem,
         );
 
       case NodeType.output:
-        node.parentGraph.getStateBuilder()._addOutputNode(
-          node,
+        _node.parentGraph.getStateBuilder()._addOutputNode(
+          _node,
           (_productionLine as IoLine).ioItem,
         );
 
       default:
-        node.parentGraph.getStateBuilder()._addProdLineNode(node);
+        _node.parentGraph.getStateBuilder()._addProdLineNode(_node);
     }
   }
 
   @override
   void removeSelf() {
-    node.basePlanner.getSnapshotBuilder().removeFromSnapshot(node);
+    _node.basePlanner.getSnapshotBuilder().removeFromSnapshot(_node);
 
     var edgesToRemove = [...parents, ...children];
 
@@ -65,24 +65,27 @@ class ProdLineNodeStateBuilder
       edge.getStateBuilder().removeSelf();
     }
 
-    switch (node.nodeType) {
+    switch (_node.nodeType) {
       case NodeType.input:
-        node.parentGraph.getStateBuilder()._removeInputNode(
+        _node.parentGraph.getStateBuilder()._removeInputNode(
           (_productionLine as IoLine).ioItem,
         );
 
       case NodeType.output:
-        node.parentGraph.getStateBuilder()._removeOutputNode(
+        _node.parentGraph.getStateBuilder()._removeOutputNode(
           (_productionLine as IoLine).ioItem,
         );
 
       default:
-        node.parentGraph.getStateBuilder()._removeProdLineNode(node);
+        _node.parentGraph.getStateBuilder()._removeProdLineNode(_node);
     }
   }
 
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
+
+  void updateRequirements(ItemIo newRequirements) =>
+      _requirements = newRequirements;
 
   void updateProductionLine(ProductionLine newLine) {
     var removedInputs = _productionLine.inputItems.difference(
@@ -101,6 +104,16 @@ class ProdLineNodeStateBuilder
 
     for (var edgeToRemove in [...childrenToRemove, ...parentsToRemove]) {
       edgeToRemove.getStateBuilder().removeSelf();
+    }
+
+    _productionLine = newLine;
+
+    if (_node.parentGraph.hasBuilder) {
+      if (_node.nodeType.outputPriority < 100) {
+        _node.parentGraph.getStateBuilder()._clearCachedOutputIndex();
+      } else if (_node.nodeType == NodeType.disposal) {
+        _node.parentGraph.getStateBuilder()._clearCachedDisposalNodes();
+      }
     }
   }
 
@@ -176,7 +189,7 @@ class ProdLineNodeStateBuilder
       )) {
         if (!excessOutput.containsKey(pushExcessEdge.item)) {
           throw NodeException(
-            'Node $node cannot produce item ${pushExcessEdge.item}',
+            'Node $_node cannot produce item ${pushExcessEdge.item}',
           );
         }
 
@@ -195,7 +208,7 @@ class ProdLineNodeStateBuilder
       )) {
         if (!requiredInput.containsKey(requestItemsEdge.item)) {
           throw NodeException(
-            'Node $node cannot consume item ${requestItemsEdge.item}',
+            'Node $_node cannot consume item ${requestItemsEdge.item}',
           );
         }
 
@@ -222,7 +235,7 @@ class ProdLineNodeStateBuilder
 
   @override
   ProdLineNodeStateImpl build() => ProdLineNodeStateImpl(
-    node,
+    _node,
     productionLine: productionLine,
     io: io,
     geometry: geometry,
@@ -232,7 +245,7 @@ class ProdLineNodeStateBuilder
 
   @override
   void _parentGraphRemoval() {
-    node.basePlanner.getSnapshotBuilder().removeFromSnapshot(node);
+    _node.basePlanner.getSnapshotBuilder().removeFromSnapshot(_node);
 
     _children.clear();
     _parents.clear();
