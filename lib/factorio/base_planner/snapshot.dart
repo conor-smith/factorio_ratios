@@ -16,6 +16,7 @@ class SnapshotBuilder extends Builder<Snapshot> {
 
   final Set<Graph> _graphsToUpdateIo = {};
   final Set<ProdLineNode> _nodesToUpdateIo = {};
+  final Set<ProdLineNode> _nodesToUpdateEdges = {};
 
   bool _isBuilding = false;
 
@@ -42,18 +43,19 @@ class SnapshotBuilder extends Builder<Snapshot> {
     _removedElements.add(element);
   }
 
-  void queueGraphIoUpdate(Graph graph) {
-    while (!_graphsToUpdateIo.contains(graph)) {
-      _graphsToUpdateIo.add(graph);
-      graph = graph.parentGraph;
-
-      if (graph.isRoot) {
-        break;
-      }
-    }
+  /// Only at the final stage of building the snapshot will io calculations take place.
+  /// This will queue up any nodes with io to be updated, as well as call
+  /// [queueNodeUpdateEdges] on that node.
+  void queueNodeIoUpdate(ProdLineNode node) {
+    _nodesToUpdateIo.add(node);
+    _nodesToUpdateEdges.add(node);
   }
 
-  void queueNodeIoUpdate(ProdLineNode node) => _nodesToUpdateIo.add(node);
+  /// The amount values in edges are set according to the parent / child node io.
+  /// Adding a node here indicates that attached edges must be updated
+  void queueNodeUpdateEdges(ProdLineNode node) {
+    _nodesToUpdateEdges.add(node);
+  }
 
   @override
   Snapshot build() {
@@ -96,7 +98,7 @@ class SnapshotBuilder extends Builder<Snapshot> {
       _recursivelyUpdateChildGraphs(graphNodeToSolve, solvedGraphs);
     }
 
-    graphToSolve.getStateBuilder().calculateIo();
+    graphToSolve.getStateBuilder().clearIo();
     solvedGraphs.add(graphToSolve);
   }
 }

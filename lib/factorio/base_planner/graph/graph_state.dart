@@ -51,11 +51,12 @@ class GraphStateImpl implements GraphState, ToJson {
   final Set<InGameItem> inputItems;
   @override
   final Set<InGameItem> outputItems;
-  @override
-  final GraphIo io;
 
   @override
   final Set<NodeElement> allNodes;
+
+  @override
+  late final GraphIo io = GraphIo.fromState(this);
 
   GraphStateImpl._initial({
     required this.name,
@@ -70,8 +71,7 @@ class GraphStateImpl implements GraphState, ToJson {
        children = const {},
        inputItems = const {},
        outputItems = const {},
-       allNodes = const {},
-       io = const GraphIo.empty();
+       allNodes = const {};
 
   GraphStateImpl({
     required Graph graph,
@@ -83,7 +83,6 @@ class GraphStateImpl implements GraphState, ToJson {
     required Map<InGameItem, ProdLineNode> inputNodes,
     required Map<InGameItem, ProdLineNode> outputNodes,
     required this.geometry,
-    required this.io,
   }) : prodLineNodes = Set.unmodifiable(prodLineNodes),
        graphNodes = Set.unmodifiable(graphNodes),
        edges = Set.unmodifiable(edges),

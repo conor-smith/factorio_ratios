@@ -16,7 +16,6 @@ class GraphStateBuilder
   final Map<InGameItem, ProdLineNode> _outputNodes;
   final Set<Edge> _edges;
   NodeGeometryImpl _geometry;
-  GraphIo _io;
 
   Map<InGameItem, List<NodeElement>>? _cachedNodeOutputIndex;
   Map<InGameItem, NodeElement>? _cachedDisposalNodes;
@@ -44,7 +43,9 @@ class GraphStateBuilder
   @override
   NodeGeometryImpl get geometry => _geometry;
   @override
-  GraphIo get io => _io;
+  GraphIo get io => throw const GraphException(
+    'Graph IO is only calculated after build is complete',
+  );
 
   // TODO - Cache these values
   @override
@@ -88,8 +89,7 @@ class GraphStateBuilder
       _inputNodes = Map.from(previousState.inputNodes),
       _outputNodes = Map.from(previousState.outputNodes),
       _edges = Set.from(previousState.edges),
-      _geometry = previousState.geometry,
-      _io = previousState.io {
+      _geometry = previousState.geometry {
     _graph.basePlanner.getSnapshotBuilder().addToSnapsnot(_graph, this);
   }
 
@@ -117,7 +117,8 @@ class GraphStateBuilder
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
-  void calculateIo() => _io = _graph.calculate(ItemIo.empty);
+  // Does nothing, but does indicate that a new state object is needed
+  void clearIo() {}
 
   @override
   GraphStateImpl build() => GraphStateImpl(
@@ -130,7 +131,6 @@ class GraphStateBuilder
     outputNodes: _outputNodes,
     edges: _edges,
     geometry: _geometry,
-    io: _io,
   );
 
   @override
