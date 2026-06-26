@@ -5,6 +5,7 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
 
   double _amount;
   double _percentage;
+  int _priority;
   EdgeGeometryImpl _geometry;
 
   @override
@@ -12,11 +13,14 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   @override
   double get percentage => _percentage;
   @override
+  int get priority => _priority;
+  @override
   EdgeGeometryImpl get geometry => _geometry;
 
   EdgeStateBuilder.from(this._edge, EdgeStateImpl previousState)
     : _amount = previousState.amount,
       _percentage = previousState.percentage,
+      _priority = previousState.priority,
       _geometry = previousState.geometry {
     _edge.basePlanner.getSnapshotBuilder().addToSnapsnot(_edge, this);
   }
@@ -27,16 +31,14 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
     _edge.parent.getStateBuilder()._addChild(_edge);
     _edge.child.getStateBuilder()._addParent(_edge);
 
-    // TODO - Technically, only the edges have to be updated rather than the whole thing.
-    // Figure out how to optimise this later
-    if (_amount != 0) {
-      _edge.basePlanner.getSnapshotBuilder().queueNodeIoUpdate(
-        switch (_edge.edgeType) {
-          EdgeType.requestItems => _edge.parentProdLineNode,
-          EdgeType.pushExcess => _edge.childProdLineNode,
-        },
-      );
-    }
+    _edge.basePlanner.getSnapshotBuilder().queueNodeIoUpdate(
+      switch (_edge.edgeType) {
+        EdgeType.requestItems ||
+        EdgeType.deferRequestItems => _edge.parentProdLineNode,
+        EdgeType.pushExcess ||
+        EdgeType.deferPushExcess => _edge.childProdLineNode,
+      },
+    );
   }
 
   @override
@@ -50,8 +52,10 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
 
     _edge.basePlanner.getSnapshotBuilder().queueNodeIoUpdate(
       switch (_edge.edgeType) {
-        EdgeType.requestItems => _edge.childProdLineNode,
-        EdgeType.pushExcess => _edge.parentProdLineNode,
+        EdgeType.requestItems ||
+        EdgeType.deferRequestItems => _edge.childProdLineNode,
+        EdgeType.pushExcess ||
+        EdgeType.deferPushExcess => _edge.parentProdLineNode,
       },
     );
   }
@@ -64,6 +68,7 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
     _edge,
     amount: amount,
     percentage: _percentage,
+    priority: _priority,
     geometry: _geometry,
   );
 
