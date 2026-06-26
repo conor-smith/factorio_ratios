@@ -39,18 +39,15 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
     required this.parents,
     required this.children,
   }) {
-    node.nodeType.throwIfInvalid(productionLine);
-    _verifyRequirements(node.nodeType);
+    node.nodeType.verify(
+      productionLine,
+      requirements,
+      node.parentGraph,
+      parents,
+      children,
+    );
     _verifyPercentages(node);
     // TODO: verify io edges
-  }
-
-  void _verifyRequirements(NodeType nodeType) {
-    if (nodeType.isRoot && requirements == null) {
-      throw NodeException('Node of type $nodeType must have requirements');
-    } else if (!nodeType.isRoot && requirements != null) {
-      throw NodeException('Node of type $nodeType may not have requirements');
-    }
   }
 
   void _verifyPercentages(ProdLineNode node) {

@@ -100,20 +100,35 @@ enum NodeType implements Comparable<NodeType> {
   int compareTo(NodeType other) =>
       outputPriority.compareTo(other.outputPriority);
 
-  void throwIfInvalid(ProductionLine prodLine) {
+  void verify(
+    ProductionLine prodLine,
+    ItemIo? requirements,
+    Graph parentGraph,
+    Set<Edge> parents,
+    Set<Edge> children,
+  ) {
     switch (this) {
-      case NodeType.combiner:
-        if (prodLine is! CombinerLine) {
+      case NodeType.input:
+        if (children.any(
+          (child) => child.parentGraph != parentGraph.parentGraph,
+        )) {
           throw const NodeException(
-            'Combiner node must use Combiner production line',
+            'All child edges of input node must belong to parentGraph of parentGraph',
           );
         }
+        _verifyIoProdLine(prodLine);
+        _verifyNoRequirements(requirements);
 
       case NodeType.output:
-      case NodeType.input:
-        if (prodLine is! IoLine) {
-          throw const NodeException('IO node must use IO production line');
+        if (parents.any(
+          (parent) => parent.parentGraph != parentGraph.parentGraph,
+        )) {
+          throw const NodeException(
+            'All parent edges of output node must belong to parentGraph of parentGraph',
+          );
         }
+        _verifyIoProdLine(prodLine);
+        _verifyNoRequirements(requirements);
 
       case NodeType.consumer:
         if (prodLine.inputItems.isEmpty || prodLine.outputItems.isNotEmpty) {
@@ -121,7 +136,8 @@ enum NodeType implements Comparable<NodeType> {
             'Consumer node must have inputs and no outputs',
           );
         }
-        continue ensureValidProdLineType;
+        _verifyOrdinaryLine(prodLine);
+        _verifyRequirements(requirements);
 
       case NodeType.producer:
         if (prodLine.outputItems.isEmpty || prodLine.inputItems.isNotEmpty) {
@@ -129,15 +145,66 @@ enum NodeType implements Comparable<NodeType> {
             'Producer node must have outputs and no inputs',
           );
         }
-        continue ensureValidProdLineType;
+        _verifyOrdinaryLine(prodLine);
+        _verifyRequirements(requirements);
 
-      ensureValidProdLineType:
-      default:
-        if (prodLine is IoLine || prodLine is CombinerLine) {
-          throw NodeException(
-            'Node of type $NodeType cannot have production line of type ${prodLine.runtimeType}',
+      case NodeType.combiner:
+        if (prodLine is! CombinerLine) {
+          throw const NodeException(
+            'Combiner node must use Combiner production line',
           );
         }
+        _verifyNoRequirements(requirements);
+
+      case NodeType.resource:
+        if (children.any((child) => child.edgeType == EdgeType.pushExcess)) {
+          throw const NodeException(
+            'Resource node may not have pushExcess children',
+          );
+        }
+        _verifyOrdinaryLine(prodLine);
+        _verifyNoRequirements(requirements);
+
+      case NodeType.disposal:
+        if (parents.any((child) => child.edgeType == EdgeType.requestItems)) {
+          throw const NodeException(
+            'Disposal node may not have requestItems children',
+          );
+        }
+        _verifyOrdinaryLine(prodLine);
+        _verifyNoRequirements(requirements);
+
+      case NodeType.productionLine:
+        _verifyOrdinaryLine(prodLine);
+        _verifyNoRequirements(requirements);
+    }
+  }
+
+  void _verifyIoProdLine(ProductionLine productionLine) {
+    if (productionLine is! IoLine) {
+      throw const NodeException('IO node must use IO production line');
+    }
+  }
+
+  void _verifyOrdinaryLine(ProductionLine productionLine) {
+    if (productionLine is IoLine || productionLine is CombinerLine) {
+      throw NodeException(
+        'Node of type $this is not permitted to have production line of type ${productionLine.runtimeType}',
+      );
+    }
+  }
+
+  void _verifyNoRequirements(ItemIo? requirements) {
+    if (requirements != null) {
+      throw NodeException(
+        'Node of type $this is not permitted to have requirements',
+      );
+    }
+  }
+
+  void _verifyRequirements(ItemIo? requirements) {
+    if (requirements == null) {
+      throw NodeException('Node of type $this must have requirements');
     }
   }
 }
