@@ -26,6 +26,17 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
     _edge.parentGraph.getStateBuilder()._addEdge(_edge);
     _edge.parent.getStateBuilder()._addChild(_edge);
     _edge.child.getStateBuilder()._addParent(_edge);
+
+    // TODO - Technically, only the edges have to be updated rather than the whole thing.
+    // Figure out how to optimise this later
+    if (_amount != 0) {
+      _edge.basePlanner.getSnapshotBuilder().queueNodeIoUpdate(
+        switch (_edge.edgeType) {
+          EdgeType.requestItems => _edge.parentProdLineNode,
+          EdgeType.pushExcess => _edge.childProdLineNode,
+        },
+      );
+    }
   }
 
   @override
@@ -36,11 +47,16 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
 
     _edge.parent.getStateBuilder()._removeChild(_edge);
     _edge.child.getStateBuilder()._removeParent(_edge);
+
+    _edge.basePlanner.getSnapshotBuilder().queueNodeIoUpdate(
+      switch (_edge.edgeType) {
+        EdgeType.requestItems => _edge.childProdLineNode,
+        EdgeType.pushExcess => _edge.parentProdLineNode,
+      },
+    );
   }
 
-  void updateAmount(double amount) => _amount = amount;
   void updatePercentage(double percentage) => _percentage = percentage;
-
   void updateGeometry(EdgeGeometryImpl geometry) => _geometry = geometry;
 
   @override
@@ -55,4 +71,6 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   void _parentGraphRemoval() {
     _edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(_edge);
   }
+
+  void _updateAmount(double amount) => _amount = amount;
 }

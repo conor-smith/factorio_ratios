@@ -9,21 +9,21 @@ class Snapshot {
 }
 
 class SnapshotBuilder extends Builder<Snapshot> {
+  final BasePlanner _basePlanner;
+
   final Snapshot _previousSnapshot;
 
   final Map<BasePlannerElement, Builder<dynamic>> _updatedElements = {};
   final Set<BasePlannerElement> _removedElements = {};
 
-  final Set<Graph> _graphsToUpdateIo = {};
   final Set<ProdLineNode> _nodesToUpdateIo = {};
-  final Set<ProdLineNode> _nodesToUpdateEdges = {};
 
   bool _isBuilding = false;
 
   bool get hasChanges =>
       _updatedElements.isNotEmpty || _removedElements.isNotEmpty;
 
-  SnapshotBuilder._from(this._previousSnapshot);
+  SnapshotBuilder._from(this._basePlanner, this._previousSnapshot);
 
   void throwIfNotBuilding() {
     if (!_isBuilding) {
@@ -44,27 +44,18 @@ class SnapshotBuilder extends Builder<Snapshot> {
   }
 
   /// Only at the final stage of building the snapshot will io calculations take place.
-  /// This will queue up any nodes with io to be updated, as well as call
-  /// [queueNodeUpdateEdges] on that node.
+  /// This will add [node] to a set which will be calculated when the snapshot is built.
   void queueNodeIoUpdate(ProdLineNode node) {
     _nodesToUpdateIo.add(node);
-    _nodesToUpdateEdges.add(node);
-  }
-
-  /// The amount values in edges are set according to the parent / child node io.
-  /// Adding a node here indicates that attached edges must be updated
-  void queueNodeUpdateEdges(ProdLineNode node) {
-    _nodesToUpdateEdges.add(node);
   }
 
   @override
   Snapshot build() {
     _isBuilding = true;
 
-    Set<Graph> solvedGraphs = {};
-    for (var graphToSolve in _graphsToUpdateIo) {
-      _recursivelyUpdateChildGraphs(graphToSolve, solvedGraphs);
-    }
+    _nodesToUpdateIo.removeAll(_removedElements);
+
+    _basePlanner.rootGraph.determineIoOfAllNodes(_nodesToUpdateIo);
 
     Map<BasePlannerElement, dynamic> newStateMap = Map.from(
       _previousSnapshot.states,
@@ -82,23 +73,5 @@ class SnapshotBuilder extends Builder<Snapshot> {
     newStateMap.addAll(updatedStates);
 
     return Snapshot._(newStateMap);
-  }
-
-  void _recursivelyUpdateChildGraphs(
-    Graph graphToSolve,
-    Set<Graph> solvedGraphs,
-  ) {
-    if (solvedGraphs.contains(graphToSolve)) {
-      return;
-    }
-
-    for (var graphNodeToSolve in _graphsToUpdateIo.union(
-      graphToSolve.graphNodes,
-    )) {
-      _recursivelyUpdateChildGraphs(graphNodeToSolve, solvedGraphs);
-    }
-
-    graphToSolve.getStateBuilder().clearIo();
-    solvedGraphs.add(graphToSolve);
   }
 }

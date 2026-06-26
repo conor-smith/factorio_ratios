@@ -72,9 +72,6 @@ class Graph
   @override
   ItemIo? get ioRatios => null;
 
-  // Just putting this here for convenient access
-  Map<InGameItem, List<NodeElement>>? _cachedNodeOutputLists;
-
   Graph.addToBasePlanner(
     this.basePlanner, {
     required this.parentGraph,
@@ -192,6 +189,18 @@ class Graph
     });
   }
 
+  // TODO
+  void determineIoOfAllNodes(Set<ProdLineNode> nodesToUpdateIo) {
+    basePlanner.getSnapshotBuilder().throwIfNotBuilding();
+
+    // Can technically be called anywhere, but good to ensure it's only called once
+    if (!isRoot) {
+      throw const GraphException(
+        'This operation can only be performed by root graph',
+      );
+    }
+  }
+
   void addConsumerNodeAndTree(InGameItem item) {
     if (surface == null) {
       throw const GraphException(
@@ -214,8 +223,6 @@ class Graph
         nodeType: NodeType.consumer,
         productionLine: MagicLine.singleItemConsumer(item),
       );
-
-      _populateCachedNodeOutputs();
 
       _createNodeTree(consumerNode);
 
@@ -313,15 +320,7 @@ class Graph
   }
 
   @override
-  GraphIo calculate([ItemIo constraints = ItemIo.empty]) {
-    var ioBuilder = GraphIoBuilder();
-
-    for (var node in allNodes) {
-      ioBuilder.add(node);
-    }
-
-    return ioBuilder.build();
-  }
+  GraphIo calculate([ItemIo constraints = ItemIo.empty]) => state.io;
 
   @override
   Map<String, dynamic> toJson() {
@@ -336,15 +335,14 @@ class Graph
     );
 
     for (var input in requiredInputs) {
-      var nextNode = _cachedNodeOutputLists![input]?.firstOrNull;
+      var nextNode =
+          getStateBuilder().cachedNodeOutputIndex[input]?.firstOrNull;
 
       if (nextNode == null) {
         nextNode =
             _createResourceNode(input) ??
             _createRecipeNode(input) ??
             _createMagicResourceNode(input);
-
-        _addNodeToOutputCache(nextNode);
 
         _createNodeTree(nextNode);
       }
@@ -403,7 +401,10 @@ class Graph
         var existingNodeFuel = burner.fuelItems
             .where(
               (fuelItem) =>
-                  _cachedNodeOutputLists![InGameSolidItem(fuelItem)] != null,
+                  getStateBuilder().cachedDisposalNodes[InGameSolidItem(
+                    fuelItem,
+                  )] !=
+                  null,
             )
             .map((item) => InGameSolidItem(item));
 
@@ -474,45 +475,6 @@ class Graph
             ),
           )
           .fold(nextRow, _returnLargest);
-    }
-  }
-
-  void _populateCachedNodeOutputs() {
-    _cachedNodeOutputLists = {};
-
-    for (NodeElement node in [
-      ...prodLineNodes,
-      ...graphNodes,
-      ...inputNodes.values,
-    ]) {
-      for (var output in node.outputItems) {
-        _cachedNodeOutputLists!.update(
-          output,
-          (nodes) => nodes..add(node),
-          ifAbsent: () => [node],
-        );
-      }
-    }
-
-    _cachedNodeOutputLists!.updateAll(
-      (item, nodes) => nodes..sort(_compareNodesUsingType),
-    );
-  }
-
-  void _addNodeToOutputCache(NodeElement node) {
-    // TODO: Optimise?
-    if (_cachedNodeOutputLists == null) {
-      _populateCachedNodeOutputs();
-    } else {
-      for (var output in node.outputItems) {
-        _cachedNodeOutputLists!.update(
-          output,
-          (nodes) => nodes
-            ..add(node)
-            ..sort(_compareNodesUsingType),
-          ifAbsent: () => [node],
-        );
-      }
     }
   }
 }
@@ -632,9 +594,4 @@ class GraphIoBuilder implements Builder<GraphIo> {
 
 enum GraphEventType { updateNodesAndEdges, childrenGeometryUpdate, nodeEvent }
 
-Comparator<NodeElement> _compareNodesUsingType =
-    (NodeElement node1, NodeElement node2) =>
-        node1.nodeType.compareTo(node2.nodeType);
-
-int Function(int, int) _returnLargest = (val1, val2) =>
-    val1 > val2 ? val1 : val2;
+int _returnLargest(int val1, int val2) => val1 > val2 ? val1 : val2;

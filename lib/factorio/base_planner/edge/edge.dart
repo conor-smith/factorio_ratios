@@ -25,12 +25,12 @@ class Edge
   /// This node is the node that items will actually come from / go to.
   /// It will typically be the same as [parent], unless [parent] is a [Graph],
   /// in which case, it will be the relevant IoNode.
-  final NodeElement parentItemNode;
+  final ProdLineNode parentProdLineNode;
 
   /// This node is the node that items will actually come from / go to.
   /// It will typically be the same as [child], unless [child] is a [Graph],
   /// in which case, it will be the relevant IoNode.
-  final NodeElement childItemNode;
+  final ProdLineNode childProdLineNode;
   final InGameItem item;
 
   EdgeStateImpl _state;
@@ -52,8 +52,8 @@ class Edge
     double percentage = 1.0,
     double initialAmount = 0.0,
     EdgeGeometryImpl geometry = EdgeGeometryImpl.uninitialised,
-  }) : parentItemNode = parent.getInputItemNode(item),
-       childItemNode = child.getOutputItemNode(item),
+  }) : parentProdLineNode = parent.getInputItemNode(item),
+       childProdLineNode = child.getOutputItemNode(item),
        _state = EdgeStateImpl._initial(
          amount: initialAmount,
          percentage: percentage,

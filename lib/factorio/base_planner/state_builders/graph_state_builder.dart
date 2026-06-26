@@ -44,7 +44,7 @@ class GraphStateBuilder
   NodeGeometryImpl get geometry => _geometry;
   @override
   GraphIo get io => throw const GraphException(
-    'Graph IO is only calculated after build is complete',
+    'Graph IO cannot be calculated while snapshot is building',
   );
 
   // TODO - Cache these values
@@ -117,8 +117,12 @@ class GraphStateBuilder
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
-  // Does nothing, but does indicate that a new state object is needed
-  void clearIo() {}
+  // Does not modify anything, but ensures a new state and io will be created
+  void clearIo() {
+    if (!_graph.parentGraph.hasBuilder) {
+      _graph.parentGraph.getStateBuilder().clearIo();
+    }
+  }
 
   @override
   GraphStateImpl build() => GraphStateImpl(
@@ -190,11 +194,11 @@ class GraphStateBuilder
 
   @override
   void _addParent(Edge parent) =>
-      parent.childItemNode.getStateBuilder()._addParent(parent);
+      parent.childProdLineNode.getStateBuilder()._addParent(parent);
 
   @override
   void _addChild(Edge child) =>
-      child.parentItemNode.getStateBuilder()._addChild(child);
+      child.parentProdLineNode.getStateBuilder()._addChild(child);
 
   @override
   void _removeParent(Edge parent) =>
@@ -202,7 +206,7 @@ class GraphStateBuilder
 
   @override
   void _removeChild(Edge child) =>
-      child.parentItemNode.getStateBuilder()._removeChild(child);
+      child.parentProdLineNode.getStateBuilder()._removeChild(child);
 
   void _removeAllElementsAndSelfFromSnapshot() {
     for (var edge in [...parents, ...children]) {

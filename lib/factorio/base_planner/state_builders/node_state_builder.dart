@@ -50,6 +50,8 @@ class ProdLineNodeStateBuilder
       default:
         _node.parentGraph.getStateBuilder()._addProdLineNode(_node);
     }
+
+    _node.basePlanner.getSnapshotBuilder().queueNodeIoUpdate(_node);
   }
 
   @override
@@ -164,7 +166,7 @@ class ProdLineNodeStateBuilder
                   (child) => child.edgeType == EdgeType.requestItems,
                 ),
               )) {
-        edge.getStateBuilder().updateAmount(0);
+        edge.getStateBuilder()._updateAmount(0);
       }
 
       return ItemIo.empty;
@@ -200,7 +202,7 @@ class ProdLineNodeStateBuilder
           (amount) => amount + edgeAmount,
           ifAbsent: () => edgeAmount,
         );
-        pushExcessEdge.getStateBuilder().updateAmount(edgeAmount);
+        pushExcessEdge.getStateBuilder()._updateAmount(edgeAmount);
       }
 
       for (var requestItemsEdge in _children.where(
@@ -219,7 +221,7 @@ class ProdLineNodeStateBuilder
           (amount) => amount + edgeAmount,
           ifAbsent: () => edgeAmount,
         );
-        requestItemsEdge.getStateBuilder().updateAmount(edgeAmount);
+        requestItemsEdge.getStateBuilder()._updateAmount(edgeAmount);
       }
 
       excessOutput.updateAll(

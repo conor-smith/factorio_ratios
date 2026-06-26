@@ -146,7 +146,10 @@ class BasePlanner
     try {
       _mutationLock++;
       if (firstCall) {
-        _snapshotBuilder = SnapshotBuilder._from(_snapshots[_snapshotIndex]);
+        _snapshotBuilder = SnapshotBuilder._from(
+          this,
+          _snapshots[_snapshotIndex],
+        );
       }
 
       function();
