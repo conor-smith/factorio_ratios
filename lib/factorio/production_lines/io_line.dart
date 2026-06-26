@@ -1,0 +1,63 @@
+part of 'production_line.dart';
+
+class IoLine with ProductionLine<IoLineIo> {
+  // TODO - Add rocket launch
+
+  final InGameItem ioItem;
+
+  @override
+  final String name;
+  @override
+  Icon? get icon => ioItem.icon;
+
+  @override
+  final ItemIo ioRatios;
+
+  @override
+  Set<InGameItem> get inputItems => _ioItemSet;
+  @override
+  Set<InGameItem> get outputItems => _ioItemSet;
+  @override
+  ProductionLineType get productionLineType => ProductionLineType.io;
+
+  final Set<InGameItem> _ioItemSet;
+
+  IoLine({required this.ioItem})
+    : name = '$ioItem IO',
+      _ioItemSet = Set.unmodifiable([ioItem]),
+      ioRatios = ItemIo(inputs: {ioItem: 1}, outputs: {ioItem: 1});
+
+  @override
+  IoLineIo calculate([ItemIo constraints = ItemIo.empty]) {
+    if (constraints.isEmpty) {
+      return const IoLineIo.empty();
+    }
+
+    verifyConstraints(constraints);
+
+    var requiredInput = constraints.inputs[ioItem]!;
+    var requiredOutput = constraints.outputs[ioItem]!;
+    var requiredIo = requiredInput > requiredOutput
+        ? requiredInput
+        : requiredOutput;
+
+    return IoLineIo(
+      constraints: constraints,
+      ioItem: ioItem,
+      amount: requiredIo,
+    );
+  }
+}
+
+class IoLineIo extends ProductionLineIo {
+  IoLineIo({
+    required super.constraints,
+    required InGameItem ioItem,
+    required double amount,
+  }) : super(
+         io: ItemIo(inputs: {ioItem: amount}, outputs: {ioItem: amount}),
+         totalProductionAndConsumption: ItemIo.empty,
+       );
+
+  const IoLineIo.empty() : super.empty();
+}
