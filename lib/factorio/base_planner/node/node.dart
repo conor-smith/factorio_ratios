@@ -43,39 +43,39 @@ abstract interface class NodeState {
 }
 
 enum NodeType implements Comparable<NodeType> {
-  /// Node can connect to and accept inputs from nodes in [NodeElement.parentGraph].
-  /// Child edges must belong to parentGraph of parentGraph
-  input(true, false, 1),
-
   /// If a [Graph] has multiple nodes that produce the same output, a combiner node
-  /// can be used to combine all those outputs into one.
-  combiner(false, false, 2),
+  /// can be used to conveniently combine all into one.
+  combiner(false, false, 1),
 
   /// Represents a resource available on the surface (eg. ore, crop, etc).
   ///
-  /// Parents of type [EdgeType.pushExcess] are not permitted.
-  /// Children of type [EdgeType.pushExcess] are permitted, but the node
-  /// will only consume as much as is required to fulfil requests from parents
-  /// of type [EdgeType.requestItems].
-  resource(false, false, 3),
+  /// Parents must be of type [EdgeType.requestItems].
+  /// In the event this node does consume items,
+  /// children may be of any type except [EdgeType.pushExcess].
+  /// The node will only consume as much as is required to fulfil parent requests,
+  /// so using [EdgeType.deferPushExcess] may not be able to push all it's items.
+  resource(false, false, 2),
+
+  /// Node can connect to and accept inputs from nodes in [NodeElement.parentGraph].
+  /// Child edges must belong to parentGraph of parentGraph
+  input(true, false, 3),
 
   /// Represents a player made production line.
   productionLine(false, false, 4),
 
-  /// Represents a root node in the graph that produces items. Children are not permitted.
+  /// Represents a node that only produces items. Children are not permitted.
   ///
   /// Only these nodes and [consumer] nodes are permitted to set [NodeElement.requirements].
-  /// All edge types are permitted in both [NodeElement.parents] and [NodeElement.children],
-  /// and each indivual item requirement will be set to the highest value between
-  /// [NodeElement.requirements] and out of all constraints set by edges.
-  producer(false, true, 5),
+  /// Parents may only be of type [EdgeType.pushExcess] and [EdgeType.deferPushExcess].
+  producer(false, true, 100),
 
-  /// Represents a leaf node in the a [Graph] that consumes items.
+  /// Represents a node capable of disposing of excess items (eg. space, lava lake).
   ///
-  /// Children of type [EdgeType.requestItems] are not permitted.
-  /// Parents of type [EdgeType.requestItems] are permitted, but the node will
-  /// only request as much as is required to fulfil requests from children
-  /// of type [EdgeType.pushExcess].
+  /// Children must be of type [EdgeType.pushExcess].
+  /// In the event this node does produce items,
+  /// children may be of any type except [EdgeType.requestItems].
+  /// The node will only produce as much as is required to fulfil child requests,
+  /// so using [EdgeType.deferRequestItems] may not be able to request all needed items.
   disposal(false, false, 100),
 
   /// Node can connect to and output to nodes in [NodeElement.parentGraph].
@@ -85,9 +85,7 @@ enum NodeType implements Comparable<NodeType> {
   /// Represents a root node in the graph that consumes items. Parents are not permitted.
   ///
   /// Only these nodes and [producer] nodes are permitted to set [NodeElement.requirements].
-  /// All edge types are permitted in both [NodeElement.parents] and [NodeElement.children],
-  /// and each indivual item requirement will be set to the highest value between
-  /// [NodeElement.requirements] and out of all constraints set by edges.
+  /// Children may only be of type [EdgeType.requestItems] and [EdgeType.deferRequestItems].
   consumer(false, true, 100);
 
   final bool isIo;
