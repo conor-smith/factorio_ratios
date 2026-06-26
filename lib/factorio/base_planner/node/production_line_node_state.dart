@@ -39,15 +39,9 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
     required this.parents,
     required this.children,
   }) {
-    node.nodeType.verify(
-      productionLine,
-      requirements,
-      node.parentGraph,
-      parents,
-      children,
-    );
+    node.nodeType.verify(node.parentGraph, this);
     _verifyPercentages(node);
-    // TODO: verify io edges
+    // TODO: Verify IO Edges and priority edges
   }
 
   void _verifyPercentages(ProdLineNode node) {

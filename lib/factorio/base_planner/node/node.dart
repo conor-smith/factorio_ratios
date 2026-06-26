@@ -49,7 +49,6 @@ enum NodeType implements Comparable<NodeType> {
 
   /// Represents a resource available on the surface (eg. ore, crop, etc).
   ///
-  /// Parents must be of type [EdgeType.requestItems].
   /// In the event this node does consume items,
   /// children may be of any type except [EdgeType.pushExcess].
   /// The node will only consume as much as is required to fulfil parent requests,
@@ -71,7 +70,6 @@ enum NodeType implements Comparable<NodeType> {
 
   /// Represents a node capable of disposing of excess items (eg. space, lava lake).
   ///
-  /// Children must be of type [EdgeType.pushExcess].
   /// In the event this node does produce items,
   /// children may be of any type except [EdgeType.requestItems].
   /// The node will only produce as much as is required to fulfil child requests,
@@ -98,110 +96,119 @@ enum NodeType implements Comparable<NodeType> {
   int compareTo(NodeType other) =>
       outputPriority.compareTo(other.outputPriority);
 
-  void verify(
-    ProductionLine prodLine,
-    ItemIo? requirements,
-    Graph parentGraph,
-    Set<Edge> parents,
-    Set<Edge> children,
-  ) {
+  void verify(Graph parentGraph, ProdLineNodeStateImpl nodeState) {
     switch (this) {
       case NodeType.input:
-        if (children.any(
+        if (nodeState.children.any(
           (child) => child.parentGraph != parentGraph.parentGraph,
         )) {
           throw const NodeException(
             'All child edges of input node must belong to parentGraph of parentGraph',
           );
         }
-        _verifyIoProdLine(prodLine);
-        _verifyNoRequirements(requirements);
+        _verifyIoProdLine(nodeState);
+        _verifyNoRequirements(nodeState);
 
       case NodeType.output:
-        if (parents.any(
+        if (nodeState.parents.any(
           (parent) => parent.parentGraph != parentGraph.parentGraph,
         )) {
           throw const NodeException(
             'All parent edges of output node must belong to parentGraph of parentGraph',
           );
         }
-        _verifyIoProdLine(prodLine);
-        _verifyNoRequirements(requirements);
+        _verifyIoProdLine(nodeState);
+        _verifyNoRequirements(nodeState);
 
       case NodeType.consumer:
-        if (prodLine.inputItems.isEmpty || prodLine.outputItems.isNotEmpty) {
+        if (nodeState.productionLine.inputItems.isEmpty ||
+            nodeState.productionLine.outputItems.isNotEmpty) {
           throw const NodeException(
             'Consumer node must have inputs and no outputs',
           );
+        } else if (nodeState.children.isNotEmpty ||
+            nodeState.parents.any((edge) => !edge.edgeType.constrainsParents)) {
+          // TODO: Allow pushExcess edges once I have loops working
+          throw const NodeException('Consumer node can only request items');
         }
-        _verifyOrdinaryLine(prodLine);
-        _verifyRequirements(requirements);
+        _verifyOrdinaryLine(nodeState);
+        _verifyRequirements(nodeState);
 
       case NodeType.producer:
-        if (prodLine.outputItems.isEmpty || prodLine.inputItems.isNotEmpty) {
+        if (nodeState.productionLine.outputItems.isEmpty ||
+            nodeState.productionLine.inputItems.isNotEmpty) {
           throw const NodeException(
             'Producer node must have outputs and no inputs',
           );
+        } else if (nodeState.parents.isNotEmpty ||
+            nodeState.children.any((edge) => edge.edgeType.constrainsParents)) {
+          // TODO: Allow request items edges once I have loops working
+          throw const NodeException('Producer node can only push excess items');
         }
-        _verifyOrdinaryLine(prodLine);
-        _verifyRequirements(requirements);
+        _verifyOrdinaryLine(nodeState);
+        _verifyRequirements(nodeState);
 
       case NodeType.combiner:
-        if (prodLine is! CombinerLine) {
+        if (nodeState.productionLine is! CombinerLine) {
           throw const NodeException(
             'Combiner node must use Combiner production line',
           );
         }
-        _verifyNoRequirements(requirements);
+        _verifyNoRequirements(nodeState);
 
       case NodeType.resource:
-        if (children.any((child) => child.edgeType == EdgeType.pushExcess)) {
+        if (nodeState.children.any(
+          (child) => child.edgeType == EdgeType.pushExcess,
+        )) {
           throw const NodeException(
-            'Resource node may not have pushExcess children',
+            'Resource node cannot had children of type pushExcess',
           );
         }
-        _verifyOrdinaryLine(prodLine);
-        _verifyNoRequirements(requirements);
+        _verifyOrdinaryLine(nodeState);
+        _verifyNoRequirements(nodeState);
 
       case NodeType.disposal:
-        if (parents.any((child) => child.edgeType == EdgeType.requestItems)) {
+        if (nodeState.parents.any(
+          (parent) => parent.edgeType == EdgeType.requestItems,
+        )) {
           throw const NodeException(
-            'Disposal node may not have requestItems children',
+            'Disposal node may not have parents of type requestItems',
           );
         }
-        _verifyOrdinaryLine(prodLine);
-        _verifyNoRequirements(requirements);
+        _verifyOrdinaryLine(nodeState);
+        _verifyNoRequirements(nodeState);
 
       case NodeType.productionLine:
-        _verifyOrdinaryLine(prodLine);
-        _verifyNoRequirements(requirements);
+        _verifyOrdinaryLine(nodeState);
+        _verifyNoRequirements(nodeState);
     }
   }
 
-  void _verifyIoProdLine(ProductionLine productionLine) {
-    if (productionLine is! IoLine) {
+  void _verifyIoProdLine(ProdLineNodeState nodeState) {
+    if (nodeState.productionLine is! IoLine) {
       throw const NodeException('IO node must use IO production line');
     }
   }
 
-  void _verifyOrdinaryLine(ProductionLine productionLine) {
-    if (productionLine is IoLine || productionLine is CombinerLine) {
+  void _verifyOrdinaryLine(ProdLineNodeState nodeState) {
+    if (nodeState.productionLine is IoLine ||
+        nodeState.productionLine is CombinerLine) {
       throw NodeException(
         'Node of type $this is not permitted to have production line of type ${productionLine.runtimeType}',
       );
     }
   }
 
-  void _verifyNoRequirements(ItemIo? requirements) {
-    if (requirements != null) {
+  void _verifyNoRequirements(ProdLineNodeState nodeState) {
+    if (nodeState.requirements != null) {
       throw NodeException(
         'Node of type $this is not permitted to have requirements',
       );
     }
   }
 
-  void _verifyRequirements(ItemIo? requirements) {
-    if (requirements == null) {
+  void _verifyRequirements(ProdLineNodeState nodeState) {
+    if (nodeState.requirements == null) {
       throw NodeException('Node of type $this must have requirements');
     }
   }

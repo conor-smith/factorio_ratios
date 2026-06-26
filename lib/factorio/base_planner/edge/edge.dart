@@ -139,13 +139,13 @@ enum EdgeType {
   /// If they do not, new edges will be created and connected a node in same
   /// graph that can output this item.
   /// If no node exists, a new node will also be created
-  requestItems(false),
+  requestItems(false, false),
 
   /// Represents a parent requesting [Edge.amount] from a child, but the child
   /// can "refuse" and set a max amount if need be.
   ///
   /// TODO - Document more
-  deferRequestItems(true),
+  deferRequestItems(true, false),
 
   /// Child is pushing excess items onto parent.
   ///
@@ -154,17 +154,21 @@ enum EdgeType {
   /// If they do not, new edges will be created and connected a node in same
   /// graph that can output this item.
   /// If no node exists, a new node will also be created
-  pushExcess(false),
+  pushExcess(false, true),
 
   /// Represents a child pushing [Edge.amount] onto a parent, but the parent
   /// can "refuse" and set a max amount if need be.
   ///
   /// TODO - Document more
-  deferPushExcess(true);
+  deferPushExcess(true, true);
 
+  /// Uses [Edge.priority] if true, [Edge.percentage] otherwise
   final bool usesPriority;
 
-  const EdgeType(this.usesPriority);
+  /// Sets constraints on [Edge.parent] if true, on [Edge.child] otherwise
+  final bool constrainsParents;
+
+  const EdgeType(this.usesPriority, this.constrainsParents);
 }
 
 class EdgeException extends BasePlannerException {
