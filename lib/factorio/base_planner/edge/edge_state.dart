@@ -13,6 +13,8 @@ abstract class EdgeState {
 }
 
 class EdgeStateImpl implements EdgeState, ToJson {
+  static const uninitialised = EdgeStateImpl._uninitialised();
+
   @override
   final double amount;
   @override
@@ -27,13 +29,6 @@ class EdgeStateImpl implements EdgeState, ToJson {
 
   @override
   RequestStatus get requestStatus => RequestStatus.done;
-
-  EdgeStateImpl._initial({
-    required this.percentage,
-    required this.geometry,
-    required this.priority,
-  }) : requestedAmount = 0,
-       amount = 0;
 
   EdgeStateImpl(
     Edge edge, {
@@ -69,6 +64,13 @@ class EdgeStateImpl implements EdgeState, ToJson {
       throw EdgeException('Edge $edge had invalid amount: $amount');
     }
   }
+
+  const EdgeStateImpl._uninitialised()
+    : amount = 0,
+      requestedAmount = 0,
+      percentage = 0,
+      priority = 0,
+      geometry = EdgeGeometryImpl.uninitialised;
 
   @override
   Map<String, dynamic> toJson() {

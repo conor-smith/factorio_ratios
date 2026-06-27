@@ -81,23 +81,14 @@ class Graph
     String name = 'graph',
     Icon? icon,
     NodeGeometryImpl geometry = NodeGeometryImpl.uninitialised,
-  }) : _state = GraphStateImpl._initial(
-         name: name,
-         icon: icon ?? surface?.icon,
-         geometry: geometry,
-       ),
+  }) : _state = GraphStateImpl.uninitialised,
        _surfaceProperties =
            basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
-    _builder = GraphStateBuilder.from(this, _state);
-    _builder!.addSelf();
+    _builder = GraphStateBuilder.initial(this);
   }
 
   Graph.rootGraph(this.basePlanner, [this.surface])
-    : _state = GraphStateImpl._initial(
-        name: 'Root Graph',
-        icon: surface?.icon,
-        geometry: NodeGeometryImpl.uninitialised,
-      ),
+    : _state = GraphStateImpl._rootGraph(surface?.icon),
       _surfaceProperties =
           basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
     parentGraph = this;

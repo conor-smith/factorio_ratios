@@ -16,8 +16,6 @@ class SnapshotBuilder implements Builder<Snapshot> {
   final Map<BasePlannerElement, Builder<dynamic>> _updatedElements = {};
   final Set<BasePlannerElement> _removedElements = {};
 
-  final Set<ProdLineNode> _nodesToUpdateIo = {};
-
   bool _isBuilding = false;
 
   bool get hasChanges =>
@@ -43,19 +41,9 @@ class SnapshotBuilder implements Builder<Snapshot> {
     _removedElements.add(element);
   }
 
-  /// Only at the final stage of building the snapshot will io calculations take place.
-  /// This will add [node] to a set which will be calculated when the snapshot is built.
-  void queueNodeIoUpdate(ProdLineNode node) {
-    _nodesToUpdateIo.add(node);
-  }
-
   @override
   Snapshot build() {
     _isBuilding = true;
-
-    _nodesToUpdateIo.removeAll(_removedElements);
-
-    _basePlanner.rootGraph.determineIoOfAllNodes(_nodesToUpdateIo);
 
     Map<BasePlannerElement, dynamic> newStateMap = Map.from(
       _previousSnapshot.states,

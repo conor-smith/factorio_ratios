@@ -25,6 +25,8 @@ part 'single_machine.dart';
 /// This field must be calculated independently of [calculateIoData].
 /// If this isn't possible, these fields will be null.
 abstract mixin class ProductionLine<T extends ProductionLineIoData> {
+  static const uninitialised = _NullProductionLine();
+
   /// Used in [toString]
   String get name;
 
@@ -115,6 +117,8 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
 ///
 /// All [ItemAmounts] and [ItemIo] fieds are given in items per minute.
 class ProductionLineIoData {
+  static const uninitialised = ProductionLineIoData.empty();
+
   /// Constraints that were used to generate this IO
   final ItemIo constraints;
 
@@ -177,4 +181,29 @@ class ValueAndDisplayData<T> {
   final List<DisplayData> displayData;
 
   const ValueAndDisplayData(this.value, this.displayData);
+}
+
+class _NullProductionLine implements ProductionLine<ProductionLineIoData> {
+  @override
+  ProductionLineIoData calculateIoData([ItemIo constraints = ItemIo.empty]) =>
+      throw UnimplementedError();
+  @override
+  ItemIo calculateItemIo([ItemIo constraints = ItemIo.empty]) =>
+      throw UnimplementedError();
+  @override
+  Icon? get icon => throw UnimplementedError();
+  @override
+  Set<InGameItem> get inputItems => throw UnimplementedError();
+  @override
+  ItemIo? get ioRatios => throw UnimplementedError();
+  @override
+  String get name => throw UnimplementedError();
+  @override
+  Set<InGameItem> get outputItems => throw UnimplementedError();
+  @override
+  ProductionLineType get productionLineType => throw UnimplementedError();
+  @override
+  void verifyConstraints(ItemIo constraints) => throw UnimplementedError();
+
+  const _NullProductionLine();
 }

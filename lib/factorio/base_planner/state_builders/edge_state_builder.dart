@@ -23,6 +23,21 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   @override
   EdgeGeometryImpl get geometry => _geometry;
 
+  EdgeStateBuilder.initial(this._edge)
+    : _amount = 0,
+      _requestedAmount = 0,
+      _percentage = _edge.edgeType.usesPriority ? 0 : 1,
+      _priority = _edge.edgeType.usesPriority ? 1 : 0,
+      _requestStatus = RequestStatus.pending,
+      _geometry = EdgeGeometryImpl.uninitialised {
+    _edge.basePlanner.throwIfMutationNotPermitted();
+    _edge.basePlanner.getSnapshotBuilder().addToSnapshot(_edge, this);
+
+    _edge.parentGraph.getStateBuilder()._addEdge(_edge);
+    _edge.parent.getStateBuilder()._addChild(_edge);
+    _edge.child.getStateBuilder()._addParent(_edge);
+  }
+
   EdgeStateBuilder.from(this._edge, EdgeStateImpl previousState)
     : _amount = previousState.amount,
       _percentage = previousState.percentage,
@@ -35,22 +50,6 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   }
 
   @override
-  void addSelf() {
-    _edge.parentGraph.getStateBuilder()._addEdge(_edge);
-    _edge.parent.getStateBuilder()._addChild(_edge);
-    _edge.child.getStateBuilder()._addParent(_edge);
-
-    _edge.basePlanner.getSnapshotBuilder().queueNodeIoUpdate(
-      switch (_edge.edgeType) {
-        EdgeType.requestItems ||
-        EdgeType.deferRequestItems => _edge.parentProdLineNode,
-        EdgeType.pushExcess ||
-        EdgeType.deferPushExcess => _edge.childProdLineNode,
-      },
-    );
-  }
-
-  @override
   void removeSelf() {
     _edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(_edge);
 
@@ -58,15 +57,6 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
 
     _edge.parent.getStateBuilder()._removeChild(_edge);
     _edge.child.getStateBuilder()._removeParent(_edge);
-
-    _edge.basePlanner.getSnapshotBuilder().queueNodeIoUpdate(
-      switch (_edge.edgeType) {
-        EdgeType.requestItems ||
-        EdgeType.deferRequestItems => _edge.childProdLineNode,
-        EdgeType.pushExcess ||
-        EdgeType.deferPushExcess => _edge.parentProdLineNode,
-      },
-    );
   }
 
   void updatePercentage(double percentage) => _percentage = percentage;

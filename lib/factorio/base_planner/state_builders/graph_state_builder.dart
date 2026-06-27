@@ -81,6 +81,23 @@ class GraphStateBuilder
     return _cachedNodeOutputIndex!;
   }
 
+  GraphStateBuilder.initial(this._graph)
+    : _name = 'graph',
+      _icon = _graph.surface?.icon,
+      _prodLineNodes = {},
+      _graphNodes = {},
+      _inputNodes = {},
+      _outputNodes = {},
+      _edges = {},
+      _geometry = NodeGeometryImpl.uninitialised {
+    _graph.basePlanner.throwIfMutationNotPermitted();
+    _graph.basePlanner.getSnapshotBuilder().addToSnapshot(_graph, this);
+
+    if (!_graph.isRoot) {
+      _graph.parentGraph.getStateBuilder()._addGraphNode(_graph);
+    }
+  }
+
   GraphStateBuilder.from(this._graph, GraphStateImpl previousState)
     : _name = previousState.name,
       _icon = previousState.icon,
@@ -92,13 +109,6 @@ class GraphStateBuilder
       _geometry = previousState.geometry {
     _graph.basePlanner.throwIfMutationNotPermitted();
     _graph.basePlanner.getSnapshotBuilder().addToSnapshot(_graph, this);
-  }
-
-  @override
-  void addSelf() {
-    if (!_graph.isRoot) {
-      _graph.parentGraph.getStateBuilder()._addGraphNode(_graph);
-    }
   }
 
   @override

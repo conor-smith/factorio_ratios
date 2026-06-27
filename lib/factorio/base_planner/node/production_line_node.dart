@@ -37,25 +37,8 @@ class ProdLineNode
     required this.parentGraph,
     required this.nodeType,
     required ProductionLine productionLine,
-    NodeGeometryImpl geometry = NodeGeometryImpl.uninitialised,
-    ProductionLineIoData? io,
-    ItemIo? requirements,
-  }) : _state = ProdLineNodeStateImpl._initial(
-         requirements: nodeType.isRoot && requirements == null
-             ? ItemIo.empty
-             : requirements,
-         productionLine: productionLine,
-         geometry: geometry,
-         ioData: io ?? productionLine.calculateIoData(),
-       ) {
-    if (nodeType.isIo) {
-      throw NodeException(
-        'ProdLineNode is not permitted to be of nodeType $nodeType',
-      );
-    }
-
-    _builder = ProdLineNodeStateBuilder.from(this, _state);
-    _builder!.addSelf();
+  }) : _state = ProdLineNodeStateImpl.uninitialised {
+    _builder = ProdLineNodeStateBuilder.initial(this, productionLine);
   }
 
   @override

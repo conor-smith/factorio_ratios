@@ -12,6 +12,8 @@ abstract class ProdLineNodeState {
 }
 
 class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
+  static const uninitialised = ProdLineNodeStateImpl._uninitialised();
+
   @override
   final ItemIo? requirements;
   @override
@@ -27,14 +29,6 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   @override
   final ProductionLineIoData ioData;
 
-  ProdLineNodeStateImpl._initial({
-    required this.requirements,
-    required this.productionLine,
-    required this.geometry,
-    required this.ioData,
-  }) : parents = const {},
-       children = const {};
-
   ProdLineNodeStateImpl(
     ProdLineNode node, {
     this.requirements,
@@ -48,6 +42,14 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
     _verifyPercentages(node);
     // TODO: Verify IO Edges and priority edges
   }
+
+  const ProdLineNodeStateImpl._uninitialised()
+    : requirements = null,
+      geometry = NodeGeometryImpl.uninitialised,
+      parents = const {},
+      children = const {},
+      productionLine = ProductionLine.uninitialised,
+      ioData = ProductionLineIoData.uninitialised;
 
   void _verifyPercentages(ProdLineNode node) {
     // Make sure that, for each item outputted to pushExcess edges,

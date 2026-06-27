@@ -50,29 +50,10 @@ class Edge
     required this.parent,
     required this.child,
     required this.item,
-    double percentage = 1.0,
-    int priority = 1,
-    double initialAmount = 0.0,
-    EdgeGeometryImpl geometry = EdgeGeometryImpl.uninitialised,
   }) : parentProdLineNode = parent.getInputItemNode(item),
        childProdLineNode = child.getOutputItemNode(item),
-       _state = EdgeStateImpl._initial(
-         priority: priority,
-         percentage: percentage,
-         geometry: geometry,
-       ) {
-    if (parent.parentGraph != parentGraph) {
-      throw EdgeException(
-        'Edge with parentGraph $parentGraph cannot connect to parent node $parent with different parentGraph ${parent.parentGraph}',
-      );
-    } else if (child.parentGraph != parentGraph) {
-      throw EdgeException(
-        'Edge with parentGraph $parentGraph cannot connect to child node $parent with different parentGraph ${parent.parentGraph}',
-      );
-    }
-
-    _builder = EdgeStateBuilder.from(this, _state);
-    _builder!.addSelf();
+       _state = EdgeStateImpl.uninitialised {
+    _builder = EdgeStateBuilder.initial(this);
   }
 
   @override

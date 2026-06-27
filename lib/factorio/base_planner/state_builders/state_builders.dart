@@ -16,7 +16,6 @@ part 'edge_state_builder.dart';
 part 'graph_state_builder.dart';
 
 abstract interface class StateBuilder<T> implements Builder<T> {
-  void addSelf();
   void removeSelf();
   void _parentGraphRemoval();
 }

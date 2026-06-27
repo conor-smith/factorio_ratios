@@ -22,14 +22,15 @@ abstract class GraphState {
     Iterable<Graph> graphNodes,
     Map<InGameItem, ProdLineNode> inputNodes,
     Map<InGameItem, ProdLineNode> outputNodes,
-  ) => Iterable<NodeElement>.empty()
-      .followedBy(prodLineNodes)
+  ) => (prodLineNodes as Iterable<NodeElement>)
       .followedBy(graphNodes)
       .followedBy(inputNodes.values)
       .followedBy(outputNodes.values);
 }
 
 class GraphStateImpl implements GraphState, ToJson {
+  static final uninitialised = GraphStateImpl._uninitialised();
+
   @override
   final String name;
   @override
@@ -60,21 +61,6 @@ class GraphStateImpl implements GraphState, ToJson {
 
   @override
   late final GraphIo ioData = GraphIo.fromState(this);
-
-  GraphStateImpl._initial({
-    required this.name,
-    required this.icon,
-    required this.geometry,
-  }) : prodLineNodes = const {},
-       graphNodes = const {},
-       inputNodes = const {},
-       outputNodes = const {},
-       edges = const {},
-       parents = const {},
-       children = const {},
-       inputItems = const {},
-       outputItems = const {},
-       allNodes = const {};
 
   GraphStateImpl({
     required Graph graph,
@@ -114,6 +100,35 @@ class GraphStateImpl implements GraphState, ToJson {
       );
     }
   }
+
+  GraphStateImpl._rootGraph(this.icon)
+    : name = 'Root Graph',
+      prodLineNodes = const {},
+      graphNodes = const {},
+      inputNodes = const {},
+      outputNodes = const {},
+      allNodes = const {},
+      edges = const {},
+      inputItems = const {},
+      outputItems = const {},
+      parents = const {},
+      children = const {},
+      geometry = NodeGeometryImpl.uninitialised;
+
+  GraphStateImpl._uninitialised()
+    : name = '',
+      icon = null,
+      prodLineNodes = const {},
+      graphNodes = const {},
+      inputNodes = const {},
+      outputNodes = const {},
+      allNodes = const {},
+      edges = const {},
+      inputItems = const {},
+      outputItems = const {},
+      parents = const {},
+      children = const {},
+      geometry = NodeGeometryImpl.uninitialised;
 
   @override
   Map<String, dynamic> toJson() {

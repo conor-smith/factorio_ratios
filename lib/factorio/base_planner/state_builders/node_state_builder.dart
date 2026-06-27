@@ -24,6 +24,33 @@ class ProdLineNodeStateBuilder
   @override
   late final Set<Edge> children = UnmodifiableSetView(_children);
 
+  ProdLineNodeStateBuilder.initial(this._node, this._productionLine)
+    : _requirements = _node.nodeType.isRoot ? ItemIo.empty : null,
+      _geometry = NodeGeometryImpl.uninitialised,
+      _ioData = ProductionLineIoData.uninitialised,
+      _parents = {},
+      _children = {} {
+    _node.basePlanner.throwIfMutationNotPermitted();
+    _node.basePlanner.getSnapshotBuilder().addToSnapshot(_node, this);
+
+    switch (_node.nodeType) {
+      case NodeType.input:
+        _node.parentGraph.getStateBuilder()._addInputNode(
+          _node,
+          _productionLine.inputItems.first,
+        );
+
+      case NodeType.output:
+        _node.parentGraph.getStateBuilder()._addOutputNode(
+          _node,
+          _productionLine.outputItems.first,
+        );
+
+      default:
+        _node.parentGraph.getStateBuilder()._addProdLineNode(_node);
+    }
+  }
+
   ProdLineNodeStateBuilder.from(this._node, ProdLineNodeStateImpl previousState)
     : _requirements = previousState.requirements,
       _productionLine = previousState.productionLine,
@@ -33,28 +60,6 @@ class ProdLineNodeStateBuilder
       _ioData = previousState.ioData {
     _node.basePlanner.throwIfMutationNotPermitted();
     _node.basePlanner.getSnapshotBuilder().addToSnapshot(_node, this);
-  }
-
-  @override
-  void addSelf() {
-    switch (_node.nodeType) {
-      case NodeType.input:
-        _node.parentGraph.getStateBuilder()._addInputNode(
-          _node,
-          (_productionLine as IoLine).ioItem,
-        );
-
-      case NodeType.output:
-        _node.parentGraph.getStateBuilder()._addOutputNode(
-          _node,
-          (_productionLine as IoLine).ioItem,
-        );
-
-      default:
-        _node.parentGraph.getStateBuilder()._addProdLineNode(_node);
-    }
-
-    _node.basePlanner.getSnapshotBuilder().queueNodeIoUpdate(_node);
   }
 
   @override
