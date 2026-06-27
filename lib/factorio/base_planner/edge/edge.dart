@@ -40,6 +40,7 @@ class Edge
   double get amount => state.amount;
   double get percentage => state.percentage;
   int get priority => state.priority;
+  double get requestedAmount => state.requestedAmount;
   @override
   EdgeGeometryImpl get geometry => state.geometry;
 
@@ -125,7 +126,7 @@ enum EdgeType {
   /// can "refuse" and set a max amount if need be.
   ///
   /// TODO - Document more
-  deferRequestItems(true, false),
+  weakRequestItems(true, false),
 
   /// Child is pushing excess items onto parent.
   ///
@@ -140,7 +141,7 @@ enum EdgeType {
   /// can "refuse" and set a max amount if need be.
   ///
   /// TODO - Document more
-  deferPushExcess(true, true);
+  weakPushExcess(true, true);
 
   /// Uses [Edge.priority] if true, [Edge.percentage] otherwise
   final bool usesPriority;

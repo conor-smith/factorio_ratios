@@ -22,8 +22,8 @@ abstract interface class NodeElement<St, E extends NodeEvent>
   ItemIo? get internalConstraints;
 
   /// The constraints set by parent edges of type [EdgeType.requestItems] and
-  /// [EdgeType.deferRequestItems], and by child edges of type
-  /// [EdgeType.pushExcess] and [EdgeType.deferPushExcess]
+  /// [EdgeType.weakRequestItems], and by child edges of type
+  /// [EdgeType.pushExcess] and [EdgeType.weakPushExcess]
   ItemIo get edgeConstraints;
 
   /// Total IO for this node
@@ -43,28 +43,90 @@ abstract interface class NodeElement<St, E extends NodeEvent>
 
   ProdLineNode getOutputItemNode(InGameItem item);
   ProdLineNode getInputItemNode(InGameItem item);
+
+  static ItemIoImpl calculateEdgeConstraints(
+    NodeType nodeType,
+    Iterable<Edge> parents,
+    Iterable<Edge> children,
+  ) {
+    var builder = ItemIoBuilder();
+
+    for (var parent in parents) {
+      switch (parent.edgeType) {
+        case EdgeType.requestItems:
+          builder.addToOutputs(parent.item, parent.requestedAmount);
+
+        case EdgeType.weakRequestItems:
+          if (nodeType.honoursWeakRequests) {
+            builder.addToOutputs(parent.item, parent.requestedAmount);
+          }
+
+        case EdgeType.pushExcess:
+        case EdgeType.weakPushExcess:
+          break;
+      }
+    }
+
+    for (var child in children) {
+      switch (child.edgeType) {
+        case EdgeType.pushExcess:
+          builder.addToInputs(child.item, child.requestedAmount);
+
+        case EdgeType.weakPushExcess:
+          if (nodeType.honoursWeakRequests) {
+            builder.addToInputs(child.item, child.requestedAmount);
+          }
+
+        case EdgeType.requestItems:
+        case EdgeType.weakRequestItems:
+          break;
+      }
+    }
+
+    return builder.build();
+  }
 }
 
 enum NodeType implements Comparable<NodeType> {
   /// If a [Graph] has multiple nodes that produce the same output, a combiner node
   /// can be used to conveniently combine all into one.
-  combiner(false, false, 1),
+  combiner(
+    isIo: false,
+    hasInternalConstraints: false,
+    honoursWeakRequests: true,
+    outputPriority: 1,
+  ),
 
   /// Represents a resource available on the surface (eg. ore, crop, etc).
   ///
   /// In the event this node does consume items,
   /// children may be of any type except [EdgeType.pushExcess].
   /// The node will only consume as much as is required to fulfil parent requests,
-  /// so an edge of type [EdgeType.deferPushExcess] may not
+  /// so an edge of type [EdgeType.weakPushExcess] may not
   /// be able to push all it's items.
-  resource(false, false, 2),
+  resource(
+    isIo: false,
+    hasInternalConstraints: false,
+    honoursWeakRequests: false,
+    outputPriority: 2,
+  ),
 
   /// Node can connect to and accept inputs from nodes in [NodeElement.parentGraph].
   /// Child edges must belong to parentGraph of parentGraph
-  input(true, false, 3),
+  input(
+    isIo: true,
+    hasInternalConstraints: false,
+    honoursWeakRequests: true,
+    outputPriority: 3,
+  ),
 
   /// Represents a player made production line.
-  productionLine(false, false, 4),
+  productionLine(
+    isIo: false,
+    hasInternalConstraints: false,
+    honoursWeakRequests: true,
+    outputPriority: 4,
+  ),
 
   /// Represents a node that only produces items. Children are not permitted.
   ///
@@ -73,19 +135,34 @@ enum NodeType implements Comparable<NodeType> {
   /// each item will be given by the larger of two values
   /// - The value at [NodeElement.internalConstraints]
   /// - The sum value of all parents of type [EdgeType.requestItems]
-  producer(false, true, 5),
+  producer(
+    isIo: false,
+    hasInternalConstraints: true,
+    honoursWeakRequests: true,
+    outputPriority: 5,
+  ),
 
   /// Represents a node capable of disposing of excess items (eg. space, lava lake).
   ///
   /// In the event this node does produce items,
   /// children may be of any type except [EdgeType.requestItems].
   /// The node will only produce as much as is required to fulfil child requests,
-  /// so using [EdgeType.deferRequestItems] may not be able to request all needed items.
-  disposal(false, false, 100),
+  /// so using [EdgeType.weakRequestItems] may not be able to request all needed items.
+  disposal(
+    isIo: false,
+    hasInternalConstraints: false,
+    honoursWeakRequests: false,
+    outputPriority: 100,
+  ),
 
   /// Node can connect to and output to nodes in [NodeElement.parentGraph].
   /// Parent edges must belong to parentGraph of parentGraph.
-  output(true, false, 100),
+  output(
+    isIo: true,
+    hasInternalConstraints: false,
+    honoursWeakRequests: true,
+    outputPriority: 100,
+  ),
 
   /// Represents a root node in the graph that consumes items. Parents are not permitted.
   ///
@@ -94,13 +171,24 @@ enum NodeType implements Comparable<NodeType> {
   /// each item will be given by the larger of two values
   /// - The value at [NodeElement.internalConstraints]
   /// - The sum value of all children of type [EdgeType.requestItems]
-  consumer(false, true, 100);
+  consumer(
+    isIo: false,
+    hasInternalConstraints: true,
+    honoursWeakRequests: true,
+    outputPriority: 100,
+  );
 
   final bool isIo;
-  final bool isRoot;
+  final bool hasInternalConstraints;
+  final bool honoursWeakRequests;
   final int outputPriority;
 
-  const NodeType(this.isIo, this.isRoot, this.outputPriority);
+  const NodeType({
+    required this.isIo,
+    required this.hasInternalConstraints,
+    required this.honoursWeakRequests,
+    required this.outputPriority,
+  });
 
   @override
   int compareTo(NodeType other) =>

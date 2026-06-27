@@ -31,7 +31,9 @@ class ProdLineNodeStateBuilder
   late final Set<Edge> children = UnmodifiableSetView(_children);
 
   ProdLineNodeStateBuilder.initial(this._node, this._productionLine)
-    : _internalConstraints = _node.nodeType.isRoot ? ItemIoImpl.empty : null,
+    : _internalConstraints = _node.nodeType.hasInternalConstraints
+          ? ItemIoImpl.empty
+          : null,
       _edgeConstraints = ItemIoBuilder(),
       _itemIo = ItemIoImpl.empty,
       _geometry = NodeGeometryImpl.uninitialised,
