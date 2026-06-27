@@ -90,7 +90,6 @@ class GraphStateBuilder
       _outputNodes = {},
       _edges = {},
       _geometry = NodeGeometryImpl.uninitialised {
-    _graph.basePlanner.throwIfMutationNotPermitted();
     _graph.basePlanner.getSnapshotBuilder().addToSnapshot(_graph, this);
 
     if (!_graph.isRoot) {
@@ -107,7 +106,6 @@ class GraphStateBuilder
       _outputNodes = Map.from(previousState.outputNodes),
       _edges = Set.from(previousState.edges),
       _geometry = previousState.geometry {
-    _graph.basePlanner.throwIfMutationNotPermitted();
     _graph.basePlanner.getSnapshotBuilder().addToSnapshot(_graph, this);
   }
 

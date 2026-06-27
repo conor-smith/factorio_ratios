@@ -16,16 +16,18 @@ class CombinerLine with ProductionLine<ProductionLineIoData> {
   @override
   Set<InGameItem> get outputItems => _ioItem;
   @override
-  final ItemIo ioRatios;
+  final ItemIoImpl ioRatios;
 
   final Set<InGameItem> _ioItem;
 
   CombinerLine(this.item)
     : _ioItem = Set.unmodifiable({item}),
-      ioRatios = ItemIo(inputs: {item: 1.0}, outputs: {item: 1.0});
+      ioRatios = ItemIoImpl(inputs: {item: 1.0}, outputs: {item: 1.0});
 
   @override
-  ProductionLineIoData calculateIoData([ItemIo constraints = ItemIo.empty]) {
+  ProductionLineIoData calculateIoData([
+    ItemIoImpl constraints = ItemIoImpl.empty,
+  ]) {
     if (constraints.isEmpty) {
       return const ProductionLineIoData.empty();
     }
@@ -40,8 +42,8 @@ class CombinerLine with ProductionLine<ProductionLineIoData> {
 
     return ProductionLineIoData(
       constraints: constraints,
-      io: ItemIo(inputs: amountMap, outputs: amountMap),
-      totalProductionAndConsumption: ItemIo.empty,
+      io: ItemIoImpl(inputs: amountMap, outputs: amountMap),
+      totalProductionAndConsumption: ItemIoImpl.empty,
     );
   }
 

@@ -21,6 +21,14 @@ abstract interface class NodeElement<St, E extends NodeEvent>
   /// Otherwise null.
   ItemIo? get internalConstraints;
 
+  /// The constraints set by parent edges of type [EdgeType.requestItems] and
+  /// [EdgeType.deferRequestItems], and by child edges of type
+  /// [EdgeType.pushExcess] and [EdgeType.deferPushExcess]
+  ItemIo get edgeConstraints;
+
+  /// Total IO for this node
+  ItemIo get itemIo;
+
   @override
   NodeGeometryImpl get geometry;
 

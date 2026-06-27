@@ -4,7 +4,9 @@ class ProdLineNodeStateBuilder
     implements NodeStateBuilder<ProdLineNodeStateImpl>, ProdLineNodeState {
   final ProdLineNode _node;
 
-  ItemIo? _internalConstraints;
+  ItemIoImpl? _internalConstraints;
+  ItemIoBuilder _edgeConstraints;
+  ItemIoImpl _itemIo;
   NodeGeometryImpl _geometry;
   ProductionLine _productionLine;
   ProductionLineIoData _ioData;
@@ -13,6 +15,10 @@ class ProdLineNodeStateBuilder
 
   @override
   ItemIo? get internalConstraints => _internalConstraints;
+  @override
+  ItemIo get edgeConstraints => _edgeConstraints;
+  @override
+  ItemIo get itemIo => _itemIo;
   @override
   NodeGeometryImpl get geometry => _geometry;
   @override
@@ -25,12 +31,13 @@ class ProdLineNodeStateBuilder
   late final Set<Edge> children = UnmodifiableSetView(_children);
 
   ProdLineNodeStateBuilder.initial(this._node, this._productionLine)
-    : _internalConstraints = _node.nodeType.isRoot ? ItemIo.empty : null,
+    : _internalConstraints = _node.nodeType.isRoot ? ItemIoImpl.empty : null,
+      _edgeConstraints = ItemIoBuilder(),
+      _itemIo = ItemIoImpl.empty,
       _geometry = NodeGeometryImpl.uninitialised,
       _ioData = ProductionLineIoData.uninitialised,
       _parents = {},
       _children = {} {
-    _node.basePlanner.throwIfMutationNotPermitted();
     _node.basePlanner.getSnapshotBuilder().addToSnapshot(_node, this);
 
     switch (_node.nodeType) {
@@ -53,12 +60,13 @@ class ProdLineNodeStateBuilder
 
   ProdLineNodeStateBuilder.from(this._node, ProdLineNodeStateImpl previousState)
     : _internalConstraints = previousState.internalConstraints,
+      _edgeConstraints = ItemIoBuilder.from(previousState.edgeConstraints),
+      _itemIo = previousState.itemIo,
       _productionLine = previousState.productionLine,
       _geometry = previousState.geometry,
       _parents = Set.from(previousState.parents),
       _children = Set.from(previousState.children),
       _ioData = previousState.ioData {
-    _node.basePlanner.throwIfMutationNotPermitted();
     _node.basePlanner.getSnapshotBuilder().addToSnapshot(_node, this);
   }
 
@@ -94,7 +102,7 @@ class ProdLineNodeStateBuilder
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
-  void updateRequirements(ItemIo newRequirements) =>
+  void updateRequirements(ItemIoImpl newRequirements) =>
       _internalConstraints = newRequirements;
 
   void updateProductionLine(ProductionLine newLine) {
@@ -127,10 +135,10 @@ class ProdLineNodeStateBuilder
     }
   }
 
-  void calculateIo(ItemIo constraints) =>
+  void calculateIo(ItemIoImpl constraints) =>
       _ioData = productionLine.calculateIoData(constraints);
 
-  ItemIo calculateConstraintsFromEdges() {
+  ItemIoImpl calculateConstraintsFromEdges() {
     ItemAmounts outputConstraints = Map.fromIterable(
       productionLine.outputItems,
       value: (item) => 0,
@@ -160,10 +168,10 @@ class ProdLineNodeStateBuilder
       );
     }
 
-    return ItemIo(inputs: inputConstraints, outputs: outputConstraints);
+    return ItemIoImpl(inputs: inputConstraints, outputs: outputConstraints);
   }
 
-  ItemIo updateEdgesAndReturnUnfulfilledIo() {
+  ItemIoImpl updateEdgesAndReturnUnfulfilledIo() {
     // TODO: optimise
     if (ioData.io.isEmpty) {
       for (var edge
@@ -177,7 +185,7 @@ class ProdLineNodeStateBuilder
         edge.getStateBuilder()._updateAmount(0);
       }
 
-      return ItemIo.empty;
+      return ItemIoImpl.empty;
     } else {
       var excessOutput = ItemAmounts.from(ioData.io.outputs);
       var requiredInput = ItemAmounts.from(ioData.io.inputs);
@@ -239,13 +247,16 @@ class ProdLineNodeStateBuilder
         (item, amount) => amount - (fulfilledInput[item] ?? 0),
       );
 
-      return ItemIo(inputs: requiredInput, outputs: excessOutput);
+      return ItemIoImpl(inputs: requiredInput, outputs: excessOutput);
     }
   }
 
   @override
   ProdLineNodeStateImpl build() => ProdLineNodeStateImpl(
     _node,
+    internalConstraints: _internalConstraints,
+    edgeConstraints: _edgeConstraints.build(),
+    itemIo: _itemIo,
     productionLine: productionLine,
     ioData: ioData,
     geometry: geometry,

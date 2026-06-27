@@ -45,7 +45,6 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
       _geometry = previousState.geometry,
       _requestedAmount = previousState.requestedAmount,
       _requestStatus = RequestStatus.done {
-    _edge.basePlanner.throwIfMutationNotPermitted();
     _edge.basePlanner.getSnapshotBuilder().addToSnapshot(_edge, this);
   }
 

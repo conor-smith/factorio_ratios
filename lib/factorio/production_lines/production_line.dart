@@ -46,7 +46,7 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   /// all other values will be set relative to that value.
   /// Will only be present in production lines where it can be calculated
   /// ahead of time.
-  ItemIo? get ioRatios;
+  ItemIoImpl? get ioRatios;
 
   /// Takes a set of input and output constraints, and produces an object representing IO.
   /// For each constraint, the production line must consume this amount or more.
@@ -54,12 +54,12 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   /// even if doing so means producing an excess of one.
   /// The same rule applies to input constraints.
   ///
-  /// [ItemIo.inputs] and [ItemIo.outputs] must be given in items per minute
-  T calculateIoData([ItemIo constraints]);
+  /// [ItemIoImpl.inputs] and [ItemIoImpl.outputs] must be given in items per minute
+  T calculateIoData([ItemIoImpl constraints]);
 
   /// Intended for internal use. Ensures that all keys in [constraints]
   /// are present in [inputItems] and [outputItems]
-  void verifyConstraints(ItemIo constraints) {
+  void verifyConstraints(ItemIoImpl constraints) {
     if (!inputItems.containsAll(constraints.inputs.keys) ||
         !outputItems.containsAll(constraints.outputs.keys)) {
       throw ProductionLineException(
@@ -68,9 +68,9 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
     }
   }
 
-  /// Uses [ioRatios] to determine minimum [ItemIo] that satisfies all
+  /// Uses [ioRatios] to determine minimum [ItemIoImpl] that satisfies all
   /// values in [constraints]. Will throw exception if [ioRatios] are null.
-  ItemIo calculateItemIo([ItemIo constraints = ItemIo.empty]) {
+  ItemIoImpl calculateItemIo([ItemIoImpl constraints = ItemIoImpl.empty]) {
     var ratios = ioRatios;
 
     if (ratios == null) {
@@ -115,17 +115,17 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
 /// All other fiels, both here and in inherited classes,
 /// should exist for utility reasons - to be used in further equations / operations.
 ///
-/// All [ItemAmounts] and [ItemIo] fieds are given in items per minute.
+/// All [ItemAmounts] and [ItemIoImpl] fieds are given in items per minute.
 class ProductionLineIoData {
   static const uninitialised = ProductionLineIoData.empty();
 
   /// Constraints that were used to generate this IO
-  final ItemIo constraints;
+  final ItemIoImpl constraints;
 
   /// Net input / output in items per minute.
   ///
   /// Defaults to [constraints] when no value is set.
-  final ItemIo io;
+  final ItemIoImpl io;
 
   /// Total production and comsumption in items per minute.
   ///
@@ -135,7 +135,7 @@ class ProductionLineIoData {
   /// no production actually takes place, and items are just passed through.
   ///
   /// Defaults to [io] when no value is set.
-  final ItemIo totalProductionAndConsumption;
+  final ItemIoImpl totalProductionAndConsumption;
 
   /// Electrical power consumed, given in watts
   final double electricPowerConsumption;
@@ -149,9 +149,9 @@ class ProductionLineIoData {
   final List<DisplayData> displayData;
 
   ProductionLineIoData({
-    this.constraints = ItemIo.empty,
-    ItemIo? io = ItemIo.empty,
-    ItemIo? totalProductionAndConsumption,
+    this.constraints = ItemIoImpl.empty,
+    ItemIoImpl? io = ItemIoImpl.empty,
+    ItemIoImpl? totalProductionAndConsumption,
     this.electricPowerConsumption = 0,
     Map<String, double> emissions = const {},
     Iterable<DisplayData> displayData = const [],
@@ -162,9 +162,9 @@ class ProductionLineIoData {
        displayData = List.unmodifiable(displayData);
 
   const ProductionLineIoData.empty()
-    : constraints = ItemIo.empty,
-      io = ItemIo.empty,
-      totalProductionAndConsumption = ItemIo.empty,
+    : constraints = ItemIoImpl.empty,
+      io = ItemIoImpl.empty,
+      totalProductionAndConsumption = ItemIoImpl.empty,
       electricPowerConsumption = 0,
       emissions = const {},
       displayData = const [];
@@ -185,17 +185,18 @@ class ValueAndDisplayData<T> {
 
 class _NullProductionLine implements ProductionLine<ProductionLineIoData> {
   @override
-  ProductionLineIoData calculateIoData([ItemIo constraints = ItemIo.empty]) =>
-      throw UnimplementedError();
+  ProductionLineIoData calculateIoData([
+    ItemIoImpl constraints = ItemIoImpl.empty,
+  ]) => throw UnimplementedError();
   @override
-  ItemIo calculateItemIo([ItemIo constraints = ItemIo.empty]) =>
+  ItemIoImpl calculateItemIo([ItemIoImpl constraints = ItemIoImpl.empty]) =>
       throw UnimplementedError();
   @override
   Icon? get icon => throw UnimplementedError();
   @override
   Set<InGameItem> get inputItems => throw UnimplementedError();
   @override
-  ItemIo? get ioRatios => throw UnimplementedError();
+  ItemIoImpl? get ioRatios => throw UnimplementedError();
   @override
   String get name => throw UnimplementedError();
   @override
@@ -203,7 +204,7 @@ class _NullProductionLine implements ProductionLine<ProductionLineIoData> {
   @override
   ProductionLineType get productionLineType => throw UnimplementedError();
   @override
-  void verifyConstraints(ItemIo constraints) => throw UnimplementedError();
+  void verifyConstraints(ItemIoImpl constraints) => throw UnimplementedError();
 
   const _NullProductionLine();
 }

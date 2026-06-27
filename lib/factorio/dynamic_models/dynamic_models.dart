@@ -13,30 +13,35 @@ part 'in_game_machine.dart';
 
 typedef ItemAmounts = Map<InGameItem, double>;
 
+abstract class ItemIo {
+  ItemAmounts get inputs;
+  ItemAmounts get outputs;
+
+  bool get isEmpty => inputs.isEmpty && outputs.isEmpty;
+  bool get isNotEmpty => !isEmpty;
+
+  bool get isZero =>
+      isEmpty ||
+      inputs.values.followedBy(outputs.values).every((amount) => amount <= 0);
+
+  const ItemIo();
+}
+
 /// An immutable, and validated implementation of [ItemIo]
 /// All values in [inputs] or [outputs] may be greater than or equal to 0
-class ItemIo {
-  static const empty = ItemIo._empty();
+class ItemIoImpl extends ItemIo {
+  static const empty = ItemIoImpl._empty();
 
+  @override
   final ItemAmounts inputs;
+  @override
   final ItemAmounts outputs;
-  final bool isEmpty;
-  bool get isNotEmpty => !isEmpty;
-  final bool isZero;
 
-  const ItemIo._empty()
-    : inputs = const {},
-      outputs = const {},
-      isEmpty = true,
-      isZero = true;
+  const ItemIoImpl._empty() : inputs = const {}, outputs = const {};
 
-  ItemIo({ItemAmounts inputs = const {}, ItemAmounts outputs = const {}})
+  ItemIoImpl({ItemAmounts inputs = const {}, ItemAmounts outputs = const {}})
     : inputs = Map.unmodifiable(inputs),
-      outputs = Map.unmodifiable(outputs),
-      isEmpty = inputs.isEmpty && outputs.isEmpty,
-      isZero = inputs.values
-          .followedBy(outputs.values)
-          .every((amount) => amount == 0) {
+      outputs = Map.unmodifiable(outputs) {
     inputs.forEach((input, amount) {
       if (amount < 0) {
         throw FactorioException('Input $input had invalid value $amount');
@@ -50,7 +55,7 @@ class ItemIo {
     });
   }
 
-  factory ItemIo.sum(Iterable<ItemIo> toSum) {
+  factory ItemIoImpl.sum(Iterable<ItemIoImpl> toSum) {
     ItemAmounts inputSum = {};
     ItemAmounts outputSum = {};
 
@@ -71,25 +76,25 @@ class ItemIo {
       );
     }
 
-    return ItemIo(inputs: inputSum, outputs: outputSum);
+    return ItemIoImpl(inputs: inputSum, outputs: outputSum);
   }
 
-  ItemIo zeroAll() => multiplyValues(0);
+  ItemIoImpl zeroAll() => multiplyValues(0);
 
-  ItemIo multiplyValues(double multiplier) {
+  ItemIoImpl multiplyValues(double multiplier) {
     ItemAmounts newInputs = Map.from(inputs);
     ItemAmounts newOutputs = Map.from(outputs);
 
     newInputs.updateAll((item, amount) => amount * multiplier);
     newOutputs.updateAll((item, amount) => amount * multiplier);
 
-    return ItemIo(inputs: newInputs, outputs: newOutputs);
+    return ItemIoImpl(inputs: newInputs, outputs: newOutputs);
   }
 
   @override
   bool operator ==(Object other) {
     return super == other ||
-        (other is ItemIo &&
+        (other is ItemIoImpl &&
             compareMaps(other.inputs, inputs) &&
             compareMaps(other.outputs, outputs));
   }
@@ -104,23 +109,29 @@ class ItemIo {
   String toString() => 'inputs: $inputs, outputs: $outputs';
 }
 
-class ItemIoBuilder implements Builder<ItemIo> {
+class ItemIoBuilder extends ItemIo implements Builder<ItemIoImpl> {
   final ItemAmounts _inputs;
   final ItemAmounts _outputs;
 
+  @override
   late final ItemAmounts inputs = UnmodifiableMapView(_inputs);
+  @override
   late final ItemAmounts outputs = UnmodifiableMapView(_outputs);
 
-  ItemIoBuilder.from(ItemIo source)
+  ItemIoBuilder() : _inputs = {}, _outputs = {};
+
+  ItemIoBuilder.from(ItemIoImpl source)
     : _inputs = Map.from(source.inputs),
       _outputs = Map.from(source.outputs);
 
-  void updateInputs(InGameItem key, double value) => _inputs[key] = value;
-  void updateOutputs(InGameItem key, double value) => _outputs[key] = value;
+  void addToInputs(InGameItem key, double toAdd) =>
+      _inputs.update(key, (amount) => amount + toAdd, ifAbsent: () => toAdd);
+  void addToOutputs(InGameItem key, double toAdd) =>
+      _outputs.update(key, (amount) => amount + toAdd, ifAbsent: () => toAdd);
 
   void removeFromInputs(InGameItem key) => _inputs.remove(key);
   void removeFromOutputs(InGameItem key) => _outputs.remove(key);
 
   @override
-  ItemIo build() => ItemIo(inputs: _inputs, outputs: _outputs);
+  ItemIoImpl build() => ItemIoImpl(inputs: _inputs, outputs: _outputs);
 }

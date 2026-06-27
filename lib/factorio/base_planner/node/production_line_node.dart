@@ -15,6 +15,10 @@ class ProdLineNode
   @override
   ItemIo? get internalConstraints => state.internalConstraints;
   @override
+  ItemIo get edgeConstraints => state.edgeConstraints;
+  @override
+  ItemIo get itemIo => state.itemIo;
+  @override
   ProductionLine get productionLine => state.productionLine;
   @override
   NodeGeometryImpl get geometry => state.geometry;
