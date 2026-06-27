@@ -4,7 +4,7 @@ class ProdLineNodeStateBuilder
     implements NodeStateBuilder<ProdLineNodeStateImpl>, ProdLineNodeState {
   final ProdLineNode _node;
 
-  ItemIo? _requirements;
+  ItemIo? _internalConstraints;
   NodeGeometryImpl _geometry;
   ProductionLine _productionLine;
   ProductionLineIoData _ioData;
@@ -12,7 +12,7 @@ class ProdLineNodeStateBuilder
   final Set<Edge> _children;
 
   @override
-  ItemIo? get requirements => _requirements;
+  ItemIo? get internalConstraints => _internalConstraints;
   @override
   NodeGeometryImpl get geometry => _geometry;
   @override
@@ -25,7 +25,7 @@ class ProdLineNodeStateBuilder
   late final Set<Edge> children = UnmodifiableSetView(_children);
 
   ProdLineNodeStateBuilder.initial(this._node, this._productionLine)
-    : _requirements = _node.nodeType.isRoot ? ItemIo.empty : null,
+    : _internalConstraints = _node.nodeType.isRoot ? ItemIo.empty : null,
       _geometry = NodeGeometryImpl.uninitialised,
       _ioData = ProductionLineIoData.uninitialised,
       _parents = {},
@@ -52,7 +52,7 @@ class ProdLineNodeStateBuilder
   }
 
   ProdLineNodeStateBuilder.from(this._node, ProdLineNodeStateImpl previousState)
-    : _requirements = previousState.requirements,
+    : _internalConstraints = previousState.internalConstraints,
       _productionLine = previousState.productionLine,
       _geometry = previousState.geometry,
       _parents = Set.from(previousState.parents),
@@ -95,7 +95,7 @@ class ProdLineNodeStateBuilder
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
   void updateRequirements(ItemIo newRequirements) =>
-      _requirements = newRequirements;
+      _internalConstraints = newRequirements;
 
   void updateProductionLine(ProductionLine newLine) {
     var removedInputs = _productionLine.inputItems.difference(

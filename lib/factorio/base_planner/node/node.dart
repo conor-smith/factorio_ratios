@@ -202,16 +202,16 @@ enum NodeType implements Comparable<NodeType> {
   }
 
   void _verifyNoRequirements(ProdLineNodeState nodeState) {
-    if (nodeState.requirements != null) {
+    if (nodeState.internalConstraints != null) {
       throw NodeException(
-        'Node of type $this is not permitted to have requirements',
+        'Node of type $this is not permitted to have internal constraints',
       );
     }
   }
 
   void _verifyRequirements(ProdLineNodeState nodeState) {
-    if (nodeState.requirements == null) {
-      throw NodeException('Node of type $this must have requirements');
+    if (nodeState.internalConstraints == null) {
+      throw NodeException('Node of type $this must have internal constraints');
     }
   }
 }

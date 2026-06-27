@@ -13,7 +13,7 @@ class ProdLineNode
 
   // For convenience
   @override
-  ItemIo? get internalConstraints => state.requirements;
+  ItemIo? get internalConstraints => state.internalConstraints;
   @override
   ProductionLine get productionLine => state.productionLine;
   @override

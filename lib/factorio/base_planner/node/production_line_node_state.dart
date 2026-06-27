@@ -1,7 +1,7 @@
 part of 'node.dart';
 
 abstract class ProdLineNodeState {
-  ItemIo? get requirements;
+  ItemIo? get internalConstraints;
 
   ProductionLine get productionLine;
 
@@ -15,7 +15,7 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   static const uninitialised = ProdLineNodeStateImpl._uninitialised();
 
   @override
-  final ItemIo? requirements;
+  final ItemIo? internalConstraints;
   @override
   final NodeGeometryImpl geometry;
   @override
@@ -31,7 +31,7 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
 
   ProdLineNodeStateImpl(
     ProdLineNode node, {
-    this.requirements,
+    this.internalConstraints,
     required this.productionLine,
     required this.ioData,
     required this.geometry,
@@ -44,7 +44,7 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   }
 
   const ProdLineNodeStateImpl._uninitialised()
-    : requirements = null,
+    : internalConstraints = null,
       geometry = NodeGeometryImpl.uninitialised,
       parents = const {},
       children = const {},
