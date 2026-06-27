@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
+import 'package:factorio_ratios/utility/builder.dart';
 
 abstract interface class Geometry {
   Rect get rect;

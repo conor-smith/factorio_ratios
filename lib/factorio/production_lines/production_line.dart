@@ -1,6 +1,7 @@
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/utility/builder.dart';
 import 'package:factorio_ratios/utility/collections.dart';
 
 part 'combiner.dart';
@@ -152,7 +153,7 @@ abstract class ItemIo {
 }
 
 /// An immutable, and validated implementation of [ItemIo]
-/// No value in [inputs] or [outputs] may be less than 0
+/// All values in [inputs] or [outputs] may be greater than or equal to 0
 class ItemIoImpl extends ItemIo {
   static const empty = ItemIoImpl._empty();
 
@@ -197,4 +198,20 @@ class ItemIoImpl extends ItemIo {
 
   @override
   String toString() => 'inputs: $inputs, outputs: $outputs';
+}
+
+/// A mutable implementation of [ItemIo]. No validation is performed on values
+/// until [build] is called
+class ItemIoBuilder extends ItemIo implements Builder<ItemIoImpl> {
+  @override
+  final ItemAmounts inputs;
+  @override
+  final ItemAmounts outputs;
+
+  ItemIoBuilder({ItemAmounts inputs = const {}, ItemAmounts outputs = const {}})
+    : inputs = Map.from(inputs),
+      outputs = Map.from(outputs);
+
+  @override
+  ItemIoImpl build() => ItemIoImpl(inputs: inputs, outputs: outputs);
 }
