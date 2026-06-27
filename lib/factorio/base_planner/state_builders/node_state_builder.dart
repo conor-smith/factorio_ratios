@@ -30,7 +30,10 @@ class ProdLineNodeStateBuilder
       _geometry = previousState.geometry,
       _parents = Set.from(previousState.parents),
       _children = Set.from(previousState.children),
-      _ioData = previousState.ioData;
+      _ioData = previousState.ioData {
+    _node.basePlanner.throwIfMutationNotPermitted();
+    _node.basePlanner.getSnapshotBuilder().addToSnapshot(_node, this);
+  }
 
   @override
   void addSelf() {

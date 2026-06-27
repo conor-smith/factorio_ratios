@@ -17,7 +17,9 @@ abstract interface class NodeElement<St, E extends NodeEvent>
   ProductionLine get productionLine;
   ProductionLineIoData get ioData;
 
-  ItemIo? get requirements;
+  /// Must be set on [NodeType.consumer] and [NodeType.producer] nodes.
+  /// Otherwise null.
+  ItemIo? get internalConstraints;
 
   @override
   NodeGeometryImpl get geometry;
@@ -45,7 +47,8 @@ enum NodeType implements Comparable<NodeType> {
   /// In the event this node does consume items,
   /// children may be of any type except [EdgeType.pushExcess].
   /// The node will only consume as much as is required to fulfil parent requests,
-  /// so using [EdgeType.deferPushExcess] may not be able to push all it's items.
+  /// so an edge of type [EdgeType.deferPushExcess] may not
+  /// be able to push all it's items.
   resource(false, false, 2),
 
   /// Node can connect to and accept inputs from nodes in [NodeElement.parentGraph].
@@ -57,9 +60,12 @@ enum NodeType implements Comparable<NodeType> {
 
   /// Represents a node that only produces items. Children are not permitted.
   ///
-  /// Only these nodes and [consumer] nodes are permitted to set [NodeElement.requirements].
-  /// Parents may only be of type [EdgeType.pushExcess] and [EdgeType.deferPushExcess].
-  producer(false, true, 100),
+  /// This node and [consumer] nodes MUST set [NodeElement.internalConstraints].
+  /// If parents of type [EdgeType.requestItems] exist, the final constraint for
+  /// each item will be given by the larger of two values
+  /// - The value at [NodeElement.internalConstraints]
+  /// - The sum value of all parents of type [EdgeType.requestItems]
+  producer(false, true, 5),
 
   /// Represents a node capable of disposing of excess items (eg. space, lava lake).
   ///
@@ -75,8 +81,11 @@ enum NodeType implements Comparable<NodeType> {
 
   /// Represents a root node in the graph that consumes items. Parents are not permitted.
   ///
-  /// Only these nodes and [producer] nodes are permitted to set [NodeElement.requirements].
-  /// Children may only be of type [EdgeType.requestItems] and [EdgeType.deferRequestItems].
+  /// This node and [producer] nodes MUST set [NodeElement.internalConstraints].
+  /// If children of type [EdgeType.pushExcess] exist, the final constraint for
+  /// each item will be given by the larger of two values
+  /// - The value at [NodeElement.internalConstraints]
+  /// - The sum value of all children of type [EdgeType.requestItems]
   consumer(false, true, 100);
 
   final bool isIo;

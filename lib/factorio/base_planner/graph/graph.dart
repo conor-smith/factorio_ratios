@@ -62,7 +62,7 @@ class Graph
   @override
   NodeType get nodeType => NodeType.productionLine;
   @override
-  ItemIo? get requirements => null;
+  ItemIo? get internalConstraints => null;
   @override
   ProductionLine get productionLine => this;
 

@@ -33,7 +33,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
     }
   }
 
-  void addToSnapsnot<
+  void addToSnapshot<
     E extends BasePlannerElement<St, dynamic>,
     St,
     B extends Builder<St>

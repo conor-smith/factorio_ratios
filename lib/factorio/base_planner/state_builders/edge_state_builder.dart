@@ -22,7 +22,8 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
       _percentage = previousState.percentage,
       _priority = previousState.priority,
       _geometry = previousState.geometry {
-    _edge.basePlanner.getSnapshotBuilder().addToSnapsnot(_edge, this);
+    _edge.basePlanner.throwIfMutationNotPermitted();
+    _edge.basePlanner.getSnapshotBuilder().addToSnapshot(_edge, this);
   }
 
   @override

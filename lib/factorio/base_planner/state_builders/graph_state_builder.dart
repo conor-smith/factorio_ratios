@@ -90,7 +90,8 @@ class GraphStateBuilder
       _outputNodes = Map.from(previousState.outputNodes),
       _edges = Set.from(previousState.edges),
       _geometry = previousState.geometry {
-    _graph.basePlanner.getSnapshotBuilder().addToSnapsnot(_graph, this);
+    _graph.basePlanner.throwIfMutationNotPermitted();
+    _graph.basePlanner.getSnapshotBuilder().addToSnapshot(_graph, this);
   }
 
   @override

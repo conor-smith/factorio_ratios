@@ -171,6 +171,9 @@ enum EdgeType {
   const EdgeType(this.usesPriority, this.constrainsParents);
 }
 
+// TODO - Document
+enum RequestStatus { pending, known, done }
+
 class EdgeException extends BasePlannerException {
   const EdgeException(super.message, [super.cause]);
 }
