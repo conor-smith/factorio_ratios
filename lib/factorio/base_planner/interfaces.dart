@@ -60,7 +60,3 @@ abstract interface class BasePlannerElement<St, E>
     covariant St newState,
   );
 }
-
-abstract interface class Builder<T> {
-  T build();
-}

@@ -12,7 +12,7 @@ class MagicLine with ProductionLine<ProductionLineIoData> {
   @override
   final Icon? icon;
   @override
-  final ItemIo ioRatios;
+  final ItemIoImpl ioRatios;
 
   @override
   ProductionLineType get productionLineType => ProductionLineType.io;
@@ -22,17 +22,19 @@ class MagicLine with ProductionLine<ProductionLineIoData> {
       outputItems = Set.unmodifiable({item}),
       name = '${item.name} producer',
       icon = item.icon,
-      ioRatios = ItemIo(outputs: {item: 1});
+      ioRatios = ItemIoImpl(outputs: {item: 1});
 
   MagicLine.singleItemConsumer(InGameItem item)
     : inputItems = Set.unmodifiable({item}),
       outputItems = const {},
       name = '${item.name} consumer',
       icon = item.icon,
-      ioRatios = ItemIo(inputs: {item: 1});
+      ioRatios = ItemIoImpl(inputs: {item: 1});
 
   @override
-  ProductionLineIoData calculateIoData([ItemIo constraints = ItemIo.empty]) {
+  ProductionLineIoData calculateIoData([
+    ItemIoImpl constraints = ItemIoImpl.empty,
+  ]) {
     if (constraints.isEmpty) {
       return const ProductionLineIoData.empty();
     }

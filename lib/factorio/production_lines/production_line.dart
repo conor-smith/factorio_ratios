@@ -1,7 +1,7 @@
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
-import 'package:factorio_ratios/utility/utility.dart';
+import 'package:factorio_ratios/utility/collections.dart';
 
 part 'combiner.dart';
 part 'io_line.dart';
@@ -44,7 +44,7 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   /// all other values will be set relative to that value.
   /// Will only be present in production lines where it can be calculated
   /// ahead of time.
-  ItemIo? get ioRatios;
+  ItemIoImpl? get ioRatios;
 
   /// Takes a set of input and output constraints, and produces an object representing IO.
   /// For each constraint, the production line must consume this amount or more.
@@ -52,11 +52,11 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   /// even if doing so means producing an excess of one.
   /// The same rule applies to input constraints.
   ///
-  /// [ItemIo.inputs] and [ItemIo.outputs] must be given in items per minute
-  T calculateIoData([ItemIo constraints]);
+  /// [ItemIoImpl.inputs] and [ItemIoImpl.outputs] must be given in items per minute
+  T calculateIoData([ItemIoImpl constraints]);
 
   // TODO: Document
-  void verifyConstraints(ItemIo constraints) {
+  void verifyConstraints(ItemIoImpl constraints) {
     if (!inputItems.containsAll(constraints.inputs.keys) ||
         !outputItems.containsAll(constraints.outputs.keys)) {
       throw ProductionLineException(
@@ -75,15 +75,15 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
 /// All other fiels, both here and in inherited classes,
 /// should exist for utility reasons - to be used in further equations / operations.
 ///
-/// All [ItemAmounts] and [ItemIo] fieds are given in items per minute.
+/// All [ItemAmounts] and [ItemIoImpl] fieds are given in items per minute.
 class ProductionLineIoData {
   /// Constraints that were used to generate this IO
-  final ItemIo constraints;
+  final ItemIoImpl constraints;
 
   /// Net input / output in items per minute.
   ///
   /// Defaults to [constraints] when no value is set.
-  final ItemIo io;
+  final ItemIoImpl io;
 
   /// Total production and comsumption in items per minute.
   ///
@@ -93,7 +93,7 @@ class ProductionLineIoData {
   /// no production actually takes place, and items are just passed through.
   ///
   /// Defaults to [io] when no value is set.
-  final ItemIo totalProductionAndConsumption;
+  final ItemIoImpl totalProductionAndConsumption;
 
   /// Electrical power consumed, given in watts
   final double electricPowerConsumption;
@@ -107,9 +107,9 @@ class ProductionLineIoData {
   final List<DisplayData> displayData;
 
   ProductionLineIoData({
-    this.constraints = ItemIo.empty,
-    ItemIo? io = ItemIo.empty,
-    ItemIo? totalProductionAndConsumption,
+    this.constraints = ItemIoImpl.empty,
+    ItemIoImpl? io = ItemIoImpl.empty,
+    ItemIoImpl? totalProductionAndConsumption,
     this.electricPowerConsumption = 0,
     Map<String, double> emissions = const {},
     Iterable<DisplayData> displayData = const [],
@@ -120,13 +120,15 @@ class ProductionLineIoData {
        displayData = List.unmodifiable(displayData);
 
   const ProductionLineIoData.empty()
-    : constraints = ItemIo.empty,
-      io = ItemIo.empty,
-      totalProductionAndConsumption = ItemIo.empty,
+    : constraints = ItemIoImpl.empty,
+      io = ItemIoImpl.empty,
+      totalProductionAndConsumption = ItemIoImpl.empty,
       electricPowerConsumption = 0,
       emissions = const {},
       displayData = const [];
 }
+
+enum ProductionLineType { io, magic, singleRecipe, combiner, graph }
 
 class ProductionLineException extends FactorioException {
   const ProductionLineException(super.message, [super.cause]);
@@ -139,15 +141,29 @@ class ValueAndDisplayData<T> {
   const ValueAndDisplayData(this.value, this.displayData);
 }
 
-class ItemIo {
-  static const empty = ItemIo._empty();
+abstract class ItemIo {
+  ItemAmounts get inputs;
+  ItemAmounts get outputs;
 
+  bool get isEmpty => inputs.isEmpty && outputs.isEmpty;
+  bool get isNotEmpty => inputs.isNotEmpty || outputs.isNotEmpty;
+
+  const ItemIo();
+}
+
+/// An immutable, and validated implementation of [ItemIo]
+/// No value in [inputs] or [outputs] may be less than 0
+class ItemIoImpl extends ItemIo {
+  static const empty = ItemIoImpl._empty();
+
+  @override
   final ItemAmounts inputs;
+  @override
   final ItemAmounts outputs;
 
-  const ItemIo._empty() : inputs = const {}, outputs = const {};
+  const ItemIoImpl._empty() : inputs = const {}, outputs = const {};
 
-  ItemIo({ItemAmounts inputs = const {}, ItemAmounts outputs = const {}})
+  ItemIoImpl({ItemAmounts inputs = const {}, ItemAmounts outputs = const {}})
     : inputs = Map.unmodifiable(inputs),
       outputs = Map.unmodifiable(outputs) {
     inputs.forEach((input, amount) {
@@ -165,13 +181,10 @@ class ItemIo {
     });
   }
 
-  bool get isEmpty => inputs.isEmpty && outputs.isEmpty;
-  bool get isNotEmpty => inputs.isNotEmpty || outputs.isNotEmpty;
-
   @override
   bool operator ==(Object other) {
     return super == other ||
-        (other is ItemIo &&
+        (other is ItemIoImpl &&
             compareMaps(other.inputs, inputs) &&
             compareMaps(other.outputs, outputs));
   }
@@ -185,5 +198,3 @@ class ItemIo {
   @override
   String toString() => 'inputs: $inputs, outputs: $outputs';
 }
-
-enum ProductionLineType { io, magic, singleRecipe, combiner, graph }

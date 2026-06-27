@@ -11,7 +11,7 @@ import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/json/json.dart';
-import 'package:factorio_ratios/utility/utility.dart';
+import 'package:factorio_ratios/utility/collections.dart';
 
 part 'graph_state.dart';
 
@@ -61,7 +61,7 @@ class Graph
   @override
   NodeType get nodeType => NodeType.productionLine;
   @override
-  ItemIo? get requirements => null;
+  ItemIoImpl? get requirements => null;
   @override
   ProductionLine get productionLine => this;
 
@@ -70,7 +70,7 @@ class Graph
 
   // TODO
   @override
-  ItemIo? get ioRatios => null;
+  ItemIoImpl? get ioRatios => null;
 
   Graph.addToBasePlanner(
     this.basePlanner, {
@@ -320,7 +320,8 @@ class Graph
   }
 
   @override
-  GraphIo calculateIoData([ItemIo constraints = ItemIo.empty]) => state.ioData;
+  GraphIo calculateIoData([ItemIoImpl constraints = ItemIoImpl.empty]) =>
+      state.ioData;
 
   @override
   Map<String, dynamic> toJson() {
@@ -581,9 +582,12 @@ class GraphIoBuilder implements Builder<GraphIo> {
 
   @override
   GraphIo build() => GraphIo(
-    constraints: ItemIo(inputs: inputConstraints, outputs: outputConstraints),
-    io: ItemIo(inputs: input, outputs: output),
-    totalProductionAndConsumption: ItemIo(
+    constraints: ItemIoImpl(
+      inputs: inputConstraints,
+      outputs: outputConstraints,
+    ),
+    io: ItemIoImpl(inputs: input, outputs: output),
+    totalProductionAndConsumption: ItemIoImpl(
       inputs: consumption,
       outputs: production,
     ),

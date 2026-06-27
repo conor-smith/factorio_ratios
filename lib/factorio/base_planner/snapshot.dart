@@ -8,7 +8,7 @@ class Snapshot {
     : states = Map.unmodifiable(states);
 }
 
-class SnapshotBuilder extends Builder<Snapshot> {
+class SnapshotBuilder implements Builder<Snapshot> {
   final BasePlanner _basePlanner;
 
   final Snapshot _previousSnapshot;

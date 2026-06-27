@@ -17,7 +17,7 @@ abstract interface class NodeElement<St, E extends NodeEvent>
   ProductionLine get productionLine;
   ProductionLineIoData get ioData;
 
-  ItemIo? get requirements;
+  ItemIoImpl? get requirements;
 
   @override
   NodeGeometryImpl get geometry;

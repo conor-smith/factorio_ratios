@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:factorio_ratios/factorio/factorio.dart';
-import 'package:factorio_ratios/utility/utility.dart';
+import 'package:factorio_ratios/utility/collections.dart';
 
 part 'crafting_machines.dart';
 part 'group.dart';
