@@ -7,7 +7,7 @@ class ProdLineNodeStateBuilder
   ItemIo? _requirements;
   NodeGeometryImpl _geometry;
   ProductionLine _productionLine;
-  ProductionLineIo _io;
+  ProductionLineIoData _ioData;
   final Set<Edge> _parents;
   final Set<Edge> _children;
 
@@ -18,7 +18,7 @@ class ProdLineNodeStateBuilder
   @override
   ProductionLine get productionLine => _productionLine;
   @override
-  ProductionLineIo get io => _io;
+  ProductionLineIoData get ioData => _ioData;
   @override
   late final Set<Edge> parents = UnmodifiableSetView(_parents);
   @override
@@ -30,7 +30,7 @@ class ProdLineNodeStateBuilder
       _geometry = previousState.geometry,
       _parents = Set.from(previousState.parents),
       _children = Set.from(previousState.children),
-      _io = previousState.io;
+      _ioData = previousState.ioData;
 
   @override
   void addSelf() {
@@ -120,7 +120,7 @@ class ProdLineNodeStateBuilder
   }
 
   void calculateIo(ItemIo constraints) =>
-      _io = productionLine.calculate(constraints);
+      _ioData = productionLine.calculateIoData(constraints);
 
   ItemIo calculateConstraintsFromEdges() {
     ItemAmounts outputConstraints = Map.fromIterable(
@@ -157,7 +157,7 @@ class ProdLineNodeStateBuilder
 
   ItemIo updateEdgesAndReturnUnfulfilledIo() {
     // TODO: optimise
-    if (io.io.isEmpty) {
+    if (ioData.io.isEmpty) {
       for (var edge
           in _parents
               .where((parent) => parent.edgeType == EdgeType.pushExcess)
@@ -171,8 +171,8 @@ class ProdLineNodeStateBuilder
 
       return ItemIo.empty;
     } else {
-      var excessOutput = ItemAmounts.from(io.io.outputs);
-      var requiredInput = ItemAmounts.from(io.io.inputs);
+      var excessOutput = ItemAmounts.from(ioData.io.outputs);
+      var requiredInput = ItemAmounts.from(ioData.io.inputs);
 
       var edgeConstraints = calculateConstraintsFromEdges();
 
@@ -239,7 +239,7 @@ class ProdLineNodeStateBuilder
   ProdLineNodeStateImpl build() => ProdLineNodeStateImpl(
     _node,
     productionLine: productionLine,
-    io: io,
+    ioData: ioData,
     geometry: geometry,
     parents: parents,
     children: children,

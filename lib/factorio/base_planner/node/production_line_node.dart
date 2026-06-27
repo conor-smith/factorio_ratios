@@ -23,7 +23,7 @@ class ProdLineNode
   @override
   Set<Edge> get children => state.children;
   @override
-  ProductionLineIo get io => state.io;
+  ProductionLineIoData get ioData => state.ioData;
   @override
   Set<InGameItem> get inputItems => state.productionLine.inputItems;
   @override
@@ -38,7 +38,7 @@ class ProdLineNode
     required this.nodeType,
     required ProductionLine productionLine,
     NodeGeometryImpl geometry = NodeGeometryImpl.uninitialised,
-    ProductionLineIo? io,
+    ProductionLineIoData? io,
     ItemIo? requirements,
   }) : _state = ProdLineNodeStateImpl._initial(
          requirements: nodeType.isRoot && requirements == null
@@ -46,7 +46,7 @@ class ProdLineNode
              : requirements,
          productionLine: productionLine,
          geometry: geometry,
-         io: io ?? productionLine.calculate(ItemIo.empty),
+         ioData: io ?? productionLine.calculateIoData(),
        ) {
     if (nodeType.isIo) {
       throw NodeException(

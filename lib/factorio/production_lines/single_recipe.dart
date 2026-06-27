@@ -1,7 +1,7 @@
 part of 'production_line.dart';
 
 class SingleRecipeLine
-    with ProductionLine<SingleRecipeLineIo>
+    with ProductionLine<SingleRecipeLineIoData>
     implements ProdLineCraftingMachine {
   final InGameRecipe recipe;
   final ProdLineCraftingMachineImpl craftingMachine;
@@ -273,9 +273,9 @@ class SingleRecipeLine
        consumptionData = List.unmodifiable(consumptionData);
 
   @override
-  SingleRecipeLineIo calculate([ItemIo constraints = ItemIo.empty]) {
+  SingleRecipeLineIoData calculateIoData([ItemIo constraints = ItemIo.empty]) {
     if (constraints.isEmpty) {
-      return const SingleRecipeLineIo.empty();
+      return const SingleRecipeLineIoData.empty();
     }
 
     verifyConstraints(constraints);
@@ -304,7 +304,7 @@ class SingleRecipeLine
         ? singleMachineConsumption * machineCount
         : 0.0;
 
-    return SingleRecipeLineIo(
+    return SingleRecipeLineIoData(
       constraints: constraints,
       machineCount: machineCount,
       totalCyclesPerMinute: machineCyclesPerMinute,
@@ -322,11 +322,11 @@ class SingleRecipeLine
   }
 }
 
-class SingleRecipeLineIo extends ProductionLineIo {
+class SingleRecipeLineIoData extends ProductionLineIoData {
   final double machineCount;
   final double totalCyclesPerMinute;
 
-  SingleRecipeLineIo({
+  SingleRecipeLineIoData({
     required super.constraints,
     required super.io,
     required super.totalProductionAndConsumption,
@@ -337,7 +337,7 @@ class SingleRecipeLineIo extends ProductionLineIo {
     required this.totalCyclesPerMinute,
   });
 
-  const SingleRecipeLineIo.empty()
+  const SingleRecipeLineIoData.empty()
     : machineCount = 0,
       totalCyclesPerMinute = 0,
       super.empty();

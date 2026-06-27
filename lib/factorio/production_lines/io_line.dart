@@ -1,6 +1,6 @@
 part of 'production_line.dart';
 
-class IoLine with ProductionLine<IoLineIo> {
+class IoLine with ProductionLine<IoLineIoData> {
   // TODO - Add rocket launch
 
   final InGameItem ioItem;
@@ -28,9 +28,9 @@ class IoLine with ProductionLine<IoLineIo> {
       ioRatios = ItemIo(inputs: {ioItem: 1}, outputs: {ioItem: 1});
 
   @override
-  IoLineIo calculate([ItemIo constraints = ItemIo.empty]) {
+  IoLineIoData calculateIoData([ItemIo constraints = ItemIo.empty]) {
     if (constraints.isEmpty) {
-      return const IoLineIo.empty();
+      return const IoLineIoData.empty();
     }
 
     verifyConstraints(constraints);
@@ -41,7 +41,7 @@ class IoLine with ProductionLine<IoLineIo> {
         ? requiredInput
         : requiredOutput;
 
-    return IoLineIo(
+    return IoLineIoData(
       constraints: constraints,
       ioItem: ioItem,
       amount: requiredIo,
@@ -49,8 +49,8 @@ class IoLine with ProductionLine<IoLineIo> {
   }
 }
 
-class IoLineIo extends ProductionLineIo {
-  IoLineIo({
+class IoLineIoData extends ProductionLineIoData {
+  IoLineIoData({
     required super.constraints,
     required InGameItem ioItem,
     required double amount,
@@ -59,5 +59,5 @@ class IoLineIo extends ProductionLineIo {
          totalProductionAndConsumption: ItemIo.empty,
        );
 
-  const IoLineIo.empty() : super.empty();
+  const IoLineIoData.empty() : super.empty();
 }

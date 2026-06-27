@@ -14,7 +14,7 @@ part 'single_machine.dart';
 /// A production line is anything capable of inputting or outputting items.
 /// Eg. A collection of mining drills counts as a "production line".
 ///
-/// A call to [calculate] must not have any effect on [outputItems], [inputItems], [ioRatios].
+/// A call to [calculateIoData] must not have any effect on [outputItems], [inputItems], [ioRatios].
 /// This means that all of these values must be determined independently.
 ///
 /// In some scenarios, it is possible to calculate the input / output ratios.
@@ -22,9 +22,9 @@ part 'single_machine.dart';
 /// In such cases, [ioRatios] should be calculated.
 /// The smallest value in inputs or outputs will be set to 1.
 /// All other values across both maps will be calculated relative to this.
-/// This field must be calculated independently of [calculate].
+/// This field must be calculated independently of [calculateIoData].
 /// If this isn't possible, these fields will be null.
-abstract mixin class ProductionLine<T extends ProductionLineIo> {
+abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   /// Used in [toString]
   String get name;
 
@@ -53,7 +53,7 @@ abstract mixin class ProductionLine<T extends ProductionLineIo> {
   /// The same rule applies to input constraints.
   ///
   /// [ItemIo.inputs] and [ItemIo.outputs] must be given in items per minute
-  T calculate([ItemIo constraints]);
+  T calculateIoData([ItemIo constraints]);
 
   // TODO: Document
   void verifyConstraints(ItemIo constraints) {
@@ -75,8 +75,8 @@ abstract mixin class ProductionLine<T extends ProductionLineIo> {
 /// All other fiels, both here and in inherited classes,
 /// should exist for utility reasons - to be used in further equations / operations.
 ///
-/// All [ItemAmounts] fieds are given in items per minute.
-class ProductionLineIo {
+/// All [ItemAmounts] and [ItemIo] fieds are given in items per minute.
+class ProductionLineIoData {
   /// Constraints that were used to generate this IO
   final ItemIo constraints;
 
@@ -106,7 +106,7 @@ class ProductionLineIo {
   /// If any useful data exists, it should be made it's own field.
   final List<DisplayData> displayData;
 
-  ProductionLineIo({
+  ProductionLineIoData({
     this.constraints = ItemIo.empty,
     ItemIo? io = ItemIo.empty,
     ItemIo? totalProductionAndConsumption,
@@ -119,7 +119,7 @@ class ProductionLineIo {
        emissions = Map.unmodifiable(emissions),
        displayData = List.unmodifiable(displayData);
 
-  const ProductionLineIo.empty()
+  const ProductionLineIoData.empty()
     : constraints = ItemIo.empty,
       io = ItemIo.empty,
       totalProductionAndConsumption = ItemIo.empty,

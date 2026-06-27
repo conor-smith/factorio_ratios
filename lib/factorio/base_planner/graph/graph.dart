@@ -44,7 +44,7 @@ class Graph
   @override
   Set<Edge> get children => state.children;
   @override
-  GraphIo get io => state.io;
+  GraphIo get ioData => state.ioData;
   Set<Graph> get graphNodes => state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
   Map<InGameItem, ProdLineNode> get outputNodes => state.outputNodes;
@@ -320,7 +320,7 @@ class Graph
   }
 
   @override
-  GraphIo calculate([ItemIo constraints = ItemIo.empty]) => state.io;
+  GraphIo calculateIoData([ItemIo constraints = ItemIo.empty]) => state.ioData;
 
   @override
   Map<String, dynamic> toJson() {
@@ -479,7 +479,7 @@ class Graph
   }
 }
 
-class GraphIo extends ProductionLineIo {
+class GraphIo extends ProductionLineIoData {
   factory GraphIo.fromState(GraphState state) {
     var builder = GraphIoBuilder();
 
@@ -561,7 +561,7 @@ class GraphIoBuilder implements Builder<GraphIo> {
   final Map<String, double> emissions = {};
 
   void add(NodeElement node) {
-    var io = node.io;
+    var io = node.ioData;
 
     if (node.nodeType == NodeType.input) {
       sumMaps(inputConstraints, io.constraints.inputs);

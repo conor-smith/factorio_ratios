@@ -1,9 +1,14 @@
 part of 'node.dart';
 
-abstract class ProdLineNodeState implements NodeState {
+abstract class ProdLineNodeState {
   ItemIo? get requirements;
 
   ProductionLine get productionLine;
+
+  Set<Edge> get parents;
+  Set<Edge> get children;
+  ProductionLineIoData get ioData;
+  NodeGeometryImpl get geometry;
 }
 
 class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
@@ -20,13 +25,13 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   final ProductionLine productionLine;
 
   @override
-  final ProductionLineIo io;
+  final ProductionLineIoData ioData;
 
   ProdLineNodeStateImpl._initial({
     required this.requirements,
     required this.productionLine,
     required this.geometry,
-    required this.io,
+    required this.ioData,
   }) : parents = const {},
        children = const {};
 
@@ -34,7 +39,7 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
     ProdLineNode node, {
     this.requirements,
     required this.productionLine,
-    required this.io,
+    required this.ioData,
     required this.geometry,
     required this.parents,
     required this.children,

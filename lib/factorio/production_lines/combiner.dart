@@ -1,6 +1,6 @@
 part of 'production_line.dart';
 
-class CombinerLine with ProductionLine<ProductionLineIo> {
+class CombinerLine with ProductionLine<ProductionLineIoData> {
   // TODO - combine liquids to get correct temperature range
   final InGameItem item;
 
@@ -25,9 +25,9 @@ class CombinerLine with ProductionLine<ProductionLineIo> {
       ioRatios = ItemIo(inputs: {item: 1.0}, outputs: {item: 1.0});
 
   @override
-  ProductionLineIo calculate([ItemIo constraints = ItemIo.empty]) {
+  ProductionLineIoData calculateIoData([ItemIo constraints = ItemIo.empty]) {
     if (constraints.isEmpty) {
-      return const ProductionLineIo.empty();
+      return const ProductionLineIoData.empty();
     }
 
     verifyConstraints(constraints);
@@ -38,7 +38,7 @@ class CombinerLine with ProductionLine<ProductionLineIo> {
           : constraints.outputs[item]!,
     };
 
-    return ProductionLineIo(
+    return ProductionLineIoData(
       constraints: constraints,
       io: ItemIo(inputs: amountMap, outputs: amountMap),
       totalProductionAndConsumption: ItemIo.empty,

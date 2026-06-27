@@ -43,7 +43,7 @@ class GraphStateBuilder
   @override
   NodeGeometryImpl get geometry => _geometry;
   @override
-  GraphIo get io => throw const GraphException(
+  GraphIo get ioData => throw const GraphException(
     'Graph IO cannot be calculated while snapshot is building',
   );
 

@@ -1,6 +1,6 @@
 part of 'graph.dart';
 
-abstract class GraphState implements NodeState {
+abstract class GraphState {
   String get name;
   Icon? get icon;
   Set<ProdLineNode> get prodLineNodes;
@@ -11,8 +11,11 @@ abstract class GraphState implements NodeState {
   Set<Edge> get edges;
   Set<InGameItem> get inputItems;
   Set<InGameItem> get outputItems;
-  @override
-  GraphIo get io;
+
+  Set<Edge> get parents;
+  Set<Edge> get children;
+  GraphIo get ioData;
+  NodeGeometryImpl get geometry;
 
   static Iterable<NodeElement> calculateAllNodes(
     Iterable<ProdLineNode> prodLineNodes,
@@ -56,7 +59,7 @@ class GraphStateImpl implements GraphState, ToJson {
   final Set<NodeElement> allNodes;
 
   @override
-  late final GraphIo io = GraphIo.fromState(this);
+  late final GraphIo ioData = GraphIo.fromState(this);
 
   GraphStateImpl._initial({
     required this.name,

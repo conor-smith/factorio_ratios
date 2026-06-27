@@ -10,12 +10,12 @@ import 'package:factorio_ratios/json/json.dart';
 part 'production_line_node.dart';
 part 'production_line_node_state.dart';
 
-abstract interface class NodeElement<St extends NodeState, E extends NodeEvent>
+abstract interface class NodeElement<St, E extends NodeEvent>
     implements BasePlannerElement<St, E> {
   NodeType get nodeType;
 
   ProductionLine get productionLine;
-  ProductionLineIo get io;
+  ProductionLineIoData get ioData;
 
   ItemIo? get requirements;
 
@@ -33,13 +33,6 @@ abstract interface class NodeElement<St extends NodeState, E extends NodeEvent>
 
   ProdLineNode getOutputItemNode(InGameItem item);
   ProdLineNode getInputItemNode(InGameItem item);
-}
-
-abstract interface class NodeState {
-  Set<Edge> get parents;
-  Set<Edge> get children;
-  ProductionLineIo get io;
-  NodeGeometryImpl get geometry;
 }
 
 enum NodeType implements Comparable<NodeType> {
