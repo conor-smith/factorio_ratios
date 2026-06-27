@@ -1,6 +1,9 @@
+import 'dart:collection';
+
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/json/json.dart';
+import 'package:factorio_ratios/utility/builder.dart';
 import 'package:factorio_ratios/utility/collections.dart';
 
 part 'display_data.dart';
@@ -99,4 +102,25 @@ class ItemIo {
 
   @override
   String toString() => 'inputs: $inputs, outputs: $outputs';
+}
+
+class ItemIoBuilder implements Builder<ItemIo> {
+  final ItemAmounts _inputs;
+  final ItemAmounts _outputs;
+
+  late final ItemAmounts inputs = UnmodifiableMapView(_inputs);
+  late final ItemAmounts outputs = UnmodifiableMapView(_outputs);
+
+  ItemIoBuilder.from(ItemIo source)
+    : _inputs = Map.from(source.inputs),
+      _outputs = Map.from(source.outputs);
+
+  void updateInputs(InGameItem key, double value) => _inputs[key] = value;
+  void updateOutputs(InGameItem key, double value) => _outputs[key] = value;
+
+  void removeFromInputs(InGameItem key) => _inputs.remove(key);
+  void removeFromOutputs(InGameItem key) => _outputs.remove(key);
+
+  @override
+  ItemIo build() => ItemIo(inputs: _inputs, outputs: _outputs);
 }

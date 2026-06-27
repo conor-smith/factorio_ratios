@@ -57,7 +57,6 @@ class Edge
   }) : parentProdLineNode = parent.getInputItemNode(item),
        childProdLineNode = child.getOutputItemNode(item),
        _state = EdgeStateImpl._initial(
-         amount: initialAmount,
          priority: priority,
          percentage: percentage,
          geometry: geometry,
@@ -172,7 +171,16 @@ enum EdgeType {
 }
 
 // TODO - Document
-enum RequestStatus { pending, known, done }
+enum RequestStatus {
+  /// Request is still pending on some other operation
+  pending,
+
+  /// Request is known but has not yet been applied to relevant node
+  known,
+
+  /// Request is known and applied
+  done,
+}
 
 class EdgeException extends BasePlannerException {
   const EdgeException(super.message, [super.cause]);

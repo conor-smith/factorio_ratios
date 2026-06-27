@@ -2,6 +2,10 @@ part of 'edge.dart';
 
 abstract class EdgeState {
   double get amount;
+
+  double get requestedAmount;
+  RequestStatus get requestStatus;
+
   double get percentage;
   int get priority;
 
@@ -12,6 +16,8 @@ class EdgeStateImpl implements EdgeState, ToJson {
   @override
   final double amount;
   @override
+  final double requestedAmount;
+  @override
   final double percentage;
   @override
   final int priority;
@@ -19,16 +25,20 @@ class EdgeStateImpl implements EdgeState, ToJson {
   @override
   final EdgeGeometryImpl geometry;
 
+  @override
+  RequestStatus get requestStatus => RequestStatus.done;
+
   EdgeStateImpl._initial({
-    required this.amount,
     required this.percentage,
     required this.geometry,
     required this.priority,
-  });
+  }) : requestedAmount = 0,
+       amount = 0;
 
   EdgeStateImpl(
     Edge edge, {
     required this.amount,
+    required this.requestedAmount,
     required this.percentage,
     required this.geometry,
     required this.priority,

@@ -20,6 +20,7 @@ part 'graph_state.dart';
 class Graph
     with EventNotifier<GraphEvent>, ProductionLine<GraphIo>
     implements NodeElement<GraphState, GraphEvent> {
+  // TODO - Graph preferred layout
   @override
   final BasePlanner basePlanner;
   final Surface? surface;
