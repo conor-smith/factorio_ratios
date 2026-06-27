@@ -1,7 +1,7 @@
 part of 'node.dart';
 
 abstract class ProdLineNodeState {
-  ItemIoImpl? get requirements;
+  ItemIo? get requirements;
 
   ProductionLine get productionLine;
 
@@ -13,7 +13,7 @@ abstract class ProdLineNodeState {
 
 class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   @override
-  final ItemIoImpl? requirements;
+  final ItemIo? requirements;
   @override
   final NodeGeometryImpl geometry;
   @override

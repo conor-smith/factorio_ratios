@@ -46,12 +46,12 @@ class SingleRecipeLine
   final Set<InGameItem> inputItems;
 
   @override
-  final ItemIoImpl ioRatios;
+  final ItemIo ioRatios;
 
   final double machineCyclesPerMinute;
 
-  final ItemIoImpl machineNetIo;
-  final ItemIoImpl machineTotalIo;
+  final ItemIo machineNetIo;
+  final ItemIo machineTotalIo;
 
   final Map<InGameItem, InGameItem> potentialSpoilage;
 
@@ -223,16 +223,16 @@ class SingleRecipeLine
       fuel: fuel,
       inputItems: machineNetInputs.keys,
       outputItems: machineNetOutputs.keys,
-      ioRatios: ItemIoImpl(
+      ioRatios: ItemIo(
         inputs: machineNetInputRatios,
         outputs: machineNetOutputRatios,
       ),
       machineCyclesPerMinute: cyclesPerMinute,
-      machineNetIo: ItemIoImpl(
+      machineNetIo: ItemIo(
         inputs: machineNetInputs,
         outputs: machineNetOutputs,
       ),
-      machineTotalIo: ItemIoImpl(
+      machineTotalIo: ItemIo(
         inputs: machineTotalInput,
         outputs: machineTotalOutput,
       ),
@@ -273,9 +273,7 @@ class SingleRecipeLine
        consumptionData = List.unmodifiable(consumptionData);
 
   @override
-  SingleRecipeLineIoData calculateIoData([
-    ItemIoImpl constraints = ItemIoImpl.empty,
-  ]) {
+  SingleRecipeLineIoData calculateIoData([ItemIo constraints = ItemIo.empty]) {
     if (constraints.isEmpty) {
       return const SingleRecipeLineIoData.empty();
     }
@@ -310,11 +308,11 @@ class SingleRecipeLine
       constraints: constraints,
       machineCount: machineCount,
       totalCyclesPerMinute: machineCyclesPerMinute,
-      io: ItemIoImpl(
+      io: ItemIo(
         inputs: multiplyMap(machineNetIo.inputs, machineCount),
         outputs: multiplyMap(machineNetIo.outputs, machineCount),
       ),
-      totalProductionAndConsumption: ItemIoImpl(
+      totalProductionAndConsumption: ItemIo(
         inputs: multiplyMap(machineTotalIo.inputs, machineCount),
         outputs: multiplyMap(machineTotalIo.outputs, machineCount),
       ),

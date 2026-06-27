@@ -4,7 +4,7 @@ class ProdLineNodeStateBuilder
     implements NodeStateBuilder<ProdLineNodeStateImpl>, ProdLineNodeState {
   final ProdLineNode _node;
 
-  ItemIoImpl? _requirements;
+  ItemIo? _requirements;
   NodeGeometryImpl _geometry;
   ProductionLine _productionLine;
   ProductionLineIoData _ioData;
@@ -12,7 +12,7 @@ class ProdLineNodeStateBuilder
   final Set<Edge> _children;
 
   @override
-  ItemIoImpl? get requirements => _requirements;
+  ItemIo? get requirements => _requirements;
   @override
   NodeGeometryImpl get geometry => _geometry;
   @override
@@ -86,7 +86,7 @@ class ProdLineNodeStateBuilder
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
-  void updateRequirements(ItemIoImpl newRequirements) =>
+  void updateRequirements(ItemIo newRequirements) =>
       _requirements = newRequirements;
 
   void updateProductionLine(ProductionLine newLine) {
@@ -119,10 +119,10 @@ class ProdLineNodeStateBuilder
     }
   }
 
-  void calculateIo(ItemIoImpl constraints) =>
+  void calculateIo(ItemIo constraints) =>
       _ioData = productionLine.calculateIoData(constraints);
 
-  ItemIoImpl calculateConstraintsFromEdges() {
+  ItemIo calculateConstraintsFromEdges() {
     ItemAmounts outputConstraints = Map.fromIterable(
       productionLine.outputItems,
       value: (item) => 0,
@@ -152,10 +152,10 @@ class ProdLineNodeStateBuilder
       );
     }
 
-    return ItemIoImpl(inputs: inputConstraints, outputs: outputConstraints);
+    return ItemIo(inputs: inputConstraints, outputs: outputConstraints);
   }
 
-  ItemIoImpl updateEdgesAndReturnUnfulfilledIo() {
+  ItemIo updateEdgesAndReturnUnfulfilledIo() {
     // TODO: optimise
     if (ioData.io.isEmpty) {
       for (var edge
@@ -169,7 +169,7 @@ class ProdLineNodeStateBuilder
         edge.getStateBuilder()._updateAmount(0);
       }
 
-      return ItemIoImpl.empty;
+      return ItemIo.empty;
     } else {
       var excessOutput = ItemAmounts.from(ioData.io.outputs);
       var requiredInput = ItemAmounts.from(ioData.io.inputs);
@@ -231,7 +231,7 @@ class ProdLineNodeStateBuilder
         (item, amount) => amount - (fulfilledInput[item] ?? 0),
       );
 
-      return ItemIoImpl(inputs: requiredInput, outputs: excessOutput);
+      return ItemIo(inputs: requiredInput, outputs: excessOutput);
     }
   }
 

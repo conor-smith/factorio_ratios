@@ -1,7 +1,6 @@
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
-import 'package:factorio_ratios/utility/builder.dart';
 import 'package:factorio_ratios/utility/collections.dart';
 
 part 'combiner.dart';
@@ -45,7 +44,7 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   /// all other values will be set relative to that value.
   /// Will only be present in production lines where it can be calculated
   /// ahead of time.
-  ItemIoImpl? get ioRatios;
+  ItemIo? get ioRatios;
 
   /// Takes a set of input and output constraints, and produces an object representing IO.
   /// For each constraint, the production line must consume this amount or more.
@@ -53,16 +52,54 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   /// even if doing so means producing an excess of one.
   /// The same rule applies to input constraints.
   ///
-  /// [ItemIoImpl.inputs] and [ItemIoImpl.outputs] must be given in items per minute
-  T calculateIoData([ItemIoImpl constraints]);
+  /// [ItemIo.inputs] and [ItemIo.outputs] must be given in items per minute
+  T calculateIoData([ItemIo constraints]);
 
-  // TODO: Document
-  void verifyConstraints(ItemIoImpl constraints) {
+  /// Intended for internal use. Ensures that all keys in [constraints]
+  /// are present in [inputItems] and [outputItems]
+  void verifyConstraints(ItemIo constraints) {
     if (!inputItems.containsAll(constraints.inputs.keys) ||
         !outputItems.containsAll(constraints.outputs.keys)) {
       throw ProductionLineException(
-        'Production line $this with inputs $inputItems and outputs $outputItems could not accept constraints $constraints',
+        'Production line $this with inputs $inputItems and outputs $outputItems could not process constraints $constraints',
       );
+    }
+  }
+
+  /// Uses [ioRatios] to determine minimum [ItemIo] that satisfies all
+  /// values in [constraints]. Will throw exception if [ioRatios] are null.
+  ItemIo calculateItemIo([ItemIo constraints = ItemIo.empty]) {
+    var ratios = ioRatios;
+
+    if (ratios == null) {
+      throw const ProductionLineException(
+        'Cannot calculate itemIo in production line without ioRatios',
+      );
+    }
+    verifyConstraints(constraints);
+
+    if (constraints.isZero) {
+      return ratios.zeroAll();
+    } else {
+      var maxMultiplier = 0.0;
+
+      constraints.inputs.forEach((input, amount) {
+        var itemMultiplier = amount / ratios.inputs[input]!;
+
+        if (itemMultiplier > maxMultiplier) {
+          maxMultiplier = itemMultiplier;
+        }
+      });
+
+      constraints.outputs.forEach((output, amount) {
+        var itemMultiplier = amount / ratios.outputs[output]!;
+
+        if (itemMultiplier > maxMultiplier) {
+          maxMultiplier = itemMultiplier;
+        }
+      });
+
+      return ratios.multiplyValues(maxMultiplier);
     }
   }
 
@@ -76,15 +113,15 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
 /// All other fiels, both here and in inherited classes,
 /// should exist for utility reasons - to be used in further equations / operations.
 ///
-/// All [ItemAmounts] and [ItemIoImpl] fieds are given in items per minute.
+/// All [ItemAmounts] and [ItemIo] fieds are given in items per minute.
 class ProductionLineIoData {
   /// Constraints that were used to generate this IO
-  final ItemIoImpl constraints;
+  final ItemIo constraints;
 
   /// Net input / output in items per minute.
   ///
   /// Defaults to [constraints] when no value is set.
-  final ItemIoImpl io;
+  final ItemIo io;
 
   /// Total production and comsumption in items per minute.
   ///
@@ -94,7 +131,7 @@ class ProductionLineIoData {
   /// no production actually takes place, and items are just passed through.
   ///
   /// Defaults to [io] when no value is set.
-  final ItemIoImpl totalProductionAndConsumption;
+  final ItemIo totalProductionAndConsumption;
 
   /// Electrical power consumed, given in watts
   final double electricPowerConsumption;
@@ -108,9 +145,9 @@ class ProductionLineIoData {
   final List<DisplayData> displayData;
 
   ProductionLineIoData({
-    this.constraints = ItemIoImpl.empty,
-    ItemIoImpl? io = ItemIoImpl.empty,
-    ItemIoImpl? totalProductionAndConsumption,
+    this.constraints = ItemIo.empty,
+    ItemIo? io = ItemIo.empty,
+    ItemIo? totalProductionAndConsumption,
     this.electricPowerConsumption = 0,
     Map<String, double> emissions = const {},
     Iterable<DisplayData> displayData = const [],
@@ -121,9 +158,9 @@ class ProductionLineIoData {
        displayData = List.unmodifiable(displayData);
 
   const ProductionLineIoData.empty()
-    : constraints = ItemIoImpl.empty,
-      io = ItemIoImpl.empty,
-      totalProductionAndConsumption = ItemIoImpl.empty,
+    : constraints = ItemIo.empty,
+      io = ItemIo.empty,
+      totalProductionAndConsumption = ItemIo.empty,
       electricPowerConsumption = 0,
       emissions = const {},
       displayData = const [];
@@ -140,78 +177,4 @@ class ValueAndDisplayData<T> {
   final List<DisplayData> displayData;
 
   const ValueAndDisplayData(this.value, this.displayData);
-}
-
-abstract class ItemIo {
-  ItemAmounts get inputs;
-  ItemAmounts get outputs;
-
-  bool get isEmpty => inputs.isEmpty && outputs.isEmpty;
-  bool get isNotEmpty => inputs.isNotEmpty || outputs.isNotEmpty;
-
-  const ItemIo();
-}
-
-/// An immutable, and validated implementation of [ItemIo]
-/// All values in [inputs] or [outputs] may be greater than or equal to 0
-class ItemIoImpl extends ItemIo {
-  static const empty = ItemIoImpl._empty();
-
-  @override
-  final ItemAmounts inputs;
-  @override
-  final ItemAmounts outputs;
-
-  const ItemIoImpl._empty() : inputs = const {}, outputs = const {};
-
-  ItemIoImpl({ItemAmounts inputs = const {}, ItemAmounts outputs = const {}})
-    : inputs = Map.unmodifiable(inputs),
-      outputs = Map.unmodifiable(outputs) {
-    inputs.forEach((input, amount) {
-      if (amount < 0) {
-        throw ProductionLineException('Input $input had invalid value $amount');
-      }
-    });
-
-    outputs.forEach((output, amount) {
-      if (amount < 0) {
-        throw ProductionLineException(
-          'Output $output had invalid value $amount',
-        );
-      }
-    });
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return super == other ||
-        (other is ItemIoImpl &&
-            compareMaps(other.inputs, inputs) &&
-            compareMaps(other.outputs, outputs));
-  }
-
-  @override
-  int get hashCode => inputs.entries
-      .followedBy(outputs.entries)
-      .map((entry) => entry.key.hashCode * entry.value.hashCode)
-      .reduce((val1, val2) => val1 + val2);
-
-  @override
-  String toString() => 'inputs: $inputs, outputs: $outputs';
-}
-
-/// A mutable implementation of [ItemIo]. No validation is performed on values
-/// until [build] is called
-class ItemIoBuilder extends ItemIo implements Builder<ItemIoImpl> {
-  @override
-  final ItemAmounts inputs;
-  @override
-  final ItemAmounts outputs;
-
-  ItemIoBuilder({ItemAmounts inputs = const {}, ItemAmounts outputs = const {}})
-    : inputs = Map.from(inputs),
-      outputs = Map.from(outputs);
-
-  @override
-  ItemIoImpl build() => ItemIoImpl(inputs: inputs, outputs: outputs);
 }

@@ -11,7 +11,7 @@ class IoLine with ProductionLine<IoLineIoData> {
   Icon? get icon => ioItem.icon;
 
   @override
-  final ItemIoImpl ioRatios;
+  final ItemIo ioRatios;
 
   @override
   Set<InGameItem> get inputItems => _ioItemSet;
@@ -25,10 +25,10 @@ class IoLine with ProductionLine<IoLineIoData> {
   IoLine({required this.ioItem})
     : name = '$ioItem IO',
       _ioItemSet = Set.unmodifiable([ioItem]),
-      ioRatios = ItemIoImpl(inputs: {ioItem: 1}, outputs: {ioItem: 1});
+      ioRatios = ItemIo(inputs: {ioItem: 1}, outputs: {ioItem: 1});
 
   @override
-  IoLineIoData calculateIoData([ItemIoImpl constraints = ItemIoImpl.empty]) {
+  IoLineIoData calculateIoData([ItemIo constraints = ItemIo.empty]) {
     if (constraints.isEmpty) {
       return const IoLineIoData.empty();
     }
@@ -55,8 +55,8 @@ class IoLineIoData extends ProductionLineIoData {
     required InGameItem ioItem,
     required double amount,
   }) : super(
-         io: ItemIoImpl(inputs: {ioItem: amount}, outputs: {ioItem: amount}),
-         totalProductionAndConsumption: ItemIoImpl.empty,
+         io: ItemIo(inputs: {ioItem: amount}, outputs: {ioItem: amount}),
+         totalProductionAndConsumption: ItemIo.empty,
        );
 
   const IoLineIoData.empty() : super.empty();

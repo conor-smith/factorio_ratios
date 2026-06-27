@@ -13,7 +13,7 @@ class ProdLineNode
 
   // For convenience
   @override
-  ItemIoImpl? get requirements => state.requirements;
+  ItemIo? get requirements => state.requirements;
   @override
   ProductionLine get productionLine => state.productionLine;
   @override
@@ -39,10 +39,10 @@ class ProdLineNode
     required ProductionLine productionLine,
     NodeGeometryImpl geometry = NodeGeometryImpl.uninitialised,
     ProductionLineIoData? io,
-    ItemIoImpl? requirements,
+    ItemIo? requirements,
   }) : _state = ProdLineNodeStateImpl._initial(
          requirements: nodeType.isRoot && requirements == null
-             ? ItemIoImpl.empty
+             ? ItemIo.empty
              : requirements,
          productionLine: productionLine,
          geometry: geometry,

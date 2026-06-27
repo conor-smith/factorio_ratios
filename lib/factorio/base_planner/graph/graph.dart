@@ -62,7 +62,7 @@ class Graph
   @override
   NodeType get nodeType => NodeType.productionLine;
   @override
-  ItemIoImpl? get requirements => null;
+  ItemIo? get requirements => null;
   @override
   ProductionLine get productionLine => this;
 
@@ -71,7 +71,7 @@ class Graph
 
   // TODO
   @override
-  ItemIoImpl? get ioRatios => null;
+  ItemIo? get ioRatios => null;
 
   Graph.addToBasePlanner(
     this.basePlanner, {
@@ -321,8 +321,7 @@ class Graph
   }
 
   @override
-  GraphIo calculateIoData([ItemIoImpl constraints = ItemIoImpl.empty]) =>
-      state.ioData;
+  GraphIo calculateIoData([ItemIo constraints = ItemIo.empty]) => state.ioData;
 
   @override
   Map<String, dynamic> toJson() {
@@ -583,12 +582,9 @@ class GraphIoBuilder implements Builder<GraphIo> {
 
   @override
   GraphIo build() => GraphIo(
-    constraints: ItemIoImpl(
-      inputs: inputConstraints,
-      outputs: outputConstraints,
-    ),
-    io: ItemIoImpl(inputs: input, outputs: output),
-    totalProductionAndConsumption: ItemIoImpl(
+    constraints: ItemIo(inputs: inputConstraints, outputs: outputConstraints),
+    io: ItemIo(inputs: input, outputs: output),
+    totalProductionAndConsumption: ItemIo(
       inputs: consumption,
       outputs: production,
     ),
