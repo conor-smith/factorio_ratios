@@ -62,6 +62,8 @@ class Edge
       throw EdgeException(
         'Node of type ${child.nodeType} cannot have a child of type $edgeType',
       );
+    } else if (parent == child) {
+      throw const EdgeException('A node may not consume it\'s own output');
     }
 
     _builder = EdgeStateBuilder.initial(this);

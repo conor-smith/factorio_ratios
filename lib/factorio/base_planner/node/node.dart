@@ -102,12 +102,6 @@ enum NodeType implements Comparable<NodeType> {
   ),
 
   /// Represents a resource available on the surface (eg. ore, crop, etc).
-  ///
-  /// In the event this node does consume items,
-  /// children may be of any type except [EdgeType.pushExcess].
-  /// The node will only consume as much as is required to fulfil parent requests,
-  /// so an edge of type [EdgeType.weakPushExcess] may not
-  /// be able to push all it's items.
   resource(
     isIo: false,
     hasInternalConstraints: false,
@@ -135,16 +129,8 @@ enum NodeType implements Comparable<NodeType> {
     isIo: false,
     hasInternalConstraints: false,
     outputPriority: 4,
-    permittedParents: {
-      EdgeType.requestItems,
-      EdgeType.pushExcess,
-      EdgeType.weakPushExcess,
-    },
-    permittedChildren: {
-      EdgeType.pushExcess,
-      EdgeType.requestItems,
-      EdgeType.weakRequestItems,
-    },
+    permittedParents: {...EdgeType.values},
+    permittedChildren: {...EdgeType.values},
   ),
 
   /// Represents a node that only produces items. Children are not permitted.
@@ -158,25 +144,20 @@ enum NodeType implements Comparable<NodeType> {
     isIo: false,
     hasInternalConstraints: true,
     outputPriority: 5,
-    permittedParents: {
-      EdgeType.requestItems,
-      EdgeType.pushExcess,
-      EdgeType.weakPushExcess,
-    },
+    permittedParents: {...EdgeType.values},
     permittedChildren: {},
   ),
 
   /// Represents a node capable of disposing of excess items (eg. space, lava lake).
-  ///
-  /// In the event this node does produce items,
-  /// children may be of any type except [EdgeType.requestItems].
-  /// The node will only produce as much as is required to fulfil child requests,
-  /// so using [EdgeType.weakRequestItems] may not be able to request all needed items.
   disposal(
     isIo: false,
     hasInternalConstraints: false,
     outputPriority: 100,
-    permittedParents: {EdgeType.pushExcess, EdgeType.weakPushExcess},
+    permittedParents: {
+      EdgeType.pushExcess,
+      EdgeType.weakPushExcess,
+      EdgeType.weakRequestItems,
+    },
     permittedChildren: {
       EdgeType.pushExcess,
       EdgeType.requestItems,
@@ -184,7 +165,7 @@ enum NodeType implements Comparable<NodeType> {
     },
   ),
 
-  /// Node can connect to and output to nodes in [NodeElement.parentGraph].
+  /// Node can connect and output to nodes in [NodeElement.parentGraph].
   /// Parent edges must belong to parentGraph of parentGraph.
   output(
     isIo: true,
@@ -206,11 +187,7 @@ enum NodeType implements Comparable<NodeType> {
     hasInternalConstraints: true,
     outputPriority: 100,
     permittedParents: {},
-    permittedChildren: {
-      EdgeType.requestItems,
-      EdgeType.weakRequestItems,
-      EdgeType.pushExcess,
-    },
+    permittedChildren: {...EdgeType.values},
   );
 
   final bool isIo;
