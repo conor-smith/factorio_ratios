@@ -54,6 +54,16 @@ class Edge
   }) : parentProdLineNode = parent.getInputItemNode(item),
        childProdLineNode = child.getOutputItemNode(item),
        _state = EdgeStateImpl.uninitialised {
+    if (!parent.nodeType.permittedChildren.contains(edgeType)) {
+      throw EdgeException(
+        'Node of type ${parent.nodeType} cannot have child of type $edgeType',
+      );
+    } else if (!child.nodeType.permittedParents.contains(edgeType)) {
+      throw EdgeException(
+        'Node of type ${child.nodeType} cannot have a child of type $edgeType',
+      );
+    }
+
     _builder = EdgeStateBuilder.initial(this);
   }
 
@@ -113,43 +123,22 @@ class EdgeEvent {
 }
 
 enum EdgeType {
-  /// Represents a parent requesting [Edge.amount] from a child.
-  ///
-  /// The total [Edge.percentage] sum of all child edges with the same [Edge.item]
-  /// must add up to 1.
-  /// If they do not, new edges will be created and connected a node in same
-  /// graph that can output this item.
-  /// If no node exists, a new node will also be created
-  requestItems(false, false),
+  // TODO: Document
+  requestItems(false),
 
-  /// Represents a parent requesting [Edge.amount] from a child, but the child
-  /// can "refuse" and set a max amount if need be.
-  ///
-  /// TODO - Document more
-  weakRequestItems(true, false),
+  // TODO: Document
+  weakRequestItems(true),
 
-  /// Child is pushing excess items onto parent.
-  ///
-  /// The total [Edge.percentage] sum of all child edges with the same [Edge.item]
-  /// must add up to 1.
-  /// If they do not, new edges will be created and connected a node in same
-  /// graph that can output this item.
-  /// If no node exists, a new node will also be created
-  pushExcess(false, true),
+  // TODO: Document
+  pushExcess(false),
 
-  /// Represents a child pushing [Edge.amount] onto a parent, but the parent
-  /// can "refuse" and set a max amount if need be.
-  ///
-  /// TODO - Document more
-  weakPushExcess(true, true);
+  // TODO: Document
+  weakPushExcess(true);
 
   /// Uses [Edge.priority] if true, [Edge.percentage] otherwise
   final bool usesPriority;
 
-  /// Sets constraints on [Edge.parent] if true, on [Edge.child] otherwise
-  final bool constrainsParents;
-
-  const EdgeType(this.usesPriority, this.constrainsParents);
+  const EdgeType(this.usesPriority);
 }
 
 // TODO - Document

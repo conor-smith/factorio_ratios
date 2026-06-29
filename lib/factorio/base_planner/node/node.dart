@@ -54,37 +54,37 @@ abstract interface class NodeElement<St, E extends NodeEvent>
   ) {
     var builder = ItemIoBuilder();
 
-    for (var parent in parents) {
-      switch (parent.edgeType) {
-        case EdgeType.requestItems:
-          builder.addToOutputs(parent.item, parent.requestedAmount);
+    // for (var parent in parents) {
+    //   switch (parent.edgeType) {
+    //     case EdgeType.requestItems:
+    //       builder.addToOutputs(parent.item, parent.requestedAmount);
 
-        case EdgeType.weakRequestItems:
-          if (nodeType.honoursWeakRequests) {
-            builder.addToOutputs(parent.item, parent.requestedAmount);
-          }
+    //     case EdgeType.weakRequestItems:
+    //       if (nodeType.honoursWeakRequests) {
+    //         builder.addToOutputs(parent.item, parent.requestedAmount);
+    //       }
 
-        case EdgeType.pushExcess:
-        case EdgeType.weakPushExcess:
-          break;
-      }
-    }
+    //     case EdgeType.pushExcess:
+    //     case EdgeType.weakPushExcess:
+    //       break;
+    //   }
+    // }
 
-    for (var child in children) {
-      switch (child.edgeType) {
-        case EdgeType.pushExcess:
-          builder.addToInputs(child.item, child.requestedAmount);
+    // for (var child in children) {
+    //   switch (child.edgeType) {
+    //     case EdgeType.pushExcess:
+    //       builder.addToInputs(child.item, child.requestedAmount);
 
-        case EdgeType.weakPushExcess:
-          if (nodeType.honoursWeakRequests) {
-            builder.addToInputs(child.item, child.requestedAmount);
-          }
+    //     case EdgeType.weakPushExcess:
+    //       if (nodeType.honoursWeakRequests) {
+    //         builder.addToInputs(child.item, child.requestedAmount);
+    //       }
 
-        case EdgeType.requestItems:
-        case EdgeType.weakRequestItems:
-          break;
-      }
-    }
+    //     case EdgeType.requestItems:
+    //     case EdgeType.weakRequestItems:
+    //       break;
+    //   }
+    // }
 
     return builder.build();
   }
@@ -96,8 +96,9 @@ enum NodeType implements Comparable<NodeType> {
   combiner(
     isIo: false,
     hasInternalConstraints: false,
-    honoursWeakRequests: true,
     outputPriority: 1,
+    permittedParents: {...EdgeType.values},
+    permittedChildren: {...EdgeType.values},
   ),
 
   /// Represents a resource available on the surface (eg. ore, crop, etc).
@@ -110,8 +111,13 @@ enum NodeType implements Comparable<NodeType> {
   resource(
     isIo: false,
     hasInternalConstraints: false,
-    honoursWeakRequests: false,
     outputPriority: 2,
+    permittedParents: {EdgeType.requestItems},
+    permittedChildren: {
+      EdgeType.requestItems,
+      EdgeType.weakRequestItems,
+      EdgeType.weakPushExcess,
+    },
   ),
 
   /// Node can connect to and accept inputs from nodes in [NodeElement.parentGraph].
@@ -119,16 +125,26 @@ enum NodeType implements Comparable<NodeType> {
   input(
     isIo: true,
     hasInternalConstraints: false,
-    honoursWeakRequests: true,
     outputPriority: 3,
+    permittedParents: {...EdgeType.values},
+    permittedChildren: {...EdgeType.values},
   ),
 
   /// Represents a player made production line.
   productionLine(
     isIo: false,
     hasInternalConstraints: false,
-    honoursWeakRequests: true,
     outputPriority: 4,
+    permittedParents: {
+      EdgeType.requestItems,
+      EdgeType.pushExcess,
+      EdgeType.weakPushExcess,
+    },
+    permittedChildren: {
+      EdgeType.pushExcess,
+      EdgeType.requestItems,
+      EdgeType.weakRequestItems,
+    },
   ),
 
   /// Represents a node that only produces items. Children are not permitted.
@@ -141,8 +157,13 @@ enum NodeType implements Comparable<NodeType> {
   producer(
     isIo: false,
     hasInternalConstraints: true,
-    honoursWeakRequests: true,
     outputPriority: 5,
+    permittedParents: {
+      EdgeType.requestItems,
+      EdgeType.pushExcess,
+      EdgeType.weakPushExcess,
+    },
+    permittedChildren: {},
   ),
 
   /// Represents a node capable of disposing of excess items (eg. space, lava lake).
@@ -154,8 +175,13 @@ enum NodeType implements Comparable<NodeType> {
   disposal(
     isIo: false,
     hasInternalConstraints: false,
-    honoursWeakRequests: false,
     outputPriority: 100,
+    permittedParents: {EdgeType.pushExcess, EdgeType.weakPushExcess},
+    permittedChildren: {
+      EdgeType.pushExcess,
+      EdgeType.requestItems,
+      EdgeType.weakRequestItems,
+    },
   ),
 
   /// Node can connect to and output to nodes in [NodeElement.parentGraph].
@@ -163,8 +189,9 @@ enum NodeType implements Comparable<NodeType> {
   output(
     isIo: true,
     hasInternalConstraints: false,
-    honoursWeakRequests: true,
     outputPriority: 100,
+    permittedParents: {...EdgeType.values},
+    permittedChildren: {...EdgeType.values},
   ),
 
   /// Represents a root node in the graph that consumes items. Parents are not permitted.
@@ -177,142 +204,32 @@ enum NodeType implements Comparable<NodeType> {
   consumer(
     isIo: false,
     hasInternalConstraints: true,
-    honoursWeakRequests: true,
     outputPriority: 100,
+    permittedParents: {},
+    permittedChildren: {
+      EdgeType.requestItems,
+      EdgeType.weakRequestItems,
+      EdgeType.pushExcess,
+    },
   );
 
   final bool isIo;
   final bool hasInternalConstraints;
-  final bool honoursWeakRequests;
   final int outputPriority;
+  final Set<EdgeType> permittedParents;
+  final Set<EdgeType> permittedChildren;
 
   const NodeType({
     required this.isIo,
     required this.hasInternalConstraints,
-    required this.honoursWeakRequests,
     required this.outputPriority,
+    required this.permittedParents,
+    required this.permittedChildren,
   });
 
   @override
   int compareTo(NodeType other) =>
       outputPriority.compareTo(other.outputPriority);
-
-  void verify(Graph parentGraph, ProdLineNodeStateImpl nodeState) {
-    switch (this) {
-      case NodeType.input:
-        if (nodeState.children.any(
-          (child) => child.parentGraph != parentGraph.parentGraph,
-        )) {
-          throw const NodeException(
-            'All child edges of input node must belong to parentGraph of parentGraph',
-          );
-        }
-        _verifyIoProdLine(nodeState);
-        _verifyNoRequirements(nodeState);
-
-      case NodeType.output:
-        if (nodeState.parents.any(
-          (parent) => parent.parentGraph != parentGraph.parentGraph,
-        )) {
-          throw const NodeException(
-            'All parent edges of output node must belong to parentGraph of parentGraph',
-          );
-        }
-        _verifyIoProdLine(nodeState);
-        _verifyNoRequirements(nodeState);
-
-      case NodeType.consumer:
-        if (nodeState.productionLine.inputItems.isEmpty ||
-            nodeState.productionLine.outputItems.isNotEmpty) {
-          throw const NodeException(
-            'Consumer node must have inputs and no outputs',
-          );
-        } else if (nodeState.children.isNotEmpty ||
-            nodeState.parents.any((edge) => !edge.edgeType.constrainsParents)) {
-          // TODO: Allow pushExcess edges once I have loops working
-          throw const NodeException('Consumer node can only request items');
-        }
-        _verifyOrdinaryLine(nodeState);
-        _verifyRequirements(nodeState);
-
-      case NodeType.producer:
-        if (nodeState.productionLine.outputItems.isEmpty ||
-            nodeState.productionLine.inputItems.isNotEmpty) {
-          throw const NodeException(
-            'Producer node must have outputs and no inputs',
-          );
-        } else if (nodeState.parents.isNotEmpty ||
-            nodeState.children.any((edge) => edge.edgeType.constrainsParents)) {
-          // TODO: Allow request items edges once I have loops working
-          throw const NodeException('Producer node can only push excess items');
-        }
-        _verifyOrdinaryLine(nodeState);
-        _verifyRequirements(nodeState);
-
-      case NodeType.combiner:
-        if (nodeState.productionLine is! CombinerLine) {
-          throw const NodeException(
-            'Combiner node must use Combiner production line',
-          );
-        }
-        _verifyNoRequirements(nodeState);
-
-      case NodeType.resource:
-        if (nodeState.children.any(
-          (child) => child.edgeType == EdgeType.pushExcess,
-        )) {
-          throw const NodeException(
-            'Resource node cannot had children of type pushExcess',
-          );
-        }
-        _verifyOrdinaryLine(nodeState);
-        _verifyNoRequirements(nodeState);
-
-      case NodeType.disposal:
-        if (nodeState.parents.any(
-          (parent) => parent.edgeType == EdgeType.requestItems,
-        )) {
-          throw const NodeException(
-            'Disposal node may not have parents of type requestItems',
-          );
-        }
-        _verifyOrdinaryLine(nodeState);
-        _verifyNoRequirements(nodeState);
-
-      case NodeType.productionLine:
-        _verifyOrdinaryLine(nodeState);
-        _verifyNoRequirements(nodeState);
-    }
-  }
-
-  void _verifyIoProdLine(ProdLineNodeState nodeState) {
-    if (nodeState.productionLine is! IoLine) {
-      throw const NodeException('IO node must use IO production line');
-    }
-  }
-
-  void _verifyOrdinaryLine(ProdLineNodeState nodeState) {
-    if (nodeState.productionLine is IoLine ||
-        nodeState.productionLine is CombinerLine) {
-      throw NodeException(
-        'Node of type $this is not permitted to have production line of type ${productionLine.runtimeType}',
-      );
-    }
-  }
-
-  void _verifyNoRequirements(ProdLineNodeState nodeState) {
-    if (nodeState.internalConstraints != null) {
-      throw NodeException(
-        'Node of type $this is not permitted to have internal constraints',
-      );
-    }
-  }
-
-  void _verifyRequirements(ProdLineNodeState nodeState) {
-    if (nodeState.internalConstraints == null) {
-      throw NodeException('Node of type $this must have internal constraints');
-    }
-  }
 }
 
 class NodeEvent {
