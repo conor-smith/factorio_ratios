@@ -52,15 +52,13 @@ class GraphStateBuilder
     'Graph IO cannot be calculated while snapshot is building',
   );
 
-  // TODO - Cache these values
+  // TODO - Cache these values?
   @override
-  Map<InGameItem, Set<Edge>> get parents => _outputNodes.map(
-    (item, node) => MapEntry(item, node.parents[item] ?? const {}),
-  )..removeWhere((item, edgeSet) => edgeSet.isEmpty);
+  Map<InGameItem, Set<Edge>> get parents =>
+      GraphState.calculateParents(_outputNodes);
   @override
-  Map<InGameItem, Set<Edge>> get children => _inputNodes.map(
-    (item, node) => MapEntry(item, node.children[item] ?? const {}),
-  )..removeWhere((item, edgeSet) => edgeSet.isEmpty);
+  Map<InGameItem, Set<Edge>> get children =>
+      GraphState.calculateChildren(_outputNodes);
   @override
   Set<InGameItem> get inputItems => _inputNodes.keys.toSet();
   @override
@@ -313,6 +311,10 @@ class GraphStateBuilder
     if (_cachedNodeOutputIndex != null && node.nodeType.outputPriority < 100) {
       for (var output in node.outputItems) {
         _cachedNodeOutputIndex![output]?.remove(node);
+      }
+
+      if (node.nodeType == NodeType.output && _graph.parentGraph.hasBuilder) {
+        _graph.parentGraph.getStateBuilder()._clearCachedOutputIndex();
       }
     } else if (_cachedDisposalNodes != null &&
         node.nodeType == NodeType.disposal) {

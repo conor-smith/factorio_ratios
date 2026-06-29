@@ -27,6 +27,18 @@ abstract class GraphState {
       .followedBy(graphNodes)
       .followedBy(inputNodes.values)
       .followedBy(outputNodes.values);
+
+  static Map<InGameItem, Set<Edge>> calculateParents(
+    Map<InGameItem, ProdLineNode> outputNodes,
+  ) => outputNodes.map(
+    (item, node) => MapEntry(item, node.parents[item] ?? const {}),
+  )..removeWhere((item, edges) => edges.isEmpty);
+
+  static Map<InGameItem, Set<Edge>> calculateChildren(
+    Map<InGameItem, ProdLineNode> inputNodes,
+  ) => inputNodes.map(
+    (item, node) => MapEntry(item, node.children[item] ?? const {}),
+  )..removeWhere((item, edges) => edges.isEmpty);
 }
 
 class GraphStateImpl implements GraphState, ToJson {
@@ -91,17 +103,11 @@ class GraphStateImpl implements GraphState, ToJson {
          ),
        ),
        parents = Map.unmodifiable(
-         outputNodes.map(
-             (item, node) => MapEntry(item, node.parents[item] ?? const {}),
-           )
-           ..removeWhere((item, edges) => edges.isEmpty)
+         GraphState.calculateParents(outputNodes)
            ..updateAll((item, edges) => Set.unmodifiable(edges)),
        ),
        children = Map.unmodifiable(
-         inputNodes.map(
-             (item, node) => MapEntry(item, node.children[item] ?? const {}),
-           )
-           ..removeWhere((item, edges) => edges.isEmpty)
+         GraphState.calculateChildren(inputNodes)
            ..updateAll((item, edges) => Set.unmodifiable(edges)),
        ),
        inputItems = Set.unmodifiable(inputNodes.keys),
