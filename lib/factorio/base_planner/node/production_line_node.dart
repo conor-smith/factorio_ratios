@@ -18,8 +18,12 @@ class ProdLineNode
   ItemIo get edgeConstraints => state.edgeConstraints;
   @override
   ItemIo get itemIo => state.itemIo;
-  @override
   ProductionLine get productionLine => state.productionLine;
+  @override
+  ProductionLineType get productionLineType =>
+      productionLine.productionLineType;
+  @override
+  ItemIoImpl get ioRatios => productionLine.ioRatios;
   @override
   NodeGeometryImpl get geometry => state.geometry;
   @override

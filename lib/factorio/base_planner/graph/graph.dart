@@ -18,7 +18,7 @@ part 'graph_state.dart';
 
 /// Represents a graph of [NodeElement]s connected by [Edge]s.
 class Graph
-    with EventNotifier<GraphEvent>, ProductionLine<GraphIo>
+    with EventNotifier<GraphEvent>
     implements NodeElement<GraphState, GraphEvent> {
   // TODO - Graph preferred layout
   @override
@@ -35,9 +35,7 @@ class Graph
   GraphState get state => _builder ?? _state;
 
   // For convenience
-  @override
   String get name => state.name;
-  @override
   Icon? get icon => state.icon;
   @override
   NodeGeometryImpl get geometry => state.geometry;
@@ -68,15 +66,13 @@ class Graph
   ItemIo get edgeConstraints => ioData.constraints;
   @override
   ItemIo get itemIo => ioData.io;
-  @override
-  ProductionLine get productionLine => this;
 
   bool get isRoot => this == parentGraph;
   bool get hasBuilder => _builder != null;
 
   // TODO
   @override
-  ItemIoImpl? get ioRatios => null;
+  ItemIoImpl get ioRatios => state.ioRatios;
 
   Graph.addToBasePlanner(
     this.basePlanner, {
@@ -315,10 +311,6 @@ class Graph
       }
     });
   }
-
-  @override
-  GraphIo calculateIoData([ItemIoImpl constraints = ItemIoImpl.empty]) =>
-      state.ioData;
 
   @override
   Map<String, dynamic> toJson() {

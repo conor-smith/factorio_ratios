@@ -42,8 +42,13 @@ class GraphStateBuilder
   late final Set<Edge> edges = UnmodifiableSetView(_edges);
   @override
   NodeGeometryImpl get geometry => _geometry;
+  // TODO
   @override
   GraphIo get ioData => throw const GraphException(
+    'Graph IO cannot be calculated while snapshot is building',
+  );
+  @override
+  ItemIoImpl get ioRatios => throw const GraphException(
     'Graph IO cannot be calculated while snapshot is building',
   );
 
@@ -144,6 +149,8 @@ class GraphStateBuilder
     outputNodes: _outputNodes,
     edges: _edges,
     geometry: _geometry,
+    ioRatios: ItemIoImpl.empty, // TODO
+    ioData: GraphIo.fromState(this),
   );
 
   @override

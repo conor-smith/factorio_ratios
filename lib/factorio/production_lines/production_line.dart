@@ -46,7 +46,7 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   /// all other values will be set relative to that value.
   /// Will only be present in production lines where it can be calculated
   /// ahead of time.
-  ItemIoImpl? get ioRatios;
+  ItemIoImpl get ioRatios;
 
   /// Takes a set of input and output constraints, and produces an object representing IO.
   /// For each constraint, the production line must consume this amount or more.
@@ -73,11 +73,6 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   ItemIoImpl calculateItemIo([ItemIoImpl constraints = ItemIoImpl.empty]) {
     var ratios = ioRatios;
 
-    if (ratios == null) {
-      throw const ProductionLineException(
-        'Cannot calculate itemIo in production line without ioRatios',
-      );
-    }
     verifyConstraints(constraints);
 
     if (constraints.isZero) {
@@ -196,7 +191,7 @@ class _NullProductionLine implements ProductionLine<ProductionLineIoData> {
   @override
   Set<InGameItem> get inputItems => throw UnimplementedError();
   @override
-  ItemIoImpl? get ioRatios => throw UnimplementedError();
+  ItemIoImpl get ioRatios => throw UnimplementedError();
   @override
   String get name => throw UnimplementedError();
   @override

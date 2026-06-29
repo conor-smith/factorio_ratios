@@ -14,7 +14,7 @@ abstract interface class NodeElement<St, E extends NodeEvent>
     implements BasePlannerElement<St, E> {
   NodeType get nodeType;
 
-  ProductionLine get productionLine;
+  ProductionLineType get productionLineType;
   ProductionLineIoData get ioData;
 
   /// Must be set on [NodeType.consumer] and [NodeType.producer] nodes.
@@ -28,6 +28,9 @@ abstract interface class NodeElement<St, E extends NodeEvent>
 
   /// Total IO for this node
   ItemIo get itemIo;
+
+  /// Io Ratios for this node
+  ItemIo get ioRatios;
 
   @override
   NodeGeometryImpl get geometry;

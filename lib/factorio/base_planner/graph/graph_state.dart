@@ -14,6 +14,7 @@ abstract class GraphState {
 
   Set<Edge> get parents;
   Set<Edge> get children;
+  ItemIoImpl get ioRatios;
   GraphIo get ioData;
   NodeGeometryImpl get geometry;
 
@@ -29,7 +30,7 @@ abstract class GraphState {
 }
 
 class GraphStateImpl implements GraphState, ToJson {
-  static final uninitialised = GraphStateImpl._uninitialised();
+  static const uninitialised = GraphStateImpl._uninitialised();
 
   @override
   final String name;
@@ -60,7 +61,9 @@ class GraphStateImpl implements GraphState, ToJson {
   final Set<NodeElement> allNodes;
 
   @override
-  late final GraphIo ioData = GraphIo.fromState(this);
+  final ItemIoImpl ioRatios;
+  @override
+  final GraphIo ioData;
 
   GraphStateImpl({
     required Graph graph,
@@ -71,7 +74,9 @@ class GraphStateImpl implements GraphState, ToJson {
     required Iterable<Edge> edges,
     required Map<InGameItem, ProdLineNode> inputNodes,
     required Map<InGameItem, ProdLineNode> outputNodes,
+    required this.ioRatios,
     required this.geometry,
+    required this.ioData,
   }) : prodLineNodes = Set.unmodifiable(prodLineNodes),
        graphNodes = Set.unmodifiable(graphNodes),
        edges = Set.unmodifiable(edges),
@@ -101,7 +106,7 @@ class GraphStateImpl implements GraphState, ToJson {
     }
   }
 
-  GraphStateImpl._rootGraph(this.icon)
+  const GraphStateImpl._rootGraph(this.icon)
     : name = 'Root Graph',
       prodLineNodes = const {},
       graphNodes = const {},
@@ -113,9 +118,11 @@ class GraphStateImpl implements GraphState, ToJson {
       outputItems = const {},
       parents = const {},
       children = const {},
-      geometry = NodeGeometryImpl.uninitialised;
+      ioRatios = ItemIoImpl.empty,
+      geometry = NodeGeometryImpl.uninitialised,
+      ioData = const GraphIo.empty();
 
-  GraphStateImpl._uninitialised()
+  const GraphStateImpl._uninitialised()
     : name = '',
       icon = null,
       prodLineNodes = const {},
@@ -128,7 +135,9 @@ class GraphStateImpl implements GraphState, ToJson {
       outputItems = const {},
       parents = const {},
       children = const {},
-      geometry = NodeGeometryImpl.uninitialised;
+      ioRatios = ItemIoImpl.empty,
+      geometry = NodeGeometryImpl.uninitialised,
+      ioData = const GraphIo.empty();
 
   @override
   Map<String, dynamic> toJson() {
