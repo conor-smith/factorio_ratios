@@ -27,9 +27,9 @@ class ProdLineNode
   @override
   NodeGeometryImpl get geometry => state.geometry;
   @override
-  Set<Edge> get parents => state.parents;
+  Map<InGameItem, Set<Edge>> get parents => state.parents;
   @override
-  Set<Edge> get children => state.children;
+  Map<InGameItem, Set<Edge>> get children => state.children;
   @override
   ProductionLineIoData get ioData => state.ioData;
   @override

@@ -7,8 +7,8 @@ abstract class ProdLineNodeState {
 
   ProductionLine get productionLine;
 
-  Set<Edge> get parents;
-  Set<Edge> get children;
+  Map<InGameItem, Set<Edge>> get parents;
+  Map<InGameItem, Set<Edge>> get children;
   ProductionLineIoData get ioData;
   NodeGeometryImpl get geometry;
 }
@@ -25,9 +25,9 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   @override
   final NodeGeometryImpl geometry;
   @override
-  final Set<Edge> parents;
+  final Map<InGameItem, Set<Edge>> parents;
   @override
-  final Set<Edge> children;
+  final Map<InGameItem, Set<Edge>> children;
 
   @override
   final ProductionLine productionLine;
@@ -43,9 +43,14 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
     required this.productionLine,
     required this.ioData,
     required this.geometry,
-    required this.parents,
-    required this.children,
-  }) {
+    required Map<InGameItem, Set<Edge>> parents,
+    required Map<InGameItem, Set<Edge>> children,
+  }) : parents = Map.unmodifiable(
+         parents.map((item, edges) => MapEntry(item, Set.unmodifiable(edges))),
+       ),
+       children = Map.unmodifiable(
+         children.map((item, edges) => MapEntry(item, Set.unmodifiable(edges))),
+       ) {
     switch (node.nodeType) {
       case NodeType.combiner:
         if (productionLine.productionLineType != ProductionLineType.combiner) {
@@ -82,93 +87,61 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
     }
 
     // Make sure that, for each item outputted to pushExcess and weakPushExcess edges,
-    // All weakPushExcess priorities are properly numbered
-    // The sum of the pushExcess percentages does not exceed 1.0
-    Map<InGameItem, List<int>> weakPushPriorities = Map.fromIterable(
-      productionLine.outputItems,
-      value: (_) => [],
-    );
-    Map<InGameItem, double> pushPercentages = Map.fromIterable(
-      productionLine.outputItems,
-      value: (item) => 0.0,
-    );
+    // - All weakPushExcess priorities are properly numbered
+    // - The sum of the pushExcess percentages does not exceed 1.0
+    parents.forEach((item, itemEdges) {
+      var prioritiesList = itemEdges
+          .where((edge) => edge.edgeType == EdgeType.weakPushExcess)
+          .map((edge) => edge.priority)
+          .toSet();
 
-    for (var parent in parents) {
-      if (parent.edgeType == EdgeType.weakPushExcess) {
-        weakPushPriorities.update(
-          parent.item,
-          (priorities) => priorities..add(parent.priority),
-        );
-      } else if (parent.edgeType == EdgeType.pushExcess) {
-        pushPercentages.update(
-          parent.item,
-          (percentage) => percentage + parent.percentage,
-        );
-      }
-    }
-
-    weakPushPriorities.forEach((item, priorities) {
-      for (var i = 0; i < priorities.length; i++) {
-        if (!priorities.contains(i + 1)) {
+      for (var i = 0; i < prioritiesList.length; i++) {
+        if (!prioritiesList.contains(i + 1)) {
           throw NodeException(
             'Node $node is missing output edge with priority ${i + 1} for item $item',
           );
         }
       }
-    });
-    pushPercentages.forEach((item, totalPercentage) {
-      // Round down to nearest 0.01
-      var roundedPercentage = (totalPercentage * 100).floor();
 
-      if (roundedPercentage > 100) {
+      // Round to lowest 0.01
+      var percentageSum = itemEdges
+          .where((edge) => edge.edgeType == EdgeType.pushExcess)
+          .map((edge) => edge.percentage)
+          .fold(0.0, (val1, val2) => val1 + val2);
+
+      if ((percentageSum * 100).floor() > 100) {
         throw NodeException(
-          'Node $node pushExcess edges for item $item percentage sum == $totalPercentage',
+          'Output edges for item $item on node $node percentages sums to value $percentageSum',
         );
       }
     });
 
-    // Make sure that, for each item requested via requestItems and weakRequestItem edges,
-    // All weakRequestItem priorities are properly numbered
-    // The sum of the requestItem percentages does not exceed 1.0
-    Map<InGameItem, List<int>> weakRequestPriorities = Map.fromIterable(
-      productionLine.inputItems,
-      value: (_) => [],
-    );
-    Map<InGameItem, double> requestPercentages = Map.fromIterable(
-      productionLine.inputItems,
-      value: (item) => 0.0,
-    );
+    // Make sure that, for each item consumed via requestItems and weakRequestItems edges,
+    // - All weakPushExcess priorities are properly numbered
+    // - The sum of the pushExcess percentages does not exceed 1.0
+    children.forEach((item, itemEdges) {
+      var prioritiesList = itemEdges
+          .where((edge) => edge.edgeType == EdgeType.weakRequestItems)
+          .map((edge) => edge.priority)
+          .toSet();
 
-    for (var child in children) {
-      if (child.edgeType == EdgeType.weakRequestItems) {
-        weakRequestPriorities.update(
-          child.item,
-          (priorities) => priorities..add(child.priority),
-        );
-      } else if (child.edgeType == EdgeType.requestItems) {
-        requestPercentages.update(
-          child.item,
-          (percentage) => percentage + child.percentage,
-        );
-      }
-    }
-
-    weakRequestPriorities.forEach((item, priorities) {
-      for (var i = 0; i < priorities.length; i++) {
-        if (!priorities.contains(i + 1)) {
+      for (var i = 0; i < prioritiesList.length; i++) {
+        if (!prioritiesList.contains(i + 1)) {
           throw NodeException(
-            'Node $node is missing output edge with priority ${i + 1} for item $item',
+            'Node $node is missing input edge with priority ${i + 1} for item $item',
           );
         }
       }
-    });
-    requestPercentages.forEach((item, totalPercentage) {
-      // Round down to nearest 0.01
-      var roundedPercentage = (totalPercentage * 100).floor();
 
-      if (roundedPercentage > 100) {
+      // Round to lowest 0.01
+      var percentageSum = itemEdges
+          .where((edge) => edge.edgeType == EdgeType.requestItems)
+          .map((edge) => edge.percentage)
+          .fold(0.0, (val1, val2) => val1 + val2);
+
+      if ((percentageSum * 100).floor() > 100) {
         throw NodeException(
-          'Node $node requestInput edges for item $item percentage sum == $totalPercentage',
+          'Input edges for item $item on node $node percentages sums to value $percentageSum',
         );
       }
     });

@@ -26,7 +26,11 @@ class GeometryOperation {
     }
 
     var allEdges = selectedNodes
-        .expand((node) => node.parents.followedBy(node.children))
+        .expand(
+          (node) => node.parents.values
+              .followedBy(node.children.values)
+              .expand((edgeSet) => edgeSet),
+        )
         .toSet();
     for (var edge in allEdges) {
       var parentGeometry = _nodeGeometries[edge.parent];

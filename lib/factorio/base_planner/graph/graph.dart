@@ -40,9 +40,9 @@ class Graph
   @override
   NodeGeometryImpl get geometry => state.geometry;
   @override
-  Set<Edge> get parents => state.parents;
+  Map<InGameItem, Set<Edge>> get parents => state.parents;
   @override
-  Set<Edge> get children => state.children;
+  Map<InGameItem, Set<Edge>> get children => state.children;
   @override
   GraphIo get ioData => state.ioData;
   Set<Graph> get graphNodes => state.graphNodes;
@@ -321,7 +321,10 @@ class Graph
   void _createNodeTree(NodeElement startNode) {
     // Ignore items that already have an input edge
     var requiredInputs = startNode.inputItems.difference(
-      startNode.children.map((edge) => edge.item).toSet(),
+      startNode.children.values
+          .expand((edgeSet) => edgeSet)
+          .map((edge) => edge.item)
+          .toSet(),
     );
 
     for (var input in requiredInputs) {
@@ -455,7 +458,8 @@ class Graph
       nodeToRowNumber[node] = rowNumber;
       int nextRow = rowNumber + 1;
 
-      return node.children
+      return node.children.values
+          .expand((edgeSet) => edgeSet)
           .where((edge) => edge.child.nodeType != NodeType.input)
           .map(
             (edge) => _determineAndReturnMaxRowNumber(

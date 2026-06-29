@@ -38,8 +38,8 @@ abstract interface class NodeElement<St, E extends NodeEvent>
   @override
   NodeStateBuilder<St> getStateBuilder();
 
-  Set<Edge> get parents;
-  Set<Edge> get children;
+  Map<InGameItem, Set<Edge>> get parents;
+  Map<InGameItem, Set<Edge>> get children;
 
   Set<InGameItem> get inputItems;
   Set<InGameItem> get outputItems;

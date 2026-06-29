@@ -12,8 +12,8 @@ abstract class GraphState {
   Set<InGameItem> get inputItems;
   Set<InGameItem> get outputItems;
 
-  Set<Edge> get parents;
-  Set<Edge> get children;
+  Map<InGameItem, Set<Edge>> get parents;
+  Map<InGameItem, Set<Edge>> get children;
   ItemIoImpl get ioRatios;
   GraphIo get ioData;
   NodeGeometryImpl get geometry;
@@ -49,9 +49,9 @@ class GraphStateImpl implements GraphState, ToJson {
   @override
   final NodeGeometryImpl geometry;
   @override
-  final Set<Edge> parents;
+  final Map<InGameItem, Set<Edge>> parents;
   @override
-  final Set<Edge> children;
+  final Map<InGameItem, Set<Edge>> children;
   @override
   final Set<InGameItem> inputItems;
   @override
@@ -90,11 +90,19 @@ class GraphStateImpl implements GraphState, ToJson {
            outputNodes,
          ),
        ),
-       parents = Set.unmodifiable(
-         outputNodes.values.expand((node) => node.parents),
+       parents = Map.unmodifiable(
+         outputNodes.map(
+             (item, node) => MapEntry(item, node.parents[item] ?? const {}),
+           )
+           ..removeWhere((item, edges) => edges.isEmpty)
+           ..updateAll((item, edges) => Set.unmodifiable(edges)),
        ),
-       children = Set.unmodifiable(
-         inputNodes.values.expand((node) => node.children),
+       children = Map.unmodifiable(
+         inputNodes.map(
+             (item, node) => MapEntry(item, node.children[item] ?? const {}),
+           )
+           ..removeWhere((item, edges) => edges.isEmpty)
+           ..updateAll((item, edges) => Set.unmodifiable(edges)),
        ),
        inputItems = Set.unmodifiable(inputNodes.keys),
        outputItems = Set.unmodifiable(outputNodes.keys) {

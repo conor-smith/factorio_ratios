@@ -10,8 +10,8 @@ class ProdLineNodeStateBuilder
   NodeGeometryImpl _geometry;
   ProductionLine _productionLine;
   ProductionLineIoData _ioData;
-  final Set<Edge> _parents;
-  final Set<Edge> _children;
+  final Map<InGameItem, Set<Edge>> _parents;
+  final Map<InGameItem, Set<Edge>> _children;
 
   @override
   ItemIo? get internalConstraints => _internalConstraints;
@@ -25,10 +25,14 @@ class ProdLineNodeStateBuilder
   ProductionLine get productionLine => _productionLine;
   @override
   ProductionLineIoData get ioData => _ioData;
+
+  // Do not modify the values of these maps directly
   @override
-  late final Set<Edge> parents = UnmodifiableSetView(_parents);
+  late final Map<InGameItem, Set<Edge>> parents = UnmodifiableMapView(_parents);
   @override
-  late final Set<Edge> children = UnmodifiableSetView(_children);
+  late final Map<InGameItem, Set<Edge>> children = UnmodifiableMapView(
+    _children,
+  );
 
   ProdLineNodeStateBuilder.initial(this._node, this._productionLine)
     : _internalConstraints = _node.nodeType.hasInternalConstraints
@@ -66,8 +70,10 @@ class ProdLineNodeStateBuilder
       _itemIo = previousState.itemIo,
       _productionLine = previousState.productionLine,
       _geometry = previousState.geometry,
-      _parents = Set.from(previousState.parents),
-      _children = Set.from(previousState.children),
+      _parents = Map.from(previousState.parents)
+        ..updateAll((item, edgeSet) => Set.from(edgeSet)),
+      _children = Map.from(previousState.children)
+        ..updateAll((item, edgeSet) => Set.from(edgeSet)),
       _ioData = previousState.ioData {
     _node.basePlanner.getSnapshotBuilder().addToSnapshot(_node, this);
   }
@@ -76,7 +82,10 @@ class ProdLineNodeStateBuilder
   void removeSelf() {
     _node.basePlanner.getSnapshotBuilder().removeFromSnapshot(_node);
 
-    var edgesToRemove = [...parents, ...children];
+    var edgesToRemove = parents.values
+        .followedBy(children.values)
+        .expand((edgeSet) => edgeSet)
+        .toList();
 
     _parents.clear();
     _children.clear();
@@ -111,18 +120,18 @@ class ProdLineNodeStateBuilder
     var removedInputs = _productionLine.inputItems.difference(
       newLine.inputItems,
     );
-    var childrenToRemove = _children.where(
-      (child) => removedInputs.contains(child.item),
-    );
-
     var removedOutputs = _productionLine.outputItems.difference(
       newLine.outputItems,
     );
-    var parentsToRemove = _parents.where(
-      (parent) => removedOutputs.contains(parent.item),
-    );
 
-    for (var edgeToRemove in [...childrenToRemove, ...parentsToRemove]) {
+    var edgesToRemove = removedInputs
+        .map((output) => parents[output])
+        .followedBy(removedInputs.map((input) => children[input]))
+        .nonNulls
+        .expand((edgeSet) => edgeSet)
+        .toList();
+
+    for (var edgeToRemove in edgesToRemove) {
       edgeToRemove.getStateBuilder().removeSelf();
     }
 
@@ -140,119 +149,6 @@ class ProdLineNodeStateBuilder
   void calculateIo(ItemIoImpl constraints) =>
       _ioData = productionLine.calculateIoData(constraints);
 
-  ItemIoImpl calculateConstraintsFromEdges() {
-    ItemAmounts outputConstraints = Map.fromIterable(
-      productionLine.outputItems,
-      value: (item) => 0,
-    );
-    ItemAmounts inputConstraints = Map.fromIterable(
-      productionLine.inputItems,
-      value: (item) => 0,
-    );
-
-    var outputConstraintParents = _parents.where(
-      (parent) => parent.edgeType == EdgeType.requestItems,
-    );
-    for (var parent in outputConstraintParents) {
-      outputConstraints.update(
-        parent.item,
-        (itemConstraint) => itemConstraint + parent.amount,
-      );
-    }
-
-    var inputConstraintChildren = _parents.where(
-      (parent) => parent.edgeType == EdgeType.requestItems,
-    );
-    for (var child in inputConstraintChildren) {
-      inputConstraints.update(
-        child.item,
-        (itemConstraint) => itemConstraint + child.amount,
-      );
-    }
-
-    return ItemIoImpl(inputs: inputConstraints, outputs: outputConstraints);
-  }
-
-  ItemIoImpl updateEdgesAndReturnUnfulfilledIo() {
-    // TODO: optimise
-    if (ioData.io.isEmpty) {
-      for (var edge
-          in _parents
-              .where((parent) => parent.edgeType == EdgeType.pushExcess)
-              .followedBy(
-                _children.where(
-                  (child) => child.edgeType == EdgeType.requestItems,
-                ),
-              )) {
-        edge.getStateBuilder()._updateAmount(0);
-      }
-
-      return ItemIoImpl.empty;
-    } else {
-      var excessOutput = ItemAmounts.from(ioData.io.outputs);
-      var requiredInput = ItemAmounts.from(ioData.io.inputs);
-
-      var edgeConstraints = calculateConstraintsFromEdges();
-
-      excessOutput.updateAll(
-        (item, amount) => amount - (edgeConstraints.outputs[item] ?? 0),
-      );
-      requiredInput.updateAll(
-        (item, amount) => amount - (edgeConstraints.inputs[item] ?? 0),
-      );
-
-      ItemAmounts consumedOutput = {};
-      ItemAmounts fulfilledInput = {};
-
-      for (var pushExcessEdge in _parents.where(
-        (edge) => edge.edgeType == EdgeType.pushExcess,
-      )) {
-        if (!excessOutput.containsKey(pushExcessEdge.item)) {
-          throw NodeException(
-            'Node $_node cannot produce item ${pushExcessEdge.item}',
-          );
-        }
-
-        var edgeAmount =
-            excessOutput[pushExcessEdge.item]! * pushExcessEdge.percentage;
-        consumedOutput.update(
-          pushExcessEdge.item,
-          (amount) => amount + edgeAmount,
-          ifAbsent: () => edgeAmount,
-        );
-        pushExcessEdge.getStateBuilder()._updateAmount(edgeAmount);
-      }
-
-      for (var requestItemsEdge in _children.where(
-        (edge) => edge.edgeType == EdgeType.requestItems,
-      )) {
-        if (!requiredInput.containsKey(requestItemsEdge.item)) {
-          throw NodeException(
-            'Node $_node cannot consume item ${requestItemsEdge.item}',
-          );
-        }
-
-        var edgeAmount =
-            excessOutput[requestItemsEdge.item]! * requestItemsEdge.percentage;
-        fulfilledInput.update(
-          requestItemsEdge.item,
-          (amount) => amount + edgeAmount,
-          ifAbsent: () => edgeAmount,
-        );
-        requestItemsEdge.getStateBuilder()._updateAmount(edgeAmount);
-      }
-
-      excessOutput.updateAll(
-        (item, amount) => amount - (consumedOutput[item] ?? 0),
-      );
-      requiredInput.updateAll(
-        (item, amount) => amount - (fulfilledInput[item] ?? 0),
-      );
-
-      return ItemIoImpl(inputs: requiredInput, outputs: excessOutput);
-    }
-  }
-
   @override
   ProdLineNodeStateImpl build() => ProdLineNodeStateImpl(
     _node,
@@ -262,8 +158,8 @@ class ProdLineNodeStateBuilder
     productionLine: productionLine,
     ioData: ioData,
     geometry: geometry,
-    parents: parents,
-    children: children,
+    parents: parents..removeWhere((item, edges) => edges.isEmpty),
+    children: children..removeWhere((item, edges) => edges.isEmpty),
   );
 
   @override
@@ -275,12 +171,20 @@ class ProdLineNodeStateBuilder
   }
 
   @override
-  void _addParent(Edge parent) => _parents.add(parent);
+  void _addParent(Edge parent) => _parents.update(
+    parent.item,
+    (edges) => edges..add(parent),
+    ifAbsent: () => {parent},
+  );
   @override
-  void _addChild(Edge child) => _children.add(child);
+  void _addChild(Edge child) => _children.update(
+    child.item,
+    (edges) => edges..add(child),
+    ifAbsent: () => {child},
+  );
 
   @override
-  void _removeParent(Edge parent) => _parents.remove(parent);
+  void _removeParent(Edge parent) => _parents[parent.item]?.remove(parent);
   @override
-  void _removeChild(Edge child) => _children.remove(child);
+  void _removeChild(Edge child) => _children[child.item]?.remove(child);
 }

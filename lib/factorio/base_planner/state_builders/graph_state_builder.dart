@@ -54,11 +54,13 @@ class GraphStateBuilder
 
   // TODO - Cache these values
   @override
-  Set<Edge> get parents =>
-      _outputNodes.values.expand((node) => node.parents).toSet();
+  Map<InGameItem, Set<Edge>> get parents => _outputNodes.map(
+    (item, node) => MapEntry(item, node.parents[item] ?? const {}),
+  )..removeWhere((item, edgeSet) => edgeSet.isEmpty);
   @override
-  Set<Edge> get children =>
-      _inputNodes.values.expand((node) => node.children).toSet();
+  Map<InGameItem, Set<Edge>> get children => _inputNodes.map(
+    (item, node) => MapEntry(item, node.children[item] ?? const {}),
+  )..removeWhere((item, edgeSet) => edgeSet.isEmpty);
   @override
   Set<InGameItem> get inputItems => _inputNodes.keys.toSet();
   @override
@@ -225,7 +227,12 @@ class GraphStateBuilder
       child.parentProdLineNode.getStateBuilder()._removeChild(child);
 
   void _removeAllElementsAndSelfFromSnapshot() {
-    for (var edge in [...parents, ...children]) {
+    var edgesToRemove = parents.values
+        .followedBy(children.values)
+        .expand((edgeSet) => edgeSet)
+        .toList();
+
+    for (var edge in edgesToRemove) {
       edge.getStateBuilder().removeSelf();
     }
     for (BasePlannerElement element in [...allNodes, ...edges]) {
