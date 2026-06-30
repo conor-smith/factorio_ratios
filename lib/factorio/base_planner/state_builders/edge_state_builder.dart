@@ -1,7 +1,8 @@
 part of 'state_builders.dart';
 
-class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
-  final Edge _edge;
+class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
+  @override
+  final Edge _element;
 
   double _amount;
   double _requestedAmount;
@@ -9,8 +10,6 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   int _parentPriority;
   int _childPriority;
   EdgeGeometryImpl _geometry;
-
-  IoUpdateStatus _ioUpdateStatus;
 
   @override
   double get amount => _amount;
@@ -25,92 +24,74 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   @override
   EdgeGeometryImpl get geometry => _geometry;
 
-  @override
-  IoUpdateStatus get ioUpdateStatus => _ioUpdateStatus;
-
-  EdgeStateBuilder.initial(this._edge)
+  EdgeStateBuilder.initial(this._element)
     : _amount = 0,
       _requestedAmount = 0,
       _percentage = 0,
       _parentPriority = 0,
       _childPriority = 0,
       _geometry = EdgeGeometryImpl.uninitialised,
-      _ioUpdateStatus = IoUpdateStatus.pending {
-    if (_edge.edgeType == EdgeType.requestExcess) {
+      super.initial() {
+    if (_element.edgeType == EdgeType.requestExcess) {
       _parentPriority = 1;
       _childPriority = 1;
     } else {
       _percentage = 1.0;
     }
+    _queueIoUpdate();
 
-    _edge.basePlanner.getSnapshotBuilder().addToSnapshot(_edge, this);
-    _edge.basePlanner.getSnapshotBuilder()
-      ..addToSnapshot(_edge, this)
-      ..queueIoUpdate(_edge);
+    _element.parentGraph.getStateBuilder()._edges.add(_element);
 
-    _edge.parentGraph.getStateBuilder()._edges.add(_edge);
-
-    _edge.parentProdLine.getStateBuilder()._children.update(
-      _edge.item,
-      (edges) => edges..add(_edge),
-      ifAbsent: () => {_edge},
+    _element.parentProdLine.getStateBuilder()._children.update(
+      _element.item,
+      (edges) => edges..add(_element),
+      ifAbsent: () => {_element},
     );
 
-    _edge.childProdLine.getStateBuilder()._parents.update(
-      _edge.item,
-      (edges) => edges..add(_edge),
-      ifAbsent: () => {_edge},
+    _element.childProdLine.getStateBuilder()._parents.update(
+      _element.item,
+      (edges) => edges..add(_element),
+      ifAbsent: () => {_element},
     );
 
     // If parent is a graph, this just creates a new statebuilder
     // This ensures graph.parents and graph.children, which are determined dynamically, are updated
-    _edge.parent.getStateBuilder();
-    _edge.child.getStateBuilder();
+    _element.parent.getStateBuilder();
+    _element.child.getStateBuilder();
   }
 
-  EdgeStateBuilder.from(this._edge, EdgeStateImpl previousState)
+  EdgeStateBuilder.from(this._element, EdgeStateImpl previousState)
     : _amount = previousState.amount,
       _percentage = previousState.percentage,
       _parentPriority = previousState.parentPriority,
       _childPriority = previousState.childPriority,
       _geometry = previousState.geometry,
-      _requestedAmount = previousState.requestedAmount,
-      _ioUpdateStatus = IoUpdateStatus.notRequired {
-    _edge.basePlanner.getSnapshotBuilder().addToSnapshot(_edge, this);
-  }
-
-  void _queueIoUpdate() {
-    if (_ioUpdateStatus == IoUpdateStatus.notRequired) {
-      _ioUpdateStatus = IoUpdateStatus.pending;
-      _edge.basePlanner.getSnapshotBuilder().queueIoUpdate(_edge);
-    }
-  }
-
-  @override
-  void performIoUpdate(Set<BasePlannerElement> visitedElements) {
-    // TODO: implement performIoUpdate
-  }
+      _requestedAmount = previousState.requestedAmount;
 
   @override
   void removeSelf() {
-    _edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(_edge);
+    _snapshotBuilder.removeFromSnapshot(_element);
 
-    _edge.parentProdLine.getStateBuilder()._children[_edge.item]!.remove(_edge);
-    _edge.childProdLine.getStateBuilder()._parents[_edge.item]!.remove(_edge);
-    _edge.parentGraph.getStateBuilder()._edges.remove(_edge);
+    _element.parentProdLine.getStateBuilder()._children[_element.item]!.remove(
+      _element,
+    );
+    _element.childProdLine.getStateBuilder()._parents[_element.item]!.remove(
+      _element,
+    );
+    _element.parentGraph.getStateBuilder()._edges.remove(_element);
 
-    switch (_edge.edgeType) {
+    switch (_element.edgeType) {
       case EdgeType.requestItems:
-        _edge.childProdLine.getStateBuilder()._queueIoUpdate();
+        _element.childProdLine.getStateBuilder()._queueIoUpdate();
 
       case EdgeType.pushExcess:
-        _edge.parentProdLine.getStateBuilder()._queueIoUpdate();
+        _element.parentProdLine.getStateBuilder()._queueIoUpdate();
 
       case EdgeType.requestExcess:
-        var edgesToUpdate = _edge.parentProdLine.children[_edge.item]!
+        var edgesToUpdate = _element.parentProdLine.children[_element.item]!
             .where((edge) => edge.edgeType == EdgeType.requestItems)
             .followedBy(
-              _edge.childProdLine.parents[_edge.item]!.where(
+              _element.childProdLine.parents[_element.item]!.where(
                 (edge) => edge.edgeType == EdgeType.pushExcess,
               ),
             );
@@ -122,8 +103,8 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
 
     // If parent is a graph, this just creates a new statebuilder
     // This ensures graph.parents and graph.children, which are determined dynamically, are updated
-    _edge.parent.getStateBuilder();
-    _edge.child.getStateBuilder();
+    _element.parent.getStateBuilder();
+    _element.child.getStateBuilder();
   }
 
   void updatePercentage(double newPercentage) {
@@ -147,11 +128,12 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
     }
   }
 
+  @override
   void updateGeometry(EdgeGeometryImpl geometry) => _geometry = geometry;
 
   @override
   EdgeStateImpl build() => EdgeStateImpl(
-    _edge,
+    _element,
     amount: _amount,
     requestedAmount: _requestedAmount,
     percentage: _percentage,
@@ -161,14 +143,13 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   );
 
   void _queueChildrenAffectedByRemoval() {
-    switch (_edge.edgeType) {
+    switch (_element.edgeType) {
       case EdgeType.requestItems:
-        _edge.childProdLine.getStateBuilder()._queueIoUpdate();
+        _element.childProdLine.getStateBuilder()._queueIoUpdate();
 
       case EdgeType.requestExcess:
-        var edgesToUpdate = _edge.childProdLine.parents[_edge.item]!.where(
-          (edge) => edge.edgeType == EdgeType.pushExcess,
-        );
+        var edgesToUpdate = _element.childProdLine.parents[_element.item]!
+            .where((edge) => edge.edgeType == EdgeType.pushExcess);
 
         for (var toUpdate in edgesToUpdate) {
           toUpdate.getStateBuilder()._queueIoUpdate();
@@ -180,14 +161,13 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   }
 
   void _queueParentsAffectedByRemoval() {
-    switch (_edge.edgeType) {
+    switch (_element.edgeType) {
       case EdgeType.pushExcess:
-        _edge.parentProdLine.getStateBuilder()._queueIoUpdate();
+        _element.parentProdLine.getStateBuilder()._queueIoUpdate();
 
       case EdgeType.requestExcess:
-        var edgesToUpdate = _edge.parentProdLine.children[_edge.item]!.where(
-          (edge) => edge.edgeType == EdgeType.requestItems,
-        );
+        var edgesToUpdate = _element.parentProdLine.children[_element.item]!
+            .where((edge) => edge.edgeType == EdgeType.requestItems);
 
         for (var toUpdate in edgesToUpdate) {
           toUpdate.getStateBuilder()._queueIoUpdate();

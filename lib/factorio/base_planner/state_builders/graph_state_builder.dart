@@ -4,9 +4,10 @@ part of 'state_builders.dart';
 // "remove...()" function still carry out all necessary actions, even if unnecessary
 // eg. If graph.getStateBuilder().removeEdge(edge) is called before
 // edge.getStateBuilder().removeSelf(), edgeStateBuilder.removeSelf() will still be called
-class GraphStateBuilder
-    implements NodeStateBuilder<GraphStateImpl>, GraphState {
-  final Graph _graph;
+class GraphStateBuilder extends StateBuilder<GraphStateImpl>
+    implements GraphState {
+  @override
+  final Graph _element;
 
   String _name;
   Icon? _icon;
@@ -73,7 +74,10 @@ class GraphStateBuilder
   ).toSet();
 
   @override
-  IoUpdateStatus get ioUpdateStatus => IoUpdateStatus.complete;
+  IoUpdateStatus get _ioUpdateStatus => IoUpdateStatus.complete;
+  @override
+  set _ioUpdateStatus(_) =>
+      throw const GraphException('Cannot set update status on graph');
 
   /// DO NOT modify this value outside this class
   Map<InGameItem, List<NodeElement>> get cachedNodeOutputIndex {
@@ -89,24 +93,23 @@ class GraphStateBuilder
     return _cachedNodeOutputIndex!;
   }
 
-  GraphStateBuilder.initial(this._graph)
+  GraphStateBuilder.initial(this._element)
     : _name = 'graph',
-      _icon = _graph.surface?.icon,
+      _icon = _element.surface?.icon,
       _prodLineNodes = {},
       _graphNodes = {},
       _inputNodes = {},
       _outputNodes = {},
       _edges = {},
-      _geometry = NodeGeometryImpl.uninitialised {
-    _graph.basePlanner.getSnapshotBuilder().addToSnapshot(_graph, this);
-
-    if (!_graph.isRoot) {
-      _graph.parentGraph.getStateBuilder()._graphNodes.add(_graph);
-      _graph.parentGraph.getStateBuilder()._addNodeToCaches(_graph);
+      _geometry = NodeGeometryImpl.uninitialised,
+      super.initial() {
+    if (!_element.isRoot) {
+      _element.parentGraph.getStateBuilder()._graphNodes.add(_element);
+      _element.parentGraph.getStateBuilder()._addNodeToCaches(_element);
     }
   }
 
-  GraphStateBuilder.from(this._graph, GraphStateImpl previousState)
+  GraphStateBuilder.from(this._element, GraphStateImpl previousState)
     : _name = previousState.name,
       _icon = previousState.icon,
       _prodLineNodes = Set.from(previousState.prodLineNodes),
@@ -114,24 +117,19 @@ class GraphStateBuilder
       _inputNodes = Map.from(previousState.inputNodes),
       _outputNodes = Map.from(previousState.outputNodes),
       _edges = Set.from(previousState.edges),
-      _geometry = previousState.geometry {
-    _graph.basePlanner.getSnapshotBuilder().addToSnapshot(_graph, this);
-  }
+      _geometry = previousState.geometry;
+
+  // These two methods do nothing. Just here for show
+  @override
+  void performIoUpdate(Set<BasePlannerElement> visitedElements) {}
 
   @override
-  void performIoUpdate(Set<BasePlannerElement> visitedElements) =>
-      throw const GraphException(
-        'Cannot perform IO update on graph state builder',
-      );
+  void _queueIoUpdate() {}
 
   @override
   void removeSelf() {
-    _recursivelyRemoveFromSnapshot();
-
-    var snapshotBuilder = _graph.basePlanner.getSnapshotBuilder();
-
     for (var parent in parents.values.expand((edgeSet) => edgeSet)) {
-      snapshotBuilder.removeFromSnapshot(parent);
+      _snapshotBuilder.removeFromSnapshot(parent);
 
       parent.parentProdLine.getStateBuilder()._children[parent.item]!.remove(
         parent,
@@ -144,7 +142,7 @@ class GraphStateBuilder
     }
 
     for (var child in children.values.expand((edgeSet) => edgeSet)) {
-      snapshotBuilder.removeFromSnapshot(child);
+      _snapshotBuilder.removeFromSnapshot(child);
 
       child.childProdLine.getStateBuilder()._parents[child.item]!.remove(child);
       child.getStateBuilder()._queueChildrenAffectedByRemoval();
@@ -153,6 +151,8 @@ class GraphStateBuilder
       // This ensures graph.parents, which is determined dynamically, is updated
       child.child.getStateBuilder();
     }
+
+    _recursivelyRemoveFromSnapshot();
   }
 
   void updateName(String newName) => _name = newName;
@@ -165,7 +165,7 @@ class GraphStateBuilder
 
   @override
   GraphStateImpl build() => GraphStateImpl(
-    graph: _graph,
+    graph: _element,
     icon: _icon,
     name: _name,
     prodLineNodes: _prodLineNodes,
@@ -179,19 +179,17 @@ class GraphStateBuilder
   );
 
   void _recursivelyRemoveFromSnapshot() {
-    var snapShotBuilder = _graph.basePlanner.getSnapshotBuilder();
-
-    snapShotBuilder.removeFromSnapshot(_graph);
+    _snapshotBuilder.removeFromSnapshot(_element);
 
     var allProdLineNodes = _prodLineNodes
         .followedBy(_inputNodes.values)
         .followedBy(_outputNodes.values);
 
     for (var prodLine in allProdLineNodes) {
-      snapShotBuilder.removeFromSnapshot(prodLine);
+      _snapshotBuilder.removeFromSnapshot(prodLine);
     }
     for (var edge in _edges) {
-      snapShotBuilder.removeFromSnapshot(edge);
+      _snapshotBuilder.removeFromSnapshot(edge);
     }
 
     for (var graphNode in _graphNodes) {
@@ -263,8 +261,8 @@ class GraphStateBuilder
         _cachedNodeOutputIndex![output]?.remove(node);
       }
 
-      if (node.nodeType == NodeType.output && _graph.parentGraph.hasBuilder) {
-        _graph.parentGraph.getStateBuilder()._clearCachedOutputIndex();
+      if (node.nodeType == NodeType.output && _element.parentGraph.hasBuilder) {
+        _element.parentGraph.getStateBuilder()._clearCachedOutputIndex();
       }
     } else if (_cachedDisposalNodes != null &&
         node.nodeType == NodeType.disposal) {

@@ -1,8 +1,9 @@
 part of 'state_builders.dart';
 
-class ProdLineNodeStateBuilder
-    implements NodeStateBuilder<ProdLineNodeStateImpl>, ProdLineNodeState {
-  final ProdLineNode _node;
+class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
+    implements ProdLineNodeState {
+  @override
+  final ProdLineNode _element;
 
   ItemIoImpl? _internalConstraints;
   ItemIoBuilder _edgeConstraints;
@@ -12,8 +13,6 @@ class ProdLineNodeStateBuilder
   ProductionLineIoData _ioData;
   final Map<InGameItem, Set<Edge>> _parents;
   final Map<InGameItem, Set<Edge>> _children;
-
-  IoUpdateStatus _ioUpdateStatus;
 
   @override
   ItemIo? get internalConstraints => _internalConstraints;
@@ -28,9 +27,6 @@ class ProdLineNodeStateBuilder
   @override
   ProductionLineIoData get ioData => _ioData;
 
-  @override
-  IoUpdateStatus get ioUpdateStatus => _ioUpdateStatus;
-
   // Do not modify the values of these maps directly
   @override
   late final Map<InGameItem, Set<Edge>> parents = UnmodifiableMapView(_parents);
@@ -39,8 +35,8 @@ class ProdLineNodeStateBuilder
     _children,
   );
 
-  ProdLineNodeStateBuilder.initial(this._node, this._productionLine)
-    : _internalConstraints = _node.nodeType.hasInternalConstraints
+  ProdLineNodeStateBuilder.initial(this._element, this._productionLine)
+    : _internalConstraints = _element.nodeType.hasInternalConstraints
           ? ItemIoImpl.empty
           : null,
       _edgeConstraints = ItemIoBuilder(),
@@ -49,13 +45,9 @@ class ProdLineNodeStateBuilder
       _ioData = ProductionLineIoData.uninitialised,
       _parents = {},
       _children = {},
-      _ioUpdateStatus = IoUpdateStatus.pending {
-    _node.basePlanner.getSnapshotBuilder()
-      ..addToSnapshot(_node, this)
-      ..queueIoUpdate(_node);
-
-    var parentGraph = _node.parentGraph;
-    switch (_node.nodeType) {
+      super.initial() {
+    var parentGraph = _element.parentGraph;
+    switch (_element.nodeType) {
       case NodeType.input:
         var inputItem = productionLine.inputItems.first;
         if (parentGraph.inputNodes.containsKey(inputItem)) {
@@ -63,7 +55,7 @@ class ProdLineNodeStateBuilder
             'Input node for item $inputItem in graph $parentGraph already exists',
           );
         } else {
-          parentGraph.getStateBuilder()._inputNodes[inputItem] = _node;
+          parentGraph.getStateBuilder()._inputNodes[inputItem] = _element;
         }
 
       case NodeType.output:
@@ -73,7 +65,7 @@ class ProdLineNodeStateBuilder
             'Output node for item $outputItem in graph $parentGraph already exists',
           );
         } else {
-          parentGraph.getStateBuilder()._outputNodes[outputItem] = _node;
+          parentGraph.getStateBuilder()._outputNodes[outputItem] = _element;
         }
 
         // Clear cached output index of "grandparent graph" if required
@@ -82,14 +74,16 @@ class ProdLineNodeStateBuilder
         }
 
       default:
-        _node.parentGraph.getStateBuilder()._prodLineNodes.add(_node);
+        _element.parentGraph.getStateBuilder()._prodLineNodes.add(_element);
     }
 
-    parentGraph.getStateBuilder()._addNodeToCaches(_node);
+    parentGraph.getStateBuilder()._addNodeToCaches(_element);
   }
 
-  ProdLineNodeStateBuilder.from(this._node, ProdLineNodeStateImpl previousState)
-    : _internalConstraints = previousState.internalConstraints,
+  ProdLineNodeStateBuilder.from(
+    this._element,
+    ProdLineNodeStateImpl previousState,
+  ) : _internalConstraints = previousState.internalConstraints,
       _edgeConstraints = ItemIoBuilder.from(previousState.edgeConstraints),
       _itemIo = previousState.itemIo,
       _productionLine = previousState.productionLine,
@@ -98,32 +92,18 @@ class ProdLineNodeStateBuilder
         ..updateAll((item, edgeSet) => Set.from(edgeSet)),
       _children = Map.from(previousState.children)
         ..updateAll((item, edgeSet) => Set.from(edgeSet)),
-      _ioData = previousState.ioData,
-      _ioUpdateStatus = IoUpdateStatus.notRequired {
-    _node.basePlanner.getSnapshotBuilder().addToSnapshot(_node, this);
-
-    if (_node.parentGraph.hasBuilder) {
-      _node.parentGraph.getStateBuilder()._addNodeToCaches(_node);
-    }
-  }
-
-  void _queueIoUpdate() {
-    if (_ioUpdateStatus != IoUpdateStatus.notRequired) {
-      _ioUpdateStatus = IoUpdateStatus.pending;
-      _node.basePlanner.getSnapshotBuilder().queueIoUpdate(_node);
+      _ioData = previousState.ioData {
+    if (_element.parentGraph.hasBuilder) {
+      _element.parentGraph.getStateBuilder()._addNodeToCaches(_element);
     }
   }
 
   @override
-  void performIoUpdate(Set<BasePlannerElement> visitedElements) {
-    // TODO: implement performIoUpdate
-  }
+  void performIoUpdate(Set<BasePlannerElement> visitedElements) {}
 
   @override
   void removeSelf() {
-    var snapshotBuilder = _node.basePlanner.getSnapshotBuilder();
-
-    snapshotBuilder.removeFromSnapshot(_node);
+    _snapshotBuilder.removeFromSnapshot(_element);
     for (var parent in _parents.values.expand((edgeSet) => edgeSet)) {
       _removeParentFromDownstreamElements(parent);
     }
@@ -135,8 +115,8 @@ class ProdLineNodeStateBuilder
     _parents.clear();
     _children.clear();
 
-    var parentGraph = _node.parentGraph;
-    switch (_node.nodeType) {
+    var parentGraph = _element.parentGraph;
+    switch (_element.nodeType) {
       case NodeType.input:
         parentGraph.getStateBuilder()._inputNodes.remove(
           _productionLine.inputItems.first,
@@ -148,10 +128,10 @@ class ProdLineNodeStateBuilder
         );
 
       default:
-        parentGraph.getStateBuilder()._prodLineNodes.remove(_node);
+        parentGraph.getStateBuilder()._prodLineNodes.remove(_element);
     }
 
-    parentGraph.getStateBuilder()._removeNodeFromCaches(_node);
+    parentGraph.getStateBuilder()._removeNodeFromCaches(_element);
   }
 
   @override
@@ -199,18 +179,18 @@ class ProdLineNodeStateBuilder
       _removeChildFromDownstreamElements(child);
     }
 
-    if (_node.parentGraph.hasBuilder) {
-      if (_node.nodeType.outputPriority < 100) {
-        _node.parentGraph.getStateBuilder()._clearCachedOutputIndex();
-      } else if (_node.nodeType == NodeType.disposal) {
-        _node.parentGraph.getStateBuilder()._clearCachedDisposalNodes();
+    if (_element.parentGraph.hasBuilder) {
+      if (_element.nodeType.outputPriority < 100) {
+        _element.parentGraph.getStateBuilder()._clearCachedOutputIndex();
+      } else if (_element.nodeType == NodeType.disposal) {
+        _element.parentGraph.getStateBuilder()._clearCachedDisposalNodes();
       }
     }
   }
 
   @override
   ProdLineNodeStateImpl build() => ProdLineNodeStateImpl(
-    _node,
+    _element,
     internalConstraints: _internalConstraints,
     edgeConstraints: _edgeConstraints.build(),
     itemIo: _itemIo,
@@ -222,7 +202,7 @@ class ProdLineNodeStateBuilder
   );
 
   void _removeParentFromDownstreamElements(Edge parent) {
-    _node.basePlanner.getSnapshotBuilder().removeFromSnapshot(parent);
+    _snapshotBuilder.removeFromSnapshot(parent);
 
     parent.parentProdLine.getStateBuilder()._children[parent.item]!.remove(
       parent,
@@ -236,7 +216,7 @@ class ProdLineNodeStateBuilder
   }
 
   void _removeChildFromDownstreamElements(Edge child) {
-    _node.basePlanner.getSnapshotBuilder().removeFromSnapshot(child);
+    _snapshotBuilder.removeFromSnapshot(child);
 
     child.childProdLine.getStateBuilder()._parents[child.item]!.remove(child);
 

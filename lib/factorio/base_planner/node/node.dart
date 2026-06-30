@@ -21,9 +21,7 @@ abstract interface class NodeElement<St, E extends NodeEvent>
   /// Otherwise null.
   ItemIo? get internalConstraints;
 
-  /// The constraints set by parent edges of type [EdgeType.requestItems] and
-  /// [EdgeType.weakRequestItems], and by child edges of type
-  /// [EdgeType.pushExcess] and [EdgeType.weakPushExcess]
+  /// TODO - Document
   ItemIo get edgeConstraints;
 
   /// Total IO for this node
@@ -34,9 +32,6 @@ abstract interface class NodeElement<St, E extends NodeEvent>
 
   @override
   NodeGeometryImpl get geometry;
-
-  @override
-  NodeStateBuilder<St> getStateBuilder();
 
   Map<InGameItem, Set<Edge>> get parents;
   Map<InGameItem, Set<Edge>> get children;
