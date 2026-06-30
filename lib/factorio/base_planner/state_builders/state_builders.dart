@@ -1,6 +1,5 @@
 import 'dart:collection';
 
-import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
@@ -17,8 +16,15 @@ part 'graph_state_builder.dart';
 
 abstract interface class StateBuilder<T> implements Builder<T> {
   void removeSelf();
+
+  IoUpdateStatus get ioUpdateStatus;
+
+  void performIoUpdate();
+  void _queueIoUpdate();
 }
 
 abstract interface class NodeStateBuilder<T> implements StateBuilder<T> {
   void updateGeometry(NodeGeometryImpl geometry);
 }
+
+enum IoUpdateStatus { notRequired, pending, complete }

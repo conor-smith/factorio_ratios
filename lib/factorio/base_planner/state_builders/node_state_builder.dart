@@ -13,6 +13,8 @@ class ProdLineNodeStateBuilder
   final Map<InGameItem, Set<Edge>> _parents;
   final Map<InGameItem, Set<Edge>> _children;
 
+  IoUpdateStatus _ioUpdateStatus;
+
   @override
   ItemIo? get internalConstraints => _internalConstraints;
   @override
@@ -25,6 +27,9 @@ class ProdLineNodeStateBuilder
   ProductionLine get productionLine => _productionLine;
   @override
   ProductionLineIoData get ioData => _ioData;
+
+  @override
+  IoUpdateStatus get ioUpdateStatus => _ioUpdateStatus;
 
   // Do not modify the values of these maps directly
   @override
@@ -43,8 +48,11 @@ class ProdLineNodeStateBuilder
       _geometry = NodeGeometryImpl.uninitialised,
       _ioData = ProductionLineIoData.uninitialised,
       _parents = {},
-      _children = {} {
-    _node.basePlanner.getSnapshotBuilder().addToSnapshot(_node, this);
+      _children = {},
+      _ioUpdateStatus = IoUpdateStatus.pending {
+    _node.basePlanner.getSnapshotBuilder()
+      ..addToSnapshot(_node, this)
+      ..queueIoUpdate(_node);
 
     var parentGraph = _node.parentGraph;
     switch (_node.nodeType) {
@@ -90,12 +98,26 @@ class ProdLineNodeStateBuilder
         ..updateAll((item, edgeSet) => Set.from(edgeSet)),
       _children = Map.from(previousState.children)
         ..updateAll((item, edgeSet) => Set.from(edgeSet)),
-      _ioData = previousState.ioData {
+      _ioData = previousState.ioData,
+      _ioUpdateStatus = IoUpdateStatus.notRequired {
     _node.basePlanner.getSnapshotBuilder().addToSnapshot(_node, this);
 
     if (_node.parentGraph.hasBuilder) {
       _node.parentGraph.getStateBuilder()._addNodeToCaches(_node);
     }
+  }
+
+  @override
+  void _queueIoUpdate() {
+    if (_ioUpdateStatus != IoUpdateStatus.notRequired) {
+      _ioUpdateStatus = IoUpdateStatus.pending;
+      _node.basePlanner.getSnapshotBuilder().queueIoUpdate(_node);
+    }
+  }
+
+  @override
+  void performIoUpdate() {
+    // TODO: implement performIoUpdate
   }
 
   @override
@@ -136,10 +158,16 @@ class ProdLineNodeStateBuilder
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
-  void updateRequirements(ItemIoImpl newRequirements) =>
-      _internalConstraints = newRequirements;
+  void updateInternalConstraints(ItemIoImpl newConstraints) {
+    if (_internalConstraints != newConstraints) {
+      _internalConstraints = newConstraints;
+      _queueIoUpdate();
+    }
+  }
 
   void updateProductionLine(ProductionLine newLine) {
+    _queueIoUpdate();
+
     var removedOutputs = _productionLine.outputItems.difference(
       newLine.outputItems,
     );
@@ -181,9 +209,6 @@ class ProdLineNodeStateBuilder
     }
   }
 
-  void calculateIo(ItemIoImpl constraints) =>
-      _ioData = productionLine.calculateIoData(constraints);
-
   @override
   ProdLineNodeStateImpl build() => ProdLineNodeStateImpl(
     _node,
@@ -200,9 +225,11 @@ class ProdLineNodeStateBuilder
   void _removeParentFromDownstreamElements(Edge parent) {
     _node.basePlanner.getSnapshotBuilder().removeFromSnapshot(parent);
 
-    parent.parentProdLine.getStateBuilder()._children[parent.item]?.remove(
+    parent.parentProdLine.getStateBuilder()._children[parent.item]!.remove(
       parent,
     );
+
+    parent.getStateBuilder()._queueParentsAffectedByRemoval();
 
     // If parent is a graph, this just creates a new statebuilder
     // This ensures graph.children, which is determined dynamically, is updated
@@ -212,7 +239,9 @@ class ProdLineNodeStateBuilder
   void _removeChildFromDownstreamElements(Edge child) {
     _node.basePlanner.getSnapshotBuilder().removeFromSnapshot(child);
 
-    child.childProdLine.getStateBuilder()._parents[child.item]?.remove(child);
+    child.childProdLine.getStateBuilder()._parents[child.item]!.remove(child);
+
+    child.getStateBuilder()._queueChildrenAffectedByRemoval();
 
     // If parent is a graph, this just creates a new statebuilder
     // This ensures graph.parents, which is determined dynamically, is updated

@@ -72,6 +72,9 @@ class GraphStateBuilder
     _outputNodes,
   ).toSet();
 
+  @override
+  IoUpdateStatus get ioUpdateStatus => IoUpdateStatus.complete;
+
   /// DO NOT modify this value outside this class
   Map<InGameItem, List<NodeElement>> get cachedNodeOutputIndex {
     _cachedNodeOutputIndex ??= _createNodeOutputIndex();
@@ -116,6 +119,15 @@ class GraphStateBuilder
   }
 
   @override
+  void performIoUpdate() => throw const GraphException(
+    'Cannot perform IO update on graph state builder',
+  );
+  @override
+  void _queueIoUpdate() => throw const GraphException(
+    'Cannot perform IO update on graph state builder',
+  );
+
+  @override
   void removeSelf() {
     _recursivelyRemoveFromSnapshot();
 
@@ -124,9 +136,10 @@ class GraphStateBuilder
     for (var parent in parents.values.expand((edgeSet) => edgeSet)) {
       snapshotBuilder.removeFromSnapshot(parent);
 
-      parent.parentProdLine.getStateBuilder()._children[parent.item]?.remove(
+      parent.parentProdLine.getStateBuilder()._children[parent.item]!.remove(
         parent,
       );
+      parent.getStateBuilder()._queueParentsAffectedByRemoval();
 
       // If parent is a graph, this just creates a new statebuilder
       // This ensures graph.children, which is determined dynamically, is updated
@@ -136,7 +149,8 @@ class GraphStateBuilder
     for (var child in children.values.expand((edgeSet) => edgeSet)) {
       snapshotBuilder.removeFromSnapshot(child);
 
-      child.childProdLine.getStateBuilder()._parents[child.item]?.remove(child);
+      child.childProdLine.getStateBuilder()._parents[child.item]!.remove(child);
+      child.getStateBuilder()._queueChildrenAffectedByRemoval();
 
       // If parent is a graph, this just creates a new statebuilder
       // This ensures graph.parents, which is determined dynamically, is updated

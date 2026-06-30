@@ -9,19 +9,18 @@ class Snapshot {
 }
 
 class SnapshotBuilder implements Builder<Snapshot> {
-  final BasePlanner _basePlanner;
-
   final Snapshot _previousSnapshot;
 
-  final Map<BasePlannerElement, Builder<dynamic>> _updatedElements = {};
+  final Map<BasePlannerElement, Builder> _updatedElements = {};
   final Set<BasePlannerElement> _removedElements = {};
+  final Queue<BasePlannerElement> _queuedIoUpdates = Queue();
 
   bool _isBuilding = false;
 
   bool get hasChanges =>
       _updatedElements.isNotEmpty || _removedElements.isNotEmpty;
 
-  SnapshotBuilder._from(this._basePlanner, this._previousSnapshot);
+  SnapshotBuilder._from(this._previousSnapshot);
 
   void throwIfNotBuilding() {
     if (!_isBuilding) {
@@ -39,6 +38,10 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   void removeFromSnapshot(BasePlannerElement element) {
     _removedElements.add(element);
+  }
+
+  void queueIoUpdate(BasePlannerElement element) {
+    _queuedIoUpdates.addLast(element);
   }
 
   @override
