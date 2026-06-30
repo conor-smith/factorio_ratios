@@ -18,7 +18,6 @@ part 'graph_state_builder.dart';
 
 abstract class StateBuilder<T> implements Builder<T> {
   BasePlannerElement get _element;
-  IoUpdateStatus _ioUpdateStatus = IoUpdateStatus.notRequired;
   SnapshotBuilder get _snapshotBuilder =>
       _element.basePlanner.getSnapshotBuilder();
 
@@ -26,28 +25,6 @@ abstract class StateBuilder<T> implements Builder<T> {
     _snapshotBuilder.addToSnapshot(_element, this);
   }
 
-  StateBuilder.initial() {
-    _snapshotBuilder.addToSnapshot(_element, this);
-    _queueIoUpdate();
-  }
-
   void removeSelf();
   void updateGeometry(covariant Geometry geometry);
-
-  void performIoUpdate(Set<BasePlannerElement> visitedElements) {
-    if (visitedElements.contains(_element)) {
-      throw BasePlannerException(
-        'Cyclical dependency detected at element $_element',
-      );
-    }
-  }
-
-  void _queueIoUpdate() {
-    if (_ioUpdateStatus == IoUpdateStatus.notRequired) {
-      _ioUpdateStatus = IoUpdateStatus.pending;
-      _element.basePlanner.getSnapshotBuilder().queueIoUpdate(_element);
-    }
-  }
 }
-
-enum IoUpdateStatus { notRequired, pending, complete }

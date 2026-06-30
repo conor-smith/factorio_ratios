@@ -30,15 +30,13 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
       _percentage = 0,
       _parentPriority = 0,
       _childPriority = 0,
-      _geometry = EdgeGeometryImpl.uninitialised,
-      super.initial() {
+      _geometry = EdgeGeometryImpl.uninitialised {
     if (_element.edgeType == EdgeType.requestExcess) {
       _parentPriority = 1;
       _childPriority = 1;
     } else {
       _percentage = 1.0;
     }
-    _queueIoUpdate();
 
     _element.parentGraph.getStateBuilder()._edges.add(_element);
 
@@ -80,27 +78,6 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
     );
     _element.parentGraph.getStateBuilder()._edges.remove(_element);
 
-    switch (_element.edgeType) {
-      case EdgeType.requestItems:
-        _element.childProdLine.getStateBuilder()._queueIoUpdate();
-
-      case EdgeType.pushExcess:
-        _element.parentProdLine.getStateBuilder()._queueIoUpdate();
-
-      case EdgeType.requestExcess:
-        var edgesToUpdate = _element.parentProdLine.children[_element.item]!
-            .where((edge) => edge.edgeType == EdgeType.requestItems)
-            .followedBy(
-              _element.childProdLine.parents[_element.item]!.where(
-                (edge) => edge.edgeType == EdgeType.pushExcess,
-              ),
-            );
-
-        for (var toUpdate in edgesToUpdate) {
-          toUpdate.getStateBuilder()._queueIoUpdate();
-        }
-    }
-
     // If parent is a graph, this just creates a new statebuilder
     // This ensures graph.parents and graph.children, which are determined dynamically, are updated
     _element.parent.getStateBuilder();
@@ -108,24 +85,15 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   }
 
   void updatePercentage(double newPercentage) {
-    if (_percentage != newPercentage) {
-      _percentage = newPercentage;
-      _queueIoUpdate();
-    }
+    _percentage = newPercentage;
   }
 
   void updateParentPriority(int newPriority) {
-    if (_parentPriority != newPriority) {
-      _parentPriority = newPriority;
-      _queueIoUpdate();
-    }
+    _parentPriority = newPriority;
   }
 
   void updateChildPriority(int newPriority) {
-    if (_childPriority != newPriority) {
-      _childPriority = newPriority;
-      _queueIoUpdate();
-    }
+    _childPriority = newPriority;
   }
 
   @override
@@ -141,40 +109,4 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
     childPriority: _childPriority,
     geometry: _geometry,
   );
-
-  void _queueChildrenAffectedByRemoval() {
-    switch (_element.edgeType) {
-      case EdgeType.requestItems:
-        _element.childProdLine.getStateBuilder()._queueIoUpdate();
-
-      case EdgeType.requestExcess:
-        var edgesToUpdate = _element.childProdLine.parents[_element.item]!
-            .where((edge) => edge.edgeType == EdgeType.pushExcess);
-
-        for (var toUpdate in edgesToUpdate) {
-          toUpdate.getStateBuilder()._queueIoUpdate();
-        }
-
-      case EdgeType.pushExcess:
-        break;
-    }
-  }
-
-  void _queueParentsAffectedByRemoval() {
-    switch (_element.edgeType) {
-      case EdgeType.pushExcess:
-        _element.parentProdLine.getStateBuilder()._queueIoUpdate();
-
-      case EdgeType.requestExcess:
-        var edgesToUpdate = _element.parentProdLine.children[_element.item]!
-            .where((edge) => edge.edgeType == EdgeType.requestItems);
-
-        for (var toUpdate in edgesToUpdate) {
-          toUpdate.getStateBuilder()._queueIoUpdate();
-        }
-
-      case EdgeType.requestItems:
-        break;
-    }
-  }
 }

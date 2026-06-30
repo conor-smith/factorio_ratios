@@ -44,8 +44,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
       _geometry = NodeGeometryImpl.uninitialised,
       _ioData = ProductionLineIoData.uninitialised,
       _parents = {},
-      _children = {},
-      super.initial() {
+      _children = {} {
     var parentGraph = _element.parentGraph;
     switch (_element.nodeType) {
       case NodeType.input:
@@ -99,9 +98,6 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   }
 
   @override
-  void performIoUpdate(Set<BasePlannerElement> visitedElements) {}
-
-  @override
   void removeSelf() {
     _snapshotBuilder.removeFromSnapshot(_element);
     for (var parent in _parents.values.expand((edgeSet) => edgeSet)) {
@@ -138,15 +134,10 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
   void updateInternalConstraints(ItemIoImpl newConstraints) {
-    if (_internalConstraints != newConstraints) {
-      _internalConstraints = newConstraints;
-      _queueIoUpdate();
-    }
+    _internalConstraints = newConstraints;
   }
 
   void updateProductionLine(ProductionLine newLine) {
-    _queueIoUpdate();
-
     var removedOutputs = _productionLine.outputItems.difference(
       newLine.outputItems,
     );
@@ -208,8 +199,6 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
       parent,
     );
 
-    parent.getStateBuilder()._queueParentsAffectedByRemoval();
-
     // If parent is a graph, this just creates a new statebuilder
     // This ensures graph.children, which is determined dynamically, is updated
     parent.parent.getStateBuilder();
@@ -220,10 +209,16 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
 
     child.childProdLine.getStateBuilder()._parents[child.item]!.remove(child);
 
-    child.getStateBuilder()._queueChildrenAffectedByRemoval();
-
     // If parent is a graph, this just creates a new statebuilder
     // This ensures graph.parents, which is determined dynamically, is updated
     child.child.getStateBuilder();
+  }
+
+  // Used by parentGraph when doing bulk removals
+  void _removeSelfButNotOthers() {
+    _snapshotBuilder.removeFromSnapshot(_element);
+
+    _parents.clear();
+    _children.clear();
   }
 }

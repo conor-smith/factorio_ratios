@@ -73,12 +73,6 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     _outputNodes,
   ).toSet();
 
-  @override
-  IoUpdateStatus get _ioUpdateStatus => IoUpdateStatus.complete;
-  @override
-  set _ioUpdateStatus(_) =>
-      throw const GraphException('Cannot set update status on graph');
-
   /// DO NOT modify this value outside this class
   Map<InGameItem, List<NodeElement>> get cachedNodeOutputIndex {
     _cachedNodeOutputIndex ??= _createNodeOutputIndex();
@@ -101,8 +95,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _inputNodes = {},
       _outputNodes = {},
       _edges = {},
-      _geometry = NodeGeometryImpl.uninitialised,
-      super.initial() {
+      _geometry = NodeGeometryImpl.uninitialised {
     if (!_element.isRoot) {
       _element.parentGraph.getStateBuilder()._graphNodes.add(_element);
       _element.parentGraph.getStateBuilder()._addNodeToCaches(_element);
@@ -119,13 +112,6 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _edges = Set.from(previousState.edges),
       _geometry = previousState.geometry;
 
-  // These two methods do nothing. Just here for show
-  @override
-  void performIoUpdate(Set<BasePlannerElement> visitedElements) {}
-
-  @override
-  void _queueIoUpdate() {}
-
   @override
   void removeSelf() {
     for (var parent in parents.values.expand((edgeSet) => edgeSet)) {
@@ -134,7 +120,6 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       parent.parentProdLine.getStateBuilder()._children[parent.item]!.remove(
         parent,
       );
-      parent.getStateBuilder()._queueParentsAffectedByRemoval();
 
       // If parent is a graph, this just creates a new statebuilder
       // This ensures graph.children, which is determined dynamically, is updated
@@ -145,14 +130,35 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _snapshotBuilder.removeFromSnapshot(child);
 
       child.childProdLine.getStateBuilder()._parents[child.item]!.remove(child);
-      child.getStateBuilder()._queueChildrenAffectedByRemoval();
 
       // If parent is a graph, this just creates a new statebuilder
       // This ensures graph.parents, which is determined dynamically, is updated
       child.child.getStateBuilder();
     }
 
-    _recursivelyRemoveFromSnapshot();
+    _removeSelfButNotOthers();
+  }
+
+  void removeAllNodesExceptIo() {
+    for (var node in _prodLineNodes) {
+      node.getStateBuilder()._removeSelfButNotOthers();
+    }
+    for (var graphNode in _graphNodes) {
+      graphNode.getStateBuilder()._removeSelfButNotOthers();
+    }
+    for (var edge in _edges) {
+      _snapshotBuilder.removeFromSnapshot(edge);
+    }
+
+    for (var inputNode in inputNodes.values) {
+      inputNode.getStateBuilder()._parents.clear();
+    }
+    for (var outputNode in outputNodes.values) {
+      outputNode.getStateBuilder()._children.clear();
+    }
+
+    _prodLineNodes.clear();
+    _edges.clear();
   }
 
   void updateName(String newName) => _name = newName;
@@ -178,7 +184,8 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     ioData: GraphIo.fromState(this),
   );
 
-  void _recursivelyRemoveFromSnapshot() {
+  // Used when parent graph is doing bulk removal
+  void _removeSelfButNotOthers() {
     _snapshotBuilder.removeFromSnapshot(_element);
 
     var allProdLineNodes = _prodLineNodes
@@ -186,15 +193,20 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
         .followedBy(_outputNodes.values);
 
     for (var prodLine in allProdLineNodes) {
-      _snapshotBuilder.removeFromSnapshot(prodLine);
+      prodLine.getStateBuilder()._removeSelfButNotOthers();
     }
     for (var edge in _edges) {
       _snapshotBuilder.removeFromSnapshot(edge);
     }
-
     for (var graphNode in _graphNodes) {
-      graphNode.getStateBuilder()._recursivelyRemoveFromSnapshot();
+      graphNode.getStateBuilder()._removeSelfButNotOthers();
     }
+
+    _prodLineNodes.clear();
+    _inputNodes.clear();
+    _outputNodes.clear();
+    _graphNodes.clear();
+    _edges.clear();
   }
 
   Map<InGameItem, List<NodeElement>> _createNodeOutputIndex() {

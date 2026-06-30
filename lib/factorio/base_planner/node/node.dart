@@ -41,48 +41,6 @@ abstract interface class NodeElement<St, E extends NodeEvent>
 
   ProdLineNode getOutputItemNode(InGameItem item);
   ProdLineNode getInputItemNode(InGameItem item);
-
-  static ItemIoImpl calculateEdgeConstraints(
-    NodeType nodeType,
-    Iterable<Edge> parents,
-    Iterable<Edge> children,
-  ) {
-    var builder = ItemIoBuilder();
-
-    // for (var parent in parents) {
-    //   switch (parent.edgeType) {
-    //     case EdgeType.requestItems:
-    //       builder.addToOutputs(parent.item, parent.requestedAmount);
-
-    //     case EdgeType.weakRequestItems:
-    //       if (nodeType.honoursWeakRequests) {
-    //         builder.addToOutputs(parent.item, parent.requestedAmount);
-    //       }
-
-    //     case EdgeType.pushExcess:
-    //     case EdgeType.weakPushExcess:
-    //       break;
-    //   }
-    // }
-
-    // for (var child in children) {
-    //   switch (child.edgeType) {
-    //     case EdgeType.pushExcess:
-    //       builder.addToInputs(child.item, child.requestedAmount);
-
-    //     case EdgeType.weakPushExcess:
-    //       if (nodeType.honoursWeakRequests) {
-    //         builder.addToInputs(child.item, child.requestedAmount);
-    //       }
-
-    //     case EdgeType.requestItems:
-    //     case EdgeType.weakRequestItems:
-    //       break;
-    //   }
-    // }
-
-    return builder.build();
-  }
 }
 
 enum NodeType implements Comparable<NodeType> {
