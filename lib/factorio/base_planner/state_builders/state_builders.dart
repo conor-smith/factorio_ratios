@@ -17,13 +17,8 @@ part 'graph_state_builder.dart';
 
 abstract interface class StateBuilder<T> implements Builder<T> {
   void removeSelf();
-  void _parentGraphRemoval();
 }
 
 abstract interface class NodeStateBuilder<T> implements StateBuilder<T> {
   void updateGeometry(NodeGeometryImpl geometry);
-  void _addParent(Edge parentEdge);
-  void _removeParent(Edge parentEdge);
-  void _addChild(Edge chidEdge);
-  void _removeChild(Edge childEdge);
 }

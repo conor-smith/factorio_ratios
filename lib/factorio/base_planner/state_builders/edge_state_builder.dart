@@ -29,9 +29,24 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
     _edge.basePlanner.throwIfMutationNotPermitted();
     _edge.basePlanner.getSnapshotBuilder().addToSnapshot(_edge, this);
 
-    _edge.parentGraph.getStateBuilder()._addEdge(_edge);
-    _edge.parent.getStateBuilder()._addChild(_edge);
-    _edge.child.getStateBuilder()._addParent(_edge);
+    _edge.parentGraph.getStateBuilder()._edges.add(_edge);
+
+    _edge.parentProdLine.getStateBuilder()._children.update(
+      _edge.item,
+      (edges) => edges..add(_edge),
+      ifAbsent: () => {_edge},
+    );
+
+    _edge.childProdLine.getStateBuilder()._parents.update(
+      _edge.item,
+      (edges) => edges..add(_edge),
+      ifAbsent: () => {_edge},
+    );
+
+    // If parent is a graph, this just creates a new statebuilder
+    // This ensures graph.parents and graph.children, which are determined dynamically, are updated
+    _edge.parent.getStateBuilder();
+    _edge.child.getStateBuilder();
   }
 
   EdgeStateBuilder.from(this._edge, EdgeStateImpl previousState)
@@ -47,10 +62,14 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   void removeSelf() {
     _edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(_edge);
 
-    _edge.parentGraph.getStateBuilder()._removeEdge(_edge);
+    _edge.parentProdLine.getStateBuilder()._children[_edge.item]?.remove(_edge);
+    _edge.childProdLine.getStateBuilder()._parents[_edge.item]?.remove(_edge);
+    _edge.parentGraph.getStateBuilder()._edges.remove(_edge);
 
-    _edge.parent.getStateBuilder()._removeChild(_edge);
-    _edge.child.getStateBuilder()._removeParent(_edge);
+    // If parent is a graph, this just creates a new statebuilder
+    // This ensures graph.parents and graph.children, which are determined dynamically, are updated
+    _edge.parent.getStateBuilder();
+    _edge.child.getStateBuilder();
   }
 
   void updatePercentage(double percentage) => _percentage = percentage;
@@ -65,11 +84,4 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
     priority: _priority,
     geometry: _geometry,
   );
-
-  @override
-  void _parentGraphRemoval() {
-    _edge.basePlanner.getSnapshotBuilder().removeFromSnapshot(_edge);
-  }
-
-  void _updateAmount(double amount) => _amount = amount;
 }

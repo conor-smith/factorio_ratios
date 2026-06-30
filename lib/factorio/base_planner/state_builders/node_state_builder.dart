@@ -46,22 +46,38 @@ class ProdLineNodeStateBuilder
       _children = {} {
     _node.basePlanner.getSnapshotBuilder().addToSnapshot(_node, this);
 
+    var parentGraph = _node.parentGraph;
     switch (_node.nodeType) {
       case NodeType.input:
-        _node.parentGraph.getStateBuilder()._addInputNode(
-          _node,
-          _productionLine.inputItems.first,
-        );
+        var inputItem = productionLine.inputItems.first;
+        if (parentGraph.inputNodes.containsKey(inputItem)) {
+          throw GraphException(
+            'Input node for item $inputItem in graph $parentGraph already exists',
+          );
+        } else {
+          parentGraph.getStateBuilder()._inputNodes[inputItem] = _node;
+        }
 
       case NodeType.output:
-        _node.parentGraph.getStateBuilder()._addOutputNode(
-          _node,
-          _productionLine.outputItems.first,
-        );
+        var outputItem = productionLine.outputItems.first;
+        if (parentGraph.outputNodes.containsKey(outputItem)) {
+          throw GraphException(
+            'Output node for item $outputItem in graph $parentGraph already exists',
+          );
+        } else {
+          parentGraph.getStateBuilder()._outputNodes[outputItem] = _node;
+        }
+
+        // Clear cached output index of "grandparent graph" if required
+        if (parentGraph.parentGraph.hasBuilder) {
+          parentGraph.parentGraph.getStateBuilder()._clearCachedOutputIndex();
+        }
 
       default:
-        _node.parentGraph.getStateBuilder()._addProdLineNode(_node);
+        _node.parentGraph.getStateBuilder()._prodLineNodes.add(_node);
     }
+
+    parentGraph.getStateBuilder()._addNodeToCaches(_node);
   }
 
   ProdLineNodeStateBuilder.from(this._node, ProdLineNodeStateImpl previousState)
@@ -76,38 +92,45 @@ class ProdLineNodeStateBuilder
         ..updateAll((item, edgeSet) => Set.from(edgeSet)),
       _ioData = previousState.ioData {
     _node.basePlanner.getSnapshotBuilder().addToSnapshot(_node, this);
+
+    if (_node.parentGraph.hasBuilder) {
+      _node.parentGraph.getStateBuilder()._addNodeToCaches(_node);
+    }
   }
 
   @override
   void removeSelf() {
-    _node.basePlanner.getSnapshotBuilder().removeFromSnapshot(_node);
+    var snapshotBuilder = _node.basePlanner.getSnapshotBuilder();
 
-    var edgesToRemove = parents.values
-        .followedBy(children.values)
-        .expand((edgeSet) => edgeSet)
-        .toList();
+    snapshotBuilder.removeFromSnapshot(_node);
+    for (var parent in _parents.values.expand((edgeSet) => edgeSet)) {
+      _removeParentFromDownstreamElements(parent);
+    }
+
+    for (var child in _children.values.expand((edgeSet) => edgeSet)) {
+      _removeChildFromDownstreamElements(child);
+    }
 
     _parents.clear();
     _children.clear();
 
-    for (var edge in edgesToRemove) {
-      edge.getStateBuilder().removeSelf();
-    }
-
+    var parentGraph = _node.parentGraph;
     switch (_node.nodeType) {
       case NodeType.input:
-        _node.parentGraph.getStateBuilder()._removeInputNode(
-          (_productionLine as IoLine).ioItem,
+        parentGraph.getStateBuilder()._inputNodes.remove(
+          _productionLine.inputItems.first,
         );
 
       case NodeType.output:
-        _node.parentGraph.getStateBuilder()._removeOutputNode(
-          (_productionLine as IoLine).ioItem,
+        parentGraph.getStateBuilder()._outputNodes.remove(
+          _productionLine.outputItems.first,
         );
 
       default:
-        _node.parentGraph.getStateBuilder()._removeProdLineNode(_node);
+        parentGraph.getStateBuilder()._prodLineNodes.remove(_node);
     }
+
+    parentGraph.getStateBuilder()._removeNodeFromCaches(_node);
   }
 
   @override
@@ -117,25 +140,37 @@ class ProdLineNodeStateBuilder
       _internalConstraints = newRequirements;
 
   void updateProductionLine(ProductionLine newLine) {
-    var removedInputs = _productionLine.inputItems.difference(
-      newLine.inputItems,
-    );
     var removedOutputs = _productionLine.outputItems.difference(
       newLine.outputItems,
     );
-
-    var edgesToRemove = removedInputs
-        .map((output) => parents[output])
-        .followedBy(removedOutputs.map((input) => children[input]))
+    var parentsToRemove = removedOutputs
+        .map((removedOutput) => _parents[removedOutput])
         .nonNulls
-        .expand((edgeSet) => edgeSet)
+        .expand((parentSet) => parentSet)
         .toList();
 
-    for (var edgeToRemove in edgesToRemove) {
-      edgeToRemove.getStateBuilder().removeSelf();
+    for (var output in removedOutputs) {
+      _parents.remove(output);
+    }
+    for (var parent in parentsToRemove) {
+      _removeParentFromDownstreamElements(parent);
     }
 
-    _productionLine = newLine;
+    var removedInputs = _productionLine.inputItems.difference(
+      newLine.inputItems,
+    );
+    var childrenToRemove = removedInputs
+        .map((removedInput) => _children[removedInput])
+        .nonNulls
+        .expand((childSet) => childSet)
+        .toList();
+
+    for (var input in removedInputs) {
+      _children.remove(input);
+    }
+    for (var child in childrenToRemove) {
+      _removeChildFromDownstreamElements(child);
+    }
 
     if (_node.parentGraph.hasBuilder) {
       if (_node.nodeType.outputPriority < 100) {
@@ -162,29 +197,25 @@ class ProdLineNodeStateBuilder
     children: children..removeWhere((item, edges) => edges.isEmpty),
   );
 
-  @override
-  void _parentGraphRemoval() {
-    _node.basePlanner.getSnapshotBuilder().removeFromSnapshot(_node);
+  void _removeParentFromDownstreamElements(Edge parent) {
+    _node.basePlanner.getSnapshotBuilder().removeFromSnapshot(parent);
 
-    _children.clear();
-    _parents.clear();
+    parent.parentProdLine.getStateBuilder()._children[parent.item]?.remove(
+      parent,
+    );
+
+    // If parent is a graph, this just creates a new statebuilder
+    // This ensures graph.children, which is determined dynamically, is updated
+    parent.parent.getStateBuilder();
   }
 
-  @override
-  void _addParent(Edge parent) => _parents.update(
-    parent.item,
-    (edges) => edges..add(parent),
-    ifAbsent: () => {parent},
-  );
-  @override
-  void _addChild(Edge child) => _children.update(
-    child.item,
-    (edges) => edges..add(child),
-    ifAbsent: () => {child},
-  );
+  void _removeChildFromDownstreamElements(Edge child) {
+    _node.basePlanner.getSnapshotBuilder().removeFromSnapshot(child);
 
-  @override
-  void _removeParent(Edge parent) => _parents[parent.item]?.remove(parent);
-  @override
-  void _removeChild(Edge child) => _children[child.item]?.remove(child);
+    child.childProdLine.getStateBuilder()._parents[child.item]?.remove(child);
+
+    // If parent is a graph, this just creates a new statebuilder
+    // This ensures graph.parents, which is determined dynamically, is updated
+    child.child.getStateBuilder();
+  }
 }

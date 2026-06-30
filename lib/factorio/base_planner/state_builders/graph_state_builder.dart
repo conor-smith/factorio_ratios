@@ -72,14 +72,14 @@ class GraphStateBuilder
     _outputNodes,
   ).toSet();
 
-  /// DO NOT modify this value yourself
+  /// DO NOT modify this value outside this class
   Map<InGameItem, List<NodeElement>> get cachedNodeOutputIndex {
     _cachedNodeOutputIndex ??= _createNodeOutputIndex();
 
     return _cachedNodeOutputIndex!;
   }
 
-  /// DO NOT modify this value yourself
+  /// DO NOT modify this value outside this class
   Map<InGameItem, List<NodeElement>> get cachedDisposalNodes {
     _cachedDisposalNodes = _createCachedDisposalNodes();
 
@@ -98,7 +98,8 @@ class GraphStateBuilder
     _graph.basePlanner.getSnapshotBuilder().addToSnapshot(_graph, this);
 
     if (!_graph.isRoot) {
-      _graph.parentGraph.getStateBuilder()._addGraphNode(_graph);
+      _graph.parentGraph.getStateBuilder()._graphNodes.add(_graph);
+      _graph.parentGraph.getStateBuilder()._addNodeToCaches(_graph);
     }
   }
 
@@ -116,10 +117,30 @@ class GraphStateBuilder
 
   @override
   void removeSelf() {
-    _removeAllElementsAndSelfFromSnapshot();
+    _recursivelyRemoveFromSnapshot();
 
-    if (!_graph.isRoot) {
-      _graph.parentGraph.getStateBuilder()._removeGraphNode(_graph);
+    var snapshotBuilder = _graph.basePlanner.getSnapshotBuilder();
+
+    for (var parent in parents.values.expand((edgeSet) => edgeSet)) {
+      snapshotBuilder.removeFromSnapshot(parent);
+
+      parent.parentProdLine.getStateBuilder()._children[parent.item]?.remove(
+        parent,
+      );
+
+      // If parent is a graph, this just creates a new statebuilder
+      // This ensures graph.children, which is determined dynamically, is updated
+      parent.parent.getStateBuilder();
+    }
+
+    for (var child in children.values.expand((edgeSet) => edgeSet)) {
+      snapshotBuilder.removeFromSnapshot(child);
+
+      child.childProdLine.getStateBuilder()._parents[child.item]?.remove(child);
+
+      // If parent is a graph, this just creates a new statebuilder
+      // This ensures graph.parents, which is determined dynamically, is updated
+      child.child.getStateBuilder();
     }
   }
 
@@ -130,13 +151,6 @@ class GraphStateBuilder
 
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
-
-  // Does not modify anything, but ensures a new state and io will be created
-  void clearIo() {
-    if (!_graph.parentGraph.hasBuilder) {
-      _graph.parentGraph.getStateBuilder().clearIo();
-    }
-  }
 
   @override
   GraphStateImpl build() => GraphStateImpl(
@@ -153,100 +167,25 @@ class GraphStateBuilder
     ioData: GraphIo.fromState(this),
   );
 
-  @override
-  void _parentGraphRemoval() => _removeAllElementsAndSelfFromSnapshot();
+  void _recursivelyRemoveFromSnapshot() {
+    var snapShotBuilder = _graph.basePlanner.getSnapshotBuilder();
 
-  void _addProdLineNode(ProdLineNode node) {
-    _prodLineNodes.add(node);
-    _addNodeToCaches(node);
-  }
+    snapShotBuilder.removeFromSnapshot(_graph);
 
-  void _removeProdLineNode(ProdLineNode node) {
-    _prodLineNodes.remove(node);
-    _removeNodeFromCaches(node);
-  }
+    var allProdLineNodes = _prodLineNodes
+        .followedBy(_inputNodes.values)
+        .followedBy(_outputNodes.values);
 
-  void _addGraphNode(Graph graphNode) {
-    _graphNodes.add(graphNode);
-    _addNodeToCaches(graphNode);
-  }
-
-  void _removeGraphNode(Graph graphNode) {
-    _graphNodes.remove(graphNode);
-    _removeNodeFromCaches(graphNode);
-  }
-
-  void _addInputNode(ProdLineNode node, InGameItem item) {
-    if (_inputNodes.containsKey(item)) {
-      throw GraphException('Input node for item $item already exists');
+    for (var prodLine in allProdLineNodes) {
+      snapShotBuilder.removeFromSnapshot(prodLine);
+    }
+    for (var edge in _edges) {
+      snapShotBuilder.removeFromSnapshot(edge);
     }
 
-    _inputNodes[item] = node;
-    _addNodeToCaches(node);
-  }
-
-  void _addOutputNode(ProdLineNode node, InGameItem item) {
-    if (_outputNodes.containsKey(item)) {
-      throw GraphException('Output node for item $item already exists');
+    for (var graphNode in _graphNodes) {
+      graphNode.getStateBuilder()._recursivelyRemoveFromSnapshot();
     }
-
-    _outputNodes[item] = node;
-    if (_graph.parentGraph.hasBuilder) {
-      _graph.parentGraph.getStateBuilder()._clearCachedOutputIndex();
-    }
-  }
-
-  void _removeInputNode(InGameItem item) {
-    var removedNode = _inputNodes.remove(item)!;
-    _removeNodeFromCaches(removedNode);
-  }
-
-  void _removeOutputNode(InGameItem item) {
-    _outputNodes.remove(item);
-  }
-
-  void _addEdge(Edge edge) => _edges.add(edge);
-  void _removeEdge(Edge edge) => _edges.remove(edge);
-
-  @override
-  void _addParent(Edge parent) =>
-      parent.childProdLineNode.getStateBuilder()._addParent(parent);
-
-  @override
-  void _addChild(Edge child) =>
-      child.parentProdLineNode.getStateBuilder()._addChild(child);
-
-  @override
-  void _removeParent(Edge parent) =>
-      parent.child.getStateBuilder()._removeParent(parent);
-
-  @override
-  void _removeChild(Edge child) =>
-      child.parentProdLineNode.getStateBuilder()._removeChild(child);
-
-  void _removeAllElementsAndSelfFromSnapshot() {
-    var edgesToRemove = parents.values
-        .followedBy(children.values)
-        .expand((edgeSet) => edgeSet)
-        .toList();
-
-    for (var edge in edgesToRemove) {
-      edge.getStateBuilder().removeSelf();
-    }
-    for (BasePlannerElement element in [...allNodes, ...edges]) {
-      element.getStateBuilder()._parentGraphRemoval();
-    }
-
-    _prodLineNodes.clear();
-    _inputNodes.clear();
-    _outputNodes.clear();
-    _graphNodes.clear();
-    _edges.clear();
-
-    _graph.basePlanner.getSnapshotBuilder().removeFromSnapshot(_graph);
-
-    _clearCachedDisposalNodes();
-    _clearCachedOutputIndex();
   }
 
   Map<InGameItem, List<NodeElement>> _createNodeOutputIndex() {

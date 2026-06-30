@@ -9,7 +9,7 @@ import 'package:factorio_ratios/json/json.dart';
 part 'edge_state.dart';
 
 /// Represents an edge connecting two [NodeElement]s.
-/// Items flow from [childProdLineNode] to [parentProdLineNode].
+/// Items flow from [childProdLine] to [parentProdLine].
 class Edge
     with EventNotifier<EdgeEvent>
     implements BasePlannerElement<EdgeState, EdgeEvent> {
@@ -25,12 +25,12 @@ class Edge
   /// This node is the node that items will actually go to.
   /// It will typically be the same as [parent], unless [parent] is a [Graph],
   /// in which case, it will be a relevant node of type [NodeType.input].
-  final ProdLineNode parentProdLineNode;
+  final ProdLineNode parentProdLine;
 
   /// This node is the node that items will actually come from.
   /// It will typically be the same as [child], unless [child] is a [Graph],
   /// in which case, it will be a relevant node of type [NodeType.output].
-  final ProdLineNode childProdLineNode;
+  final ProdLineNode childProdLine;
   final InGameItem item;
 
   EdgeStateImpl _state;
@@ -51,8 +51,8 @@ class Edge
     required this.parent,
     required this.child,
     required this.item,
-  }) : parentProdLineNode = parent.getInputItemNode(item),
-       childProdLineNode = child.getOutputItemNode(item),
+  }) : parentProdLine = parent.getInputItemNode(item),
+       childProdLine = child.getOutputItemNode(item),
        _state = EdgeStateImpl.uninitialised {
     if (!parent.nodeType.permittedChildren.contains(edgeType)) {
       throw EdgeException(
