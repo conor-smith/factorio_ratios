@@ -120,7 +120,7 @@ class ItemIoBuilder extends ItemIo implements Builder<ItemIoImpl> {
 
   ItemIoBuilder() : _inputs = {}, _outputs = {};
 
-  ItemIoBuilder.from(ItemIoImpl source)
+  ItemIoBuilder.from(ItemIo source)
     : _inputs = Map.from(source.inputs),
       _outputs = Map.from(source.outputs);
 

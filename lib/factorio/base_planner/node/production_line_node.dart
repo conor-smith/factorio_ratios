@@ -109,6 +109,26 @@ class ProdLineNode
     }
   }
 
+  ItemIoImpl determineEdgeConstraints() {
+    var edgeConstraints = ItemIoBuilder();
+
+    parents.forEach((item, edges) {
+      var itemRequestSum = edges
+          .where((edge) => edge.edgeType == EdgeType.requestItems)
+          .fold(0.0, (sum, edge) => sum + edge.amount);
+      edgeConstraints.addToOutputs(item, itemRequestSum);
+    });
+
+    children.forEach((item, edges) {
+      var pushExcessSum = edges
+          .where((edge) => edge.edgeType == EdgeType.requestExcess)
+          .fold(0.0, (sum, edge) => sum + edge.amount);
+      edgeConstraints.addToInputs(item, pushExcessSum);
+    });
+
+    return edgeConstraints.build();
+  }
+
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
