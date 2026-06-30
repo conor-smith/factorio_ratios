@@ -21,7 +21,6 @@ abstract class StateBuilder<T> implements Builder<T> {
   IoUpdateStatus get ioUpdateStatus;
 
   void performIoUpdate(Set<BasePlannerElement> visitedElements);
-  void _queueIoUpdate();
 }
 
 abstract class NodeStateBuilder<T> implements StateBuilder<T> {

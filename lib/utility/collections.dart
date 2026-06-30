@@ -46,3 +46,19 @@ class Pair<A, B> {
 
   const Pair(this.item1, this.item2);
 }
+
+T? maxOrNull<T>(Iterable<T> iterable, Comparator<T> comparator) {
+  if (iterable.isEmpty) {
+    return null;
+  } else {
+    T max = iterable.first;
+
+    for (T item in iterable.skip(1)) {
+      if (comparator(item, max) > 0) {
+        max = item;
+      }
+    }
+
+    return max;
+  }
+}
