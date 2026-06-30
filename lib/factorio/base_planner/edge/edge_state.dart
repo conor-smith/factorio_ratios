@@ -4,7 +4,6 @@ abstract class EdgeState {
   double get amount;
 
   double get requestedAmount;
-  RequestStatus get requestStatus;
 
   double get percentage;
   int get priority;
@@ -26,9 +25,6 @@ class EdgeStateImpl implements EdgeState, ToJson {
 
   @override
   final EdgeGeometryImpl geometry;
-
-  @override
-  RequestStatus get requestStatus => RequestStatus.done;
 
   EdgeStateImpl(
     Edge edge, {

@@ -126,7 +126,7 @@ class ProdLineNodeStateBuilder
 
     var edgesToRemove = removedInputs
         .map((output) => parents[output])
-        .followedBy(removedInputs.map((input) => children[input]))
+        .followedBy(removedOutputs.map((input) => children[input]))
         .nonNulls
         .expand((edgeSet) => edgeSet)
         .toList();

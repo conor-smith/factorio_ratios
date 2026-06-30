@@ -275,18 +275,6 @@ class BasePlanner
   }
 }
 
-// TODO - Document
-enum RequestStatus {
-  /// Request is still pending on some other operation
-  pending,
-
-  /// Request is known but has not yet been applied to relevant node
-  known,
-
-  /// Request is known and applied
-  done,
-}
-
 class BasePlannerEvent {
   bool newActiveGraph;
   Set<Graph> removedGraphs;

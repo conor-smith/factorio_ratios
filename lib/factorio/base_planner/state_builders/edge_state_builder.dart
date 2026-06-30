@@ -5,7 +5,6 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
 
   double _amount;
   double _requestedAmount;
-  RequestStatus _requestStatus;
   double _percentage;
   int _priority;
   EdgeGeometryImpl _geometry;
@@ -14,8 +13,6 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   double get amount => _amount;
   @override
   double get requestedAmount => _requestedAmount;
-  @override
-  RequestStatus get requestStatus => _requestStatus;
   @override
   double get percentage => _percentage;
   @override
@@ -28,7 +25,6 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
       _requestedAmount = 0,
       _percentage = _edge.edgeType.usesPriority ? 0 : 1,
       _priority = _edge.edgeType.usesPriority ? 1 : 0,
-      _requestStatus = RequestStatus.pending,
       _geometry = EdgeGeometryImpl.uninitialised {
     _edge.basePlanner.throwIfMutationNotPermitted();
     _edge.basePlanner.getSnapshotBuilder().addToSnapshot(_edge, this);
@@ -43,8 +39,7 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
       _percentage = previousState.percentage,
       _priority = previousState.priority,
       _geometry = previousState.geometry,
-      _requestedAmount = previousState.requestedAmount,
-      _requestStatus = RequestStatus.done {
+      _requestedAmount = previousState.requestedAmount {
     _edge.basePlanner.getSnapshotBuilder().addToSnapshot(_edge, this);
   }
 
