@@ -91,8 +91,8 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
     // - The sum of the pushExcess percentages does not exceed 1.0
     parents.forEach((item, itemEdges) {
       var prioritiesList = itemEdges
-          .where((edge) => edge.edgeType == EdgeType.weakPushExcess)
-          .map((edge) => edge.priority)
+          .where((edge) => edge.edgeType == EdgeType.requestExcess)
+          .map((edge) => edge.parentPriority)
           .toSet();
 
       for (var i = 0; i < prioritiesList.length; i++) {
@@ -121,8 +121,8 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
     // - The sum of the pushExcess percentages does not exceed 1.0
     children.forEach((item, itemEdges) {
       var prioritiesList = itemEdges
-          .where((edge) => edge.edgeType == EdgeType.weakRequestItems)
-          .map((edge) => edge.priority)
+          .where((edge) => edge.edgeType == EdgeType.requestExcess)
+          .map((edge) => edge.childPriority)
           .toSet();
 
       for (var i = 0; i < prioritiesList.length; i++) {

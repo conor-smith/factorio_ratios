@@ -6,7 +6,8 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   double _amount;
   double _requestedAmount;
   double _percentage;
-  int _priority;
+  int _parentPriority;
+  int _childPriority;
   EdgeGeometryImpl _geometry;
 
   @override
@@ -16,16 +17,26 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   @override
   double get percentage => _percentage;
   @override
-  int get priority => _priority;
+  int get parentPriority => _parentPriority;
+  @override
+  int get childPriority => _childPriority;
   @override
   EdgeGeometryImpl get geometry => _geometry;
 
   EdgeStateBuilder.initial(this._edge)
     : _amount = 0,
       _requestedAmount = 0,
-      _percentage = _edge.edgeType.usesPriority ? 0 : 1,
-      _priority = _edge.edgeType.usesPriority ? 1 : 0,
+      _percentage = 0,
+      _parentPriority = 0,
+      _childPriority = 0,
       _geometry = EdgeGeometryImpl.uninitialised {
+    if (_edge.edgeType == EdgeType.requestExcess) {
+      _parentPriority = 1;
+      _childPriority = 1;
+    } else {
+      _percentage = 1.0;
+    }
+
     _edge.basePlanner.throwIfMutationNotPermitted();
     _edge.basePlanner.getSnapshotBuilder().addToSnapshot(_edge, this);
 
@@ -52,7 +63,8 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   EdgeStateBuilder.from(this._edge, EdgeStateImpl previousState)
     : _amount = previousState.amount,
       _percentage = previousState.percentage,
-      _priority = previousState.priority,
+      _parentPriority = previousState.parentPriority,
+      _childPriority = previousState.childPriority,
       _geometry = previousState.geometry,
       _requestedAmount = previousState.requestedAmount {
     _edge.basePlanner.getSnapshotBuilder().addToSnapshot(_edge, this);
@@ -81,7 +93,8 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
     amount: _amount,
     requestedAmount: _requestedAmount,
     percentage: _percentage,
-    priority: _priority,
+    parentPriority: _parentPriority,
+    childPriority: _childPriority,
     geometry: _geometry,
   );
 }

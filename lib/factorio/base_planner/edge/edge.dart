@@ -39,7 +39,8 @@ class Edge
   // For convenience
   double get amount => state.amount;
   double get percentage => state.percentage;
-  int get priority => state.priority;
+  int get parentPriority => state.parentPriority;
+  int get childPriority => state.childPriority;
   double get requestedAmount => state.requestedAmount;
   @override
   EdgeGeometryImpl get geometry => state.geometry;
@@ -126,21 +127,13 @@ class EdgeEvent {
 
 enum EdgeType {
   // TODO: Document
-  requestItems(false),
+  requestItems,
 
   // TODO: Document
-  weakRequestItems(true),
+  pushExcess,
 
   // TODO: Document
-  pushExcess(false),
-
-  // TODO: Document
-  weakPushExcess(true);
-
-  /// Uses [Edge.priority] if true, [Edge.percentage] otherwise
-  final bool usesPriority;
-
-  const EdgeType(this.usesPriority);
+  requestExcess,
 }
 
 class EdgeException extends BasePlannerException {

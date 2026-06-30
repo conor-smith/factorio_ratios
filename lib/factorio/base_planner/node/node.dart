@@ -107,11 +107,7 @@ enum NodeType implements Comparable<NodeType> {
     hasInternalConstraints: false,
     outputPriority: 2,
     permittedParents: {EdgeType.requestItems},
-    permittedChildren: {
-      EdgeType.requestItems,
-      EdgeType.weakRequestItems,
-      EdgeType.weakPushExcess,
-    },
+    permittedChildren: {EdgeType.requestItems, EdgeType.requestExcess},
   ),
 
   /// Node can connect to and accept inputs from nodes in [NodeElement.parentGraph].
@@ -141,11 +137,7 @@ enum NodeType implements Comparable<NodeType> {
     isIo: false,
     hasInternalConstraints: true,
     outputPriority: 100,
-    permittedParents: {
-      EdgeType.pushExcess,
-      EdgeType.weakPushExcess,
-      EdgeType.weakRequestItems,
-    },
+    permittedParents: {EdgeType.pushExcess, EdgeType.requestExcess},
     permittedChildren: {},
   ),
 
@@ -154,15 +146,11 @@ enum NodeType implements Comparable<NodeType> {
     isIo: false,
     hasInternalConstraints: false,
     outputPriority: 100,
-    permittedParents: {
-      EdgeType.pushExcess,
-      EdgeType.weakPushExcess,
-      EdgeType.weakRequestItems,
-    },
+    permittedParents: {EdgeType.pushExcess, EdgeType.requestExcess},
     permittedChildren: {
       EdgeType.pushExcess,
       EdgeType.requestItems,
-      EdgeType.weakRequestItems,
+      EdgeType.requestExcess,
     },
   ),
 
@@ -185,11 +173,7 @@ enum NodeType implements Comparable<NodeType> {
     hasInternalConstraints: true,
     outputPriority: 100,
     permittedParents: {},
-    permittedChildren: {
-      EdgeType.requestItems,
-      EdgeType.weakRequestItems,
-      EdgeType.weakPushExcess,
-    },
+    permittedChildren: {EdgeType.requestItems, EdgeType.requestExcess},
   );
 
   final bool isIo;

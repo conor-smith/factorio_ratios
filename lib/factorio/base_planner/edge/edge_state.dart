@@ -6,7 +6,8 @@ abstract class EdgeState {
   double get requestedAmount;
 
   double get percentage;
-  int get priority;
+  int get parentPriority;
+  int get childPriority;
 
   EdgeGeometryImpl get geometry;
 }
@@ -21,7 +22,9 @@ class EdgeStateImpl implements EdgeState, ToJson {
   @override
   final double percentage;
   @override
-  final int priority;
+  final int parentPriority;
+  @override
+  final int childPriority;
 
   @override
   final EdgeGeometryImpl geometry;
@@ -32,20 +35,15 @@ class EdgeStateImpl implements EdgeState, ToJson {
     required this.requestedAmount,
     required this.percentage,
     required this.geometry,
-    required this.priority,
+    required this.parentPriority,
+    required this.childPriority,
   }) {
-    if (edge.edgeType.usesPriority) {
+    if (edge.edgeType == EdgeType.requestExcess) {
       if (percentage != 0) {
-        throw EdgeException(
-          'Edge of type ${edge.edgeType} cannot use percentages',
-        );
-      } else if (priority < 1) {
-        throw EdgeException(
-          'Edge of type ${edge.edgeType} has invalid priority $priority',
-        );
+        throw const EdgeException('requestExcess edge cannot use percentages');
       }
     } else {
-      if (priority != 0) {
+      if (edge.parentPriority > 0 || edge.childPriority > 0) {
         throw EdgeException(
           'Edge of type ${edge.edgeType} cannot use priorities',
         );
@@ -65,7 +63,8 @@ class EdgeStateImpl implements EdgeState, ToJson {
     : amount = 0,
       requestedAmount = 0,
       percentage = 0,
-      priority = 0,
+      parentPriority = 0,
+      childPriority = 0,
       geometry = EdgeGeometryImpl.uninitialised;
 
   @override
