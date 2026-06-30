@@ -79,7 +79,6 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
     _edge.basePlanner.getSnapshotBuilder().addToSnapshot(_edge, this);
   }
 
-  @override
   void _queueIoUpdate() {
     if (_ioUpdateStatus == IoUpdateStatus.notRequired) {
       _ioUpdateStatus = IoUpdateStatus.pending;
@@ -88,7 +87,7 @@ class EdgeStateBuilder implements StateBuilder<EdgeState>, EdgeState {
   }
 
   @override
-  void performIoUpdate() {
+  void performIoUpdate(Set<BasePlannerElement> visitedElements) {
     // TODO: implement performIoUpdate
   }
 

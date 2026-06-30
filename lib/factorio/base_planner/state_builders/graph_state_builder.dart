@@ -119,13 +119,10 @@ class GraphStateBuilder
   }
 
   @override
-  void performIoUpdate() => throw const GraphException(
-    'Cannot perform IO update on graph state builder',
-  );
-  @override
-  void _queueIoUpdate() => throw const GraphException(
-    'Cannot perform IO update on graph state builder',
-  );
+  void performIoUpdate(Set<BasePlannerElement> visitedElements) =>
+      throw const GraphException(
+        'Cannot perform IO update on graph state builder',
+      );
 
   @override
   void removeSelf() {

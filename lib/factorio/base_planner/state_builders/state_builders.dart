@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
@@ -14,16 +15,16 @@ part 'node_state_builder.dart';
 part 'edge_state_builder.dart';
 part 'graph_state_builder.dart';
 
-abstract interface class StateBuilder<T> implements Builder<T> {
+abstract class StateBuilder<T> implements Builder<T> {
   void removeSelf();
 
   IoUpdateStatus get ioUpdateStatus;
 
-  void performIoUpdate();
+  void performIoUpdate(Set<BasePlannerElement> visitedElements);
   void _queueIoUpdate();
 }
 
-abstract interface class NodeStateBuilder<T> implements StateBuilder<T> {
+abstract class NodeStateBuilder<T> implements StateBuilder<T> {
   void updateGeometry(NodeGeometryImpl geometry);
 }
 

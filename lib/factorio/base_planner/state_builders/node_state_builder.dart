@@ -107,7 +107,6 @@ class ProdLineNodeStateBuilder
     }
   }
 
-  @override
   void _queueIoUpdate() {
     if (_ioUpdateStatus != IoUpdateStatus.notRequired) {
       _ioUpdateStatus = IoUpdateStatus.pending;
@@ -116,7 +115,7 @@ class ProdLineNodeStateBuilder
   }
 
   @override
-  void performIoUpdate() {
+  void performIoUpdate(Set<BasePlannerElement> visitedElements) {
     // TODO: implement performIoUpdate
   }
 
