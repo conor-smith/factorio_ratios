@@ -8,6 +8,27 @@ class Snapshot {
     : states = Map.unmodifiable(states);
 }
 
+/// Builds a snapshot in 3 stages.
+///
+/// ### Spec update
+/// Users can add and remove elements, update geometry, etc.
+/// They can also set and update internal constraints on relevant nodes.
+/// However, no updates to item flow (ioData, edge amounts, etc) may
+/// take place during this time
+///
+/// ### Snapshot building
+/// This occurs once [build] is called. At this point, the user is locked out
+/// from making any more changes. It is because of this that we can now safely
+/// calculate node itemIo and edge amounts. New edges and nodes will be created
+/// to satisfy any unfulfilled IO of any node. It is only during this step that
+/// cyclical dependencies will be checked for. Despite this, ioData will not yet
+/// be calculated, as some itemIo data will need to be redone multiple times,
+/// and it's best to avoid unnecessary work.
+///
+/// ### Element building
+/// It is here that all the [BasePlannerElement.state] items will be built.
+/// Final validation will occur as well. Once complete, a new snapshot will
+/// be added to the [BasePlanner].
 class SnapshotBuilder implements Builder<Snapshot> {
   final Snapshot _previousSnapshot;
 
