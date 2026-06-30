@@ -69,6 +69,14 @@ class SnapshotBuilder implements Builder<Snapshot> {
   Snapshot build() {
     _isBuilding = true;
 
+    while (_queuedIoUpdates.isNotEmpty) {
+      var toUpdate = _queuedIoUpdates.removeFirst();
+
+      if (!_removedElements.contains(toUpdate)) {
+        toUpdate.getStateBuilder().performIoUpdate();
+      }
+    }
+
     Map<BasePlannerElement, dynamic> newStateMap = Map.from(
       _previousSnapshot.states,
     );

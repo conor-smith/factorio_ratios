@@ -27,4 +27,8 @@ abstract class StateBuilder<T> implements Builder<T> {
 
   void removeSelf();
   void updateGeometry(covariant Geometry geometry);
+
+  void performIoUpdate();
 }
+
+enum IoStatus { noUpdateNeeded, pending, updateComplete }

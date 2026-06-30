@@ -170,6 +170,10 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
   @override
+  void performIoUpdate() =>
+      throw const GraphException('Graph does not require IO update');
+
+  @override
   GraphStateImpl build() => GraphStateImpl(
     graph: _element,
     icon: _icon,

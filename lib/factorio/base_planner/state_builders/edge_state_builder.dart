@@ -100,6 +100,11 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   void updateGeometry(EdgeGeometryImpl geometry) => _geometry = geometry;
 
   @override
+  void performIoUpdate() {
+    // TODO
+  }
+
+  @override
   EdgeStateImpl build() => EdgeStateImpl(
     _element,
     amount: _amount,

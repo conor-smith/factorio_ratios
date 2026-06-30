@@ -180,6 +180,11 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   }
 
   @override
+  void performIoUpdate() {
+    // TODO
+  }
+
+  @override
   ProdLineNodeStateImpl build() => ProdLineNodeStateImpl(
     _element,
     internalConstraints: _internalConstraints,
