@@ -136,15 +136,16 @@ enum NodeType implements Comparable<NodeType> {
   /// Represents a node that only produces items. Children are not permitted.
   ///
   /// This node and [consumer] nodes MUST set [NodeElement.internalConstraints].
-  /// If parents of type [EdgeType.requestItems] exist, the final constraint for
-  /// each item will be given by the larger of two values
-  /// - The value at [NodeElement.internalConstraints]
-  /// - The sum value of all parents of type [EdgeType.requestItems]
+  /// This acts as a "root" node for the graph. No edge constraints can be set.
   producer(
     isIo: false,
     hasInternalConstraints: true,
-    outputPriority: 5,
-    permittedParents: {...EdgeType.values},
+    outputPriority: 100,
+    permittedParents: {
+      EdgeType.pushExcess,
+      EdgeType.weakPushExcess,
+      EdgeType.weakRequestItems,
+    },
     permittedChildren: {},
   ),
 
@@ -178,16 +179,17 @@ enum NodeType implements Comparable<NodeType> {
   /// Represents a root node in the graph that consumes items. Parents are not permitted.
   ///
   /// This node and [producer] nodes MUST set [NodeElement.internalConstraints].
-  /// If children of type [EdgeType.pushExcess] exist, the final constraint for
-  /// each item will be given by the larger of two values
-  /// - The value at [NodeElement.internalConstraints]
-  /// - The sum value of all children of type [EdgeType.requestItems]
+  /// This acts as a "root" node for the graph. No edge constraints can be set.
   consumer(
     isIo: false,
     hasInternalConstraints: true,
     outputPriority: 100,
     permittedParents: {},
-    permittedChildren: {...EdgeType.values},
+    permittedChildren: {
+      EdgeType.requestItems,
+      EdgeType.weakRequestItems,
+      EdgeType.weakPushExcess,
+    },
   );
 
   final bool isIo;
