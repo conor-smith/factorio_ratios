@@ -34,9 +34,11 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   final Map<BasePlannerElement, Builder> _updatedElements = {};
   final Set<BasePlannerElement> _removedElements = {};
-  final Queue<BasePlannerElement> _queuedIoUpdates = Queue();
 
   bool _isBuilding = false;
+
+  bool _updateIo = false;
+  Set<Graph> _graphsToUpdateLayout = {};
 
   bool get hasChanges =>
       _updatedElements.isNotEmpty || _removedElements.isNotEmpty;
@@ -51,31 +53,20 @@ class SnapshotBuilder implements Builder<Snapshot> {
     }
   }
 
-  void addToSnapshot<
-    E extends BasePlannerElement<St, dynamic>,
-    St,
-    B extends Builder<St>
-  >(E element, B builder) => _updatedElements[element] = builder;
+  void addToSnapshot(BasePlannerElement element, Builder builder) =>
+      _updatedElements[element] = builder;
 
   void removeFromSnapshot(BasePlannerElement element) {
     _removedElements.add(element);
   }
 
-  void queueIoUpdate(BasePlannerElement element) {
-    _queuedIoUpdates.addLast(element);
-  }
+  void queueIoUpdate() => _updateIo = true;
+
+  void queueLayoutUpdate(Graph graph) => _graphsToUpdateLayout.add(graph);
 
   @override
   Snapshot build() {
     _isBuilding = true;
-
-    while (_queuedIoUpdates.isNotEmpty) {
-      var toUpdate = _queuedIoUpdates.removeFirst();
-
-      if (!_removedElements.contains(toUpdate)) {
-        toUpdate.getStateBuilder().performIoUpdate();
-      }
-    }
 
     Map<BasePlannerElement, dynamic> newStateMap = Map.from(
       _previousSnapshot.states,

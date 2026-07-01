@@ -95,10 +95,12 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _inputNodes = {},
       _outputNodes = {},
       _edges = {},
-      _geometry = NodeGeometryImpl.uninitialised {
+      _geometry = NodeGeometryImpl.uninitialised,
+      super.initial() {
     if (!_element.isRoot) {
-      _element.parentGraph.getStateBuilder()._graphNodes.add(_element);
-      _element.parentGraph.getStateBuilder()._addNodeToCaches(_element);
+      _element.parentGraph.getStateBuilder()
+        .._graphNodes.add(_element)
+        .._addNodeToCaches(_element);
     }
   }
 
@@ -110,12 +112,16 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _inputNodes = Map.from(previousState.inputNodes),
       _outputNodes = Map.from(previousState.outputNodes),
       _edges = Set.from(previousState.edges),
-      _geometry = previousState.geometry;
+      _geometry = previousState.geometry,
+      super.from();
 
   @override
   void removeSelf() {
     for (var parent in parents.values.expand((edgeSet) => edgeSet)) {
-      _snapshotBuilder.removeFromSnapshot(parent);
+      _snapshotBuilder
+        ..removeFromSnapshot(parent)
+        ..queueIoUpdate()
+        ..queueLayoutUpdate(_element.parentGraph);
 
       parent.parentProdLine.getStateBuilder()._children[parent.item]!.remove(
         parent,
@@ -140,6 +146,10 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   }
 
   void removeAllNodesExceptIo() {
+    _snapshotBuilder
+      ..queueIoUpdate()
+      ..queueLayoutUpdate(_element);
+
     for (var node in _prodLineNodes) {
       node.getStateBuilder()._removeSelfButNotOthers();
     }
@@ -167,7 +177,10 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   void clearIcon() => _icon = null;
 
   @override
-  void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
+  void updateGeometry(NodeGeometryImpl geometry) {
+    _snapshotBuilder.queueLayoutUpdate(_element.parentGraph);
+    _geometry = geometry;
+  }
 
   @override
   void performIoUpdate() =>

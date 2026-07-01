@@ -44,7 +44,8 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
       _geometry = NodeGeometryImpl.uninitialised,
       _ioData = ProductionLineIoData.uninitialised,
       _parents = {},
-      _children = {} {
+      _children = {},
+      super.initial() {
     var parentGraph = _element.parentGraph;
     switch (_element.nodeType) {
       case NodeType.input:
@@ -91,7 +92,8 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
         ..updateAll((item, edgeSet) => Set.from(edgeSet)),
       _children = Map.from(previousState.children)
         ..updateAll((item, edgeSet) => Set.from(edgeSet)),
-      _ioData = previousState.ioData {
+      _ioData = previousState.ioData,
+      super.from() {
     if (_element.parentGraph.hasBuilder) {
       _element.parentGraph.getStateBuilder()._addNodeToCaches(_element);
     }
@@ -99,7 +101,9 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
 
   @override
   void removeSelf() {
-    _snapshotBuilder.removeFromSnapshot(_element);
+    _snapshotBuilder
+      ..queueIoUpdate()
+      ..removeFromSnapshot(_element);
     for (var parent in _parents.values.expand((edgeSet) => edgeSet)) {
       _removeParentFromDownstreamElements(parent);
     }
@@ -131,13 +135,19 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   }
 
   @override
-  void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
+  void updateGeometry(NodeGeometryImpl geometry) {
+    _snapshotBuilder.queueLayoutUpdate(_element.parentGraph);
+    _geometry = geometry;
+  }
 
   void updateInternalConstraints(ItemIoImpl newConstraints) {
+    _snapshotBuilder.queueIoUpdate();
     _internalConstraints = newConstraints;
   }
 
   void updateProductionLine(ProductionLine newLine) {
+    _snapshotBuilder.queueIoUpdate();
+
     var removedOutputs = _productionLine.outputItems.difference(
       newLine.outputItems,
     );

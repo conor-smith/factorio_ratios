@@ -21,8 +21,15 @@ abstract class StateBuilder<T> implements Builder<T> {
   SnapshotBuilder get _snapshotBuilder =>
       _element.basePlanner.getSnapshotBuilder();
 
-  StateBuilder() {
+  StateBuilder.from() {
     _snapshotBuilder.addToSnapshot(_element, this);
+  }
+
+  StateBuilder.initial() {
+    _snapshotBuilder
+      ..addToSnapshot(_element, this)
+      ..queueIoUpdate()
+      ..queueLayoutUpdate(_element.parentGraph);
   }
 
   void removeSelf();

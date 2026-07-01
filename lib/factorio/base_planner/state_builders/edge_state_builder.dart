@@ -30,7 +30,8 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
       _percentage = 0,
       _parentPriority = 0,
       _childPriority = 0,
-      _geometry = EdgeGeometryImpl.uninitialised {
+      _geometry = EdgeGeometryImpl.uninitialised,
+      super.initial() {
     if (_element.edgeType == EdgeType.requestExcess) {
       _parentPriority = 1;
       _childPriority = 1;
@@ -64,11 +65,15 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
       _parentPriority = previousState.parentPriority,
       _childPriority = previousState.childPriority,
       _geometry = previousState.geometry,
-      _requestedAmount = previousState.requestedAmount;
+      _requestedAmount = previousState.requestedAmount,
+      super.from();
 
   @override
   void removeSelf() {
-    _snapshotBuilder.removeFromSnapshot(_element);
+    _snapshotBuilder
+      ..removeFromSnapshot(_element)
+      ..queueIoUpdate()
+      ..queueLayoutUpdate(_element.parentGraph);
 
     _element.parentProdLine.getStateBuilder()._children[_element.item]!.remove(
       _element,
@@ -85,19 +90,25 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   }
 
   void updatePercentage(double newPercentage) {
+    _snapshotBuilder.queueIoUpdate();
     _percentage = newPercentage;
   }
 
   void updateParentPriority(int newPriority) {
+    _snapshotBuilder.queueIoUpdate();
     _parentPriority = newPriority;
   }
 
   void updateChildPriority(int newPriority) {
+    _snapshotBuilder.queueIoUpdate();
     _childPriority = newPriority;
   }
 
   @override
-  void updateGeometry(EdgeGeometryImpl geometry) => _geometry = geometry;
+  void updateGeometry(EdgeGeometryImpl geometry) {
+    _snapshotBuilder.queueLayoutUpdate(_element.parentGraph);
+    _geometry = geometry;
+  }
 
   @override
   void performIoUpdate() {
