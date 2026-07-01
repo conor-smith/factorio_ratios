@@ -34,6 +34,7 @@ abstract interface class BasePlannerElement<St, E>
   BasePlanner get basePlanner;
   Graph get parentGraph;
   Geometry get geometry;
+  Iterable<BasePlannerElement> getDependencies();
 
   /// Returns immutable object representing state
   St get state;

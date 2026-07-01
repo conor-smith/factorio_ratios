@@ -15,7 +15,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   final Map<InGameItem, Set<Edge>> _children;
 
   @override
-  ItemIo? get internalConstraints => _internalConstraints;
+  ItemIoImpl? get internalConstraints => _internalConstraints;
   @override
   ItemIo get edgeConstraints => _edgeConstraints;
   @override

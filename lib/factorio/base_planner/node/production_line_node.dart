@@ -13,7 +13,7 @@ class ProdLineNode
 
   // For convenience
   @override
-  ItemIo? get internalConstraints => state.internalConstraints;
+  ItemIoImpl? get internalConstraints => state.internalConstraints;
   @override
   ItemIo get edgeConstraints => state.edgeConstraints;
   @override
@@ -108,6 +108,16 @@ class ProdLineNode
       notifyListeners(NodeEvent.geometryOp(newState.geometry));
     }
   }
+
+  @override
+  Iterable<Edge> getDependencies() => [
+    ...parents.values
+        .expand((edgeSet) => edgeSet)
+        .where((edge) => edge.edgeType == EdgeType.requestItems),
+    ...children.values
+        .expand((edgeSet) => edgeSet)
+        .where((edge) => edge.edgeType == EdgeType.pushExcess),
+  ];
 
   ItemIoImpl determineEdgeConstraints() {
     var edgeConstraints = ItemIoBuilder();

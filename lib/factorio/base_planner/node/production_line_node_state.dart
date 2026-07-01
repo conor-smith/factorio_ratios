@@ -1,7 +1,7 @@
 part of 'node.dart';
 
 abstract class ProdLineNodeState {
-  ItemIo? get internalConstraints;
+  ItemIoImpl? get internalConstraints;
   ItemIo get edgeConstraints;
   ItemIo get itemIo;
 

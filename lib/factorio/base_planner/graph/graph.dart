@@ -172,6 +172,9 @@ class Graph
     }
   }
 
+  @override
+  Iterable<BasePlannerElement> getDependencies() => [...allNodes, ...edges];
+
   /// Clears all nodes except IO nodes
   void clear() {
     basePlanner.buildNextSnapshot(() {
@@ -471,6 +474,15 @@ class Graph
           .fold(nextRow, _returnLargest);
     }
   }
+
+  Iterable<ProdLineNode> _recursivelyGetProdLineNodes() => prodLineNodes
+      .followedBy(inputNodes.values)
+      .followedBy(outputNodes.values)
+      .followedBy(
+        graphNodes.expand(
+          (graphNode) => graphNode._recursivelyGetProdLineNodes(),
+        ),
+      );
 }
 
 class GraphIo extends ProductionLineIoData {

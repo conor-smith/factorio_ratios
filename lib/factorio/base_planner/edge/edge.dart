@@ -5,6 +5,7 @@ import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/json/json.dart';
+import 'package:factorio_ratios/utility/collections.dart';
 
 part 'edge_state.dart';
 
@@ -111,6 +112,42 @@ class Edge
       notifyListeners(EdgeEvent.geometryOp(geometry));
     }
   }
+
+  @override
+  Iterable<BasePlannerElement> getDependencies() => switch (edgeType) {
+    EdgeType.requestItems => [
+      maxOrNull<Edge>(
+            parentProdLine.children[item]!,
+            (edge1, edge2) =>
+                edge1.parentPriority.compareTo(edge2.parentPriority),
+          ) ??
+          parentProdLine,
+    ],
+    EdgeType.pushExcess => [
+      maxOrNull<Edge>(
+            childProdLine.parents[item]!,
+            (edge1, edge2) =>
+                edge1.childPriority.compareTo(edge2.childPriority),
+          ) ??
+          childProdLine,
+    ],
+    EdgeType.requestExcess => [
+      parentPriority == 1
+          ? parentProdLine
+          : parentProdLine.children[item]!.firstWhere(
+              (edge) =>
+                  edge.edgeType == EdgeType.requestExcess &&
+                  edge.parentPriority == parentPriority - 1,
+            ),
+      childPriority == 1
+          ? childProdLine
+          : childProdLine.parents[item]!.firstWhere(
+              (edge) =>
+                  edge.edgeType == EdgeType.requestExcess &&
+                  edge.childPriority == childPriority - 1,
+            ),
+    ],
+  };
 
   @override
   Map<String, dynamic> toJson() {
