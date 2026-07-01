@@ -110,7 +110,7 @@ class ProdLineNode
   }
 
   @override
-  Iterable<Edge> getDependencies() => [
+  Iterable<Edge> getIoDependencies() => [
     ...parents.values
         .expand((edgeSet) => edgeSet)
         .where((edge) => edge.edgeType == EdgeType.requestItems),

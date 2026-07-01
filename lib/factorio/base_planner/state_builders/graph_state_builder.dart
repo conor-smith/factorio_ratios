@@ -118,28 +118,11 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   @override
   void removeSelf() {
     for (var parent in parents.values.expand((edgeSet) => edgeSet)) {
-      _snapshotBuilder
-        ..removeFromSnapshot(parent)
-        ..queueIoUpdate()
-        ..queueLayoutUpdate(_element.parentGraph);
-
-      parent.parentProdLine.getStateBuilder()._children[parent.item]!.remove(
-        parent,
-      );
-
-      // If parent is a graph, this just creates a new statebuilder
-      // This ensures graph.children, which is determined dynamically, is updated
-      parent.parent.getStateBuilder();
+      parent.getStateBuilder()._removeSelfAndUpdateParentOnly();
     }
 
     for (var child in children.values.expand((edgeSet) => edgeSet)) {
-      _snapshotBuilder.removeFromSnapshot(child);
-
-      child.childProdLine.getStateBuilder()._parents[child.item]!.remove(child);
-
-      // If parent is a graph, this just creates a new statebuilder
-      // This ensures graph.parents, which is determined dynamically, is updated
-      child.child.getStateBuilder();
+      child.getStateBuilder()._removeSelfAndUpdateChildOnly();
     }
 
     _removeSelfButNotOthers();
@@ -147,7 +130,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
 
   void removeAllNodesExceptIo() {
     _snapshotBuilder
-      ..queueIoUpdate()
+      ..queueIoUpdate(_element)
       ..queueLayoutUpdate(_element);
 
     for (var node in _prodLineNodes) {
@@ -166,6 +149,11 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     for (var outputNode in outputNodes.values) {
       outputNode.getStateBuilder()._children.clear();
     }
+
+    _snapshotBuilder.queueIoUpdates([
+      ...inputNodes.values,
+      ...outputNodes.values,
+    ]);
 
     _prodLineNodes.clear();
     _edges.clear();
@@ -212,11 +200,11 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     for (var prodLine in allProdLineNodes) {
       prodLine.getStateBuilder()._removeSelfButNotOthers();
     }
-    for (var edge in _edges) {
-      _snapshotBuilder.removeFromSnapshot(edge);
-    }
     for (var graphNode in _graphNodes) {
       graphNode.getStateBuilder()._removeSelfButNotOthers();
+    }
+    for (var edge in _edges) {
+      _snapshotBuilder.removeFromSnapshot(edge);
     }
 
     _prodLineNodes.clear();

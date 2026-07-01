@@ -173,7 +173,7 @@ class Graph
   }
 
   @override
-  Iterable<BasePlannerElement> getDependencies() => [...allNodes, ...edges];
+  Iterable<NodeElement> getIoDependencies() => [...allNodes];
 
   /// Clears all nodes except IO nodes
   void clear() {

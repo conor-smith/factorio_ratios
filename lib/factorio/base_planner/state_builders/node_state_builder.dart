@@ -101,21 +101,23 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
 
   @override
   void removeSelf() {
+    var parentGraph = _element.parentGraph;
+
     _snapshotBuilder
-      ..queueIoUpdate()
+      ..queueIoUpdate(parentGraph)
+      ..queueLayoutUpdate(parentGraph)
       ..removeFromSnapshot(_element);
     for (var parent in _parents.values.expand((edgeSet) => edgeSet)) {
-      _removeParentFromDownstreamElements(parent);
+      parent.getStateBuilder()._removeSelfAndUpdateParentOnly();
     }
 
     for (var child in _children.values.expand((edgeSet) => edgeSet)) {
-      _removeChildFromDownstreamElements(child);
+      child.getStateBuilder()._removeSelfAndUpdateChildOnly();
     }
 
     _parents.clear();
     _children.clear();
 
-    var parentGraph = _element.parentGraph;
     switch (_element.nodeType) {
       case NodeType.input:
         parentGraph.getStateBuilder()._inputNodes.remove(
@@ -126,6 +128,9 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
         parentGraph.getStateBuilder()._outputNodes.remove(
           _productionLine.outputItems.first,
         );
+        if (parentGraph.parentGraph.hasBuilder) {
+          parentGraph.parentGraph.getStateBuilder()._clearCachedOutputIndex();
+        }
 
       default:
         parentGraph.getStateBuilder()._prodLineNodes.remove(_element);
@@ -141,12 +146,12 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   }
 
   void updateInternalConstraints(ItemIoImpl newConstraints) {
-    _snapshotBuilder.queueIoUpdate();
+    _snapshotBuilder.queueIoUpdate(_element);
     _internalConstraints = newConstraints;
   }
 
   void updateProductionLine(ProductionLine newLine) {
-    _snapshotBuilder.queueIoUpdate();
+    _snapshotBuilder.queueIoUpdate(_element);
 
     var removedOutputs = _productionLine.outputItems.difference(
       newLine.outputItems,
@@ -161,7 +166,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
       _parents.remove(output);
     }
     for (var parent in parentsToRemove) {
-      _removeParentFromDownstreamElements(parent);
+      parent.getStateBuilder()._removeSelfAndUpdateParentOnly();
     }
 
     var removedInputs = _productionLine.inputItems.difference(
@@ -177,7 +182,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
       _children.remove(input);
     }
     for (var child in childrenToRemove) {
-      _removeChildFromDownstreamElements(child);
+      child.getStateBuilder()._removeSelfAndUpdateChildOnly();
     }
 
     if (_element.parentGraph.hasBuilder) {
@@ -206,28 +211,6 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
     parents: parents..removeWhere((item, edges) => edges.isEmpty),
     children: children..removeWhere((item, edges) => edges.isEmpty),
   );
-
-  void _removeParentFromDownstreamElements(Edge parent) {
-    _snapshotBuilder.removeFromSnapshot(parent);
-
-    parent.parentProdLine.getStateBuilder()._children[parent.item]!.remove(
-      parent,
-    );
-
-    // If parent is a graph, this just creates a new statebuilder
-    // This ensures graph.children, which is determined dynamically, is updated
-    parent.parent.getStateBuilder();
-  }
-
-  void _removeChildFromDownstreamElements(Edge child) {
-    _snapshotBuilder.removeFromSnapshot(child);
-
-    child.childProdLine.getStateBuilder()._parents[child.item]!.remove(child);
-
-    // If parent is a graph, this just creates a new statebuilder
-    // This ensures graph.parents, which is determined dynamically, is updated
-    child.child.getStateBuilder();
-  }
 
   // Used by parentGraph when doing bulk removals
   void _removeSelfButNotOthers() {

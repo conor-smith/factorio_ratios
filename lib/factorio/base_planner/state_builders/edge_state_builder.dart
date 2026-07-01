@@ -72,8 +72,23 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   void removeSelf() {
     _snapshotBuilder
       ..removeFromSnapshot(_element)
-      ..queueIoUpdate()
-      ..queueLayoutUpdate(_element.parentGraph);
+      ..queueLayoutUpdate(_element.parentGraph)
+      // Queue relevant dependants for IO update
+      ..queueIoUpdates(switch (_element.edgeType) {
+        EdgeType.requestItems || EdgeType.pushExcess => [
+          _element.childProdLine,
+          _element.parentProdLine,
+        ],
+
+        EdgeType.requestExcess => [
+          ..._element.parentProdLine.children[_element.item]!.where(
+            (edge) => edge.edgeType == EdgeType.requestItems,
+          ),
+          ..._element.childProdLine.parents[_element.item]!.where(
+            (edge) => edge.edgeType == EdgeType.pushExcess,
+          ),
+        ],
+      });
 
     _element.parentProdLine.getStateBuilder()._children[_element.item]!.remove(
       _element,
@@ -83,24 +98,24 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
     );
     _element.parentGraph.getStateBuilder()._edges.remove(_element);
 
-    // If parent is a graph, this just creates a new statebuilder
+    // If parent or child is a graph, this just creates a new statebuilder
     // This ensures graph.parents and graph.children, which are determined dynamically, are updated
     _element.parent.getStateBuilder();
     _element.child.getStateBuilder();
   }
 
   void updatePercentage(double newPercentage) {
-    _snapshotBuilder.queueIoUpdate();
+    _snapshotBuilder.queueIoUpdate(_element);
     _percentage = newPercentage;
   }
 
   void updateParentPriority(int newPriority) {
-    _snapshotBuilder.queueIoUpdate();
+    _snapshotBuilder.queueIoUpdate(_element);
     _parentPriority = newPriority;
   }
 
   void updateChildPriority(int newPriority) {
-    _snapshotBuilder.queueIoUpdate();
+    _snapshotBuilder.queueIoUpdate(_element);
     _childPriority = newPriority;
   }
 
@@ -125,4 +140,45 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
     childPriority: _childPriority,
     geometry: _geometry,
   );
+
+  void _removeSelfAndUpdateParentOnly() {
+    _snapshotBuilder
+      ..removeFromSnapshot(_element)
+      ..queueLayoutUpdate(_element.parentGraph)
+      ..queueIoUpdates(switch (_element.edgeType) {
+        EdgeType.requestItems ||
+        EdgeType.pushExcess => [_element.parentProdLine],
+
+        EdgeType.requestExcess =>
+          _element.parentProdLine.children[_element.item]!.where(
+            (edge) => edge.edgeType == EdgeType.requestItems,
+          ),
+      });
+
+    _element.parentProdLine.children[_element.item]!.remove(_element);
+
+    // If parent is a graph, this just creates a new statebuilder
+    // This ensures graph.parents and graph.children, which are determined dynamically, are updated
+    _element.parent.getStateBuilder();
+  }
+
+  void _removeSelfAndUpdateChildOnly() {
+    _snapshotBuilder
+      ..queueLayoutUpdate(_element.parentGraph)
+      ..queueIoUpdates(switch (_element.edgeType) {
+        EdgeType.requestItems ||
+        EdgeType.pushExcess => [_element.childProdLine],
+
+        EdgeType.requestExcess =>
+          _element.childProdLine.parents[_element.item]!.where(
+            (edge) => edge.edgeType == EdgeType.requestItems,
+          ),
+      });
+
+    _element.childProdLine.parents[_element.item]!.remove(_element);
+
+    // If child is a graph, this just creates a new statebuilder
+    // This ensures graph.parents and graph.children, which are determined dynamically, are updated
+    _element.child.getStateBuilder();
+  }
 }

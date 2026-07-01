@@ -37,7 +37,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   bool _isBuilding = false;
 
-  bool _updateIo = false;
+  Set<BasePlannerElement> _elementsToUpdate = {};
   Set<Graph> _graphsToUpdateLayout = {};
 
   bool get hasChanges =>
@@ -56,11 +56,14 @@ class SnapshotBuilder implements Builder<Snapshot> {
   void addToSnapshot(BasePlannerElement element, Builder builder) =>
       _updatedElements[element] = builder;
 
-  void removeFromSnapshot(BasePlannerElement element) {
-    _removedElements.add(element);
-  }
+  void removeFromSnapshot(BasePlannerElement element) =>
+      _removedElements.add(element);
 
-  void queueIoUpdate() => _updateIo = true;
+  void queueIoUpdate(BasePlannerElement element) =>
+      _elementsToUpdate.add(element);
+
+  void queueIoUpdates(Iterable<BasePlannerElement> elements) =>
+      _elementsToUpdate.addAll(elements);
 
   void queueLayoutUpdate(Graph graph) => _graphsToUpdateLayout.add(graph);
 

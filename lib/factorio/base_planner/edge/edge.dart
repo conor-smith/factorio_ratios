@@ -114,7 +114,7 @@ class Edge
   }
 
   @override
-  Iterable<BasePlannerElement> getDependencies() => switch (edgeType) {
+  Iterable<BasePlannerElement> getIoDependencies() => switch (edgeType) {
     EdgeType.requestItems => [
       maxOrNull<Edge>(
             parentProdLine.children[item]!,
