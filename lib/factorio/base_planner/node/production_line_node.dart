@@ -119,6 +119,11 @@ class ProdLineNode
         .where((edge) => edge.edgeType == EdgeType.pushExcess),
   ];
 
+  @override
+  void updateIo() {
+    // TODO - Validation
+  }
+
   ItemIoImpl determineEdgeConstraints() {
     var edgeConstraints = ItemIoBuilder();
 

@@ -185,6 +185,11 @@ class Graph
     });
   }
 
+  @override
+  void updateIo() {
+    // TODO - Validation
+  }
+
   // TODO
   void determineIoOfAllNodes(Set<ProdLineNode> nodesToUpdateIo) {
     basePlanner.getSnapshotBuilder().throwIfNotBuilding();
@@ -474,15 +479,6 @@ class Graph
           .fold(nextRow, _returnLargest);
     }
   }
-
-  Iterable<ProdLineNode> _recursivelyGetProdLineNodes() => prodLineNodes
-      .followedBy(inputNodes.values)
-      .followedBy(outputNodes.values)
-      .followedBy(
-        graphNodes.expand(
-          (graphNode) => graphNode._recursivelyGetProdLineNodes(),
-        ),
-      );
 }
 
 class GraphIo extends ProductionLineIoData {

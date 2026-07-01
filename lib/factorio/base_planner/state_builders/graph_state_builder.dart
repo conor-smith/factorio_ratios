@@ -171,10 +171,6 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   }
 
   @override
-  void performIoUpdate() =>
-      throw const GraphException('Graph does not require IO update');
-
-  @override
   GraphStateImpl build() => GraphStateImpl(
     graph: _element,
     icon: _icon,

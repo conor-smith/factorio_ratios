@@ -37,8 +37,11 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   bool _isBuilding = false;
 
-  Set<BasePlannerElement> _elementsToUpdate = {};
-  Set<Graph> _graphsToUpdateLayout = {};
+  final Queue<BasePlannerElement> _elementsToUpdate = Queue();
+  final Set<Graph> _graphsToUpdateLayout = {};
+  final Map<BasePlannerElement, Iterable<BasePlannerElement>> _dependencies =
+      {};
+  final Set<BasePlannerElement> _completed = {};
 
   bool get hasChanges =>
       _updatedElements.isNotEmpty || _removedElements.isNotEmpty;
@@ -70,6 +73,16 @@ class SnapshotBuilder implements Builder<Snapshot> {
   @override
   Snapshot build() {
     _isBuilding = true;
+
+    // Remove duplicates and removed items
+    var updateSet = _elementsToUpdate.toSet();
+    updateSet.removeAll(_removedElements);
+    _elementsToUpdate.clear();
+    _elementsToUpdate.addAll(updateSet);
+
+    while (_elementsToUpdate.isNotEmpty) {
+      var nextElement = _elementsToUpdate.removeFirst();
+    }
 
     Map<BasePlannerElement, dynamic> newStateMap = Map.from(
       _previousSnapshot.states,

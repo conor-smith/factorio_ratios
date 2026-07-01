@@ -126,11 +126,6 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   }
 
   @override
-  void performIoUpdate() {
-    // TODO
-  }
-
-  @override
   EdgeStateImpl build() => EdgeStateImpl(
     _element,
     amount: _amount,

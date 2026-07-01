@@ -150,6 +150,11 @@ class Edge
   };
 
   @override
+  void updateIo() {
+    // TODO - Validation
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();

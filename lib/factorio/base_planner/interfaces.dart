@@ -34,7 +34,12 @@ abstract interface class BasePlannerElement<St, E>
   BasePlanner get basePlanner;
   Graph get parentGraph;
   Geometry get geometry;
+
+  /// TODO - Document
   Iterable<BasePlannerElement> getIoDependencies();
+
+  /// TODO - Document
+  void updateIo();
 
   /// Returns immutable object representing state
   St get state;
