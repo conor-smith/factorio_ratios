@@ -50,6 +50,7 @@ class Graph
   Map<InGameItem, ProdLineNode> get outputNodes => state.outputNodes;
   Map<InGameItem, ProdLineNode> get inputNodes => state.inputNodes;
   Set<NodeElement> get allNodes => state.allNodes;
+  GraphLayout get layout => state.layout;
   Set<Edge> get edges => state.edges;
   @override
   Set<InGameItem> get inputItems => state.inputItems;
@@ -480,6 +481,8 @@ class Graph
     }
   }
 }
+
+enum GraphLayout { table, custom }
 
 class GraphIo extends ProductionLineIoData {
   factory GraphIo.fromState(GraphState state) {

@@ -1,9 +1,5 @@
 part of 'state_builders.dart';
 
-// Due to the complexity of state interactions, I've tried to make every
-// "remove...()" function still carry out all necessary actions, even if unnecessary
-// eg. If graph.getStateBuilder().removeEdge(edge) is called before
-// edge.getStateBuilder().removeSelf(), edgeStateBuilder.removeSelf() will still be called
 class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     implements GraphState {
   @override
@@ -17,6 +13,8 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   final Map<InGameItem, ProdLineNode> _outputNodes;
   final Set<Edge> _edges;
   NodeGeometryImpl _geometry;
+
+  GraphLayout _layout;
 
   Map<InGameItem, List<NodeElement>>? _cachedNodeOutputIndex;
   Map<InGameItem, NodeElement>? _cachedDisposalNodes;
@@ -73,6 +71,9 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     _outputNodes,
   ).toSet();
 
+  @override
+  GraphLayout get layout => _layout;
+
   /// DO NOT modify this value outside this class
   Map<InGameItem, List<NodeElement>> get cachedNodeOutputIndex {
     _cachedNodeOutputIndex ??= _createNodeOutputIndex();
@@ -96,6 +97,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _outputNodes = {},
       _edges = {},
       _geometry = NodeGeometryImpl.uninitialised,
+      _layout = GraphLayout.table,
       super.initial() {
     if (!_element.isRoot) {
       _element.parentGraph.getStateBuilder()
@@ -113,6 +115,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _outputNodes = Map.from(previousState.outputNodes),
       _edges = Set.from(previousState.edges),
       _geometry = previousState.geometry,
+      _layout = previousState.layout,
       super.from();
 
   @override
@@ -167,7 +170,11 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
 
   @override
   void updateGeometry(NodeGeometryImpl geometry) {
-    _snapshotBuilder.queueLayoutUpdate(_element.parentGraph);
+    if (!_snapshotBuilder.isDoingGraphLayout &&
+        _element.parentGraph.layout != GraphLayout.custom) {
+      _element.parentGraph.getStateBuilder()._layout = GraphLayout.custom;
+    }
+
     _geometry = geometry;
   }
 
@@ -183,6 +190,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     edges: _edges,
     geometry: _geometry,
     ioRatios: ItemIoImpl.empty, // TODO
+    layout: _layout,
     ioData: GraphIo.fromState(this),
   );
 

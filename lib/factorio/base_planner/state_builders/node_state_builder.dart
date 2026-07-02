@@ -50,7 +50,6 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
 
     _snapshotBuilder
       ..queueUnfulfilledIoCheck(_element)
-      ..updateIoStatus(parentGraph, UpdateStatus.checkDependencies)
       ..queueLayoutUpdate(parentGraph);
 
     switch (_element.nodeType) {
@@ -147,7 +146,10 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
 
   @override
   void updateGeometry(NodeGeometryImpl geometry) {
-    _snapshotBuilder.queueLayoutUpdate(_element.parentGraph);
+    if (!_snapshotBuilder.isDoingGraphLayout &&
+        _element.parentGraph.layout != GraphLayout.custom) {
+      _element.parentGraph.getStateBuilder()._layout = GraphLayout.custom;
+    }
     _geometry = geometry;
   }
 

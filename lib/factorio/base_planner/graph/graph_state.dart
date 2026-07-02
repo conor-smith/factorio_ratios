@@ -18,6 +18,8 @@ abstract class GraphState {
   GraphIo get ioData;
   NodeGeometryImpl get geometry;
 
+  GraphLayout get layout;
+
   static Iterable<NodeElement> calculateAllNodes(
     Iterable<ProdLineNode> prodLineNodes,
     Iterable<Graph> graphNodes,
@@ -77,6 +79,9 @@ class GraphStateImpl implements GraphState, ToJson {
   @override
   final GraphIo ioData;
 
+  @override
+  final GraphLayout layout;
+
   GraphStateImpl({
     required Graph graph,
     required this.name,
@@ -89,6 +94,7 @@ class GraphStateImpl implements GraphState, ToJson {
     required this.ioRatios,
     required this.geometry,
     required this.ioData,
+    required this.layout,
   }) : prodLineNodes = Set.unmodifiable(prodLineNodes),
        graphNodes = Set.unmodifiable(graphNodes),
        edges = Set.unmodifiable(edges),
@@ -134,7 +140,8 @@ class GraphStateImpl implements GraphState, ToJson {
       children = const {},
       ioRatios = ItemIoImpl.empty,
       geometry = NodeGeometryImpl.uninitialised,
-      ioData = const GraphIo.empty();
+      ioData = const GraphIo.empty(),
+      layout = GraphLayout.table;
 
   const GraphStateImpl._uninitialised()
     : name = '',
@@ -151,7 +158,8 @@ class GraphStateImpl implements GraphState, ToJson {
       children = const {},
       ioRatios = ItemIoImpl.empty,
       geometry = NodeGeometryImpl.uninitialised,
-      ioData = const GraphIo.empty();
+      ioData = const GraphIo.empty(),
+      layout = GraphLayout.table;
 
   @override
   Map<String, dynamic> toJson() {

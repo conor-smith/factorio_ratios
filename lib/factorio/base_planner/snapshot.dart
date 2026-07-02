@@ -36,6 +36,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
   final Set<BasePlannerElement> _removedElements = {};
 
   bool _isBuilding = false;
+  bool _isDoingGraphLayout = false;
 
   final Queue<BasePlannerElement> _updateQueue = Queue();
   final Map<BasePlannerElement, UpdateStatus> _elementUpdateStatus = {};
@@ -54,6 +55,8 @@ class SnapshotBuilder implements Builder<Snapshot> {
       );
     }
   }
+
+  bool get isDoingGraphLayout => _isDoingGraphLayout;
 
   void addToSnapshot(BasePlannerElement element, Builder builder) =>
       _updatedElements[element] = builder;

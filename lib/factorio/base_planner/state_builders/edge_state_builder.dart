@@ -139,7 +139,11 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
 
   @override
   void updateGeometry(EdgeGeometryImpl geometry) {
-    _snapshotBuilder.queueLayoutUpdate(_element.parentGraph);
+    if (!_snapshotBuilder.isDoingGraphLayout &&
+        _element.parentGraph.layout != GraphLayout.custom) {
+      _element.parentGraph.getStateBuilder()._layout = GraphLayout.custom;
+    }
+
     _geometry = geometry;
   }
 
