@@ -42,7 +42,6 @@ class Edge
   double get percentage => state.percentage;
   int get parentPriority => state.parentPriority;
   int get childPriority => state.childPriority;
-  double get requestedAmount => state.requestedAmount;
   @override
   EdgeGeometryImpl get geometry => state.geometry;
 

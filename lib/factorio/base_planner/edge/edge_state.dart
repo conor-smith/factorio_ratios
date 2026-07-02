@@ -3,8 +3,6 @@ part of 'edge.dart';
 abstract class EdgeState {
   double get amount;
 
-  double get requestedAmount;
-
   double get percentage;
   int get parentPriority;
   int get childPriority;
@@ -18,8 +16,6 @@ class EdgeStateImpl implements EdgeState, ToJson {
   @override
   final double amount;
   @override
-  final double requestedAmount;
-  @override
   final double percentage;
   @override
   final int parentPriority;
@@ -32,7 +28,6 @@ class EdgeStateImpl implements EdgeState, ToJson {
   EdgeStateImpl(
     Edge edge, {
     required this.amount,
-    required this.requestedAmount,
     required this.percentage,
     required this.geometry,
     required this.parentPriority,
@@ -61,7 +56,6 @@ class EdgeStateImpl implements EdgeState, ToJson {
 
   const EdgeStateImpl._uninitialised()
     : amount = 0,
-      requestedAmount = 0,
       percentage = 0,
       parentPriority = 0,
       childPriority = 0,

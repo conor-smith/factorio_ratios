@@ -5,7 +5,6 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   final Edge _element;
 
   double _amount;
-  double _requestedAmount;
   double _percentage;
   int _parentPriority;
   int _childPriority;
@@ -13,8 +12,6 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
 
   @override
   double get amount => _amount;
-  @override
-  double get requestedAmount => _requestedAmount;
   @override
   double get percentage => _percentage;
   @override
@@ -26,7 +23,6 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
 
   EdgeStateBuilder.initial(this._element)
     : _amount = 0,
-      _requestedAmount = 0,
       _percentage = 0,
       _parentPriority = 0,
       _childPriority = 0,
@@ -65,7 +61,6 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
       _parentPriority = previousState.parentPriority,
       _childPriority = previousState.childPriority,
       _geometry = previousState.geometry,
-      _requestedAmount = previousState.requestedAmount,
       super.from();
 
   @override
@@ -152,7 +147,6 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   EdgeStateImpl build() => EdgeStateImpl(
     _element,
     amount: _amount,
-    requestedAmount: _requestedAmount,
     percentage: _percentage,
     parentPriority: _parentPriority,
     childPriority: _childPriority,
