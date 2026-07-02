@@ -120,8 +120,10 @@ class ProdLineNode
   ];
 
   @override
-  void updateIo() {
-    // TODO - Validation
+  bool traverseDependenciesAndUpdateIo(
+    Set<BasePlannerElement> visitedElements,
+  ) {
+    throw UnimplementedError();
   }
 
   ItemIoImpl determineEdgeConstraints() {

@@ -48,6 +48,9 @@ class BasePlanner
   final List<InGameMachine> sortedMachines;
   final Map<Surface, SurfaceProperties> surfaceProperties;
 
+  // TODO - Rename, document, and make mutable
+  final double ioThreshold = 0.1;
+
   /// Current graph to display in UI
   Graph get activeGraph => _activeGraph;
 

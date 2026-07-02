@@ -113,50 +113,299 @@ class Edge
   }
 
   @override
-  Iterable<BasePlannerElement> getIoDependencies() => switch (edgeType) {
-    EdgeType.requestItems => [
-      maxOrNull<Edge>(
-            parentProdLine.children[item]!,
-            (edge1, edge2) =>
-                edge1.parentPriority.compareTo(edge2.parentPriority),
-          ) ??
-          parentProdLine,
-    ],
-    EdgeType.pushExcess => [
-      maxOrNull<Edge>(
-            childProdLine.parents[item]!,
-            (edge1, edge2) =>
-                edge1.childPriority.compareTo(edge2.childPriority),
-          ) ??
-          childProdLine,
-    ],
-    EdgeType.requestExcess => [
-      parentPriority == 1
-          ? parentProdLine
-          : parentProdLine.children[item]!.firstWhere(
-              (edge) =>
-                  edge.edgeType == EdgeType.requestExcess &&
-                  edge.parentPriority == parentPriority - 1,
-            ),
-      childPriority == 1
-          ? childProdLine
-          : childProdLine.parents[item]!.firstWhere(
-              (edge) =>
-                  edge.edgeType == EdgeType.requestExcess &&
-                  edge.childPriority == childPriority - 1,
-            ),
-    ],
-  };
+  bool traverseDependenciesAndUpdateIo(
+    Set<BasePlannerElement> visitedElements,
+  ) {
+    // Check for circular dependency
+    // TODO - Centralise this code rather than copying it
+    if (visitedElements.contains(this)) {
+      throw BasePlannerException('Circular dependency detected at $this');
+    }
 
-  @override
-  void updateIo() {
-    // TODO - Validation
+    visitedElements.add(this);
+
+    var hasBeenUpdated = switch (basePlanner
+        .getSnapshotBuilder()
+        .getUpdateStatus(this)) {
+      UpdateStatus.completeUpdate => true,
+      UpdateStatus.completeNoUpdate => false,
+      UpdateStatus.checkDependencies => _determineAmount(
+        false,
+        visitedElements,
+      ),
+      UpdateStatus.required => _determineAmount(true, visitedElements),
+    };
+
+    visitedElements.remove(this);
+    return hasBeenUpdated;
   }
 
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
+  }
+
+  bool _determineAmount(
+    bool forceUpdate,
+    Set<BasePlannerElement> visitedElements,
+  ) => switch (edgeType) {
+    EdgeType.requestItems => _determineAmountForRequestItem(
+      forceUpdate,
+      visitedElements,
+    ),
+    EdgeType.pushExcess => _determineAmountForPushExcess(
+      forceUpdate,
+      visitedElements,
+    ),
+    EdgeType.requestExcess => _determineAmountForRequestExcess(
+      forceUpdate,
+      visitedElements,
+    ),
+  };
+
+  bool _determineAmountForRequestItem(
+    bool forceUpdate,
+    Set<BasePlannerElement> visitedElements,
+  ) {
+    var parentItemEdges = parentProdLine.children[item]!;
+
+    var maxPriorityRequestExcessEdge = maxOrNull(
+      parentItemEdges.where((edge) => edge.edgeType == EdgeType.requestExcess),
+      (edge1, edge2) => edge1.parentPriority.compareTo(edge2.parentPriority),
+    );
+
+    bool dependencyUpdate;
+    if (maxPriorityRequestExcessEdge != null) {
+      dependencyUpdate = maxPriorityRequestExcessEdge
+          .traverseDependenciesAndUpdateIo(visitedElements);
+    } else {
+      dependencyUpdate = parentProdLine.traverseDependenciesAndUpdateIo(
+        visitedElements,
+      );
+    }
+
+    if (forceUpdate || dependencyUpdate) {
+      // TODO - Update all requestItemEdges at once?
+      var unfulfilledRequest =
+          parentProdLine.itemIo.inputs[item]! -
+          parentItemEdges
+              .where((edge) => edge.edgeType != EdgeType.requestItems)
+              .fold(0, (sum, edge) => sum + edge.amount);
+
+      getStateBuilder().updateAmount(unfulfilledRequest * percentage);
+      basePlanner.getSnapshotBuilder()
+        ..updateIoSatusAndQueue(this, UpdateStatus.completeUpdate)
+        ..updateIoSatusAndQueue(childProdLine, UpdateStatus.checkDependencies);
+
+      // Determine if there's enough unfulfilled requests for a new edge
+      var requestItemEdges = parentItemEdges.where(
+        (edge) => edge.edgeType == EdgeType.requestItems,
+      );
+
+      if (requestItemEdges.every(
+        (edge) =>
+            basePlanner.getSnapshotBuilder().getUpdateStatus(edge).isComplete,
+      )) {
+        var leftOver =
+            unfulfilledRequest -
+            requestItemEdges.fold(0, (sum, edge) => sum + edge.amount);
+
+        if (leftOver > basePlanner.ioThreshold) {
+          basePlanner.getSnapshotBuilder().queueUnfulfilledIoCheck(
+            parentProdLine,
+          );
+        }
+      }
+
+      return true;
+    } else {
+      basePlanner.getSnapshotBuilder().updateIoSatusAndQueue(
+        this,
+        UpdateStatus.completeNoUpdate,
+      );
+
+      return false;
+    }
+  }
+
+  bool _determineAmountForPushExcess(
+    bool forceUpdate,
+    Set<BasePlannerElement> visitedElements,
+  ) {
+    var childItemEdges = childProdLine.parents[item]!;
+
+    var maxPriorityRequestExcessEdge = maxOrNull(
+      childItemEdges.where((edge) => edge.edgeType == EdgeType.requestExcess),
+      (edge1, edge2) => edge1.childPriority.compareTo(edge2.childPriority),
+    );
+
+    bool dependencyUpdate;
+    if (maxPriorityRequestExcessEdge != null) {
+      dependencyUpdate = maxPriorityRequestExcessEdge
+          .traverseDependenciesAndUpdateIo(visitedElements);
+    } else {
+      dependencyUpdate = childProdLine.traverseDependenciesAndUpdateIo(
+        visitedElements,
+      );
+    }
+
+    if (forceUpdate || dependencyUpdate) {
+      // TODO - Update all requestItemEdges at once?
+      var unconsumedExcess =
+          childProdLine.itemIo.outputs[item]! -
+          childItemEdges
+              .where((edge) => edge.edgeType != EdgeType.pushExcess)
+              .fold(0, (sum, edge) => sum + edge.amount);
+
+      getStateBuilder().updateAmount(unconsumedExcess * percentage);
+      basePlanner.getSnapshotBuilder()
+        ..updateIoSatusAndQueue(this, UpdateStatus.completeUpdate)
+        ..updateIoSatusAndQueue(parentProdLine, UpdateStatus.checkDependencies);
+
+      // Determine if there's enough unfulfilled requests for a new edge
+      var requestItemEdges = childItemEdges.where(
+        (edge) => edge.edgeType == EdgeType.pushExcess,
+      );
+
+      if (requestItemEdges.every(
+        (edge) =>
+            basePlanner.getSnapshotBuilder().getUpdateStatus(edge).isComplete,
+      )) {
+        var leftOver =
+            unconsumedExcess -
+            requestItemEdges.fold(0, (sum, edge) => sum + edge.amount);
+
+        if (leftOver > basePlanner.ioThreshold) {
+          basePlanner.getSnapshotBuilder().queueUnfulfilledIoCheck(
+            childProdLine,
+          );
+        }
+      }
+
+      return true;
+    } else {
+      basePlanner.getSnapshotBuilder().updateIoSatusAndQueue(
+        this,
+        UpdateStatus.completeNoUpdate,
+      );
+
+      return false;
+    }
+  }
+
+  bool _determineAmountForRequestExcess(
+    bool forceUpdate,
+    Set<BasePlannerElement> visitedElements,
+  ) {
+    var parentItemEdges = parentProdLine.children[item]!;
+    var childItemEdges = childProdLine.parents[item]!;
+
+    bool parentDepUpdate = parentPriority == 1
+        ? parentProdLine.traverseDependenciesAndUpdateIo(visitedElements)
+        : parentItemEdges
+              .firstWhere(
+                (edge) =>
+                    edge.edgeType == EdgeType.requestExcess &&
+                    edge.parentPriority == parentPriority - 1,
+              )
+              .traverseDependenciesAndUpdateIo(visitedElements);
+
+    bool childDepUpdate = childPriority == 1
+        ? childProdLine.traverseDependenciesAndUpdateIo(visitedElements)
+        : childItemEdges
+              .firstWhere(
+                (edge) =>
+                    edge.edgeType == EdgeType.requestExcess &&
+                    edge.childPriority == childPriority - 1,
+              )
+              .traverseDependenciesAndUpdateIo(visitedElements);
+
+    if (forceUpdate || parentDepUpdate || childDepUpdate) {
+      var parentUnfulfilledRequest =
+          parentProdLine.itemIo.inputs[item]! -
+          parentItemEdges
+              .where(
+                (edge) =>
+                    edge.edgeType != EdgeType.requestItems &&
+                    edge.parentPriority < parentPriority,
+              )
+              .fold(0, (sum, edge) => sum + edge.amount);
+
+      var childUnconsumedExcess =
+          childProdLine.itemIo.outputs[item]! -
+          childItemEdges
+              .where(
+                (edge) =>
+                    edge.edgeType != EdgeType.pushExcess &&
+                    edge.childPriority < childPriority,
+              )
+              .fold(0, (sum, edge) => sum + edge.amount);
+
+      var amount = parentUnfulfilledRequest > childUnconsumedExcess
+          ? parentUnfulfilledRequest
+          : childUnconsumedExcess;
+
+      getStateBuilder().updateAmount(amount);
+
+      basePlanner.getSnapshotBuilder().updateIoSatusAndQueue(
+        this,
+        UpdateStatus.completeUpdate,
+      );
+
+      var parentDependants = parentItemEdges
+          .where(
+            (edge) =>
+                edge.edgeType == EdgeType.requestExcess &&
+                edge.parentPriority == parentPriority + 1,
+          )
+          .toList();
+
+      if (parentDependants.isEmpty) {
+        parentDependants = parentItemEdges
+            .where((edge) => edge.edgeType == EdgeType.requestItems)
+            .toList();
+      }
+      if (parentDependants.isEmpty &&
+          parentUnfulfilledRequest > childUnconsumedExcess) {
+        basePlanner.getSnapshotBuilder().queueUnfulfilledIoCheck(
+          parentProdLine,
+        );
+      }
+
+      var childDependants = childItemEdges
+          .where(
+            (edge) =>
+                edge.edgeType == EdgeType.requestExcess &&
+                edge.childPriority == childPriority + 1,
+          )
+          .toList();
+
+      if (childDependants.isEmpty) {
+        childDependants = childItemEdges
+            .where((edge) => edge.edgeType == EdgeType.pushExcess)
+            .toList();
+      }
+      if (childDependants.isEmpty &&
+          childUnconsumedExcess > parentUnfulfilledRequest) {
+        basePlanner.getSnapshotBuilder().queueUnfulfilledIoCheck(childProdLine);
+      }
+
+      for (var dependentEdge in [...parentDependants, ...childDependants]) {
+        basePlanner.getSnapshotBuilder().updateIoSatusAndQueue(
+          dependentEdge,
+          UpdateStatus.checkDependencies,
+        );
+      }
+
+      return true;
+    } else {
+      basePlanner.getSnapshotBuilder().updateIoSatusAndQueue(
+        this,
+        UpdateStatus.completeNoUpdate,
+      );
+      return false;
+    }
   }
 }
 
