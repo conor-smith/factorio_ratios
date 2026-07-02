@@ -35,28 +35,26 @@ class SnapshotBuilder implements Builder<Snapshot> {
   final Map<BasePlannerElement, Builder> _updatedElements = {};
   final Set<BasePlannerElement> _removedElements = {};
 
-  bool _isBuilding = false;
-  bool _isDoingGraphLayout = false;
+  SnapshotBuildStage _stage = SnapshotBuildStage.userOperations;
 
-  final Queue<BasePlannerElement> _updateQueue = Queue();
+  Set<BasePlannerElement> _updateQueue = {};
   final Map<BasePlannerElement, UpdateStatus> _elementUpdateStatus = {};
   final Set<ProdLineNode> _nodesToCheckUnfulfilledIo = {};
   final Set<Graph> _graphsToUpdateLayout = {};
 
   bool get hasChanges =>
       _updatedElements.isNotEmpty || _removedElements.isNotEmpty;
+  SnapshotBuildStage get stage => _stage;
 
   SnapshotBuilder._from(this._previousSnapshot);
 
-  void throwIfNotBuilding() {
-    if (!_isBuilding) {
+  void throwIfNotBuildingIo() {
+    if (_stage != SnapshotBuildStage.buildIo) {
       throw const BasePlannerException(
-        'SnapshotBuilder is not currently building',
+        'Cannot perform this operation outside of buildIo step',
       );
     }
   }
-
-  bool get isDoingGraphLayout => _isDoingGraphLayout;
 
   void addToSnapshot(BasePlannerElement element, Builder builder) =>
       _updatedElements[element] = builder;
@@ -64,12 +62,12 @@ class SnapshotBuilder implements Builder<Snapshot> {
   void removeFromSnapshot(BasePlannerElement element) =>
       _removedElements.add(element);
 
-  void updateIoStatus(
+  void updateIoSatusAndQueue(
     BasePlannerElement element,
     UpdateStatus updateStatus, [
     bool overrideComplete = false,
   ]) {
-    var finalStatus = _elementUpdateStatus.update(element, (previousStatus) {
+    var finalSatus = _elementUpdateStatus.update(element, (previousStatus) {
       if (overrideComplete && previousStatus.isComplete) {
         return updateStatus;
       } else {
@@ -79,10 +77,16 @@ class SnapshotBuilder implements Builder<Snapshot> {
       }
     }, ifAbsent: () => updateStatus);
 
-    if (_isBuilding && !updateStatus.isComplete) {
-      _updateQueue.addLast(element);
+    if (!finalSatus.isComplete) {
+      _updateQueue.add(element);
     }
   }
+
+  UpdateStatus getUpdateStatus(BasePlannerElement element) =>
+      _elementUpdateStatus.putIfAbsent(
+        element,
+        () => UpdateStatus.checkDependencies,
+      );
 
   void queueLayoutUpdate(Graph graph) => _graphsToUpdateLayout.add(graph);
 
@@ -91,17 +95,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   @override
   Snapshot build() {
-    _isBuilding = true;
-
-    // Remove duplicates and removed items
-    var updateSet = _updateQueue.toSet();
-    updateSet.removeAll(_removedElements);
-    _updateQueue.clear();
-    _updateQueue.addAll(updateSet);
-
-    while (_updateQueue.isNotEmpty) {
-      var nextElement = _updateQueue.removeFirst();
-    }
+    _stage = SnapshotBuildStage.buildIo;
 
     Map<BasePlannerElement, dynamic> newStateMap = Map.from(
       _previousSnapshot.states,
@@ -132,4 +126,11 @@ enum UpdateStatus {
   final int priority;
 
   const UpdateStatus(this.isComplete, this.priority);
+}
+
+enum SnapshotBuildStage {
+  userOperations,
+  buildIo,
+  updateGraphLayouts,
+  buildStates,
 }

@@ -193,7 +193,7 @@ class Graph
 
   // TODO
   void determineIoOfAllNodes(Set<ProdLineNode> nodesToUpdateIo) {
-    basePlanner.getSnapshotBuilder().throwIfNotBuilding();
+    basePlanner.getSnapshotBuilder().throwIfNotBuildingIo();
 
     // Can technically be called anywhere, but good to ensure it's only called once
     if (!isRoot) {

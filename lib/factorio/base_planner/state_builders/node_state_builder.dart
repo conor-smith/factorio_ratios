@@ -6,7 +6,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   final ProdLineNode _element;
 
   ItemIoImpl? _internalConstraints;
-  ItemIoBuilder _edgeConstraints;
+  ItemIoImpl _edgeConstraints;
   ItemIoImpl _itemIo;
   NodeGeometryImpl _geometry;
   ProductionLine _productionLine;
@@ -39,7 +39,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
     : _internalConstraints = _element.nodeType.hasInternalConstraints
           ? ItemIoImpl.empty
           : null,
-      _edgeConstraints = ItemIoBuilder(),
+      _edgeConstraints = ItemIoImpl.empty,
       _itemIo = ItemIoImpl.empty,
       _geometry = NodeGeometryImpl.uninitialised,
       _ioData = ProductionLineIoData.uninitialised,
@@ -89,7 +89,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
     this._element,
     ProdLineNodeStateImpl previousState,
   ) : _internalConstraints = previousState.internalConstraints,
-      _edgeConstraints = ItemIoBuilder.from(previousState.edgeConstraints),
+      _edgeConstraints = previousState.edgeConstraints,
       _itemIo = previousState.itemIo,
       _productionLine = previousState.productionLine,
       _geometry = previousState.geometry,
@@ -109,7 +109,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
     var parentGraph = _element.parentGraph;
 
     _snapshotBuilder
-      ..updateIoStatus(parentGraph, UpdateStatus.required)
+      ..updateIoSatusAndQueue(parentGraph, UpdateStatus.required)
       ..queueLayoutUpdate(parentGraph)
       ..removeFromSnapshot(_element);
     for (var parent in _parents.values.expand((edgeSet) => edgeSet)) {
@@ -146,20 +146,31 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
 
   @override
   void updateGeometry(NodeGeometryImpl geometry) {
-    if (!_snapshotBuilder.isDoingGraphLayout &&
+    // TODO - Centralise this code rather than copying it
+    if (_snapshotBuilder.stage != SnapshotBuildStage.updateGraphLayouts &&
         _element.parentGraph.layout != GraphLayout.custom) {
       _element.parentGraph.getStateBuilder()._layout = GraphLayout.custom;
     }
+
     _geometry = geometry;
   }
 
   void updateInternalConstraints(ItemIoImpl newConstraints) {
-    _snapshotBuilder.updateIoStatus(_element, UpdateStatus.required);
+    _snapshotBuilder.updateIoSatusAndQueue(_element, UpdateStatus.required);
     _internalConstraints = newConstraints;
   }
 
+  void updateIo(ItemIoImpl newItemIo, {ItemIoImpl? newEdgeConstraints}) {
+    _snapshotBuilder.throwIfNotBuildingIo();
+
+    newEdgeConstraints ??= _edgeConstraints;
+
+    _itemIo = newItemIo;
+    _edgeConstraints = newEdgeConstraints;
+  }
+
   void updateProductionLine(ProductionLine newLine) {
-    _snapshotBuilder.updateIoStatus(_element, UpdateStatus.required);
+    _snapshotBuilder.updateIoSatusAndQueue(_element, UpdateStatus.required);
 
     var removedOutputs = _productionLine.outputItems.difference(
       newLine.outputItems,
@@ -200,13 +211,15 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
         _element.parentGraph.getStateBuilder()._clearCachedDisposalNodes();
       }
     }
+
+    _productionLine = newLine;
   }
 
   @override
   ProdLineNodeStateImpl build() => ProdLineNodeStateImpl(
     _element,
     internalConstraints: _internalConstraints,
-    edgeConstraints: _edgeConstraints.build(),
+    edgeConstraints: _edgeConstraints,
     itemIo: _itemIo,
     productionLine: productionLine,
     ioData: ioData,
