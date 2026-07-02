@@ -130,7 +130,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
 
   void removeAllNodesExceptIo() {
     _snapshotBuilder
-      ..queueIoUpdate(_element)
+      ..updateIoStatus(_element, UpdateStatus.checkDependencies)
       ..queueLayoutUpdate(_element);
 
     for (var node in _prodLineNodes) {
@@ -150,10 +150,11 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       outputNode.getStateBuilder()._children.clear();
     }
 
-    _snapshotBuilder.queueIoUpdates([
-      ...inputNodes.values,
-      ...outputNodes.values,
-    ]);
+    for (var ioNode in [...inputNodes.values, ...outputNodes.values]) {
+      _snapshotBuilder
+        ..updateIoStatus(ioNode, UpdateStatus.required)
+        ..queueUnfulfilledIoCheck(ioNode);
+    }
 
     _prodLineNodes.clear();
     _edges.clear();

@@ -47,6 +47,12 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
       _children = {},
       super.initial() {
     var parentGraph = _element.parentGraph;
+
+    _snapshotBuilder
+      ..queueUnfulfilledIoCheck(_element)
+      ..updateIoStatus(parentGraph, UpdateStatus.checkDependencies)
+      ..queueLayoutUpdate(parentGraph);
+
     switch (_element.nodeType) {
       case NodeType.input:
         var inputItem = productionLine.inputItems.first;
@@ -104,7 +110,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
     var parentGraph = _element.parentGraph;
 
     _snapshotBuilder
-      ..queueIoUpdate(parentGraph)
+      ..updateIoStatus(parentGraph, UpdateStatus.required)
       ..queueLayoutUpdate(parentGraph)
       ..removeFromSnapshot(_element);
     for (var parent in _parents.values.expand((edgeSet) => edgeSet)) {
@@ -146,12 +152,12 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   }
 
   void updateInternalConstraints(ItemIoImpl newConstraints) {
-    _snapshotBuilder.queueIoUpdate(_element);
+    _snapshotBuilder.updateIoStatus(_element, UpdateStatus.required);
     _internalConstraints = newConstraints;
   }
 
   void updateProductionLine(ProductionLine newLine) {
-    _snapshotBuilder.queueIoUpdate(_element);
+    _snapshotBuilder.updateIoStatus(_element, UpdateStatus.required);
 
     var removedOutputs = _productionLine.outputItems.difference(
       newLine.outputItems,

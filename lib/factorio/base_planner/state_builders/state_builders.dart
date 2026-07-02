@@ -28,12 +28,10 @@ abstract class StateBuilder<T> implements Builder<T> {
   StateBuilder.initial() {
     _snapshotBuilder
       ..addToSnapshot(_element, this)
-      ..queueIoUpdate(_element)
+      ..updateIoStatus(_element, UpdateStatus.required)
       ..queueLayoutUpdate(_element.parentGraph);
   }
 
   void removeSelf();
   void updateGeometry(covariant Geometry geometry);
 }
-
-enum IoStatus { noUpdateNeeded, pending, updateComplete }

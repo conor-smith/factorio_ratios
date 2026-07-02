@@ -72,23 +72,7 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   void removeSelf() {
     _snapshotBuilder
       ..removeFromSnapshot(_element)
-      ..queueLayoutUpdate(_element.parentGraph)
-      // Queue relevant dependants for IO update
-      ..queueIoUpdates(switch (_element.edgeType) {
-        EdgeType.requestItems || EdgeType.pushExcess => [
-          _element.childProdLine,
-          _element.parentProdLine,
-        ],
-
-        EdgeType.requestExcess => [
-          ..._element.parentProdLine.children[_element.item]!.where(
-            (edge) => edge.edgeType == EdgeType.requestItems,
-          ),
-          ..._element.childProdLine.parents[_element.item]!.where(
-            (edge) => edge.edgeType == EdgeType.pushExcess,
-          ),
-        ],
-      });
+      ..queueLayoutUpdate(_element.parentGraph);
 
     _element.parentProdLine.getStateBuilder()._children[_element.item]!.remove(
       _element,
@@ -102,20 +86,59 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
     // This ensures graph.parents and graph.children, which are determined dynamically, are updated
     _element.parent.getStateBuilder();
     _element.child.getStateBuilder();
+
+    switch (_element.edgeType) {
+      case EdgeType.requestItems:
+        _snapshotBuilder
+          ..updateIoStatus(_element.childProdLine, UpdateStatus.required)
+          ..queueUnfulfilledIoCheck(_element.parentProdLine);
+
+      case EdgeType.pushExcess:
+        _snapshotBuilder
+          ..updateIoStatus(_element.parentProdLine, UpdateStatus.required)
+          ..queueUnfulfilledIoCheck(_element.childProdLine);
+
+      case EdgeType.requestExcess:
+        var edgesToUpdate = [
+          ..._element.parentProdLine.children[_element.item]!.where(
+            (edge) => edge.edgeType == EdgeType.requestItems,
+          ),
+          ..._element.childProdLine.parents[_element.item]!.where(
+            (edge) => edge.edgeType == EdgeType.pushExcess,
+          ),
+        ];
+
+        for (var edge in edgesToUpdate) {
+          _snapshotBuilder.updateIoStatus(edge, UpdateStatus.checkDependencies);
+        }
+    }
   }
 
   void updatePercentage(double newPercentage) {
-    _snapshotBuilder.queueIoUpdate(_element);
+    _snapshotBuilder.updateIoStatus(_element, UpdateStatus.required);
+
+    switch (_element.edgeType) {
+      case EdgeType.requestItems:
+        _snapshotBuilder.queueUnfulfilledIoCheck(_element.parentProdLine);
+
+      case EdgeType.pushExcess:
+        _snapshotBuilder.queueUnfulfilledIoCheck(_element.childProdLine);
+
+      case EdgeType.requestExcess:
+        throw const EdgeException(
+          'Cannot update percentage on requestExcess edge',
+        );
+    }
     _percentage = newPercentage;
   }
 
   void updateParentPriority(int newPriority) {
-    _snapshotBuilder.queueIoUpdate(_element);
+    _snapshotBuilder.updateIoStatus(_element, UpdateStatus.required);
     _parentPriority = newPriority;
   }
 
   void updateChildPriority(int newPriority) {
-    _snapshotBuilder.queueIoUpdate(_element);
+    _snapshotBuilder.updateIoStatus(_element, UpdateStatus.required);
     _childPriority = newPriority;
   }
 
@@ -139,41 +162,62 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   void _removeSelfAndUpdateParentOnly() {
     _snapshotBuilder
       ..removeFromSnapshot(_element)
-      ..queueLayoutUpdate(_element.parentGraph)
-      ..queueIoUpdates(switch (_element.edgeType) {
-        EdgeType.requestItems ||
-        EdgeType.pushExcess => [_element.parentProdLine],
-
-        EdgeType.requestExcess =>
-          _element.parentProdLine.children[_element.item]!.where(
-            (edge) => edge.edgeType == EdgeType.requestItems,
-          ),
-      });
+      ..queueLayoutUpdate(_element.parentGraph);
 
     _element.parentProdLine.children[_element.item]!.remove(_element);
 
     // If parent is a graph, this just creates a new statebuilder
     // This ensures graph.parents and graph.children, which are determined dynamically, are updated
     _element.parent.getStateBuilder();
+
+    switch (_element.edgeType) {
+      case EdgeType.requestItems:
+        _snapshotBuilder.queueUnfulfilledIoCheck(_element.parentProdLine);
+
+      case EdgeType.pushExcess:
+        _snapshotBuilder.updateIoStatus(
+          _element.parentProdLine,
+          UpdateStatus.required,
+        );
+
+      case EdgeType.requestExcess:
+        var edgesToUpdate = _element.childProdLine.parents[_element.item]!
+            .where((edge) => edge.edgeType == EdgeType.pushExcess);
+
+        for (var edge in edgesToUpdate) {
+          _snapshotBuilder.updateIoStatus(edge, UpdateStatus.checkDependencies);
+        }
+    }
   }
 
   void _removeSelfAndUpdateChildOnly() {
     _snapshotBuilder
-      ..queueLayoutUpdate(_element.parentGraph)
-      ..queueIoUpdates(switch (_element.edgeType) {
-        EdgeType.requestItems ||
-        EdgeType.pushExcess => [_element.childProdLine],
-
-        EdgeType.requestExcess =>
-          _element.childProdLine.parents[_element.item]!.where(
-            (edge) => edge.edgeType == EdgeType.requestItems,
-          ),
-      });
+      ..removeFromSnapshot(_element)
+      ..queueLayoutUpdate(_element.parentGraph);
 
     _element.childProdLine.parents[_element.item]!.remove(_element);
 
     // If child is a graph, this just creates a new statebuilder
     // This ensures graph.parents and graph.children, which are determined dynamically, are updated
     _element.child.getStateBuilder();
+
+    switch (_element.edgeType) {
+      case EdgeType.requestItems:
+        _snapshotBuilder.updateIoStatus(
+          _element.childProdLine,
+          UpdateStatus.required,
+        );
+
+      case EdgeType.pushExcess:
+        _snapshotBuilder.queueUnfulfilledIoCheck(_element.childProdLine);
+
+      case EdgeType.requestExcess:
+        var edgesToUpdate = _element.childProdLine.parents[_element.item]!
+            .where((edge) => edge.edgeType == EdgeType.pushExcess);
+
+        for (var edge in edgesToUpdate) {
+          _snapshotBuilder.updateIoStatus(edge, UpdateStatus.checkDependencies);
+        }
+    }
   }
 }
