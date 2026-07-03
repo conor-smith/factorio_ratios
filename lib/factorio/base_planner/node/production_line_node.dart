@@ -1,8 +1,7 @@
 part of 'node.dart';
 
-class ProdLineNode
-    with EventNotifier<NodeEvent>
-    implements NodeElement<ProdLineNodeState, NodeEvent> {
+class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent>
+    with EventNotifier<NodeEvent> {
   @override
   final BasePlanner basePlanner;
 
@@ -108,16 +107,6 @@ class ProdLineNode
       notifyListeners(NodeEvent.geometryOp(newState.geometry));
     }
   }
-
-  @override
-  Iterable<Edge> getIoDependencies() => [
-    ...parents.values
-        .expand((edgeSet) => edgeSet)
-        .where((edge) => edge.edgeType == EdgeType.requestItems),
-    ...children.values
-        .expand((edgeSet) => edgeSet)
-        .where((edge) => edge.edgeType == EdgeType.pushExcess),
-  ];
 
   @override
   bool traverseDependenciesAndUpdateIo(

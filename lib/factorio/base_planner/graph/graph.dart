@@ -17,9 +17,8 @@ import 'package:factorio_ratios/utility/collections.dart';
 part 'graph_state.dart';
 
 /// Represents a graph of [NodeElement]s connected by [Edge]s.
-class Graph
-    with EventNotifier<GraphEvent>
-    implements NodeElement<GraphState, GraphEvent> {
+class Graph extends NodeElement<GraphState, GraphEvent>
+    with EventNotifier<GraphEvent> {
   // TODO - Graph preferred layout
   @override
   final BasePlanner basePlanner;
@@ -332,10 +331,7 @@ class Graph
   void _createNodeTree(NodeElement startNode) {
     // Ignore items that already have an input edge
     var requiredInputs = startNode.inputItems.difference(
-      startNode.children.values
-          .expand((edgeSet) => edgeSet)
-          .map((edge) => edge.item)
-          .toSet(),
+      startNode.allChildren.map((edge) => edge.item).toSet(),
     );
 
     for (var input in requiredInputs) {
@@ -469,8 +465,7 @@ class Graph
       nodeToRowNumber[node] = rowNumber;
       int nextRow = rowNumber + 1;
 
-      return node.children.values
-          .expand((edgeSet) => edgeSet)
+      return node.allChildren
           .where((edge) => edge.child.nodeType != NodeType.input)
           .map(
             (edge) => _determineAndReturnMaxRowNumber(

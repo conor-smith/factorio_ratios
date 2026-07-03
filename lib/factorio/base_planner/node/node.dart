@@ -10,7 +10,7 @@ import 'package:factorio_ratios/json/json.dart';
 part 'production_line_node.dart';
 part 'production_line_node_state.dart';
 
-abstract interface class NodeElement<St, E extends NodeEvent>
+abstract class NodeElement<St, E extends NodeEvent>
     implements BasePlannerElement<St, E> {
   NodeType get nodeType;
 
@@ -35,6 +35,10 @@ abstract interface class NodeElement<St, E extends NodeEvent>
 
   Map<InGameItem, Set<Edge>> get parents;
   Map<InGameItem, Set<Edge>> get children;
+
+  Iterable<Edge> get allParents => parents.values.expand((edgeSet) => edgeSet);
+  Iterable<Edge> get allChildren =>
+      children.values.expand((edgeSet) => edgeSet);
 
   Set<InGameItem> get inputItems;
   Set<InGameItem> get outputItems;
