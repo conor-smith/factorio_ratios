@@ -42,7 +42,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
   void removeFromSnapshot(BasePlannerElement element) =>
       _removedElements.add(element);
 
-  void updateIoSatusAndQueue(
+  void updateIoSatus(
     BasePlannerElement element,
     UpdateStatus updateStatus, [
     bool overrideComplete = false,

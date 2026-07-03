@@ -186,9 +186,7 @@ class Graph extends NodeElement<GraphState, GraphEvent>
   }
 
   @override
-  bool traverseDependenciesAndUpdateIo(
-    Set<BasePlannerElement> visitedElements,
-  ) {
+  bool traverseDepsAndUpdateIo(Set<BasePlannerElement> visitedElements) {
     throw UnimplementedError();
   }
 

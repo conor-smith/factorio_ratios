@@ -109,10 +109,26 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent>
   }
 
   @override
-  bool traverseDependenciesAndUpdateIo(
-    Set<BasePlannerElement> visitedElements,
-  ) {
-    throw UnimplementedError();
+  bool traverseDepsAndUpdateIo(Set<BasePlannerElement> visitedElements) {
+    // Check for circular dependency
+    // TODO - Centralise this code rather than copying it
+    if (visitedElements.contains(this)) {
+      throw BasePlannerException('Circular dependency detected at $this');
+    }
+
+    visitedElements.add(this);
+
+    var hasBeenUpdated = switch (basePlanner
+        .getSnapshotBuilder()
+        .getUpdateStatus(this)) {
+      UpdateStatus.completeUpdate => true,
+      UpdateStatus.completeNoUpdate => false,
+      UpdateStatus.checkDependencies => _determineIo(false, visitedElements),
+      UpdateStatus.required => _determineIo(true, visitedElements),
+    };
+
+    visitedElements.remove(this);
+    return hasBeenUpdated;
   }
 
   ItemIoImpl determineEdgeConstraints() {
@@ -139,6 +155,81 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent>
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
+  }
+
+  bool _determineIo(bool forceUpdate, Set<BasePlannerElement> visitedElements) {
+    ItemIoImpl constraints;
+    var snapshotBuilder = basePlanner.getSnapshotBuilder();
+
+    if (nodeType.hasInternalConstraints) {
+      constraints = internalConstraints!;
+    } else {
+      var parentDeps = allParents.where(
+        (edge) => edge.edgeType == EdgeType.requestItems,
+      );
+      var childDeps = allChildren.where(
+        (edge) => edge.edgeType == EdgeType.pushExcess,
+      );
+
+      bool depUpdate = [...parentDeps, ...childDeps]
+          .map((depEdge) => depEdge.traverseDepsAndUpdateIo(visitedElements))
+          .fold(false, (update1, update2) => update1 || update2);
+
+      if (!depUpdate && !forceUpdate) {
+        snapshotBuilder.updateIoSatus(this, UpdateStatus.completeNoUpdate);
+        return false;
+      } else {
+        constraints = _calculateEdgeConstraints();
+        getStateBuilder().updateEdgeConstraints(constraints);
+      }
+    }
+    var newItemIo = productionLine.calculateItemIo(constraints);
+    getStateBuilder().updateIo(newItemIo);
+
+    snapshotBuilder.updateIoSatus(this, UpdateStatus.completeUpdate);
+
+    var parentDependants = allParents.where(
+      (edge) => edge.edgeType != EdgeType.requestItems,
+    );
+    var childDependants = allChildren.where(
+      (edge) => edge.edgeType != EdgeType.pushExcess,
+    );
+
+    for (BasePlannerElement dependant in [
+      ...parentDependants,
+      ...childDependants,
+      parentGraph,
+    ]) {
+      snapshotBuilder.updateIoSatus(dependant, UpdateStatus.required);
+    }
+
+    return true;
+  }
+
+  ItemIoImpl _calculateEdgeConstraints() {
+    ItemIoBuilder builder = ItemIoBuilder();
+
+    parents.forEach((item, edges) {
+      var requestedAmount = edges
+          .where((edge) => edge.edgeType == EdgeType.requestItems)
+          .fold(0.0, (sum, edge) => sum + edge.amount);
+
+      if (requestedAmount != 0) {
+        builder.addToOutputs(item, requestedAmount);
+      }
+    });
+
+    children.forEach((item, edges) {
+      var pushedAmount = edges
+          .where((edge) => edge.edgeType == EdgeType.pushExcess)
+          .fold(0.0, (sum, edge) => sum + edge.amount);
+
+      if (pushedAmount != 0) {
+        builder.addToInputs(item, pushedAmount);
+      }
+    });
+
+    return builder.build();
   }
 
   @override

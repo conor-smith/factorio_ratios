@@ -36,7 +36,7 @@ abstract interface class BasePlannerElement<St, E>
   Geometry get geometry;
 
   /// Returns true if IO was updated, false otherwise
-  bool traverseDependenciesAndUpdateIo(Set<BasePlannerElement> visitedElements);
+  bool traverseDepsAndUpdateIo(Set<BasePlannerElement> visitedElements);
 
   /// Returns immutable object representing state
   St get state;

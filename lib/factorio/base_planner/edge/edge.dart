@@ -113,9 +113,7 @@ class Edge
   }
 
   @override
-  bool traverseDependenciesAndUpdateIo(
-    Set<BasePlannerElement> visitedElements,
-  ) {
+  bool traverseDepsAndUpdateIo(Set<BasePlannerElement> visitedElements) {
     // Check for circular dependency
     // TODO - Centralise this code rather than copying it
     if (visitedElements.contains(this)) {
@@ -183,9 +181,7 @@ class Edge
         ) ??
         parentProdLine;
 
-    var dependencyUpdate = dependency.traverseDependenciesAndUpdateIo(
-      visitedElements,
-    );
+    var dependencyUpdate = dependency.traverseDepsAndUpdateIo(visitedElements);
 
     if (forceUpdate || dependencyUpdate) {
       // TODO - Update all requestItemEdges at once?
@@ -198,12 +194,8 @@ class Edge
       getStateBuilder().updateAmount(unfulfilledRequest * percentage);
 
       snapshotBuilder
-        ..updateIoSatusAndQueue(this, UpdateStatus.completeUpdate)
-        ..updateIoSatusAndQueue(
-          childProdLine,
-          UpdateStatus.checkDependencies,
-          true,
-        );
+        ..updateIoSatus(this, UpdateStatus.completeUpdate)
+        ..updateIoSatus(childProdLine, UpdateStatus.checkDependencies, true);
 
       // Determine if there's enough unfulfilled requests for a new edge
       var requestItemEdges = parentItemEdges.where(
@@ -223,10 +215,7 @@ class Edge
 
       return true;
     } else {
-      snapshotBuilder.updateIoSatusAndQueue(
-        this,
-        UpdateStatus.completeNoUpdate,
-      );
+      snapshotBuilder.updateIoSatus(this, UpdateStatus.completeNoUpdate);
 
       return false;
     }
@@ -250,9 +239,7 @@ class Edge
         ) ??
         childProdLine;
 
-    bool dependencyUpdate = dependency.traverseDependenciesAndUpdateIo(
-      visitedElements,
-    );
+    bool dependencyUpdate = dependency.traverseDepsAndUpdateIo(visitedElements);
 
     if (forceUpdate || dependencyUpdate) {
       // TODO - Update all pushExcess edges at once?
@@ -265,12 +252,8 @@ class Edge
       getStateBuilder().updateAmount(unconsumedExcess * percentage);
 
       snapshotBuilder
-        ..updateIoSatusAndQueue(this, UpdateStatus.completeUpdate)
-        ..updateIoSatusAndQueue(
-          parentProdLine,
-          UpdateStatus.checkDependencies,
-          true,
-        );
+        ..updateIoSatus(this, UpdateStatus.completeUpdate)
+        ..updateIoSatus(parentProdLine, UpdateStatus.checkDependencies, true);
 
       // Determine if there's enough unfulfilled requests for a new edge
       var requestItemEdges = childItemEdges.where(
@@ -291,10 +274,7 @@ class Edge
 
       return true;
     } else {
-      snapshotBuilder.updateIoSatusAndQueue(
-        this,
-        UpdateStatus.completeNoUpdate,
-      );
+      snapshotBuilder.updateIoSatus(this, UpdateStatus.completeNoUpdate);
 
       return false;
     }
@@ -328,10 +308,10 @@ class Edge
                 edge.childPriority == childPriority - 1,
           );
 
-    var parentDepUpdate = parentDependency.traverseDependenciesAndUpdateIo(
+    var parentDepUpdate = parentDependency.traverseDepsAndUpdateIo(
       visitedElements,
     );
-    var childDepUpdate = childDependency.traverseDependenciesAndUpdateIo(
+    var childDepUpdate = childDependency.traverseDepsAndUpdateIo(
       visitedElements,
     );
 
@@ -362,7 +342,7 @@ class Edge
 
       getStateBuilder().updateAmount(amount);
 
-      snapshotBuilder.updateIoSatusAndQueue(this, UpdateStatus.completeUpdate);
+      snapshotBuilder.updateIoSatus(this, UpdateStatus.completeUpdate);
 
       // List should only contain the next requestExcess edge for parent and item
       var parentDependants = parentItemEdges
@@ -408,7 +388,7 @@ class Edge
       }
 
       for (var dependentEdge in [...parentDependants, ...childDependants]) {
-        snapshotBuilder.updateIoSatusAndQueue(
+        snapshotBuilder.updateIoSatus(
           dependentEdge,
           UpdateStatus.checkDependencies,
           true,
@@ -417,7 +397,7 @@ class Edge
 
       return true;
     } else {
-      basePlanner.getSnapshotBuilder().updateIoSatusAndQueue(
+      basePlanner.getSnapshotBuilder().updateIoSatus(
         this,
         UpdateStatus.completeNoUpdate,
       );

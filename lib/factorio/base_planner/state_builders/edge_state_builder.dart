@@ -85,15 +85,12 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
     switch (_element.edgeType) {
       case EdgeType.requestItems:
         _snapshotBuilder
-          ..updateIoSatusAndQueue(_element.childProdLine, UpdateStatus.required)
+          ..updateIoSatus(_element.childProdLine, UpdateStatus.required)
           ..queueUnfulfilledIoCheck(_element.parentProdLine);
 
       case EdgeType.pushExcess:
         _snapshotBuilder
-          ..updateIoSatusAndQueue(
-            _element.parentProdLine,
-            UpdateStatus.required,
-          )
+          ..updateIoSatus(_element.parentProdLine, UpdateStatus.required)
           ..queueUnfulfilledIoCheck(_element.childProdLine);
 
       case EdgeType.requestExcess:
@@ -107,10 +104,7 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
         ];
 
         for (var edge in edgesToUpdate) {
-          _snapshotBuilder.updateIoSatusAndQueue(
-            edge,
-            UpdateStatus.checkDependencies,
-          );
+          _snapshotBuilder.updateIoSatus(edge, UpdateStatus.checkDependencies);
         }
     }
   }
@@ -122,7 +116,7 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   }
 
   void updatePercentage(double newPercentage) {
-    _snapshotBuilder.updateIoSatusAndQueue(_element, UpdateStatus.required);
+    _snapshotBuilder.updateIoSatus(_element, UpdateStatus.required);
 
     switch (_element.edgeType) {
       case EdgeType.requestItems:
@@ -140,12 +134,12 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   }
 
   void updateParentPriority(int newPriority) {
-    _snapshotBuilder.updateIoSatusAndQueue(_element, UpdateStatus.required);
+    _snapshotBuilder.updateIoSatus(_element, UpdateStatus.required);
     _parentPriority = newPriority;
   }
 
   void updateChildPriority(int newPriority) {
-    _snapshotBuilder.updateIoSatusAndQueue(_element, UpdateStatus.required);
+    _snapshotBuilder.updateIoSatus(_element, UpdateStatus.required);
     _childPriority = newPriority;
   }
 
@@ -185,7 +179,7 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
         _snapshotBuilder.queueUnfulfilledIoCheck(_element.parentProdLine);
 
       case EdgeType.pushExcess:
-        _snapshotBuilder.updateIoSatusAndQueue(
+        _snapshotBuilder.updateIoSatus(
           _element.parentProdLine,
           UpdateStatus.required,
         );
@@ -195,10 +189,7 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
             .where((edge) => edge.edgeType == EdgeType.pushExcess);
 
         for (var edge in edgesToUpdate) {
-          _snapshotBuilder.updateIoSatusAndQueue(
-            edge,
-            UpdateStatus.checkDependencies,
-          );
+          _snapshotBuilder.updateIoSatus(edge, UpdateStatus.checkDependencies);
         }
     }
   }
@@ -216,7 +207,7 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
 
     switch (_element.edgeType) {
       case EdgeType.requestItems:
-        _snapshotBuilder.updateIoSatusAndQueue(
+        _snapshotBuilder.updateIoSatus(
           _element.childProdLine,
           UpdateStatus.required,
         );
@@ -229,10 +220,7 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
             .where((edge) => edge.edgeType == EdgeType.pushExcess);
 
         for (var edge in edgesToUpdate) {
-          _snapshotBuilder.updateIoSatusAndQueue(
-            edge,
-            UpdateStatus.checkDependencies,
-          );
+          _snapshotBuilder.updateIoSatus(edge, UpdateStatus.checkDependencies);
         }
     }
   }
