@@ -130,6 +130,27 @@ class BasePlanner
     }
   }
 
+  // TODO - Put this, the next method, and most of the validation into some debug mode
+  // Also TODO - Proper incorporation of debug mode
+  void throwIfIoNotToBeAccessed(BasePlannerElement element) {
+    if (_snapshotBuilder != null &&
+        _snapshotBuilder!.stage.order < SnapshotBuildStage.buildIo.order &&
+        (_snapshotBuilder!._elementUpdateStatus[element]?.isComplete ?? true)) {
+      throw BasePlannerException(
+        'Cannot view IO fields of $element at this time',
+      );
+    }
+  }
+
+  void throwIfSnapshotPresentButNotBuildingStates(BasePlannerElement element) {
+    if (_snapshotBuilder != null &&
+        _snapshotBuilder!.stage != SnapshotBuildStage.buildStates) {
+      throw BasePlannerException(
+        'Cannot access IOData fields of $element before state building',
+      );
+    }
+  }
+
   /// Check out a particular snapshot in [snapshots].
   /// Will reset [BasePlannerElement.state] of all elements in tree.
   void goToSnapshot(int snapshotIndex) {

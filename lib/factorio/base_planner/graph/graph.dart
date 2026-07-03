@@ -42,8 +42,6 @@ class Graph extends NodeElement<GraphState, GraphEvent>
   Map<InGameItem, Set<Edge>> get parents => state.parents;
   @override
   Map<InGameItem, Set<Edge>> get children => state.children;
-  @override
-  GraphIo get ioData => state.ioData;
   Set<Graph> get graphNodes => state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
   Map<InGameItem, ProdLineNode> get outputNodes => state.outputNodes;
@@ -62,17 +60,26 @@ class Graph extends NodeElement<GraphState, GraphEvent>
   NodeType get nodeType => NodeType.productionLine;
   @override
   ItemIoImpl? get internalConstraints => null;
+
+  @override
+  GraphIo get ioData {
+    basePlanner.throwIfSnapshotPresentButNotBuildingStates(this);
+    return state.ioData;
+  }
+
   @override
   ItemIo get edgeConstraints => ioData.constraints;
   @override
   ItemIo get itemIo => ioData.io;
 
+  @override
+  ItemIoImpl get ioRatios {
+    basePlanner.throwIfSnapshotPresentButNotBuildingStates(this);
+    return state.ioRatios;
+  }
+
   bool get isRoot => this == parentGraph;
   bool get hasBuilder => _builder != null;
-
-  // TODO
-  @override
-  ItemIoImpl get ioRatios => state.ioRatios;
 
   Graph.addToBasePlanner(
     this.basePlanner, {

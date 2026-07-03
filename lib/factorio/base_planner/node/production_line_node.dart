@@ -14,27 +14,44 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent>
   @override
   ItemIoImpl? get internalConstraints => state.internalConstraints;
   @override
-  ItemIo get edgeConstraints => state.edgeConstraints;
-  @override
-  ItemIo get itemIo => state.itemIo;
-  ProductionLine get productionLine => state.productionLine;
-  @override
-  ProductionLineType get productionLineType =>
-      productionLine.productionLineType;
-  @override
-  ItemIoImpl get ioRatios => productionLine.ioRatios;
-  @override
   NodeGeometryImpl get geometry => state.geometry;
   @override
   Map<InGameItem, Set<Edge>> get parents => state.parents;
   @override
   Map<InGameItem, Set<Edge>> get children => state.children;
+
+  ProductionLine get productionLine {
+    basePlanner.throwIfIoNotToBeAccessed(this);
+    return state.productionLine;
+  }
+
   @override
-  ProductionLineIoData get ioData => state.ioData;
+  ItemIoImpl get ioRatios => productionLine.ioRatios;
   @override
-  Set<InGameItem> get inputItems => state.productionLine.inputItems;
+  ProductionLineType get productionLineType =>
+      productionLine.productionLineType;
   @override
-  Set<InGameItem> get outputItems => state.productionLine.outputItems;
+  Set<InGameItem> get inputItems => productionLine.inputItems;
+  @override
+  Set<InGameItem> get outputItems => productionLine.outputItems;
+
+  @override
+  ProductionLineIoData get ioData {
+    basePlanner.throwIfIoNotToBeAccessed(this);
+    return state.ioData;
+  }
+
+  @override
+  ItemIo get edgeConstraints {
+    basePlanner.throwIfIoNotToBeAccessed(this);
+    return state.edgeConstraints;
+  }
+
+  @override
+  ItemIo get itemIo {
+    basePlanner.throwIfIoNotToBeAccessed(this);
+    return state.itemIo;
+  }
 
   ProdLineNodeStateImpl _state;
   ProdLineNodeStateBuilder? _builder;

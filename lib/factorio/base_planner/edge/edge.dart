@@ -38,12 +38,16 @@ class Edge
   EdgeStateBuilder? _builder;
 
   // For convenience
-  double get amount => state.amount;
   double get percentage => state.percentage;
   int get parentPriority => state.parentPriority;
   int get childPriority => state.childPriority;
   @override
   EdgeGeometryImpl get geometry => state.geometry;
+
+  double get amount {
+    basePlanner.throwIfIoNotToBeAccessed(this);
+    return state.amount;
+  }
 
   Edge.addToBasePlanner({
     required this.basePlanner,

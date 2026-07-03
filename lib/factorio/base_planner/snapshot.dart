@@ -109,8 +109,12 @@ enum UpdateStatus {
 }
 
 enum SnapshotBuildStage {
-  userOperations,
-  buildIo,
-  updateGraphLayouts,
-  buildStates,
+  userOperations(1),
+  buildIo(2),
+  updateGraphLayouts(3),
+  buildStates(4);
+
+  final int order;
+
+  const SnapshotBuildStage(this.order);
 }
