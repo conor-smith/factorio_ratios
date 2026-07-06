@@ -16,6 +16,9 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
 
   GraphLayout _layout;
 
+  Map<InGameItem, Set<Edge>>? _cachedParents;
+  Map<InGameItem, Set<Edge>>? _cachedChildren;
+
   Map<InGameItem, List<NodeElement>>? _cachedNodeOutputIndex;
   Map<InGameItem, NodeElement>? _cachedDisposalNodes;
 
@@ -51,17 +54,21 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     'Graph IO cannot be calculated while snapshot is building',
   );
 
-  // TODO - Cache these values?
-  @override
-  Map<InGameItem, Set<Edge>> get parents =>
-      GraphState.calculateParents(_outputNodes);
-  @override
-  Map<InGameItem, Set<Edge>> get children =>
-      GraphState.calculateChildren(_outputNodes);
   @override
   Set<InGameItem> get inputItems => _inputNodes.keys.toSet();
   @override
   Set<InGameItem> get outputItems => _outputNodes.keys.toSet();
+  @override
+  Map<InGameItem, Set<Edge>> get parents {
+    _cachedParents ??= GraphState.calculateParents(outputNodes);
+    return _cachedParents!;
+  }
+
+  @override
+  Map<InGameItem, Set<Edge>> get children {
+    _cachedChildren ??= GraphState.calculateChildren(inputNodes);
+    return _cachedChildren!;
+  }
 
   @override
   Set<NodeElement> get allNodes => GraphState.calculateAllNodes(
@@ -98,11 +105,13 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _edges = {},
       _geometry = NodeGeometryImpl.uninitialised,
       _layout = GraphLayout.table,
+      _cachedParents = {},
+      _cachedChildren = {},
       super.initial() {
     if (!_element.isRoot) {
       _element.parentGraph.getStateBuilder()
         .._graphNodes.add(_element)
-        .._addNodeToCaches(_element);
+        .._addNodeToNodeCaches(_element);
     }
   }
 
@@ -114,6 +123,8 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _inputNodes = Map.from(previousState.inputNodes),
       _outputNodes = Map.from(previousState.outputNodes),
       _edges = Set.from(previousState.edges),
+      _cachedParents = previousState.parents,
+      _cachedChildren = previousState.children,
       _geometry = previousState.geometry,
       _layout = previousState.layout,
       super.from();
@@ -258,7 +269,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     return cachedNodes;
   }
 
-  void _addNodeToCaches(NodeElement node) {
+  void _addNodeToNodeCaches(NodeElement node) {
     if (_cachedNodeOutputIndex != null && node.nodeType.outputPriority < 100) {
       for (var output in node.outputItems) {
         _cachedNodeOutputIndex!.update(
@@ -277,7 +288,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     }
   }
 
-  void _removeNodeFromCaches(NodeElement node) {
+  void _removeNodeFromNodeCaches(NodeElement node) {
     if (_cachedNodeOutputIndex != null && node.nodeType.outputPriority < 100) {
       for (var output in node.outputItems) {
         _cachedNodeOutputIndex![output]?.remove(node);
@@ -294,6 +305,8 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
 
   void _clearCachedOutputIndex() => _cachedNodeOutputIndex = null;
   void _clearCachedDisposalNodes() => _cachedDisposalNodes = null;
+  void _clearCachedParents() => _cachedParents = null;
+  void _clearCachedChildren() => _cachedChildren = null;
 
   int _orderByNodeType(NodeElement node1, NodeElement node2) =>
       node1.nodeType.compareTo(node2.nodeType);

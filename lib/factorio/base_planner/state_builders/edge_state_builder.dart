@@ -49,10 +49,12 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
       ifAbsent: () => {_element},
     );
 
-    // If parent is a graph, this just creates a new statebuilder
-    // This ensures graph.parents and graph.children, which are determined dynamically, are updated
-    _element.parent.getStateBuilder();
-    _element.child.getStateBuilder();
+    if (_element.parent is Graph) {
+      (_element.parent as Graph).getStateBuilder()._clearCachedChildren();
+    }
+    if (_element.child is Graph) {
+      (_element.child as Graph).getStateBuilder()._clearCachedParents();
+    }
   }
 
   EdgeStateBuilder.from(this._element, EdgeStateImpl previousState)
@@ -77,10 +79,12 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
     );
     _element.parentGraph.getStateBuilder()._edges.remove(_element);
 
-    // If parent or child is a graph, this just creates a new statebuilder
-    // This ensures graph.parents and graph.children, which are determined dynamically, are updated
-    _element.parent.getStateBuilder();
-    _element.child.getStateBuilder();
+    if (_element.parent is Graph) {
+      (_element.parent as Graph).getStateBuilder()._clearCachedChildren();
+    }
+    if (_element.child is Graph) {
+      (_element.child as Graph).getStateBuilder()._clearCachedParents();
+    }
 
     switch (_element.edgeType) {
       case EdgeType.requestItems:
@@ -170,9 +174,9 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
 
     _element.parentProdLine.children[_element.item]!.remove(_element);
 
-    // If parent is a graph, this just creates a new statebuilder
-    // This ensures graph.parents and graph.children, which are determined dynamically, are updated
-    _element.parent.getStateBuilder();
+    if (_element.parent is Graph) {
+      (_element.parent as Graph).getStateBuilder()._clearCachedChildren();
+    }
 
     switch (_element.edgeType) {
       case EdgeType.requestItems:
@@ -201,9 +205,9 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
 
     _element.childProdLine.parents[_element.item]!.remove(_element);
 
-    // If child is a graph, this just creates a new statebuilder
-    // This ensures graph.parents and graph.children, which are determined dynamically, are updated
-    _element.child.getStateBuilder();
+    if (_element.child is Graph) {
+      (_element.child as Graph).getStateBuilder()._clearCachedParents();
+    }
 
     switch (_element.edgeType) {
       case EdgeType.requestItems:

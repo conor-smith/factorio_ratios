@@ -82,7 +82,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
         _element.parentGraph.getStateBuilder()._prodLineNodes.add(_element);
     }
 
-    parentGraph.getStateBuilder()._addNodeToCaches(_element);
+    parentGraph.getStateBuilder()._addNodeToNodeCaches(_element);
   }
 
   ProdLineNodeStateBuilder.from(
@@ -100,7 +100,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
       _ioData = previousState.ioData,
       super.from() {
     if (_element.parentGraph.hasBuilder) {
-      _element.parentGraph.getStateBuilder()._addNodeToCaches(_element);
+      _element.parentGraph.getStateBuilder()._addNodeToNodeCaches(_element);
     }
   }
 
@@ -141,7 +141,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
         parentGraph.getStateBuilder()._prodLineNodes.remove(_element);
     }
 
-    parentGraph.getStateBuilder()._removeNodeFromCaches(_element);
+    parentGraph.getStateBuilder()._removeNodeFromNodeCaches(_element);
   }
 
   @override
