@@ -179,9 +179,6 @@ class Graph extends NodeElement<GraphState, GraphEvent>
     }
   }
 
-  @override
-  Iterable<NodeElement> getIoDependencies() => [...allNodes];
-
   /// Clears all nodes except IO nodes
   void clear() {
     basePlanner.buildNextSnapshot(() {
@@ -194,7 +191,20 @@ class Graph extends NodeElement<GraphState, GraphEvent>
 
   @override
   bool traverseDepsAndUpdateIo(Set<BasePlannerElement> visitedElements) {
-    throw UnimplementedError();
+    // As io data is only calculated during state build, this is very simple
+    var snapshotBuilder = basePlanner.getSnapshotBuilder();
+
+    if (!snapshotBuilder.getUpdateStatus(this).isComplete) {
+      getStateBuilder().clearCachedIo();
+
+      if (!isRoot) {
+        snapshotBuilder.updateIoSatus(parentGraph, UpdateStatus.required);
+      }
+
+      snapshotBuilder.updateIoSatus(this, UpdateStatus.completeUpdate);
+    }
+
+    return true;
   }
 
   // TODO

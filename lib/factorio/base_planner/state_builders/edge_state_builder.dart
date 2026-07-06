@@ -49,12 +49,8 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
       ifAbsent: () => {_element},
     );
 
-    if (_element.parent is Graph) {
-      (_element.parent as Graph).getStateBuilder()._clearCachedChildren();
-    }
-    if (_element.child is Graph) {
-      (_element.child as Graph).getStateBuilder()._clearCachedParents();
-    }
+    _updateParentIfParentIsGraphNode();
+    _updateChildIfChildIsGraphNode();
   }
 
   EdgeStateBuilder.from(this._element, EdgeStateImpl previousState)
@@ -79,12 +75,8 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
     );
     _element.parentGraph.getStateBuilder()._edges.remove(_element);
 
-    if (_element.parent is Graph) {
-      (_element.parent as Graph).getStateBuilder()._clearCachedChildren();
-    }
-    if (_element.child is Graph) {
-      (_element.child as Graph).getStateBuilder()._clearCachedParents();
-    }
+    _updateParentIfParentIsGraphNode();
+    _updateChildIfChildIsGraphNode();
 
     switch (_element.edgeType) {
       case EdgeType.requestItems:
@@ -174,9 +166,7 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
 
     _element.parentProdLine.children[_element.item]!.remove(_element);
 
-    if (_element.parent is Graph) {
-      (_element.parent as Graph).getStateBuilder()._clearCachedChildren();
-    }
+    _updateParentIfParentIsGraphNode();
 
     switch (_element.edgeType) {
       case EdgeType.requestItems:
@@ -205,9 +195,7 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
 
     _element.childProdLine.parents[_element.item]!.remove(_element);
 
-    if (_element.child is Graph) {
-      (_element.child as Graph).getStateBuilder()._clearCachedParents();
-    }
+    _updateChildIfChildIsGraphNode();
 
     switch (_element.edgeType) {
       case EdgeType.requestItems:
@@ -226,6 +214,22 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
         for (var edge in edgesToUpdate) {
           _snapshotBuilder.updateIoSatus(edge, UpdateStatus.checkDependencies);
         }
+    }
+  }
+
+  void _updateParentIfParentIsGraphNode() {
+    if (_element.parent is Graph) {
+      var parentGraphNode = (_element.parent as Graph);
+      parentGraphNode.getStateBuilder()._clearCachedChildren();
+      _snapshotBuilder.updateIoSatus(parentGraphNode, UpdateStatus.required);
+    }
+  }
+
+  void _updateChildIfChildIsGraphNode() {
+    if (_element.child is Graph) {
+      var childGraphNode = (_element.child as Graph);
+      childGraphNode.getStateBuilder()._clearCachedParents();
+      _snapshotBuilder.updateIoSatus(childGraphNode, UpdateStatus.required);
     }
   }
 }

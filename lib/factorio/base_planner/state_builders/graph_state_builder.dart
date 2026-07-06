@@ -328,7 +328,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   void _clearCachedDisposalNodes() => _cachedDisposalNodes = null;
   void _clearCachedParents() => _cachedParents = null;
   void _clearCachedChildren() => _cachedChildren = null;
-  void _clearCachedIo() {
+  void clearCachedIo() {
     _cachedIoRatios = null;
     _cachedIoData = null;
   }

@@ -126,9 +126,9 @@ class Edge
 
     visitedElements.add(this);
 
-    var hasBeenUpdated = switch (basePlanner
-        .getSnapshotBuilder()
-        .getUpdateStatus(this)) {
+    var updateStatus = switch (basePlanner.getSnapshotBuilder().getUpdateStatus(
+      this,
+    )) {
       UpdateStatus.completeUpdate => true,
       UpdateStatus.completeNoUpdate => false,
       UpdateStatus.checkDependencies => _determineAmount(
@@ -139,7 +139,7 @@ class Edge
     };
 
     visitedElements.remove(this);
-    return hasBeenUpdated;
+    return updateStatus;
   }
 
   @override
@@ -151,20 +151,37 @@ class Edge
   bool _determineAmount(
     bool forceUpdate,
     Set<BasePlannerElement> visitedElements,
-  ) => switch (edgeType) {
-    EdgeType.requestItems => _determineAmountForRequestItem(
-      forceUpdate,
-      visitedElements,
-    ),
-    EdgeType.pushExcess => _determineAmountForPushExcess(
-      forceUpdate,
-      visitedElements,
-    ),
-    EdgeType.requestExcess => _determineAmountForRequestExcess(
-      forceUpdate,
-      visitedElements,
-    ),
-  };
+  ) {
+    var updateStatus = switch (edgeType) {
+      EdgeType.requestItems => _determineAmountForRequestItem(
+        forceUpdate,
+        visitedElements,
+      ),
+      EdgeType.pushExcess => _determineAmountForPushExcess(
+        forceUpdate,
+        visitedElements,
+      ),
+      EdgeType.requestExcess => _determineAmountForRequestExcess(
+        forceUpdate,
+        visitedElements,
+      ),
+    };
+
+    if (updateStatus && parent is Graph) {
+      basePlanner.getSnapshotBuilder().updateIoSatus(
+        parent,
+        UpdateStatus.required,
+      );
+    }
+    if (updateStatus && child is Graph) {
+      basePlanner.getSnapshotBuilder().updateIoSatus(
+        child,
+        UpdateStatus.required,
+      );
+    }
+
+    return updateStatus;
+  }
 
   bool _determineAmountForRequestItem(
     bool forceUpdate,

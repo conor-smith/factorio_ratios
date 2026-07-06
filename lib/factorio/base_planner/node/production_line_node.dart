@@ -20,10 +20,7 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent>
   @override
   Map<InGameItem, Set<Edge>> get children => state.children;
 
-  ProductionLine get productionLine {
-    basePlanner.throwIfIoNotToBeAccessed(this);
-    return state.productionLine;
-  }
+  ProductionLine get productionLine => state.productionLine;
 
   @override
   ItemIoImpl get ioRatios => productionLine.ioRatios;
@@ -200,6 +197,8 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent>
         getStateBuilder().updateEdgeConstraints(constraints);
       }
     }
+
+    snapshotBuilder.updateIoSatus(parentGraph, UpdateStatus.required);
     var newItemIo = productionLine.calculateItemIo(constraints);
     getStateBuilder().updateIo(newItemIo);
 
