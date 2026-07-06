@@ -558,45 +558,35 @@ class GraphException extends BasePlannerException {
 }
 
 class GraphIoBuilder implements Builder<GraphIo> {
-  final ItemAmounts inputConstraints = {};
-  final ItemAmounts outputConstraints = {};
-  final ItemAmounts input = {};
-  final ItemAmounts output = {};
-  final ItemAmounts consumption = {};
-  final ItemAmounts production = {};
+  final ItemIoBuilder constraintsBuilder = ItemIoBuilder();
+  final ItemIoBuilder itemIoBuilder = ItemIoBuilder();
+  final ItemIoBuilder conAndProdBuilder = ItemIoBuilder();
   double electricPowerConsumption = 0.0;
   final Map<String, double> emissions = {};
 
   void add(NodeElement node) {
-    var io = node.ioData;
+    var ioData = node.ioData;
 
     if (node.nodeType == NodeType.input) {
-      sumMaps(inputConstraints, io.constraints.inputs);
-      sumMaps(input, io.io.inputs);
+      constraintsBuilder.addAllToInputs(ioData.constraints.inputs);
+      itemIoBuilder.addAllToInputs(ioData.io.inputs);
     } else if (node.nodeType == NodeType.output) {
-      sumMaps(outputConstraints, io.constraints.outputs);
-      sumMaps(output, io.io.outputs);
+      constraintsBuilder.addAllToOutputs(ioData.constraints.outputs);
+      itemIoBuilder.addAllToOutputs(ioData.io.outputs);
     }
 
-    sumMaps(consumption, io.totalProductionAndConsumption.inputs);
-    sumMaps(production, io.totalProductionAndConsumption.outputs);
+    conAndProdBuilder.addAll(ioData.totalProductionAndConsumption);
 
-    electricPowerConsumption += io.electricPowerConsumption;
+    electricPowerConsumption += ioData.electricPowerConsumption;
 
-    sumMaps(emissions, io.emissions);
+    sumMaps(emissions, ioData.emissions);
   }
 
   @override
   GraphIo build() => GraphIo(
-    constraints: ItemIoImpl(
-      inputs: inputConstraints,
-      outputs: outputConstraints,
-    ),
-    io: ItemIoImpl(inputs: input, outputs: output),
-    totalProductionAndConsumption: ItemIoImpl(
-      inputs: consumption,
-      outputs: production,
-    ),
+    constraints: constraintsBuilder.build(),
+    io: itemIoBuilder.build(),
+    totalProductionAndConsumption: conAndProdBuilder.build(),
     electricPowerConsumption: electricPowerConsumption,
     emissions: emissions,
   );

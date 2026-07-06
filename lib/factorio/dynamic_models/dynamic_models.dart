@@ -132,6 +132,13 @@ class ItemIoBuilder extends ItemIo implements Builder<ItemIoImpl> {
   void removeFromInputs(InGameItem key) => _inputs.remove(key);
   void removeFromOutputs(InGameItem key) => _outputs.remove(key);
 
+  void addAllToInputs(ItemAmounts toAdd) => sumMaps(_inputs, toAdd);
+  void addAllToOutputs(ItemAmounts toAdd) => sumMaps(_outputs, toAdd);
+  void addAll(ItemIo toAdd) {
+    addAllToInputs(toAdd.inputs);
+    addAllToOutputs(toAdd.outputs);
+  }
+
   @override
   ItemIoImpl build() => ItemIoImpl(inputs: _inputs, outputs: _outputs);
 }

@@ -19,6 +19,9 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   Map<InGameItem, Set<Edge>>? _cachedParents;
   Map<InGameItem, Set<Edge>>? _cachedChildren;
 
+  GraphIo? _cachedIoData;
+  ItemIoImpl? _cachedIoRatios;
+
   Map<InGameItem, List<NodeElement>>? _cachedNodeOutputIndex;
   Map<InGameItem, NodeElement>? _cachedDisposalNodes;
 
@@ -44,15 +47,16 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   late final Set<Edge> edges = UnmodifiableSetView(_edges);
   @override
   NodeGeometryImpl get geometry => _geometry;
-  // TODO
+
   @override
-  GraphIo get ioData => throw const GraphException(
-    'Graph IO cannot be calculated while snapshot is building',
-  );
+  ItemIoImpl get ioRatios {
+    throw UnimplementedError(); // TODO
+  }
+
   @override
-  ItemIoImpl get ioRatios => throw const GraphException(
-    'Graph IO cannot be calculated while snapshot is building',
-  );
+  GraphIo get ioData {
+    throw UnimplementedError(); // TODO
+  }
 
   @override
   Set<InGameItem> get inputItems => _inputNodes.keys.toSet();
@@ -127,6 +131,8 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _cachedChildren = previousState.children,
       _geometry = previousState.geometry,
       _layout = previousState.layout,
+      _cachedIoRatios = previousState.ioRatios,
+      _cachedIoData = previousState.ioData,
       super.from();
 
   @override
@@ -307,6 +313,10 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   void _clearCachedDisposalNodes() => _cachedDisposalNodes = null;
   void _clearCachedParents() => _cachedParents = null;
   void _clearCachedChildren() => _cachedChildren = null;
+  void _clearCachedIo() {
+    _cachedIoRatios = null;
+    _cachedIoData = null;
+  }
 
   int _orderByNodeType(NodeElement node1, NodeElement node2) =>
       node1.nodeType.compareTo(node2.nodeType);
