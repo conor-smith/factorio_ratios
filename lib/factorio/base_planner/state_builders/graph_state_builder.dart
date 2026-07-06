@@ -50,12 +50,23 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
 
   @override
   ItemIoImpl get ioRatios {
-    throw UnimplementedError(); // TODO
+    _cachedIoRatios ??= ItemIoImpl.empty; // TODO
+    return _cachedIoRatios!;
   }
 
   @override
   GraphIo get ioData {
-    throw UnimplementedError(); // TODO
+    if (_cachedIoData == null) {
+      var builder = GraphIoBuilder();
+
+      for (var node in allNodes) {
+        builder.add(node);
+      }
+
+      _cachedIoData = builder.build();
+    }
+
+    return _cachedIoData!;
   }
 
   @override
@@ -193,6 +204,10 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     }
 
     _geometry = geometry;
+  }
+
+  void calculateIo() {
+    _element.basePlanner.throwIfSnapshotPresentButNotBuildingStates(_element);
   }
 
   @override
