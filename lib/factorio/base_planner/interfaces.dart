@@ -31,7 +31,7 @@ abstract mixin class EventNotifier<T> {
 /// [cancelStateBuilder] is called, at which point, [state] will be reset.
 abstract class BasePlannerElement<St, E>
     with EventNotifier<E>
-    implements EventNotifier<E>, ToJson {
+    implements ToJson {
   BasePlanner get basePlanner;
   Graph get parentGraph;
   Geometry get geometry;
@@ -43,28 +43,27 @@ abstract class BasePlannerElement<St, E>
   void select();
   void deselect();
 
-  void traverseDependencyTreeAndAddToQueue(
-    LinkedHashSet<BasePlannerElement> dependencyQueue,
-    Set<BasePlannerElement> visitedDependants,
+  void checkForCircularDependencies(
+    Set<BasePlannerElement> safeElements,
+    Set<BasePlannerElement> visitedElements,
   ) {
-    if (visitedDependants.contains(this)) {
+    if (visitedElements.contains(this)) {
       throw BasePlannerException('Circular dependency detected at $this');
     }
 
-    if (!dependencyQueue.contains(this)) {
-      visitedDependants.add(this);
+    if (!safeElements.contains(this)) {
+      visitedElements.add(this);
 
-      var deps = basePlanner.getSnapshotBuilder().getCachedDependencies(this);
+      var dependencies = basePlanner.getSnapshotBuilder().getCachedDependencies(
+        this,
+      );
 
-      for (var dependency in deps.allDependencies) {
-        dependency.traverseDependencyTreeAndAddToQueue(
-          dependencyQueue,
-          visitedDependants,
-        );
+      for (var dependency in dependencies.allDependencies) {
+        dependency.checkForCircularDependencies(safeElements, visitedElements);
       }
 
-      dependencyQueue.add(this);
-      visitedDependants.remove(this);
+      visitedElements.remove(this);
+      safeElements.add(this);
     }
   }
 
