@@ -12,10 +12,11 @@ class Snapshot {
 class SnapshotBuilder implements Builder<Snapshot> {
   final Snapshot _previousSnapshot;
 
-  final Map<BasePlannerElement, Builder> _updatedElements = {};
-  final Set<BasePlannerElement> _removedElements = {};
-
   SnapshotBuildStage _stage = SnapshotBuildStage.userOperations;
+
+  final Map<BasePlannerElement, Builder> _updatedElements = {};
+  final Set<BasePlannerElement> _newElements = {};
+  final Set<BasePlannerElement> _removedElements = {};
 
   final Map<BasePlannerElement, _StatusAndDeps> _elementUpdateStatus = {};
   final Set<Graph> _graphsToUpdateLayout = {};
@@ -37,6 +38,9 @@ class SnapshotBuilder implements Builder<Snapshot> {
   void addToSnapshot(BasePlannerElement element, Builder builder) =>
       _updatedElements[element] = builder;
 
+  void queueCircularDependencyCheck(BasePlannerElement element) =>
+      _newElements.add(element);
+
   void removeFromSnapshot(BasePlannerElement element) =>
       _removedElements.add(element);
 
@@ -55,6 +59,16 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   @override
   Snapshot build() {
+    if (_newElements.isNotEmpty) {
+      _stage = SnapshotBuildStage.circularDependencyCheck;
+
+      Set<BasePlannerElement> safeElements = {};
+
+      for (var element in _newElements) {
+        element.checkForCircularDependencies(safeElements, {});
+      }
+    }
+
     _stage = SnapshotBuildStage.buildIo;
 
     Map<BasePlannerElement, dynamic> newStateMap = Map.from(
@@ -89,14 +103,11 @@ enum UpdateStatus {
 }
 
 enum SnapshotBuildStage {
-  userOperations(1),
-  buildIo(2),
-  updateGraphLayouts(3),
-  buildStates(4);
-
-  final int order;
-
-  const SnapshotBuildStage(this.order);
+  userOperations,
+  circularDependencyCheck,
+  buildIo,
+  updateGraphLayouts,
+  buildStates,
 }
 
 class _StatusAndDeps {
