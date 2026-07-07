@@ -170,15 +170,14 @@ class SnapshotBuilder implements Builder<Snapshot> {
 }
 
 enum UpdateStatus {
-  checkDependencies(false, 1),
-  required(false, 2),
-  completeNoUpdate(true, 3),
-  completeUpdate(true, 4);
+  checkDependencies(false),
+  required(false),
+  completeNoUpdate(true),
+  completeUpdate(true);
 
   final bool isComplete;
-  final int priority;
 
-  const UpdateStatus(this.isComplete, this.priority);
+  const UpdateStatus(this.isComplete);
 }
 
 enum SnapshotBuildStage {
