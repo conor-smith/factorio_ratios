@@ -188,6 +188,8 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
 
   @override
   bool updateIo(GraphDependencies dependencies) {
+    // Due to the nature of graphs,
+    // we can assume there is always an update
     var ioBuilder = GraphIoBuilder();
 
     for (var node in dependencies.allNodes) {

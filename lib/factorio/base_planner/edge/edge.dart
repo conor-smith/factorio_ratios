@@ -158,22 +158,27 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
 
   @override
   bool updateIo(EdgeDependencies dependencies) {
+    double newAmount;
+
     switch (edgeType) {
       case EdgeType.requestItems:
-        getStateBuilder().updateAmount(_getAmountToRequest(dependencies));
+        newAmount = _getAmountToRequest(dependencies) * percentage;
 
       case EdgeType.pushExcess:
-        getStateBuilder().updateAmount(_getAmountToPush(dependencies));
+        newAmount = _getAmountToPush(dependencies) * percentage;
 
       case EdgeType.requestExcess:
         var request = _getAmountToRequest(dependencies);
         var push = _getAmountToPush(dependencies);
-        var newAmount = request > push ? request : push;
-
-        getStateBuilder().updateAmount(newAmount);
+        newAmount = request > push ? request : push;
     }
 
-    return true;
+    if (newAmount != amount) {
+      getStateBuilder().updateAmount(newAmount);
+      return true;
+    } else {
+      return false;
+    }
   }
 
   List<BasePlannerElement> determineParentDependants() => switch (edgeType) {

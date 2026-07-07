@@ -157,9 +157,16 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
       getStateBuilder().updateEdgeConstraints(constraints);
     }
 
-    getStateBuilder().updateIoData(productionLine.calculateIoData());
-
-    return true;
+    // Check if update is required
+    // This will only occur if constraints or production line are different
+    if (constraints != _state.ioData.constraints ||
+        productionLine != _state.productionLine) {
+      var newIoData = productionLine.calculateIoData(constraints);
+      getStateBuilder().updateIoData(newIoData);
+      return true;
+    } else {
+      return false;
+    }
   }
 
   @override
