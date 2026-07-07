@@ -19,8 +19,8 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   Map<InGameItem, Set<Edge>>? _cachedParents;
   Map<InGameItem, Set<Edge>>? _cachedChildren;
 
-  GraphIo? _cachedIoData;
-  ItemIoImpl? _cachedIoRatios;
+  GraphIo _ioData;
+  ItemIoImpl _ioRatios;
 
   Map<InGameItem, List<NodeElement>>? _cachedNodeOutputIndex;
   Map<InGameItem, NodeElement>? _cachedDisposalNodes;
@@ -49,25 +49,10 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   NodeGeometryImpl get geometry => _geometry;
 
   @override
-  ItemIoImpl get ioRatios {
-    _cachedIoRatios ??= ItemIoImpl.empty; // TODO
-    return _cachedIoRatios!;
-  }
+  ItemIoImpl get ioRatios => _ioRatios;
 
   @override
-  GraphIo get ioData {
-    if (_cachedIoData == null) {
-      var builder = GraphIoBuilder();
-
-      for (var node in allNodes) {
-        builder.add(node);
-      }
-
-      _cachedIoData = builder.build();
-    }
-
-    return _cachedIoData!;
-  }
+  GraphIo get ioData => _ioData;
 
   @override
   Set<InGameItem> get inputItems => _inputNodes.keys.toSet();
@@ -113,6 +98,8 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   GraphStateBuilder.initial(this._element)
     : _name = 'graph',
       _icon = _element.surface?.icon,
+      _ioData = const GraphIo.empty(),
+      _ioRatios = ItemIoImpl.empty,
       _prodLineNodes = {},
       _graphNodes = {},
       _inputNodes = {},
@@ -142,8 +129,8 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _cachedChildren = previousState.children,
       _geometry = previousState.geometry,
       _layout = previousState.layout,
-      _cachedIoRatios = previousState.ioRatios,
-      _cachedIoData = previousState.ioData,
+      _ioRatios = previousState.ioRatios,
+      _ioData = previousState.ioData,
       super.from();
 
   @override
@@ -191,6 +178,12 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
 
   void updateIcon(Icon newIcon) => _icon = newIcon;
   void clearIcon() => _icon = null;
+
+  void updateIoData(GraphIo newIoData) {
+    _snapshotBuilder.throwIfNotBuildingIo();
+
+    _ioData = newIoData;
+  }
 
   @override
   void updateGeometry(NodeGeometryImpl geometry) {
@@ -320,10 +313,6 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   void _clearCachedDisposalNodes() => _cachedDisposalNodes = null;
   void _clearCachedParents() => _cachedParents = null;
   void _clearCachedChildren() => _cachedChildren = null;
-  void clearCachedIo() {
-    _cachedIoRatios = null;
-    _cachedIoData = null;
-  }
 
   int _orderByNodeType(NodeElement node1, NodeElement node2) =>
       node1.nodeType.compareTo(node2.nodeType);

@@ -44,6 +44,7 @@ abstract class BasePlannerElement<St, E>
   void deselect();
 
   Dependencies determineDependencies();
+  Iterable<BasePlannerElement> determineDependants();
 
   /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
   set state(covariant St state);
@@ -63,7 +64,7 @@ abstract class BasePlannerElement<St, E>
     covariant St newState,
   );
 
-  bool updateIo();
+  bool updateIo(covariant Dependencies dependencies);
 
   void checkForCircularDependencies(
     Set<BasePlannerElement> safeElements,

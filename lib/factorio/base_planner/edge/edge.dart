@@ -5,6 +5,7 @@ import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/json/json.dart';
+import 'package:factorio_ratios/utility/builder.dart';
 
 part 'edge_state.dart';
 
@@ -111,15 +112,101 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
   }
 
   @override
-  Dependencies determineDependencies() {
-    // TODO: implement determineDependencies
-    throw UnimplementedError();
-  }
+  EdgeDependencies determineDependencies() => switch (edgeType) {
+    EdgeType.requestItems => EdgeDependencies(
+      parentProdLineDep: parentProdLine,
+      parentEdgeDeps: parent.children[item]!
+          .where((edge) => edge.edgeType != EdgeType.requestItems)
+          .toList(),
+    ),
+
+    EdgeType.pushExcess => EdgeDependencies(
+      childProdLineDep: childProdLine,
+      childEdgeDeps: child.parents[item]!
+          .where((edge) => edge.edgeType == EdgeType.pushExcess)
+          .toList(),
+    ),
+
+    EdgeType.requestExcess => EdgeDependencies(
+      parentProdLineDep: parentProdLine,
+      parentEdgeDeps: parent.children[item]!
+          .where(
+            (edge) =>
+                edge.edgeType == EdgeType.pushExcess ||
+                (edge.edgeType == EdgeType.requestExcess &&
+                    edge.parentPriority < parentPriority),
+          )
+          .toList(),
+      childProdLineDep: childProdLine,
+      childEdgeDeps: child.parents[item]!
+          .where(
+            (edge) =>
+                edge.edgeType != EdgeType.requestItems ||
+                (edge.edgeType == EdgeType.requestExcess &&
+                    edge.childPriority < childPriority),
+          )
+          .toList(),
+    ),
+  };
+
+  // Adding both childProdLine and child ensures child is updated if child is a graph
+  // Same goes for parent. Even if this does result in some duplication
+  @override
+  Iterable<BasePlannerElement> determineDependants() => switch (edgeType) {
+    EdgeType.requestItems => [
+      childProdLine,
+      child,
+      ...childProdLine.parents[item]!.where(
+        (edge) => edge.edgeType != EdgeType.requestItems,
+      ),
+    ],
+
+    EdgeType.pushExcess => [
+      parentProdLine,
+      parent,
+      ...parentProdLine.children[item]!.where(
+        (edge) => edge.edgeType != EdgeType.pushExcess,
+      ),
+    ],
+
+    EdgeType.requestExcess => [
+      parentProdLine,
+      parent,
+      ...parentProdLine.children[item]!.where(
+        (edge) =>
+            edge.edgeType == EdgeType.pushExcess ||
+            (edge.edgeType == EdgeType.requestExcess &&
+                edge.childPriority > childPriority),
+      ),
+      childProdLine,
+      child,
+      ...childProdLine.parents[item]!.where(
+        (edge) =>
+            edge.edgeType == EdgeType.requestItems ||
+            (edge.edgeType == EdgeType.requestExcess &&
+                edge.parentPriority > parentPriority),
+      ),
+    ],
+  };
 
   @override
-  bool updateIo() {
-    // TODO: implement updateIo
-    throw UnimplementedError();
+  bool updateIo(EdgeDependencies dependencies) {
+    switch (edgeType) {
+      case EdgeType.requestItems:
+        getStateBuilder().updateAmount(_getAmountToRequest(dependencies));
+
+      case EdgeType.pushExcess:
+        getStateBuilder().updateAmount(_getAmountToPush(dependencies));
+
+      case EdgeType.requestExcess:
+        var request = _getAmountToRequest(dependencies);
+        var push = _getAmountToPush(dependencies);
+        var newAmount = request > push ? request : push;
+
+        getStateBuilder().updateAmount(newAmount);
+    }
+
+    return true;
   }
 
   @override
@@ -127,6 +214,20 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
     // TODO: implement toJson
     throw UnimplementedError();
   }
+
+  double _getAmountToRequest(EdgeDependencies dependencies) =>
+      dependencies.parentProdLineDep!.ioData.io.inputs[item]! -
+      dependencies.orderedParentEdgeDeps!.fold(
+        0.0,
+        (amount, edge) => amount + edge.amount,
+      );
+
+  double _getAmountToPush(EdgeDependencies dependencies) =>
+      dependencies.childProdLineDep!.ioData.io.outputs[item]! -
+      dependencies.orderedChildEdgeDeps!.fold(
+        0.0,
+        (amount, edge) => amount + edge.amount,
+      );
 }
 
 class EdgeEvent {
@@ -137,53 +238,34 @@ class EdgeEvent {
 
 class EdgeDependencies implements Dependencies {
   final ProdLineNode? parentProdLineDep;
-  final Edge? parentPriorityEdgeDep;
-  final _DepType _parentDepType;
+  final List<Edge>? orderedParentEdgeDeps;
 
   final ProdLineNode? childProdLineDep;
-  final Edge? childPriorityEdgeDep;
-  final _DepType _childDepType;
+  final List<Edge>? orderedChildEdgeDeps;
 
-  EdgeDependencies.parentProdLine(ProdLineNode parentProdLineDep)
-    : this._(
-        parentProdLineDep: parentProdLineDep,
-        parentDepType: _DepType.prodLine,
-      );
-
-  EdgeDependencies.childProdLine(ProdLineNode childProdLineDep)
-    : this._(
-        childProdLineDep: childProdLineDep,
-        childDepType: _DepType.prodLine,
-      );
-
-  EdgeDependencies.parentEdge(Edge parentPriorityEdgeDep)
-    : this._(
-        parentPriorityEdgeDep: parentPriorityEdgeDep,
-        parentDepType: _DepType.edge,
-      );
-
-  EdgeDependencies.childEdge(Edge childPriorityEdgeDep)
-    : this._(
-        childPriorityEdgeDep: childPriorityEdgeDep,
-        childDepType: _DepType.edge,
-      );
-
-  EdgeDependencies._({
+  EdgeDependencies({
     this.parentProdLineDep,
-    this.parentPriorityEdgeDep,
-    _DepType parentDepType = _DepType.notApplicable,
+    List<Edge>? parentEdgeDeps,
     this.childProdLineDep,
-    this.childPriorityEdgeDep,
-    _DepType childDepType = _DepType.notApplicable,
-  }) : _parentDepType = parentDepType,
-       _childDepType = childDepType;
+    List<Edge>? childEdgeDeps,
+  }) : orderedParentEdgeDeps = parentEdgeDeps,
+       orderedChildEdgeDeps = childEdgeDeps {
+    orderedParentEdgeDeps?.sort(
+      (preEdge1, preEdge2) =>
+          preEdge1.parentPriority.compareTo(preEdge2.parentPriority),
+    );
+    orderedChildEdgeDeps?.sort(
+      (creEdge1, creEdge2) =>
+          creEdge1.childPriority.compareTo(creEdge2.childPriority),
+    );
+  }
 
   @override
   Iterable<BasePlannerElement> get allDependencies => <BasePlannerElement?>[
     parentProdLineDep,
-    parentPriorityEdgeDep,
     childProdLineDep,
-    childPriorityEdgeDep,
+    ...?orderedParentEdgeDeps,
+    ...?orderedChildEdgeDeps,
   ].nonNulls;
 }
 
@@ -197,8 +279,6 @@ enum EdgeType {
   // TODO: Document
   requestExcess,
 }
-
-enum _DepType { prodLine, edge, notApplicable }
 
 class EdgeException extends BasePlannerException {
   const EdgeException(super.message, [super.cause]);

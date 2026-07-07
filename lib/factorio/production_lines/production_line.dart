@@ -68,38 +68,6 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
     }
   }
 
-  /// Uses [ioRatios] to determine minimum [ItemIoImpl] that satisfies all
-  /// values in [constraints]. Will throw exception if [ioRatios] are null.
-  ItemIoImpl calculateItemIo([ItemIoImpl constraints = ItemIoImpl.empty]) {
-    var ratios = ioRatios;
-
-    verifyConstraints(constraints);
-
-    if (constraints.isZero) {
-      return ratios.zeroAll();
-    } else {
-      var maxMultiplier = 0.0;
-
-      constraints.inputs.forEach((input, amount) {
-        var itemMultiplier = amount / ratios.inputs[input]!;
-
-        if (itemMultiplier > maxMultiplier) {
-          maxMultiplier = itemMultiplier;
-        }
-      });
-
-      constraints.outputs.forEach((output, amount) {
-        var itemMultiplier = amount / ratios.outputs[output]!;
-
-        if (itemMultiplier > maxMultiplier) {
-          maxMultiplier = itemMultiplier;
-        }
-      });
-
-      return ratios.multiplyValues(maxMultiplier);
-    }
-  }
-
   @override
   String toString() => name;
 }

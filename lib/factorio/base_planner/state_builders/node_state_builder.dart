@@ -7,7 +7,6 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
 
   ItemIoImpl? _internalConstraints;
   ItemIoImpl _edgeConstraints;
-  ItemIoImpl _itemIo;
   NodeGeometryImpl _geometry;
   ProductionLine _productionLine;
   ProductionLineIoData _ioData;
@@ -18,8 +17,6 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   ItemIoImpl? get internalConstraints => _internalConstraints;
   @override
   ItemIo get edgeConstraints => _edgeConstraints;
-  @override
-  ItemIo get itemIo => _itemIo;
   @override
   NodeGeometryImpl get geometry => _geometry;
   @override
@@ -40,7 +37,6 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
           ? ItemIoImpl.empty
           : null,
       _edgeConstraints = ItemIoImpl.empty,
-      _itemIo = ItemIoImpl.empty,
       _geometry = NodeGeometryImpl.uninitialised,
       _ioData = ProductionLineIoData.uninitialised,
       _parents = {},
@@ -88,7 +84,6 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
     ProdLineNodeStateImpl previousState,
   ) : _internalConstraints = previousState.internalConstraints,
       _edgeConstraints = previousState.edgeConstraints,
-      _itemIo = previousState.itemIo,
       _productionLine = previousState.productionLine,
       _geometry = previousState.geometry,
       _parents = Map.from(previousState.parents)
@@ -158,10 +153,10 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
     _internalConstraints = newConstraints;
   }
 
-  void updateIo(ItemIoImpl newItemIo) {
+  void updateIoData(ProductionLineIoData newIoData) {
     _snapshotBuilder.throwIfNotBuildingIo();
 
-    _itemIo = newItemIo;
+    _ioData = newIoData;
   }
 
   void updateEdgeConstraints(ItemIoImpl newEdgeConstraints) {
@@ -221,7 +216,6 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
     _element,
     internalConstraints: _internalConstraints,
     edgeConstraints: _edgeConstraints,
-    itemIo: _itemIo,
     productionLine: productionLine,
     ioData: ioData,
     geometry: geometry,

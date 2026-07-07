@@ -127,11 +127,11 @@ class SnapshotBuilder implements Builder<Snapshot> {
         continue;
       }
 
-      var dependencies = getCachedDependencies(toUpdate).allDependencies;
+      var dependencies = getCachedDependencies(toUpdate);
 
       // If unresolved dependencies exist,
       // Place said dependencies at front of queue and restart loop
-      var unresolvedDeps = dependencies
+      var unresolvedDeps = dependencies.allDependencies
           .where((dependency) => !getUpdateStatus(dependency).isComplete)
           .toList();
       if (unresolvedDeps.isNotEmpty) {
@@ -143,14 +143,17 @@ class SnapshotBuilder implements Builder<Snapshot> {
       // Perform IO update operation.
       // Otherwise, mark element as completed with no update
       // Remove element from front of queue in both scenarios
-      if (updateStatus == UpdateStatus.required ||
-          dependencies.any(
+      var updateRequired =
+          updateStatus == UpdateStatus.required ||
+          dependencies.allDependencies.any(
             (dependency) =>
                 getUpdateStatus(dependency) == UpdateStatus.completeUpdate,
-          )) {
-        _elementUpdateStatus[toUpdate] = toUpdate.updateIo()
-            ? UpdateStatus.completeUpdate
-            : UpdateStatus.completeNoUpdate;
+          );
+
+      if (updateRequired && toUpdate.updateIo(dependencies)) {
+        _elementUpdateStatus[toUpdate] = UpdateStatus.completeUpdate;
+
+        _queuedIoUpdateElements.addAll(toUpdate.determineDependants());
       } else {
         _elementUpdateStatus[toUpdate] = UpdateStatus.completeNoUpdate;
       }

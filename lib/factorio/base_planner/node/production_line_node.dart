@@ -114,14 +114,52 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
 
   @override
   NodeDependencies determineDependencies() {
-    // TODO: implement determineDependencies
-    throw UnimplementedError();
+    Map<InGameItem, Set<Edge>> parentDeps = Map.from(parents)
+      ..updateAll(
+        (item, edgeSet) => edgeSet
+            .where((edge) => edge.edgeType == EdgeType.requestItems)
+            .toSet(),
+      )
+      ..removeWhere((item, edgeSet) => edgeSet.isEmpty);
+
+    Map<InGameItem, Set<Edge>> childDeps = Map.from(children)
+      ..updateAll(
+        (item, edgeSet) => edgeSet
+            .where((edge) => edge.edgeType == EdgeType.pushExcess)
+            .toSet(),
+      )
+      ..removeWhere((item, edgeSet) => edgeSet.isEmpty);
+
+    return NodeDependencies(parentDeps: parentDeps, childDeps: childDeps);
   }
 
   @override
-  bool updateIo() {
-    // TODO: implement updateIo
-    throw UnimplementedError();
+  List<Edge> determineDependants() {
+    var parentDependants = allParents.where(
+      (parent) => parent.edgeType != EdgeType.requestItems,
+    );
+    var childDependants = allChildren.where(
+      (child) => child.edgeType != EdgeType.pushExcess,
+    );
+
+    return [...parentDependants, ...childDependants];
+  }
+
+  // TODO - Actually check if an upate occurs rather than always returning true
+  @override
+  bool updateIo(NodeDependencies dependencies) {
+    ItemIoImpl constraints;
+
+    if (nodeType.hasInternalConstraints) {
+      constraints = internalConstraints!;
+    } else {
+      constraints = _calculateEdgeConstraints(dependencies);
+      getStateBuilder().updateEdgeConstraints(constraints);
+    }
+
+    getStateBuilder().updateIoData(productionLine.calculateIoData());
+
+    return true;
   }
 
   @override
@@ -130,27 +168,25 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
     throw UnimplementedError();
   }
 
-  ItemIoImpl _calculateEdgeConstraints() {
+  ItemIoImpl _calculateEdgeConstraints(NodeDependencies dependencies) {
     ItemIoBuilder builder = ItemIoBuilder();
 
-    parents.forEach((item, edges) {
-      var requestedAmount = edges
-          .where((edge) => edge.edgeType == EdgeType.requestItems)
-          .fold(0.0, (sum, edge) => sum + edge.amount);
-
-      if (requestedAmount != 0) {
-        builder.addToOutputs(item, requestedAmount);
-      }
+    dependencies.parentDeps.forEach((item, requestItemEdges) {
+      builder.addToOutputs(
+        item,
+        requestItemEdges
+            .map((edge) => edge.amount)
+            .reduce((amount1, amount2) => amount1 + amount2),
+      );
     });
 
-    children.forEach((item, edges) {
-      var pushedAmount = edges
-          .where((edge) => edge.edgeType == EdgeType.pushExcess)
-          .fold(0.0, (sum, edge) => sum + edge.amount);
-
-      if (pushedAmount != 0) {
-        builder.addToInputs(item, pushedAmount);
-      }
+    dependencies.childDeps.forEach((item, pushExcessEdges) {
+      builder.addToInputs(
+        item,
+        pushExcessEdges
+            .map((edge) => edge.amount)
+            .reduce((amount1, amount2) => amount1 + amount2),
+      );
     });
 
     return builder.build();
@@ -161,13 +197,13 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
 }
 
 class NodeDependencies implements Dependencies {
-  final Map<InGameItem, Set<Edge>> pushExcessDeps;
-  final Map<InGameItem, Set<Edge>> requestItemsDeps;
+  final Map<InGameItem, Set<Edge>> childDeps;
+  final Map<InGameItem, Set<Edge>> parentDeps;
 
-  NodeDependencies(this.pushExcessDeps, this.requestItemsDeps);
+  NodeDependencies({required this.childDeps, required this.parentDeps});
 
   @override
-  Iterable<Edge> get allDependencies => pushExcessDeps.values
-      .followedBy(requestItemsDeps.values)
+  Iterable<Edge> get allDependencies => childDeps.values
+      .followedBy(parentDeps.values)
       .expand((edgeSet) => edgeSet);
 }

@@ -174,14 +174,29 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
 
   @override
   GraphDependencies determineDependencies() {
-    // TODO: implement determineDependencies
-    throw UnimplementedError();
+    return GraphDependencies(allNodes);
   }
 
   @override
-  bool updateIo() {
-    // TODO: implement updateIo
-    throw UnimplementedError();
+  Iterable<BasePlannerElement<dynamic, dynamic>> determineDependants() {
+    if (isRoot) {
+      return const [];
+    } else {
+      return [parentGraph];
+    }
+  }
+
+  @override
+  bool updateIo(GraphDependencies dependencies) {
+    var ioBuilder = GraphIoBuilder();
+
+    for (var node in dependencies.allNodes) {
+      ioBuilder.add(node);
+    }
+
+    getStateBuilder().updateIoData(ioBuilder.build());
+
+    return true;
   }
 
   /// Clears all nodes except IO nodes
