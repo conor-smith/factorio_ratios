@@ -134,7 +134,7 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
   }
 
   @override
-  List<Edge> determineDependants() {
+  List<BasePlannerElement> determineDependants() {
     var parentDependants = allParents.where(
       (parent) => parent.edgeType != EdgeType.requestItems,
     );
@@ -142,7 +142,7 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
       (child) => child.edgeType != EdgeType.pushExcess,
     );
 
-    return [...parentDependants, ...childDependants];
+    return [...parentDependants, ...childDependants, parentGraph];
   }
 
   // TODO - Actually check if an upate occurs rather than always returning true

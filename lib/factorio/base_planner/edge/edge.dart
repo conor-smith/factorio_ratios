@@ -5,7 +5,6 @@ import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/json/json.dart';
-import 'package:factorio_ratios/utility/builder.dart';
 
 part 'edge_state.dart';
 
@@ -152,42 +151,10 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
   // Adding both childProdLine and child ensures child is updated if child is a graph
   // Same goes for parent. Even if this does result in some duplication
   @override
-  Iterable<BasePlannerElement> determineDependants() => switch (edgeType) {
-    EdgeType.requestItems => [
-      childProdLine,
-      child,
-      ...childProdLine.parents[item]!.where(
-        (edge) => edge.edgeType != EdgeType.requestItems,
-      ),
-    ],
-
-    EdgeType.pushExcess => [
-      parentProdLine,
-      parent,
-      ...parentProdLine.children[item]!.where(
-        (edge) => edge.edgeType != EdgeType.pushExcess,
-      ),
-    ],
-
-    EdgeType.requestExcess => [
-      parentProdLine,
-      parent,
-      ...parentProdLine.children[item]!.where(
-        (edge) =>
-            edge.edgeType == EdgeType.pushExcess ||
-            (edge.edgeType == EdgeType.requestExcess &&
-                edge.childPriority > childPriority),
-      ),
-      childProdLine,
-      child,
-      ...childProdLine.parents[item]!.where(
-        (edge) =>
-            edge.edgeType == EdgeType.requestItems ||
-            (edge.edgeType == EdgeType.requestExcess &&
-                edge.parentPriority > parentPriority),
-      ),
-    ],
-  };
+  List<BasePlannerElement> determineDependants() => [
+    ...determineParentDependants(),
+    ...determineChildDependants(),
+  ];
 
   @override
   bool updateIo(EdgeDependencies dependencies) {
@@ -208,6 +175,52 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
 
     return true;
   }
+
+  List<BasePlannerElement> determineParentDependants() => switch (edgeType) {
+    EdgeType.requestItems => const [],
+
+    EdgeType.pushExcess => [
+      parentProdLine,
+      parent,
+      ...parentProdLine.children[item]!.where(
+        (edge) => edge.edgeType != EdgeType.pushExcess,
+      ),
+    ],
+
+    EdgeType.requestExcess => [
+      parentProdLine,
+      parent,
+      ...parentProdLine.children[item]!.where(
+        (edge) =>
+            edge.edgeType == EdgeType.pushExcess ||
+            (edge.edgeType == EdgeType.requestExcess &&
+                edge.childPriority > childPriority),
+      ),
+    ],
+  };
+
+  List<BasePlannerElement> determineChildDependants() => switch (edgeType) {
+    EdgeType.requestItems => [
+      childProdLine,
+      child,
+      ...childProdLine.parents[item]!.where(
+        (edge) => edge.edgeType != EdgeType.requestItems,
+      ),
+    ],
+
+    EdgeType.pushExcess => const [],
+
+    EdgeType.requestExcess => [
+      childProdLine,
+      child,
+      ...childProdLine.parents[item]!.where(
+        (edge) =>
+            edge.edgeType == EdgeType.requestItems ||
+            (edge.edgeType == EdgeType.requestExcess &&
+                edge.parentPriority > parentPriority),
+      ),
+    ],
+  };
 
   @override
   Map<String, dynamic> toJson() {

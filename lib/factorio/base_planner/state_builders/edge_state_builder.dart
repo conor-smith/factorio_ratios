@@ -78,26 +78,8 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
     _updateParentIfParentIsGraphNode();
     _updateChildIfChildIsGraphNode();
 
-    switch (_element.edgeType) {
-      case EdgeType.requestItems:
-        _snapshotBuilder.queueRequiredIoUpdate(_element.childProdLine);
-
-      case EdgeType.pushExcess:
-        _snapshotBuilder.queueRequiredIoUpdate(_element.parentProdLine);
-
-      case EdgeType.requestExcess:
-        var edgesToUpdate = [
-          ..._element.parentProdLine.children[_element.item]!.where(
-            (edge) => edge.edgeType == EdgeType.requestItems,
-          ),
-          ..._element.childProdLine.parents[_element.item]!.where(
-            (edge) => edge.edgeType == EdgeType.pushExcess,
-          ),
-        ];
-
-        for (var edge in edgesToUpdate) {
-          _snapshotBuilder.queueRequiredIoUpdate(edge);
-        }
+    for (var dependant in _element.determineDependants()) {
+      _snapshotBuilder.queueRequiredIoUpdate(dependant);
     }
   }
 
@@ -151,20 +133,8 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
 
     _updateParentIfParentIsGraphNode();
 
-    switch (_element.edgeType) {
-      case EdgeType.requestItems:
-        break;
-
-      case EdgeType.pushExcess:
-        _snapshotBuilder.queueRequiredIoUpdate(_element.parentProdLine);
-
-      case EdgeType.requestExcess:
-        var edgesToUpdate = _element.childProdLine.parents[_element.item]!
-            .where((edge) => edge.edgeType == EdgeType.pushExcess);
-
-        for (var edge in edgesToUpdate) {
-          _snapshotBuilder.queueRequiredIoUpdate(edge);
-        }
+    for (var parentDependant in _element.determineParentDependants()) {
+      _snapshotBuilder.queueRequiredIoUpdate(parentDependant);
     }
   }
 
@@ -177,20 +147,8 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
 
     _updateChildIfChildIsGraphNode();
 
-    switch (_element.edgeType) {
-      case EdgeType.requestItems:
-        _snapshotBuilder.queueRequiredIoUpdate(_element.childProdLine);
-
-      case EdgeType.pushExcess:
-        break;
-
-      case EdgeType.requestExcess:
-        var edgesToUpdate = _element.childProdLine.parents[_element.item]!
-            .where((edge) => edge.edgeType == EdgeType.pushExcess);
-
-        for (var edge in edgesToUpdate) {
-          _snapshotBuilder.queueRequiredIoUpdate(edge);
-        }
+    for (var childDependant in _element.determineChildDependants()) {
+      _snapshotBuilder.queueRequiredIoUpdate(childDependant);
     }
   }
 

@@ -76,6 +76,12 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   @override
   Snapshot build() {
+    _newElements.removeAll(_removedElements);
+
+    for (var removedElement in _removedElements) {
+      _elementUpdateStatus.remove(removedElement);
+    }
+
     if (_newElements.isNotEmpty) {
       _checkForCircularDependencies();
     }
@@ -120,7 +126,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
       var toUpdate = _queuedIoUpdateElements.first;
       var updateStatus = getUpdateStatus(toUpdate);
 
-      // If element is already completed, remove from queue and restart loop
+      // If element is already completed or removed, remove from queue and restart loop
       if (updateStatus.isComplete) {
         _queuedIoUpdateElements.removeAt(0);
 
