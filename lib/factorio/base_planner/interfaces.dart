@@ -43,6 +43,28 @@ abstract class BasePlannerElement<St, E>
   void select();
   void deselect();
 
+  Dependencies determineDependencies();
+
+  /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
+  set state(covariant St state);
+
+  /// Return mutable object representing [state].
+  /// All changes will be reflected unless [cancelStateBuilder] is called.
+  StateBuilder<St> getStateBuilder();
+  void cancelStateBuilder();
+
+  /// Used in the event of a dragging or resizing operation.
+  /// Allows notifying listeners of some [Geometry] object without updating [state].
+  void notifyListenersOfGeometryUpdate(covariant Geometry geometry);
+
+  /// Used whenever state is updated
+  void notifyListenersOfStateUpdate(
+    covariant St oldState,
+    covariant St newState,
+  );
+
+  bool updateIo();
+
   void checkForCircularDependencies(
     Set<BasePlannerElement> safeElements,
     Set<BasePlannerElement> visitedElements,
@@ -66,26 +88,6 @@ abstract class BasePlannerElement<St, E>
       safeElements.add(this);
     }
   }
-
-  Dependencies determineDependencies();
-
-  /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
-  set state(covariant St state);
-
-  /// Return mutable object representing [state].
-  /// All changes will be reflected unless [cancelStateBuilder] is called.
-  StateBuilder<St> getStateBuilder();
-  void cancelStateBuilder();
-
-  /// Used in the event of a dragging or resizing operation.
-  /// Allows notifying listeners of some [Geometry] object without updating [state].
-  void notifyListenersOfGeometryUpdate(covariant Geometry geometry);
-
-  /// Used whenever state is updated
-  void notifyListenersOfStateUpdate(
-    covariant St oldState,
-    covariant St newState,
-  );
 }
 
 abstract interface class Dependencies {

@@ -178,6 +178,12 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
     throw UnimplementedError();
   }
 
+  @override
+  bool updateIo() {
+    // TODO: implement updateIo
+    throw UnimplementedError();
+  }
+
   /// Clears all nodes except IO nodes
   void clear() {
     basePlanner.buildNextSnapshot(() {

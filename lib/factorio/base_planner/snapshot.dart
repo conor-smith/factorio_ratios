@@ -18,7 +18,9 @@ class SnapshotBuilder implements Builder<Snapshot> {
   final Set<BasePlannerElement> _newElements = {};
   final Set<BasePlannerElement> _removedElements = {};
 
-  final Map<BasePlannerElement, _StatusAndDeps> _elementUpdateStatus = {};
+  final Map<BasePlannerElement, Dependencies> _cachedDependencies = {};
+  final Map<BasePlannerElement, UpdateStatus> _elementUpdateStatus = {};
+  final List<BasePlannerElement> _queuedIoUpdateElements = [];
   final Set<Graph> _graphsToUpdateLayout = {};
 
   bool get hasChanges =>
@@ -44,32 +46,42 @@ class SnapshotBuilder implements Builder<Snapshot> {
   void removeFromSnapshot(BasePlannerElement element) =>
       _removedElements.add(element);
 
-  void queueRequiredIoUpdate(BasePlannerElement element) =>
-      _elementUpdateStatus[element] = _StatusAndDeps(UpdateStatus.required);
+  void queueRequiredIoUpdate(BasePlannerElement element) {
+    var status = _elementUpdateStatus.update(
+      element,
+      (existingStatus) => existingStatus == UpdateStatus.checkDependencies
+          ? UpdateStatus.required
+          : existingStatus,
+      ifAbsent: () => UpdateStatus.required,
+    );
 
-  Dependencies getCachedDependencies(BasePlannerElement element) {
-    var statusAndDeps = _elementUpdateStatus[element]!;
-
-    statusAndDeps.cachedDeps ??= element.determineDependencies();
-
-    return statusAndDeps.cachedDeps!;
+    if (_stage == SnapshotBuildStage.buildIo && !status.isComplete) {
+      _queuedIoUpdateElements.add(element);
+    }
   }
+
+  UpdateStatus getUpdateStatus(BasePlannerElement element) =>
+      _elementUpdateStatus.update(
+        element,
+        (existingStatus) => UpdateStatus.checkDependencies,
+      );
+
+  Dependencies getCachedDependencies(BasePlannerElement element) =>
+      _cachedDependencies.putIfAbsent(
+        element,
+        () => element.determineDependencies(),
+      );
 
   void queueLayoutUpdate(Graph graph) => _graphsToUpdateLayout.add(graph);
 
   @override
   Snapshot build() {
     if (_newElements.isNotEmpty) {
-      _stage = SnapshotBuildStage.circularDependencyCheck;
-
-      Set<BasePlannerElement> safeElements = {};
-
-      for (var element in _newElements) {
-        element.checkForCircularDependencies(safeElements, {});
-      }
+      _checkForCircularDependencies();
     }
-
-    _stage = SnapshotBuildStage.buildIo;
+    if (_elementUpdateStatus.isNotEmpty) {
+      _performIoUdpates();
+    }
 
     Map<BasePlannerElement, dynamic> newStateMap = Map.from(
       _previousSnapshot.states,
@@ -87,6 +99,64 @@ class SnapshotBuilder implements Builder<Snapshot> {
     newStateMap.addAll(updatedStates);
 
     return Snapshot._(newStateMap);
+  }
+
+  void _checkForCircularDependencies() {
+    _stage = SnapshotBuildStage.circularDependencyCheck;
+
+    Set<BasePlannerElement> safeElements = {};
+
+    for (var element in _newElements) {
+      element.checkForCircularDependencies(safeElements, {});
+    }
+  }
+
+  void _performIoUdpates() {
+    _stage = SnapshotBuildStage.buildIo;
+
+    _queuedIoUpdateElements.addAll(_elementUpdateStatus.keys);
+
+    while (_queuedIoUpdateElements.isNotEmpty) {
+      var toUpdate = _queuedIoUpdateElements.first;
+      var updateStatus = getUpdateStatus(toUpdate);
+
+      // If element is already completed, remove from queue and restart loop
+      if (updateStatus.isComplete) {
+        _queuedIoUpdateElements.removeAt(0);
+
+        continue;
+      }
+
+      var dependencies = getCachedDependencies(toUpdate).allDependencies;
+
+      // If unresolved dependencies exist,
+      // Place said dependencies at front of queue and restart loop
+      var unresolvedDeps = dependencies
+          .where((dependency) => !getUpdateStatus(dependency).isComplete)
+          .toList();
+      if (unresolvedDeps.isNotEmpty) {
+        _queuedIoUpdateElements.insertAll(0, unresolvedDeps);
+        continue;
+      }
+
+      // If io update is required, or if one or more dependencies was updated
+      // Perform IO update operation.
+      // Otherwise, mark element as completed with no update
+      // Remove element from front of queue in both scenarios
+      if (updateStatus == UpdateStatus.required ||
+          dependencies.any(
+            (dependency) =>
+                getUpdateStatus(dependency) == UpdateStatus.completeUpdate,
+          )) {
+        _elementUpdateStatus[toUpdate] = toUpdate.updateIo()
+            ? UpdateStatus.completeUpdate
+            : UpdateStatus.completeNoUpdate;
+      } else {
+        _elementUpdateStatus[toUpdate] = UpdateStatus.completeNoUpdate;
+      }
+
+      _queuedIoUpdateElements.removeAt(0);
+    }
   }
 }
 
@@ -108,11 +178,4 @@ enum SnapshotBuildStage {
   buildIo,
   updateGraphLayouts,
   buildStates,
-}
-
-class _StatusAndDeps {
-  UpdateStatus status;
-  Dependencies? cachedDeps;
-
-  _StatusAndDeps(this.status);
 }

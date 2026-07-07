@@ -117,6 +117,12 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
   }
 
   @override
+  bool updateIo() {
+    // TODO: implement updateIo
+    throw UnimplementedError();
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();

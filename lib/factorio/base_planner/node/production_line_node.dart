@@ -119,6 +119,12 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
   }
 
   @override
+  bool updateIo() {
+    // TODO: implement updateIo
+    throw UnimplementedError();
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
