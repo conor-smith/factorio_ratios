@@ -1,7 +1,6 @@
 part of 'node.dart';
 
-class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent>
-    with EventNotifier<NodeEvent> {
+class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
   @override
   final BasePlanner basePlanner;
 
@@ -114,15 +113,6 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent>
   }
 
   @override
-  List<BasePlannerElement> traverseDependencyTreeAndReturnQueue(
-    List<BasePlannerElement> orderedDependencies,
-    Set<BasePlannerElement> visitedDependants,
-  ) {
-    // TODO: implement getOrderedDependencies
-    throw UnimplementedError();
-  }
-
-  @override
   NodeDependencies determineDependencies() {
     // TODO: implement determineDependencies
     throw UnimplementedError();
@@ -164,4 +154,14 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent>
   String toString() => productionLine.toString();
 }
 
-class NodeDependencies implements Dependencies {}
+class NodeDependencies implements Dependencies {
+  final Map<InGameItem, Set<Edge>> pushExcessDeps;
+  final Map<InGameItem, Set<Edge>> requestItemsDeps;
+
+  NodeDependencies(this.pushExcessDeps, this.requestItemsDeps);
+
+  @override
+  Iterable<Edge> get allDependencies => pushExcessDeps.values
+      .followedBy(requestItemsDeps.values)
+      .expand((edgeSet) => edgeSet);
+}

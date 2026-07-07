@@ -17,8 +17,7 @@ import 'package:factorio_ratios/utility/collections.dart';
 part 'graph_state.dart';
 
 /// Represents a graph of [NodeElement]s connected by [Edge]s.
-class Graph extends NodeElement<GraphState, GraphEvent>
-    with EventNotifier<GraphEvent> {
+class Graph extends NodeElement<GraphState, GraphEvent> {
   // TODO - Graph preferred layout
   @override
   final BasePlanner basePlanner;
@@ -173,6 +172,12 @@ class Graph extends NodeElement<GraphState, GraphEvent>
     }
   }
 
+  @override
+  GraphDependencies determineDependencies() {
+    // TODO: implement determineDependencies
+    throw UnimplementedError();
+  }
+
   /// Clears all nodes except IO nodes
   void clear() {
     basePlanner.buildNextSnapshot(() {
@@ -299,21 +304,6 @@ class Graph extends NodeElement<GraphState, GraphEvent>
         );
       }
     });
-  }
-
-  @override
-  List<BasePlannerElement> traverseDependencyTreeAndReturnQueue(
-    List<BasePlannerElement> orderedDependencies,
-    Set<BasePlannerElement> visitedDependants,
-  ) {
-    // TODO: implement getOrderedDependencies
-    throw UnimplementedError();
-  }
-
-  @override
-  GraphDependencies determineDependencies() {
-    // TODO: implement determineDependencies
-    throw UnimplementedError();
   }
 
   @override
@@ -581,7 +571,14 @@ class GraphIoBuilder implements Builder<GraphIo> {
   );
 }
 
-class GraphDependencies implements Dependencies {}
+class GraphDependencies implements Dependencies {
+  final Set<NodeElement> allNodes;
+
+  GraphDependencies(this.allNodes);
+
+  @override
+  Iterable<BasePlannerElement> get allDependencies => allNodes;
+}
 
 enum GraphEventType { updateNodesAndEdges, childrenGeometryUpdate, nodeEvent }
 

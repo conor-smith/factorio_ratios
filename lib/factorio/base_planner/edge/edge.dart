@@ -10,9 +10,7 @@ part 'edge_state.dart';
 
 /// Represents an edge connecting two [NodeElement]s.
 /// Items flow from [childProdLine] to [parentProdLine].
-class Edge
-    with EventNotifier<EdgeEvent>
-    implements BasePlannerElement<EdgeState, EdgeEvent> {
+class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
   @override
   final BasePlanner basePlanner;
 
@@ -113,15 +111,6 @@ class Edge
   }
 
   @override
-  List<BasePlannerElement> traverseDependencyTreeAndReturnQueue(
-    List<BasePlannerElement> orderedDependencies,
-    Set<BasePlannerElement> visitedDependants,
-  ) {
-    // TODO: implement getOrderedDependencies
-    throw UnimplementedError();
-  }
-
-  @override
   Dependencies determineDependencies() {
     // TODO: implement determineDependencies
     throw UnimplementedError();
@@ -140,7 +129,57 @@ class EdgeEvent {
   EdgeEvent.geometryOp(EdgeGeometry this.geometry);
 }
 
-class EdgeDependencies implements Dependencies {}
+class EdgeDependencies implements Dependencies {
+  final ProdLineNode? parentProdLineDep;
+  final Edge? parentPriorityEdgeDep;
+  final _DepType _parentDepType;
+
+  final ProdLineNode? childProdLineDep;
+  final Edge? childPriorityEdgeDep;
+  final _DepType _childDepType;
+
+  EdgeDependencies.parentProdLine(ProdLineNode parentProdLineDep)
+    : this._(
+        parentProdLineDep: parentProdLineDep,
+        parentDepType: _DepType.prodLine,
+      );
+
+  EdgeDependencies.childProdLine(ProdLineNode childProdLineDep)
+    : this._(
+        childProdLineDep: childProdLineDep,
+        childDepType: _DepType.prodLine,
+      );
+
+  EdgeDependencies.parentEdge(Edge parentPriorityEdgeDep)
+    : this._(
+        parentPriorityEdgeDep: parentPriorityEdgeDep,
+        parentDepType: _DepType.edge,
+      );
+
+  EdgeDependencies.childEdge(Edge childPriorityEdgeDep)
+    : this._(
+        childPriorityEdgeDep: childPriorityEdgeDep,
+        childDepType: _DepType.edge,
+      );
+
+  EdgeDependencies._({
+    this.parentProdLineDep,
+    this.parentPriorityEdgeDep,
+    _DepType parentDepType = _DepType.notApplicable,
+    this.childProdLineDep,
+    this.childPriorityEdgeDep,
+    _DepType childDepType = _DepType.notApplicable,
+  }) : _parentDepType = parentDepType,
+       _childDepType = childDepType;
+
+  @override
+  Iterable<BasePlannerElement> get allDependencies => <BasePlannerElement?>[
+    parentProdLineDep,
+    parentPriorityEdgeDep,
+    childProdLineDep,
+    childPriorityEdgeDep,
+  ].nonNulls;
+}
 
 enum EdgeType {
   // TODO: Document
@@ -152,6 +191,8 @@ enum EdgeType {
   // TODO: Document
   requestExcess,
 }
+
+enum _DepType { prodLine, edge, notApplicable }
 
 class EdgeException extends BasePlannerException {
   const EdgeException(super.message, [super.cause]);

@@ -40,23 +40,15 @@ class SnapshotBuilder implements Builder<Snapshot> {
   void removeFromSnapshot(BasePlannerElement element) =>
       _removedElements.add(element);
 
-  void queueIoUpdate(
-    BasePlannerElement element, {
-    bool requiredUpdate = false,
-  }) {
-    var newStatus = requiredUpdate
-        ? UpdateStatus.required
-        : UpdateStatus.checkDependencies;
+  void queueRequiredIoUpdate(BasePlannerElement element) =>
+      _elementUpdateStatus[element] = _StatusAndDeps(UpdateStatus.required);
 
-    _elementUpdateStatus.update(element, (existingStatus) {
-      existingStatus.deps = null;
+  Dependencies getCachedDependencies(BasePlannerElement element) {
+    var statusAndDeps = _elementUpdateStatus[element]!;
 
-      if (existingStatus.status != UpdateStatus.required) {
-        existingStatus.status = newStatus;
-      }
+    statusAndDeps.cachedDeps ??= element.determineDependencies();
 
-      return existingStatus;
-    }, ifAbsent: () => _StatusAndDeps(newStatus));
+    return statusAndDeps.cachedDeps!;
   }
 
   void queueLayoutUpdate(Graph graph) => _graphsToUpdateLayout.add(graph);
@@ -109,7 +101,7 @@ enum SnapshotBuildStage {
 
 class _StatusAndDeps {
   UpdateStatus status;
-  Dependencies? deps;
+  Dependencies? cachedDeps;
 
   _StatusAndDeps(this.status);
 }

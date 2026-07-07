@@ -107,7 +107,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
     var parentGraph = _element.parentGraph;
 
     _snapshotBuilder
-      ..queueIoUpdate(parentGraph, requiredUpdate: true)
+      ..queueRequiredIoUpdate(parentGraph)
       ..queueLayoutUpdate(parentGraph)
       ..removeFromSnapshot(_element);
     for (var parent in _parents.values.expand((edgeSet) => edgeSet)) {
@@ -154,7 +154,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   }
 
   void updateInternalConstraints(ItemIoImpl newConstraints) {
-    _snapshotBuilder.queueIoUpdate(_element, requiredUpdate: true);
+    _snapshotBuilder.queueRequiredIoUpdate(_element);
     _internalConstraints = newConstraints;
   }
 
@@ -171,7 +171,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   }
 
   void updateProductionLine(ProductionLine newLine) {
-    _snapshotBuilder.queueIoUpdate(_element, requiredUpdate: true);
+    _snapshotBuilder.queueRequiredIoUpdate(_element);
 
     var removedOutputs = _productionLine.outputItems.difference(
       newLine.outputItems,

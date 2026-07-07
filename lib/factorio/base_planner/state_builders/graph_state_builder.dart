@@ -160,7 +160,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   }
 
   void removeAllNodesExceptIo() {
-    _snapshotBuilder.queueIoUpdate(_element, requiredUpdate: true);
+    _snapshotBuilder.queueRequiredIoUpdate(_element);
 
     for (var node in _prodLineNodes) {
       node.getStateBuilder()._removeSelfButNotOthers();
@@ -180,7 +180,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     }
 
     for (var ioNode in [...inputNodes.values, ...outputNodes.values]) {
-      _snapshotBuilder.queueIoUpdate(ioNode, requiredUpdate: true);
+      _snapshotBuilder.queueRequiredIoUpdate(ioNode);
     }
 
     _prodLineNodes.clear();

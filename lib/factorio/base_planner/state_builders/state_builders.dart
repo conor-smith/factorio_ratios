@@ -28,7 +28,7 @@ abstract class StateBuilder<T> implements Builder<T> {
   StateBuilder.initial() {
     _snapshotBuilder
       ..addToSnapshot(_element, this)
-      ..queueIoUpdate(_element, requiredUpdate: true)
+      ..queueRequiredIoUpdate(_element)
       ..queueLayoutUpdate(_element.parentGraph);
   }
 

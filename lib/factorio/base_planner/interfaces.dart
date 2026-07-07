@@ -29,7 +29,8 @@ abstract mixin class EventNotifier<T> {
 /// However, [getStateBuilder] will return a relevant builder.
 /// Any changes to the stateBuilder will be reflected in [state] unless
 /// [cancelStateBuilder] is called, at which point, [state] will be reset.
-abstract interface class BasePlannerElement<St, E>
+abstract class BasePlannerElement<St, E>
+    with EventNotifier<E>
     implements EventNotifier<E>, ToJson {
   BasePlanner get basePlanner;
   Graph get parentGraph;
@@ -42,10 +43,30 @@ abstract interface class BasePlannerElement<St, E>
   void select();
   void deselect();
 
-  List<BasePlannerElement> traverseDependencyTreeAndReturnQueue(
-    List<BasePlannerElement> orderedDependencies,
+  void traverseDependencyTreeAndAddToQueue(
+    LinkedHashSet<BasePlannerElement> dependencyQueue,
     Set<BasePlannerElement> visitedDependants,
-  );
+  ) {
+    if (visitedDependants.contains(this)) {
+      throw BasePlannerException('Circular dependency detected at $this');
+    }
+
+    if (!dependencyQueue.contains(this)) {
+      visitedDependants.add(this);
+
+      var deps = basePlanner.getSnapshotBuilder().getCachedDependencies(this);
+
+      for (var dependency in deps.allDependencies) {
+        dependency.traverseDependencyTreeAndAddToQueue(
+          dependencyQueue,
+          visitedDependants,
+        );
+      }
+
+      dependencyQueue.add(this);
+      visitedDependants.remove(this);
+    }
+  }
 
   Dependencies determineDependencies();
 
@@ -68,4 +89,6 @@ abstract interface class BasePlannerElement<St, E>
   );
 }
 
-abstract interface class Dependencies {}
+abstract interface class Dependencies {
+  Iterable<BasePlannerElement> get allDependencies;
+}
