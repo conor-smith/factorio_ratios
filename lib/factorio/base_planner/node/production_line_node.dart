@@ -33,22 +33,13 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent>
   Set<InGameItem> get outputItems => productionLine.outputItems;
 
   @override
-  ProductionLineIoData get ioData {
-    basePlanner.throwIfIoNotToBeAccessed(this);
-    return state.ioData;
-  }
+  ProductionLineIoData get ioData => state.ioData;
 
   @override
-  ItemIo get edgeConstraints {
-    basePlanner.throwIfIoNotToBeAccessed(this);
-    return state.edgeConstraints;
-  }
+  ItemIo get edgeConstraints => state.edgeConstraints;
 
   @override
-  ItemIo get itemIo {
-    basePlanner.throwIfIoNotToBeAccessed(this);
-    return state.itemIo;
-  }
+  ItemIo get itemIo => state.edgeConstraints;
 
   ProdLineNodeStateImpl _state;
   ProdLineNodeStateBuilder? _builder;
@@ -123,103 +114,24 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent>
   }
 
   @override
-  bool traverseDepsAndUpdateIo(Set<BasePlannerElement> visitedElements) {
-    // Check for circular dependency
-    // TODO - Centralise this code rather than copying it
-    if (visitedElements.contains(this)) {
-      throw BasePlannerException('Circular dependency detected at $this');
-    }
-
-    visitedElements.add(this);
-
-    var hasBeenUpdated = switch (basePlanner
-        .getSnapshotBuilder()
-        .getUpdateStatus(this)) {
-      UpdateStatus.completeUpdate => true,
-      UpdateStatus.completeNoUpdate => false,
-      UpdateStatus.checkDependencies => _determineIo(false, visitedElements),
-      UpdateStatus.required => _determineIo(true, visitedElements),
-    };
-
-    visitedElements.remove(this);
-    return hasBeenUpdated;
+  List<BasePlannerElement> traverseDependencyTreeAndReturnQueue(
+    List<BasePlannerElement> orderedDependencies,
+    Set<BasePlannerElement> visitedDependants,
+  ) {
+    // TODO: implement getOrderedDependencies
+    throw UnimplementedError();
   }
 
-  ItemIoImpl determineEdgeConstraints() {
-    var edgeConstraints = ItemIoBuilder();
-
-    parents.forEach((item, edges) {
-      var itemRequestSum = edges
-          .where((edge) => edge.edgeType == EdgeType.requestItems)
-          .fold(0.0, (sum, edge) => sum + edge.amount);
-      edgeConstraints.addToOutputs(item, itemRequestSum);
-    });
-
-    children.forEach((item, edges) {
-      var pushExcessSum = edges
-          .where((edge) => edge.edgeType == EdgeType.requestExcess)
-          .fold(0.0, (sum, edge) => sum + edge.amount);
-      edgeConstraints.addToInputs(item, pushExcessSum);
-    });
-
-    return edgeConstraints.build();
+  @override
+  NodeDependencies determineDependencies() {
+    // TODO: implement determineDependencies
+    throw UnimplementedError();
   }
 
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
-  }
-
-  bool _determineIo(bool forceUpdate, Set<BasePlannerElement> visitedElements) {
-    ItemIoImpl constraints;
-    var snapshotBuilder = basePlanner.getSnapshotBuilder();
-
-    if (nodeType.hasInternalConstraints) {
-      constraints = internalConstraints!;
-    } else {
-      var parentDeps = allParents.where(
-        (edge) => edge.edgeType == EdgeType.requestItems,
-      );
-      var childDeps = allChildren.where(
-        (edge) => edge.edgeType == EdgeType.pushExcess,
-      );
-
-      bool depUpdate = [...parentDeps, ...childDeps]
-          .map((depEdge) => depEdge.traverseDepsAndUpdateIo(visitedElements))
-          .fold(false, (update1, update2) => update1 || update2);
-
-      if (!depUpdate && !forceUpdate) {
-        snapshotBuilder.updateIoSatus(this, UpdateStatus.completeNoUpdate);
-        return false;
-      } else {
-        constraints = _calculateEdgeConstraints();
-        getStateBuilder().updateEdgeConstraints(constraints);
-      }
-    }
-
-    snapshotBuilder.updateIoSatus(parentGraph, UpdateStatus.required);
-    var newItemIo = productionLine.calculateItemIo(constraints);
-    getStateBuilder().updateIo(newItemIo);
-
-    snapshotBuilder.updateIoSatus(this, UpdateStatus.completeUpdate);
-
-    var parentDependants = allParents.where(
-      (edge) => edge.edgeType != EdgeType.requestItems,
-    );
-    var childDependants = allChildren.where(
-      (edge) => edge.edgeType != EdgeType.pushExcess,
-    );
-
-    for (BasePlannerElement dependant in [
-      ...parentDependants,
-      ...childDependants,
-      parentGraph,
-    ]) {
-      snapshotBuilder.updateIoSatus(dependant, UpdateStatus.required);
-    }
-
-    return true;
   }
 
   ItemIoImpl _calculateEdgeConstraints() {
@@ -251,3 +163,5 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent>
   @override
   String toString() => productionLine.toString();
 }
+
+class NodeDependencies implements Dependencies {}

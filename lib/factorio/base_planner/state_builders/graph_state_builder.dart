@@ -160,9 +160,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   }
 
   void removeAllNodesExceptIo() {
-    _snapshotBuilder
-      ..updateIoSatus(_element, UpdateStatus.checkDependencies)
-      ..queueLayoutUpdate(_element);
+    _snapshotBuilder.queueIoUpdate(_element, requiredUpdate: true);
 
     for (var node in _prodLineNodes) {
       node.getStateBuilder()._removeSelfButNotOthers();
@@ -182,9 +180,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     }
 
     for (var ioNode in [...inputNodes.values, ...outputNodes.values]) {
-      _snapshotBuilder
-        ..updateIoSatus(ioNode, UpdateStatus.required)
-        ..queueUnfulfilledIoCheck(ioNode);
+      _snapshotBuilder.queueIoUpdate(ioNode, requiredUpdate: true);
     }
 
     _prodLineNodes.clear();
@@ -204,10 +200,6 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     }
 
     _geometry = geometry;
-  }
-
-  void calculateIo() {
-    _element.basePlanner.throwIfSnapshotPresentButNotBuildingStates(_element);
   }
 
   @override

@@ -35,15 +35,19 @@ abstract interface class BasePlannerElement<St, E>
   Graph get parentGraph;
   Geometry get geometry;
 
-  /// Returns true if IO was updated, false otherwise
-  bool traverseDepsAndUpdateIo(Set<BasePlannerElement> visitedElements);
-
   /// Returns immutable object representing state
   St get state;
 
   bool get isSelected;
   void select();
   void deselect();
+
+  List<BasePlannerElement> traverseDependencyTreeAndReturnQueue(
+    List<BasePlannerElement> orderedDependencies,
+    Set<BasePlannerElement> visitedDependants,
+  );
+
+  Dependencies determineDependencies();
 
   /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
   set state(covariant St state);
@@ -63,3 +67,5 @@ abstract interface class BasePlannerElement<St, E>
     covariant St newState,
   );
 }
+
+abstract interface class Dependencies {}

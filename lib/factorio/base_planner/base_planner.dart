@@ -2,7 +2,6 @@ import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
@@ -126,27 +125,6 @@ class BasePlanner
     if (_mutationLock == 0) {
       throw const BasePlannerException(
         'State mutation not currently permitted',
-      );
-    }
-  }
-
-  // TODO - Put this, the next method, and most of the validation into some debug mode
-  // Also TODO - Proper incorporation of debug mode
-  void throwIfIoNotToBeAccessed(BasePlannerElement element) {
-    if (_snapshotBuilder != null &&
-        _snapshotBuilder!.stage.order < SnapshotBuildStage.buildIo.order &&
-        (_snapshotBuilder!._elementUpdateStatus[element]?.isComplete ?? true)) {
-      throw BasePlannerException(
-        'Cannot view IO fields of $element at this time',
-      );
-    }
-  }
-
-  void throwIfSnapshotPresentButNotBuildingStates(BasePlannerElement element) {
-    if (_snapshotBuilder != null &&
-        _snapshotBuilder!.stage != SnapshotBuildStage.buildStates) {
-      throw BasePlannerException(
-        'Cannot access IOData fields of $element before state building',
       );
     }
   }

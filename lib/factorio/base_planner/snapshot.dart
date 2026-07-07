@@ -17,9 +17,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   SnapshotBuildStage _stage = SnapshotBuildStage.userOperations;
 
-  Set<BasePlannerElement> _updateQueue = {};
-  final Map<BasePlannerElement, UpdateStatus> _elementUpdateStatus = {};
-  final Set<ProdLineNode> _nodesToCheckUnfulfilledIo = {};
+  final Map<BasePlannerElement, _StatusAndDeps> _elementUpdateStatus = {};
   final Set<Graph> _graphsToUpdateLayout = {};
 
   bool get hasChanges =>
@@ -42,36 +40,26 @@ class SnapshotBuilder implements Builder<Snapshot> {
   void removeFromSnapshot(BasePlannerElement element) =>
       _removedElements.add(element);
 
-  void updateIoSatus(
-    BasePlannerElement element,
-    UpdateStatus updateStatus, [
-    bool overrideComplete = false,
-  ]) {
-    var finalSatus = _elementUpdateStatus.update(element, (previousStatus) {
-      if (overrideComplete && previousStatus.isComplete) {
-        return updateStatus;
-      } else {
-        return updateStatus.priority > previousStatus.priority
-            ? updateStatus
-            : previousStatus;
-      }
-    }, ifAbsent: () => updateStatus);
+  void queueIoUpdate(
+    BasePlannerElement element, {
+    bool requiredUpdate = false,
+  }) {
+    var newStatus = requiredUpdate
+        ? UpdateStatus.required
+        : UpdateStatus.checkDependencies;
 
-    if (!finalSatus.isComplete) {
-      _updateQueue.add(element);
-    }
+    _elementUpdateStatus.update(element, (existingStatus) {
+      existingStatus.deps = null;
+
+      if (existingStatus.status != UpdateStatus.required) {
+        existingStatus.status = newStatus;
+      }
+
+      return existingStatus;
+    }, ifAbsent: () => _StatusAndDeps(newStatus));
   }
 
-  UpdateStatus getUpdateStatus(BasePlannerElement element) =>
-      _elementUpdateStatus.putIfAbsent(
-        element,
-        () => UpdateStatus.checkDependencies,
-      );
-
   void queueLayoutUpdate(Graph graph) => _graphsToUpdateLayout.add(graph);
-
-  void queueUnfulfilledIoCheck(ProdLineNode node) =>
-      _nodesToCheckUnfulfilledIo.add(node);
 
   @override
   Snapshot build() {
@@ -117,4 +105,11 @@ enum SnapshotBuildStage {
   final int order;
 
   const SnapshotBuildStage(this.order);
+}
+
+class _StatusAndDeps {
+  UpdateStatus status;
+  Dependencies? deps;
+
+  _StatusAndDeps(this.status);
 }

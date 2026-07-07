@@ -62,10 +62,7 @@ class Graph extends NodeElement<GraphState, GraphEvent>
   ItemIoImpl? get internalConstraints => null;
 
   @override
-  GraphIo get ioData {
-    basePlanner.throwIfSnapshotPresentButNotBuildingStates(this);
-    return state.ioData;
-  }
+  GraphIo get ioData => state.ioData;
 
   @override
   ItemIo get edgeConstraints => ioData.constraints;
@@ -73,10 +70,7 @@ class Graph extends NodeElement<GraphState, GraphEvent>
   ItemIo get itemIo => ioData.io;
 
   @override
-  ItemIoImpl get ioRatios {
-    basePlanner.throwIfSnapshotPresentButNotBuildingStates(this);
-    return state.ioRatios;
-  }
+  ItemIoImpl get ioRatios => state.ioRatios;
 
   bool get isRoot => this == parentGraph;
   bool get hasBuilder => _builder != null;
@@ -187,36 +181,6 @@ class Graph extends NodeElement<GraphState, GraphEvent>
         node.getStateBuilder().removeSelf();
       }
     });
-  }
-
-  @override
-  bool traverseDepsAndUpdateIo(Set<BasePlannerElement> visitedElements) {
-    // As io data is only calculated during state build, this is very simple
-    var snapshotBuilder = basePlanner.getSnapshotBuilder();
-
-    if (!snapshotBuilder.getUpdateStatus(this).isComplete) {
-      getStateBuilder().clearCachedIo();
-
-      if (!isRoot) {
-        snapshotBuilder.updateIoSatus(parentGraph, UpdateStatus.required);
-      }
-
-      snapshotBuilder.updateIoSatus(this, UpdateStatus.completeUpdate);
-    }
-
-    return true;
-  }
-
-  // TODO
-  void determineIoOfAllNodes(Set<ProdLineNode> nodesToUpdateIo) {
-    basePlanner.getSnapshotBuilder().throwIfNotBuildingIo();
-
-    // Can technically be called anywhere, but good to ensure it's only called once
-    if (!isRoot) {
-      throw const GraphException(
-        'This operation can only be performed by root graph',
-      );
-    }
   }
 
   void addConsumerNodeAndTree(InGameItem item) {
@@ -335,6 +299,21 @@ class Graph extends NodeElement<GraphState, GraphEvent>
         );
       }
     });
+  }
+
+  @override
+  List<BasePlannerElement> traverseDependencyTreeAndReturnQueue(
+    List<BasePlannerElement> orderedDependencies,
+    Set<BasePlannerElement> visitedDependants,
+  ) {
+    // TODO: implement getOrderedDependencies
+    throw UnimplementedError();
+  }
+
+  @override
+  GraphDependencies determineDependencies() {
+    // TODO: implement determineDependencies
+    throw UnimplementedError();
   }
 
   @override
@@ -601,6 +580,8 @@ class GraphIoBuilder implements Builder<GraphIo> {
     emissions: emissions,
   );
 }
+
+class GraphDependencies implements Dependencies {}
 
 enum GraphEventType { updateNodesAndEdges, childrenGeometryUpdate, nodeEvent }
 
