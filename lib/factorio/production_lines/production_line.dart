@@ -151,7 +151,6 @@ class _NullProductionLine implements ProductionLine<ProductionLineIoData> {
   ProductionLineIoData calculateIoData([
     ItemIoImpl constraints = ItemIoImpl.empty,
   ]) => throw UnimplementedError();
-  @override
   ItemIoImpl calculateItemIo([ItemIoImpl constraints = ItemIoImpl.empty]) =>
       throw UnimplementedError();
   @override
