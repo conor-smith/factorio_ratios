@@ -28,10 +28,10 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   SnapshotBuilder._from(this._previousSnapshot);
 
-  void throwIfNotBuildingIo() {
-    if (_stage != SnapshotBuildStage.buildIo) {
-      throw const BasePlannerException(
-        'Cannot perform this operation outside of buildIo step',
+  void throwIfNotStage(SnapshotBuildStage stage) {
+    if (_stage != stage) {
+      throw BasePlannerException(
+        'Can only perform this operation at stage $stage. Current stage is $_stage',
       );
     }
   }
@@ -65,45 +65,24 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   @override
   Snapshot build() {
-    _newElements.removeAll(_removedElements);
-
     for (var removedElement in _removedElements) {
+      _newElements.remove(removedElement);
       _elementUpdateStatus.remove(removedElement);
     }
 
-    if (_newElements.isNotEmpty) {
-      _checkForCircularDependencies();
-    }
-    if (_elementUpdateStatus.isNotEmpty) {
-      _performIoUdpates();
-    }
-    if (_graphsToUpdateLayout.isNotEmpty) {
-      _stage = SnapshotBuildStage.updateGraphLayouts;
-
-      for (var graph in _graphsToUpdateLayout) {
-        graph.defaultLayout();
-      }
-    }
-
-    _stage = SnapshotBuildStage.buildStates;
-
-    Map<BasePlannerElement, dynamic> newStateMap = Map.from(
-      _previousSnapshot.states,
-    );
-
-    for (var removedElement in _removedElements) {
-      removedElement.cancelStateBuilder();
-      _updatedElements.remove(removedElement);
-      newStateMap.remove(removedElement);
-    }
-
-    var updatedStates = _updatedElements.map(
-      (element, builder) => MapEntry(element, builder.build()),
-    );
-    newStateMap.addAll(updatedStates);
+    _checkForCircularDependencies();
+    _performIoUdpates();
+    _performGraphLayoutUpdates();
+    var newStateMap = _performStateUpdateAndReturnMap();
 
     return Snapshot._(newStateMap);
   }
+
+  UpdateStatus _getOrCreateUpdateStatus(BasePlannerElement element) =>
+      _elementUpdateStatus.putIfAbsent(
+        element,
+        () => UpdateStatus.checkDependencies,
+      );
 
   void _checkForCircularDependencies() {
     _stage = SnapshotBuildStage.circularDependencyCheck;
@@ -173,11 +152,33 @@ class SnapshotBuilder implements Builder<Snapshot> {
     }
   }
 
-  UpdateStatus _getOrCreateUpdateStatus(BasePlannerElement element) =>
-      _elementUpdateStatus.putIfAbsent(
-        element,
-        () => UpdateStatus.checkDependencies,
-      );
+  void _performGraphLayoutUpdates() {
+    _stage = SnapshotBuildStage.updateGraphLayouts;
+
+    for (var graph in _graphsToUpdateLayout) {
+      graph.defaultLayout();
+    }
+  }
+
+  Map<BasePlannerElement, dynamic> _performStateUpdateAndReturnMap() {
+    _stage = SnapshotBuildStage.buildStates;
+
+    Map<BasePlannerElement, dynamic> newStateMap = Map.from(
+      _previousSnapshot.states,
+    );
+
+    for (var removedElement in _removedElements) {
+      removedElement.cancelStateBuilder();
+      newStateMap.remove(removedElement);
+    }
+
+    var updatedStates = _updatedElements.map(
+      (element, builder) => MapEntry(element, builder.build()),
+    );
+    newStateMap.addAll(updatedStates);
+
+    return newStateMap;
+  }
 }
 
 enum UpdateStatus {

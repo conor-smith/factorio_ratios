@@ -180,7 +180,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   void clearIcon() => _icon = null;
 
   void updateIoData(GraphIo newIoData) {
-    _snapshotBuilder.throwIfNotBuildingIo();
+    _snapshotBuilder.throwIfNotStage(SnapshotBuildStage.buildIo);
 
     _ioData = newIoData;
   }

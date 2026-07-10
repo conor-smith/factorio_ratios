@@ -84,7 +84,7 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   }
 
   void updateAmount(double newAmount) {
-    _snapshotBuilder.throwIfNotBuildingIo();
+    _snapshotBuilder.throwIfNotStage(SnapshotBuildStage.buildIo);
 
     _amount = newAmount;
   }

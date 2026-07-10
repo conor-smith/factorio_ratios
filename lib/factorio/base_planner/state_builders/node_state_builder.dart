@@ -154,13 +154,13 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   }
 
   void updateIoData(ProductionLineIoData newIoData) {
-    _snapshotBuilder.throwIfNotBuildingIo();
+    _snapshotBuilder.throwIfNotStage(SnapshotBuildStage.buildIo);
 
     _ioData = newIoData;
   }
 
   void updateEdgeConstraints(ItemIoImpl newEdgeConstraints) {
-    _snapshotBuilder.throwIfNotBuildingIo();
+    _snapshotBuilder.throwIfNotStage(SnapshotBuildStage.buildIo);
 
     _edgeConstraints = newEdgeConstraints;
   }

@@ -18,15 +18,18 @@ part 'graph_state_builder.dart';
 
 abstract class StateBuilder<T> implements Builder<T> {
   BasePlannerElement get _element;
-  SnapshotBuilder get _snapshotBuilder =>
-      _element.basePlanner.getSnapshotBuilder();
+  late final SnapshotBuilder _snapshotBuilder = _element.basePlanner
+      .getSnapshotBuilder();
 
   StateBuilder.from() {
-    _snapshotBuilder.addToSnapshot(_element, this);
+    _snapshotBuilder
+      ..throwIfNotStage(SnapshotBuildStage.userOperations)
+      ..addToSnapshot(_element, this);
   }
 
   StateBuilder.initial() {
     _snapshotBuilder
+      ..throwIfNotStage(SnapshotBuildStage.userOperations)
       ..addToSnapshot(_element, this)
       ..queueCircularDependencyCheck(_element)
       ..queueRequiredIoUpdate(_element)
