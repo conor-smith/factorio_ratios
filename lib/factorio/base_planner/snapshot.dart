@@ -118,16 +118,16 @@ class SnapshotBuilder implements Builder<Snapshot> {
   void _performIoUdpates() {
     _stage = SnapshotBuildStage.buildIo;
 
-    List<BasePlannerElement> updateQueue = List.from(_elementUpdateStatus.keys);
+    Queue<BasePlannerElement> updateQueue = Queue.from(
+      _elementUpdateStatus.keys,
+    );
 
     while (updateQueue.isNotEmpty) {
-      var toUpdate = updateQueue.first;
+      var toUpdate = updateQueue.removeFirst();
       var updateStatus = _getOrCreateUpdateStatus(toUpdate);
 
-      // If element is already completed or removed, remove from queue and restart loop
+      // If element is already completed, restart loop
       if (updateStatus.isComplete) {
-        updateQueue.removeAt(0);
-
         continue;
       }
 
@@ -141,7 +141,11 @@ class SnapshotBuilder implements Builder<Snapshot> {
           )
           .toList();
       if (unresolvedDeps.isNotEmpty) {
-        updateQueue.insertAll(0, unresolvedDeps);
+        updateQueue.addFirst(toUpdate);
+        for (var dep in unresolvedDeps) {
+          updateQueue.addFirst(dep);
+        }
+
         continue;
       }
 
@@ -159,15 +163,13 @@ class SnapshotBuilder implements Builder<Snapshot> {
       // If update is required and update returns true, add dependents to end of queue
       // Otherwise, mark element as completeNoUpdate
       // Remove element from queue in both scenarios
-      if (updateRequired && toUpdate.updateIo(dependencies)) {
+      if (updateRequired && toUpdate.calculateIo(dependencies)) {
         _elementUpdateStatus[toUpdate] = UpdateStatus.completeUpdate;
 
         updateQueue.addAll(toUpdate.determineDependants());
       } else {
         _elementUpdateStatus[toUpdate] = UpdateStatus.completeNoUpdate;
       }
-
-      updateQueue.removeAt(0);
     }
   }
 

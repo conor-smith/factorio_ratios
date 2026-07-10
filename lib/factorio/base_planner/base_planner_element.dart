@@ -1,25 +1,5 @@
 part of 'base_planner.dart';
 
-/// A simple, listenable interface which emits events.
-///
-/// Probably could have used a Flutter class, but I wanted the code here to be
-/// as independent as possible.
-abstract mixin class EventNotifier<T> {
-  final Map<Object, Function(T event)> _listeners = {};
-
-  bool get hasListeners => _listeners.isNotEmpty;
-  void addListener(Object listener, Function(T event) callback) =>
-      _listeners[listener] = callback;
-  void removeListener(Object listener) => _listeners.remove(listener);
-  void clearListeners() => _listeners.clear();
-
-  void notifyListeners(T event) {
-    for (var callback in _listeners.values) {
-      callback(event);
-    }
-  }
-}
-
 /// All objects that are part of [BasePlanner] implement this interface.
 ///
 /// As all elements are listenable, state changes should only be
@@ -32,12 +12,12 @@ abstract mixin class EventNotifier<T> {
 abstract class BasePlannerElement<St, E>
     with EventNotifier<E>
     implements ToJson {
-  BasePlanner get basePlanner;
+  final BasePlanner basePlanner;
+
+  BasePlannerElement(this.basePlanner);
+
   Graph get parentGraph;
   Geometry get geometry;
-
-  /// Returns immutable object representing state
-  St get state;
 
   bool get isSelected;
   void select();
@@ -47,7 +27,7 @@ abstract class BasePlannerElement<St, E>
   Iterable<BasePlannerElement> determineDependants();
 
   /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
-  set state(covariant St state);
+  void updateState(covariant St state);
 
   /// Return mutable object representing [state].
   /// All changes will be reflected unless [cancelStateBuilder] is called.
@@ -64,7 +44,9 @@ abstract class BasePlannerElement<St, E>
     covariant St newState,
   );
 
-  bool updateIo(covariant Dependencies dependencies);
+  /// Updates relevant fields for item input output.
+  /// Returns true if update occurred, false otherwise
+  bool calculateIo(covariant Dependencies dependencies);
 
   void checkForCircularDependencies(
     Set<BasePlannerElement> safeElements,

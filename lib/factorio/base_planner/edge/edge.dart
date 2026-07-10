@@ -12,9 +12,6 @@ part 'edge_state.dart';
 /// Items flow from [childProdLine] to [parentProdLine].
 class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
   @override
-  final BasePlanner basePlanner;
-
-  @override
   final Graph parentGraph;
   final EdgeType edgeType;
   final NodeElement parent;
@@ -31,8 +28,8 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
   final ProdLineNode childProdLine;
   final InGameItem item;
 
-  EdgeStateImpl _state;
-  EdgeStateBuilder? _builder;
+  EdgeStateImpl _internalState;
+  EdgeStateBuilder? _stateBuilder;
 
   // For convenience
   double get percentage => state.percentage;
@@ -43,8 +40,8 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
 
   double get amount => state.amount;
 
-  Edge.addToBasePlanner({
-    required this.basePlanner,
+  Edge.addToBasePlanner(
+    super.basePlanner, {
     required this.parentGraph,
     required this.edgeType,
     required this.parent,
@@ -52,7 +49,7 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
     required this.item,
   }) : parentProdLine = parent.getInputItemNode(item),
        childProdLine = child.getOutputItemNode(item),
-       _state = EdgeStateImpl.uninitialised {
+       _internalState = EdgeStateImpl.uninitialised {
     if (!parent.nodeType.permittedChildren.contains(edgeType)) {
       throw EdgeException(
         'Node of type ${parent.nodeType} cannot have child of type $edgeType',
@@ -65,27 +62,26 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
       throw const EdgeException('A node may not consume it\'s own output');
     }
 
-    _builder = EdgeStateBuilder.initial(this);
+    _stateBuilder = EdgeStateBuilder.initial(this);
   }
 
+  EdgeState get state => _stateBuilder ?? _internalState;
   @override
-  EdgeState get state => _builder ?? _state;
-  @override
-  set state(EdgeStateImpl state) {
+  void updateState(EdgeStateImpl state) {
     basePlanner.throwIfMutationNotPermitted();
-    _builder = null;
-    _state = state;
+    _stateBuilder = null;
+    _internalState = state;
   }
 
   @override
   EdgeStateBuilder getStateBuilder() {
-    _builder ??= EdgeStateBuilder.from(this, _state);
+    _stateBuilder ??= EdgeStateBuilder.from(this, _internalState);
 
-    return _builder!;
+    return _stateBuilder!;
   }
 
   @override
-  void cancelStateBuilder() => _builder = null;
+  void cancelStateBuilder() => _stateBuilder = null;
 
   @override
   bool get isSelected => basePlanner.selectedElements.contains(this);
@@ -157,7 +153,7 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
   ];
 
   @override
-  bool updateIo(EdgeDependencies dependencies) {
+  bool calculateIo(EdgeDependencies dependencies) {
     double newAmount;
 
     switch (edgeType) {

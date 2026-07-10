@@ -12,6 +12,8 @@ part 'production_line_node_state.dart';
 
 abstract class NodeElement<St, E extends NodeEvent>
     extends BasePlannerElement<St, E> {
+  NodeElement(super.basePlanner);
+
   NodeType get nodeType;
 
   ProductionLineType get productionLineType;

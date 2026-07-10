@@ -10,7 +10,8 @@ import 'package:factorio_ratios/json/json.dart';
 import 'package:factorio_ratios/utility/builder.dart';
 import 'package:factorio_ratios/utility/collections.dart';
 
-part 'interfaces.dart';
+part 'base_planner_element.dart';
+part 'event_notifier.dart';
 part 'snapshot.dart';
 
 /// The single source of truth for the application.
@@ -178,7 +179,7 @@ class BasePlanner
         // Reset all states to current snapshot
         _snapshots[_snapshotIndex].states.forEach((element, newState) {
           element.cancelStateBuilder();
-          element.state = newState;
+          element.updateState(newState);
         });
       }
       _mutationLock--;
@@ -223,7 +224,7 @@ class BasePlanner
         var oldState = oldSnapshot.states[element];
 
         if (newState != oldState) {
-          element.state = newState;
+          element.updateState(newState);
         }
 
         if (oldState != null) {

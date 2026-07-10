@@ -2,9 +2,6 @@ part of 'node.dart';
 
 class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
   @override
-  final BasePlanner basePlanner;
-
-  @override
   final Graph parentGraph;
   @override
   final NodeType nodeType;
@@ -40,36 +37,36 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
   @override
   ItemIo get itemIo => state.edgeConstraints;
 
-  ProdLineNodeStateImpl _state;
-  ProdLineNodeStateBuilder? _builder;
+  ProdLineNodeStateImpl _internalState;
+  ProdLineNodeStateBuilder? _stateBuilder;
 
-  ProdLineNode.addToBasePlanner({
-    required this.basePlanner,
+  ProdLineNode.addToBasePlanner(
+    super.basePlanner, {
     required this.parentGraph,
     required this.nodeType,
     required ProductionLine productionLine,
-  }) : _state = ProdLineNodeStateImpl.uninitialised {
-    _builder = ProdLineNodeStateBuilder.initial(this, productionLine);
+  }) : _internalState = ProdLineNodeStateImpl.uninitialised {
+    _stateBuilder = ProdLineNodeStateBuilder.initial(this, productionLine);
   }
 
+  ProdLineNodeState get state => _stateBuilder ?? _internalState;
+
   @override
-  ProdLineNodeState get state => _builder ?? _state;
-  @override
-  set state(ProdLineNodeStateImpl state) {
+  void updateState(ProdLineNodeStateImpl state) {
     basePlanner.throwIfMutationNotPermitted();
-    _builder = null;
-    _state = state;
+    _stateBuilder = null;
+    _internalState = state;
   }
 
   @override
   ProdLineNodeStateBuilder getStateBuilder() {
-    _builder ??= ProdLineNodeStateBuilder.from(this, _state);
+    _stateBuilder ??= ProdLineNodeStateBuilder.from(this, _internalState);
 
-    return _builder!;
+    return _stateBuilder!;
   }
 
   @override
-  void cancelStateBuilder() => _builder = null;
+  void cancelStateBuilder() => _stateBuilder = null;
 
   @override
   bool get isSelected => basePlanner.selectedElements.contains(this);
@@ -147,7 +144,7 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
 
   // TODO - Actually check if an upate occurs rather than always returning true
   @override
-  bool updateIo(NodeDependencies dependencies) {
+  bool calculateIo(NodeDependencies dependencies) {
     ItemIoImpl constraints;
 
     if (nodeType.hasInternalConstraints) {
@@ -159,8 +156,8 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
 
     // Check if update is required
     // This will only occur if constraints or production line are different
-    if (constraints != _state.ioData.constraints ||
-        productionLine != _state.productionLine) {
+    if (constraints != _internalState.ioData.constraints ||
+        productionLine != _internalState.productionLine) {
       var newIoData = productionLine.calculateIoData(constraints);
       getStateBuilder().updateIoData(newIoData);
       return true;

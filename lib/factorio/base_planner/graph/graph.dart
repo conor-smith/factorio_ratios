@@ -19,18 +19,15 @@ part 'graph_state.dart';
 /// Represents a graph of [NodeElement]s connected by [Edge]s.
 class Graph extends NodeElement<GraphState, GraphEvent> {
   // TODO - Graph preferred layout
-  @override
-  final BasePlanner basePlanner;
   final Surface? surface;
   @override
   late final Graph parentGraph;
   final SurfaceProperties _surfaceProperties;
 
-  GraphStateImpl _state;
-  GraphStateBuilder? _builder;
+  GraphStateImpl _internalState;
+  GraphStateBuilder? _stateBuilder;
 
-  @override
-  GraphState get state => _builder ?? _state;
+  GraphState get state => _stateBuilder ?? _internalState;
 
   // For convenience
   String get name => state.name;
@@ -72,44 +69,44 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
   ItemIoImpl get ioRatios => state.ioRatios;
 
   bool get isRoot => this == parentGraph;
-  bool get hasBuilder => _builder != null;
+  bool get hasBuilder => _stateBuilder != null;
 
   Graph.addToBasePlanner(
-    this.basePlanner, {
+    super.basePlanner, {
     required this.parentGraph,
     this.surface,
     String name = 'graph',
     Icon? icon,
     NodeGeometryImpl geometry = NodeGeometryImpl.uninitialised,
-  }) : _state = GraphStateImpl.uninitialised,
+  }) : _internalState = GraphStateImpl.uninitialised,
        _surfaceProperties =
            basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
-    _builder = GraphStateBuilder.initial(this);
+    _stateBuilder = GraphStateBuilder.initial(this);
   }
 
-  Graph.rootGraph(this.basePlanner, [this.surface])
-    : _state = GraphStateImpl._rootGraph(surface?.icon),
+  Graph.rootGraph(super.basePlanner, [this.surface])
+    : _internalState = GraphStateImpl._rootGraph(surface?.icon),
       _surfaceProperties =
           basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
     parentGraph = this;
   }
 
   @override
-  set state(GraphStateImpl state) {
+  void updateState(GraphStateImpl state) {
     basePlanner.throwIfMutationNotPermitted();
-    _builder = null;
-    _state = state;
+    _stateBuilder = null;
+    _internalState = state;
   }
 
   @override
   GraphStateBuilder getStateBuilder() {
-    _builder ??= GraphStateBuilder.from(this, _state);
+    _stateBuilder ??= GraphStateBuilder.from(this, _internalState);
 
-    return _builder!;
+    return _stateBuilder!;
   }
 
   @override
-  void cancelStateBuilder() => _builder = null;
+  void cancelStateBuilder() => _stateBuilder = null;
 
   @override
   bool get isSelected => basePlanner.selectedElements.contains(this);
@@ -187,7 +184,7 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
   }
 
   @override
-  bool updateIo(GraphDependencies dependencies) {
+  bool calculateIo(GraphDependencies dependencies) {
     // Due to the nature of graphs,
     // we can assume there is always an update
     var ioBuilder = GraphIoBuilder();
@@ -228,7 +225,7 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
 
     basePlanner.buildNextSnapshot(() {
       var consumerNode = ProdLineNode.addToBasePlanner(
-        basePlanner: basePlanner,
+        basePlanner,
         parentGraph: this,
         nodeType: NodeType.consumer,
         productionLine: MagicLine.singleItemConsumer(item),
@@ -355,7 +352,7 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
       }
 
       Edge.addToBasePlanner(
-        basePlanner: basePlanner,
+        basePlanner,
         parentGraph: this,
         edgeType: EdgeType.requestItems,
         parent: startNode,
@@ -368,7 +365,7 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
   ProdLineNode? _createResourceNode(InGameItem requiredOutput) {
     if (_surfaceProperties.resources.contains(requiredOutput)) {
       return ProdLineNode.addToBasePlanner(
-        basePlanner: basePlanner,
+        basePlanner,
         parentGraph: this,
         nodeType: NodeType.resource,
         productionLine: MagicLine.singleItemProducer(requiredOutput),
@@ -438,7 +435,7 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
       }
 
       return ProdLineNode.addToBasePlanner(
-        basePlanner: basePlanner,
+        basePlanner,
         parentGraph: this,
         nodeType: NodeType.productionLine,
         productionLine: SingleRecipeLine.fromBaseMachine(
@@ -455,7 +452,7 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
 
   ProdLineNode _createMagicResourceNode(InGameItem requiredOutput) =>
       ProdLineNode.addToBasePlanner(
-        basePlanner: basePlanner,
+        basePlanner,
         parentGraph: this,
         nodeType: NodeType.resource,
         productionLine: MagicLine.singleItemProducer(requiredOutput),
