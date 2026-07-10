@@ -88,16 +88,16 @@ class ProductionLineIoData {
   /// Net input / output in items per minute.
   ///
   /// Defaults to [constraints] when no value is set.
-  final ItemIoImpl io;
+  final ItemIoImpl itemIo;
 
   /// Total production and comsumption in items per minute.
   ///
-  /// May differ from [io] in situations where a production line consumes
+  /// May differ from [itemIo] in situations where a production line consumes
   /// part of it's own output.
   /// Also differs in production lines like [CombinerLine] where
   /// no production actually takes place, and items are just passed through.
   ///
-  /// Defaults to [io] when no value is set.
+  /// Defaults to [itemIo] when no value is set.
   final ItemIoImpl totalProductionAndConsumption;
 
   /// Electrical power consumed, given in watts
@@ -118,7 +118,7 @@ class ProductionLineIoData {
     this.electricPowerConsumption = 0,
     Map<String, double> emissions = const {},
     Iterable<DisplayData> displayData = const [],
-  }) : io = io ?? constraints,
+  }) : itemIo = io ?? constraints,
        totalProductionAndConsumption =
            totalProductionAndConsumption ?? io ?? constraints,
        emissions = Map.unmodifiable(emissions),
@@ -126,7 +126,7 @@ class ProductionLineIoData {
 
   const ProductionLineIoData.empty()
     : constraints = ItemIoImpl.empty,
-      io = ItemIoImpl.empty,
+      itemIo = ItemIoImpl.empty,
       totalProductionAndConsumption = ItemIoImpl.empty,
       electricPowerConsumption = 0,
       emissions = const {},

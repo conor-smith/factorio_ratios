@@ -19,7 +19,10 @@ class SnapshotBuilder implements Builder<Snapshot> {
   final Set<BasePlannerElement> _removedElements = {};
 
   final Map<BasePlannerElement, Dependencies> _cachedDependencies = {};
+
   final Map<BasePlannerElement, UpdateStatus> _elementUpdateStatus = {};
+  final Set<NodeElement> _nodesToCheckUnusedIo = {};
+
   final Set<Graph> _graphsToUpdateLayout = {};
 
   bool get hasChanges =>
@@ -55,13 +58,15 @@ class SnapshotBuilder implements Builder<Snapshot> {
     _elementUpdateStatus[element] = UpdateStatus.required;
   }
 
+  void queueUnusedIoCheck(NodeElement node) => _nodesToCheckUnusedIo.add(node);
+
+  void queueLayoutUpdate(Graph graph) => _graphsToUpdateLayout.add(graph);
+
   Dependencies getCachedDependencies(BasePlannerElement element) =>
       _cachedDependencies.putIfAbsent(
         element,
         () => element.determineDependencies(),
       );
-
-  void queueLayoutUpdate(Graph graph) => _graphsToUpdateLayout.add(graph);
 
   @override
   Snapshot build() {
@@ -149,6 +154,11 @@ class SnapshotBuilder implements Builder<Snapshot> {
       } else {
         _elementUpdateStatus[toUpdate] = UpdateStatus.completeNoUpdate;
       }
+    }
+
+    // Once all IO updates are done, we can check for unused IO
+    for (var node in _nodesToCheckUnusedIo) {
+      node.calculateUnusedIo();
     }
   }
 

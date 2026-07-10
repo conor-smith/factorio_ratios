@@ -1,12 +1,13 @@
 part of 'state_builders.dart';
 
-class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
+class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
     implements ProdLineNodeState {
   @override
   final ProdLineNode _element;
 
   ItemIoImpl? _internalConstraints;
   ItemIoImpl _edgeConstraints;
+  ItemIoImpl _unusedIo;
   NodeGeometryImpl _geometry;
   ProductionLine _productionLine;
   ProductionLineIoData _ioData;
@@ -16,7 +17,9 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   @override
   ItemIoImpl? get internalConstraints => _internalConstraints;
   @override
-  ItemIo get edgeConstraints => _edgeConstraints;
+  ItemIoImpl get edgeConstraints => _edgeConstraints;
+  @override
+  ItemIoImpl get unusedIo => _unusedIo;
   @override
   NodeGeometryImpl get geometry => _geometry;
   @override
@@ -37,6 +40,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
           ? ItemIoImpl.empty
           : null,
       _edgeConstraints = ItemIoImpl.empty,
+      _unusedIo = ItemIoImpl.empty,
       _geometry = NodeGeometryImpl.uninitialised,
       _ioData = ProductionLineIoData.uninitialised,
       _parents = {},
@@ -84,6 +88,7 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
     ProdLineNodeStateImpl previousState,
   ) : _internalConstraints = previousState.internalConstraints,
       _edgeConstraints = previousState.edgeConstraints,
+      _unusedIo = previousState.unusedIo,
       _productionLine = previousState.productionLine,
       _geometry = previousState.geometry,
       _parents = Map.from(previousState.parents)
@@ -138,14 +143,13 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
   }
 
   @override
-  void updateGeometry(NodeGeometryImpl geometry) {
-    // TODO - Centralise this code rather than copying it
-    if (_snapshotBuilder.stage != SnapshotBuildStage.updateGraphLayouts &&
-        _element.parentGraph.layout != GraphLayout.custom) {
-      _element.parentGraph.getStateBuilder()._layout = GraphLayout.custom;
-    }
+  void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
-    _geometry = geometry;
+  @override
+  void updateUnusedIo(ItemIoImpl newUnusedIo) {
+    _snapshotBuilder.throwIfNotStage(SnapshotBuildStage.buildIo);
+
+    _unusedIo = newUnusedIo;
   }
 
   void updateInternalConstraints(ItemIoImpl newConstraints) {
@@ -216,9 +220,10 @@ class ProdLineNodeStateBuilder extends StateBuilder<ProdLineNodeStateImpl>
     _element,
     internalConstraints: _internalConstraints,
     edgeConstraints: _edgeConstraints,
+    unusedIo: _unusedIo,
     productionLine: productionLine,
-    ioData: ioData,
-    geometry: geometry,
+    ioData: _ioData,
+    geometry: _geometry,
     parents: parents..removeWhere((item, edges) => edges.isEmpty),
     children: children..removeWhere((item, edges) => edges.isEmpty),
   );

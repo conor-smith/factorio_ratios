@@ -155,22 +155,32 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
   @override
   bool calculateIo(EdgeDependencies dependencies) {
     double newAmount;
+    List<NodeElement> unusedIoCheckNodes;
 
     switch (edgeType) {
       case EdgeType.requestItems:
         newAmount = _getAmountToRequest(dependencies) * percentage;
+        unusedIoCheckNodes = [parentProdLine, parent];
 
       case EdgeType.pushExcess:
         newAmount = _getAmountToPush(dependencies) * percentage;
+        unusedIoCheckNodes = [childProdLine, child];
 
       case EdgeType.requestExcess:
         var request = _getAmountToRequest(dependencies);
         var push = _getAmountToPush(dependencies);
         newAmount = request > push ? request : push;
+
+        unusedIoCheckNodes = [parentProdLine, parent, childProdLine, child];
     }
 
     if (newAmount != amount) {
       getStateBuilder().updateAmount(newAmount);
+
+      for (var node in unusedIoCheckNodes) {
+        basePlanner.getSnapshotBuilder().queueUnusedIoCheck(node);
+      }
+
       return true;
     } else {
       return false;
@@ -230,14 +240,14 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
   }
 
   double _getAmountToRequest(EdgeDependencies dependencies) =>
-      dependencies.parentProdLineDep!.ioData.io.inputs[item]! -
+      dependencies.parentProdLineDep!.ioData.itemIo.inputs[item]! -
       dependencies.orderedParentEdgeDeps!.fold(
         0.0,
         (amount, edge) => amount + edge.amount,
       );
 
   double _getAmountToPush(EdgeDependencies dependencies) =>
-      dependencies.childProdLineDep!.ioData.io.outputs[item]! -
+      dependencies.childProdLineDep!.ioData.itemIo.outputs[item]! -
       dependencies.orderedChildEdgeDeps!.fold(
         0.0,
         (amount, edge) => amount + edge.amount,

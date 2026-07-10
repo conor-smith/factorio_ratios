@@ -10,6 +10,10 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
   @override
   ItemIoImpl? get internalConstraints => state.internalConstraints;
   @override
+  ItemIo get edgeConstraints => state.edgeConstraints;
+  @override
+  ItemIoImpl get unusedIo => state.unusedIo;
+  @override
   NodeGeometryImpl get geometry => state.geometry;
   @override
   Map<InGameItem, Set<Edge>> get parents => state.parents;
@@ -30,12 +34,6 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
 
   @override
   ProductionLineIoData get ioData => state.ioData;
-
-  @override
-  ItemIo get edgeConstraints => state.edgeConstraints;
-
-  @override
-  ItemIo get itemIo => state.edgeConstraints;
 
   ProdLineNodeStateImpl _internalState;
   ProdLineNodeStateBuilder? _stateBuilder;
@@ -159,7 +157,14 @@ class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
     if (constraints != _internalState.ioData.constraints ||
         productionLine != _internalState.productionLine) {
       var newIoData = productionLine.calculateIoData(constraints);
+
       getStateBuilder().updateIoData(newIoData);
+      basePlanner.getSnapshotBuilder().queueUnusedIoCheck(this);
+
+      if (nodeType.isIo) {
+        basePlanner.getSnapshotBuilder().queueUnusedIoCheck(parentGraph);
+      }
+
       return true;
     } else {
       return false;

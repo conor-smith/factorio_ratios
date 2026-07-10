@@ -3,7 +3,6 @@ import 'dart:collection';
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
@@ -37,5 +36,12 @@ abstract class StateBuilder<T> implements Builder<T> {
   }
 
   void removeSelf();
-  void updateGeometry(covariant Geometry geometry);
+}
+
+abstract class NodeStateBuilder<T> extends StateBuilder<T> {
+  NodeStateBuilder.from() : super.from();
+  NodeStateBuilder.initial() : super.initial();
+
+  void updateUnusedIo(ItemIoImpl newUnusedIo);
+  void updateGeometry(NodeGeometryImpl geometry);
 }

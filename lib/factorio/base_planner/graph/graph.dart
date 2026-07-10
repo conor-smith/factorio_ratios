@@ -61,10 +61,9 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
   GraphIo get ioData => state.ioData;
 
   @override
-  ItemIo get edgeConstraints => ioData.constraints;
+  ItemIoImpl get edgeConstraints => ioData.constraints;
   @override
-  ItemIo get itemIo => ioData.io;
-
+  ItemIoImpl get unusedIo => state.unusedIo;
   @override
   ItemIoImpl get ioRatios => state.ioRatios;
 
@@ -170,18 +169,10 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
   }
 
   @override
-  GraphDependencies determineDependencies() {
-    return GraphDependencies(allNodes);
-  }
+  GraphDependencies determineDependencies() => GraphDependencies(allNodes);
 
   @override
-  Iterable<BasePlannerElement<dynamic, dynamic>> determineDependants() {
-    if (isRoot) {
-      return const [];
-    } else {
-      return [parentGraph];
-    }
-  }
+  Iterable<BasePlannerElement> determineDependants() => [parentGraph];
 
   @override
   bool calculateIo(GraphDependencies dependencies) {
@@ -194,6 +185,7 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
     }
 
     getStateBuilder().updateIoData(ioBuilder.build());
+    basePlanner.getSnapshotBuilder().queueUnusedIoCheck(this);
 
     return true;
   }
@@ -568,10 +560,10 @@ class GraphIoBuilder implements Builder<GraphIo> {
 
     if (node.nodeType == NodeType.input) {
       constraintsBuilder.addAllToInputs(ioData.constraints.inputs);
-      itemIoBuilder.addAllToInputs(ioData.io.inputs);
+      itemIoBuilder.addAllToInputs(ioData.itemIo.inputs);
     } else if (node.nodeType == NodeType.output) {
       constraintsBuilder.addAllToOutputs(ioData.constraints.outputs);
-      itemIoBuilder.addAllToOutputs(ioData.io.outputs);
+      itemIoBuilder.addAllToOutputs(ioData.itemIo.outputs);
     }
 
     conAndProdBuilder.addAll(ioData.totalProductionAndConsumption);

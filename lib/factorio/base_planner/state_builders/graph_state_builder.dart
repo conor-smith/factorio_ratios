@@ -1,6 +1,6 @@
 part of 'state_builders.dart';
 
-class GraphStateBuilder extends StateBuilder<GraphStateImpl>
+class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
     implements GraphState {
   @override
   final Graph _element;
@@ -21,6 +21,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
 
   GraphIo _ioData;
   ItemIoImpl _ioRatios;
+  ItemIoImpl _unusedIo;
 
   Map<InGameItem, List<NodeElement>>? _cachedNodeOutputIndex;
   Map<InGameItem, NodeElement>? _cachedDisposalNodes;
@@ -50,6 +51,8 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
 
   @override
   ItemIoImpl get ioRatios => _ioRatios;
+  @override
+  ItemIoImpl get unusedIo => _unusedIo;
 
   @override
   GraphIo get ioData => _ioData;
@@ -100,6 +103,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _icon = _element.surface?.icon,
       _ioData = const GraphIo.empty(),
       _ioRatios = ItemIoImpl.empty,
+      _unusedIo = ItemIoImpl.empty,
       _prodLineNodes = {},
       _graphNodes = {},
       _inputNodes = {},
@@ -131,6 +135,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
       _layout = previousState.layout,
       _ioRatios = previousState.ioRatios,
       _ioData = previousState.ioData,
+      _unusedIo = previousState.unusedIo,
       super.from();
 
   @override
@@ -144,6 +149,13 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     }
 
     _removeSelfButNotOthers();
+  }
+
+  @override
+  void updateUnusedIo(ItemIoImpl newUnusedIo) {
+    _snapshotBuilder.throwIfNotStage(SnapshotBuildStage.buildIo);
+
+    _unusedIo = newUnusedIo;
   }
 
   void removeAllNodesExceptIo() {
@@ -186,14 +198,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
   }
 
   @override
-  void updateGeometry(NodeGeometryImpl geometry) {
-    if (_snapshotBuilder.stage != SnapshotBuildStage.updateGraphLayouts &&
-        _element.parentGraph.layout != GraphLayout.custom) {
-      _element.parentGraph.getStateBuilder()._layout = GraphLayout.custom;
-    }
-
-    _geometry = geometry;
-  }
+  void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
   @override
   GraphStateImpl build() => GraphStateImpl(
@@ -207,6 +212,7 @@ class GraphStateBuilder extends StateBuilder<GraphStateImpl>
     edges: _edges,
     geometry: _geometry,
     ioRatios: ItemIoImpl.empty, // TODO
+    unusedIo: _unusedIo,
     layout: _layout,
     ioData: GraphIo.fromState(this),
   );

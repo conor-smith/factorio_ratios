@@ -26,14 +26,16 @@ abstract class NodeElement<St, E extends NodeEvent>
   /// TODO - Document
   ItemIo get edgeConstraints;
 
-  /// Total IO for this node
-  ItemIo get itemIo;
-
   /// Io Ratios for this node
   ItemIo get ioRatios;
 
+  // TODO - Document
+  ItemIo get unusedIo;
+
   @override
   NodeGeometryImpl get geometry;
+  @override
+  NodeStateBuilder<St> getStateBuilder();
 
   Map<InGameItem, Set<Edge>> get parents;
   Map<InGameItem, Set<Edge>> get children;
@@ -47,6 +49,40 @@ abstract class NodeElement<St, E extends NodeEvent>
 
   ProdLineNode getOutputItemNode(InGameItem item);
   ProdLineNode getInputItemNode(InGameItem item);
+
+  void calculateUnusedIo() {
+    var itemIo = ioData.itemIo;
+
+    ItemIoBuilder unusedIoBuilder = ItemIoBuilder();
+
+    parents.forEach((item, edges) {
+      var unconsumedOutput =
+          itemIo.outputs[item]! -
+          edges.fold(0.0, (sum, edge) => sum + edge.amount);
+
+      // Account for floating point errors
+      if (unconsumedOutput > 0.000001) {
+        unusedIoBuilder.addToOutputs(item, unconsumedOutput);
+      }
+    });
+
+    children.forEach((item, edges) {
+      var unfulfilledInput =
+          itemIo.inputs[item]! -
+          edges.fold(0.0, (sum, edge) => sum + edge.amount);
+
+      // Account for floating point errors
+      if (unfulfilledInput > 0.000001) {
+        unusedIoBuilder.addToOutputs(item, unfulfilledInput);
+      }
+    });
+
+    var newUnusedIo = unusedIoBuilder.build();
+
+    if (newUnusedIo != unusedIo) {
+      getStateBuilder().updateUnusedIo(newUnusedIo);
+    }
+  }
 }
 
 enum NodeType implements Comparable<NodeType> {

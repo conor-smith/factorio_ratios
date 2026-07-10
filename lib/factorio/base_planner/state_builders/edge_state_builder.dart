@@ -104,15 +104,7 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
     _childPriority = newPriority;
   }
 
-  @override
-  void updateGeometry(EdgeGeometryImpl geometry) {
-    if (_snapshotBuilder.stage != SnapshotBuildStage.updateGraphLayouts &&
-        _element.parentGraph.layout != GraphLayout.custom) {
-      _element.parentGraph.getStateBuilder()._layout = GraphLayout.custom;
-    }
-
-    _geometry = geometry;
-  }
+  void updateGeometry(EdgeGeometryImpl geometry) => _geometry = geometry;
 
   @override
   EdgeStateImpl build() => EdgeStateImpl(

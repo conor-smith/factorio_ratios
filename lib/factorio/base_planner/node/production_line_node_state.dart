@@ -2,7 +2,8 @@ part of 'node.dart';
 
 abstract class ProdLineNodeState {
   ItemIoImpl? get internalConstraints;
-  ItemIo get edgeConstraints;
+  ItemIoImpl get edgeConstraints;
+  ItemIoImpl get unusedIo;
 
   ProductionLine get productionLine;
 
@@ -20,6 +21,8 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   @override
   final ItemIoImpl edgeConstraints;
   @override
+  final ItemIoImpl unusedIo;
+  @override
   final NodeGeometryImpl geometry;
   @override
   final Map<InGameItem, Set<Edge>> parents;
@@ -36,6 +39,7 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
     ProdLineNode node, {
     required this.internalConstraints,
     required this.edgeConstraints,
+    required this.unusedIo,
     required this.productionLine,
     required this.ioData,
     required this.geometry,
@@ -146,6 +150,7 @@ class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
   const ProdLineNodeStateImpl._uninitialised()
     : internalConstraints = null,
       edgeConstraints = ItemIoImpl.empty,
+      unusedIo = ItemIoImpl.empty,
       geometry = NodeGeometryImpl.uninitialised,
       parents = const {},
       children = const {},

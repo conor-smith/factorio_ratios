@@ -15,6 +15,7 @@ abstract class GraphState {
   Map<InGameItem, Set<Edge>> get parents;
   Map<InGameItem, Set<Edge>> get children;
   ItemIoImpl get ioRatios;
+  ItemIoImpl get unusedIo;
   GraphIo get ioData;
   NodeGeometryImpl get geometry;
 
@@ -77,6 +78,8 @@ class GraphStateImpl implements GraphState, ToJson {
   @override
   final ItemIoImpl ioRatios;
   @override
+  final ItemIoImpl unusedIo;
+  @override
   final GraphIo ioData;
 
   @override
@@ -92,6 +95,7 @@ class GraphStateImpl implements GraphState, ToJson {
     required Map<InGameItem, ProdLineNode> inputNodes,
     required Map<InGameItem, ProdLineNode> outputNodes,
     required this.ioRatios,
+    required this.unusedIo,
     required this.geometry,
     required this.ioData,
     required this.layout,
@@ -139,6 +143,7 @@ class GraphStateImpl implements GraphState, ToJson {
       parents = const {},
       children = const {},
       ioRatios = ItemIoImpl.empty,
+      unusedIo = ItemIoImpl.empty,
       geometry = NodeGeometryImpl.uninitialised,
       ioData = const GraphIo.empty(),
       layout = GraphLayout.table;
@@ -157,6 +162,7 @@ class GraphStateImpl implements GraphState, ToJson {
       parents = const {},
       children = const {},
       ioRatios = ItemIoImpl.empty,
+      unusedIo = ItemIoImpl.empty,
       geometry = NodeGeometryImpl.uninitialised,
       ioData = const GraphIo.empty(),
       layout = GraphLayout.table;
