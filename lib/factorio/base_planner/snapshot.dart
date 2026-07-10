@@ -77,6 +77,15 @@ class SnapshotBuilder implements Builder<Snapshot> {
     if (_elementUpdateStatus.isNotEmpty) {
       _performIoUdpates();
     }
+    if (_graphsToUpdateLayout.isNotEmpty) {
+      _stage = SnapshotBuildStage.updateGraphLayouts;
+
+      for (var graph in _graphsToUpdateLayout) {
+        graph.defaultLayout();
+      }
+    }
+
+    _stage = SnapshotBuildStage.buildStates;
 
     Map<BasePlannerElement, dynamic> newStateMap = Map.from(
       _previousSnapshot.states,
