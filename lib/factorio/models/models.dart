@@ -67,14 +67,13 @@ enum Effects {
   String toString() => name;
 }
 
-/*
- * All entities (items, recipes, etc) are created from the JSON output from `factorio --dump-data`
- * Once instantiated, the database and all entities within it are immutable
- * All constructors are private. Entities may only be created by the db and no new entities can be added
- * In order to update the db to include mod entities, the entire db must be rebuilt
- * Relationships can be accessed via the entities themselves
- * Some relationships are lazily evaluated, but most are determined when building the db
- */
+/// Represents a database containing all items, recipes, machines, etc in the game.
+///
+/// All entities are created from the JSON output from `factorio --dump-data`.
+/// Once instantiated, the database and all entities within it are immutable.
+/// All constructors are private. Entities may only be created by the db and no new entities can be added.
+/// In order to update the db to include mod entities, the entire db must be rebuilt.
+/// Relationships can be accessed via the entities themselves.
 class FactorioDatabase {
   /*
    * TODO
