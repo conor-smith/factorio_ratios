@@ -2,18 +2,16 @@ import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/factorio/base_planner/snapshot_builder/snapshot_builder.dart';
 import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/json/json.dart';
-import 'package:factorio_ratios/utility/builder.dart';
 import 'package:factorio_ratios/utility/collections.dart';
 
 part 'base_planner_element.dart';
 part 'event_notifier.dart';
-part 'snapshot_builder.dart';
 
 /// The single source of truth for the application.
 ///
@@ -97,7 +95,7 @@ class BasePlanner
     var firstState = GraphStateImpl.rootGraphFirstState(nauvis.icon);
     rootGraph = Graph.rootGraph(this, firstState, nauvis);
     _activeGraph = rootGraph;
-    _snapshots.add(Snapshot._({rootGraph: firstState}));
+    _snapshots.add(Snapshot({rootGraph: firstState}));
   }
 
   void selectElement(BasePlannerElement element) {
@@ -145,7 +143,7 @@ class BasePlanner
     try {
       _mutationLock++;
       if (firstCall) {
-        _snapshotBuilder = SnapshotBuilder._from(_snapshots[_snapshotIndex]);
+        _snapshotBuilder = SnapshotBuilder.from(_snapshots[_snapshotIndex]);
       }
 
       function();
@@ -289,7 +287,7 @@ class ElementAndState<St> {
 class Snapshot {
   final Map<BasePlannerElement, dynamic> states;
 
-  Snapshot._(Map<BasePlannerElement, dynamic> states)
+  Snapshot(Map<BasePlannerElement, dynamic> states)
     : states = Map.unmodifiable(states);
 }
 

@@ -1,6 +1,12 @@
-part of 'base_planner.dart';
-
 // TODO - Document
+import 'dart:collection';
+
+import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
+import 'package:factorio_ratios/utility/builder.dart';
+
 class SnapshotBuilder implements Builder<Snapshot> {
   final Snapshot _previousSnapshot;
 
@@ -21,7 +27,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
       _updatedElements.isNotEmpty || _removedElements.isNotEmpty;
   SnapshotBuildStage get stage => _stage;
 
-  SnapshotBuilder._from(this._previousSnapshot);
+  SnapshotBuilder.from(this._previousSnapshot);
 
   void throwIfNotStage(SnapshotBuildStage stage) {
     if (_stage != stage) {
@@ -72,7 +78,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
     _performGraphLayoutUpdates();
     var newStateMap = _performStateUpdateAndReturnMap();
 
-    return Snapshot._(newStateMap);
+    return Snapshot(newStateMap);
   }
 
   IoUpdateStatus _getOrCreateUpdateStatus(BasePlannerElement element) =>
@@ -185,47 +191,65 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
 abstract class SnapshotBuilderElement<St, D extends Dependencies>
     implements Builder<ElementAndState<St>> {
-  final ElementAndState<St> oldEAndS;
-
-  final StateBuilder<St> Function() _stateBuilderFactory;
-  final D Function() _dependenciesFactory;
+  final SnapshotBuilder snapshotBuilder;
+  final BasePlannerElement<St, dynamic> element;
+  final ElementAndState<St>? oldEAndS;
 
   StateBuilder<St>? _cachedStateBuilder;
   D? _cachedDependencies;
 
-  bool toRemove = false;
-  bool circularDependencyCheck = false;
-  IoUpdateStatus ioUpdateStatus = IoUpdateStatus.notQueued;
+  bool toRemove;
+  final bool circularDependencyCheck;
+  IoUpdateStatus ioUpdateStatus;
 
   SnapshotBuilderElement(
-    this.oldEAndS,
-    StateBuilder<St> Function() stateBuilderFactory,
-    D Function() dependenciesFactory,
-  ) : _stateBuilderFactory = stateBuilderFactory,
-      _dependenciesFactory = dependenciesFactory;
+    this.snapshotBuilder,
+    ElementAndState<St> this.oldEAndS,
+  ) : element = oldEAndS.element,
+      toRemove = false,
+      circularDependencyCheck = false,
+      ioUpdateStatus = IoUpdateStatus.notQueued;
+
+  SnapshotBuilderElement.newElement(
+    this.snapshotBuilder,
+    this.element,
+    StateBuilder<St> stateBuilder,
+  ) : oldEAndS = null,
+      _cachedStateBuilder = stateBuilder,
+      toRemove = false,
+      circularDependencyCheck = true,
+      ioUpdateStatus = IoUpdateStatus.required;
 
   St get state;
+
   bool calculateIo();
-  void checkForCircularDependencies;
+  void checkForCircularDependencies(
+    Set<BasePlannerElement> safeElements,
+    Set<BasePlannerElement> visitedElements,
+  );
+  StateBuilder<St> createStateBuilder();
+  D determineDependencies();
+  Iterable<BasePlannerElement> determineDependants();
+  void removeSelf();
 
   StateBuilder<St> get stateBuilder {
-    _cachedStateBuilder ??= _stateBuilderFactory();
+    _cachedStateBuilder ??= createStateBuilder();
 
     return _cachedStateBuilder!;
   }
 
   D get cachedDependencies {
-    _cachedDependencies ??= _dependenciesFactory();
+    _cachedDependencies ??= determineDependencies();
 
     return _cachedDependencies!;
   }
 
   @override
   ElementAndState<St> build() {
-    if (_cachedStateBuilder == null) {
-      return oldEAndS;
+    if (_cachedStateBuilder == null && oldEAndS != null) {
+      return oldEAndS!;
     } else {
-      return ElementAndState(oldEAndS.element, _cachedStateBuilder!.build());
+      return ElementAndState(element, _cachedStateBuilder!.build());
     }
   }
 }
