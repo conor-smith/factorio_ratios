@@ -310,8 +310,8 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
       for (var edge in edges) {
         edge.getStateBuilder().updateGeometry(
           EdgeGeometryImpl.shortestPath(
-            edge.parent.geometry,
-            edge.child.geometry,
+            edge.parentNode.geometry,
+            edge.childNode.geometry,
           ),
         );
       }
@@ -347,8 +347,8 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
         basePlanner,
         parentGraph: this,
         edgeType: EdgeType.requestItems,
-        parent: startNode,
-        child: nextNode,
+        parentNode: startNode,
+        childNode: nextNode,
         item: input,
       );
     }
@@ -460,10 +460,10 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
       int nextRow = rowNumber + 1;
 
       return node.allChildren
-          .where((edge) => edge.child.nodeType != NodeType.input)
+          .where((edge) => edge.childNode.nodeType != NodeType.input)
           .map(
             (edge) => _determineAndReturnMaxRowNumber(
-              edge.child,
+              edge.childNode,
               nextRow,
               nodeToRowNumber,
             ),

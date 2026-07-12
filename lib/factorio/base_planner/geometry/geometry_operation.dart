@@ -31,8 +31,8 @@ class GeometryOperation {
         .toSet();
 
     for (var edge in allEdges) {
-      var parentGeometry = _nodeGeometries[edge.parent];
-      var childGeometry = _nodeGeometries[edge.child];
+      var parentGeometry = _nodeGeometries[edge.parentNode];
+      var childGeometry = _nodeGeometries[edge.childNode];
 
       if (parentGeometry != null && childGeometry != null) {
         _edgeGeometries[edge] = EdgeGeometryBuilder.from(
@@ -43,8 +43,8 @@ class GeometryOperation {
       } else {
         _affectedEdgeGeometries[edge] = EdgeGeometryBuilder.from(
           edge.geometry,
-          parentGeometry ?? edge.parent.geometry,
-          childGeometry ?? edge.child.geometry,
+          parentGeometry ?? edge.parentNode.geometry,
+          childGeometry ?? edge.childNode.geometry,
         );
       }
     }

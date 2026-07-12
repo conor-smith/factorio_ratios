@@ -14,16 +14,16 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
   @override
   final Graph parentGraph;
   final EdgeType edgeType;
-  final NodeElement parent;
-  final NodeElement child;
+  final NodeElement parentNode;
+  final NodeElement childNode;
 
   /// This node is the node that items will actually go to.
-  /// It will typically be the same as [parent], unless [parent] is a [Graph],
+  /// It will typically be the same as [parentNode], unless [parentNode] is a [Graph],
   /// in which case, it will be a relevant node of type [NodeType.input].
   final ProdLineNode parentProdLine;
 
   /// This node is the node that items will actually come from.
-  /// It will typically be the same as [child], unless [child] is a [Graph],
+  /// It will typically be the same as [childNode], unless [childNode] is a [Graph],
   /// in which case, it will be a relevant node of type [NodeType.output].
   final ProdLineNode childProdLine;
   final InGameItem item;
@@ -44,21 +44,21 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
     super.basePlanner, {
     required this.parentGraph,
     required this.edgeType,
-    required this.parent,
-    required this.child,
+    required this.parentNode,
+    required this.childNode,
     required this.item,
-  }) : parentProdLine = parent.getInputItemNode(item),
-       childProdLine = child.getOutputItemNode(item),
+  }) : parentProdLine = parentNode.getInputItemNode(item),
+       childProdLine = childNode.getOutputItemNode(item),
        _internalState = EdgeStateImpl.uninitialised {
-    if (!parent.nodeType.permittedChildren.contains(edgeType)) {
+    if (!parentNode.nodeType.permittedChildren.contains(edgeType)) {
       throw EdgeException(
-        'Node of type ${parent.nodeType} cannot have child of type $edgeType',
+        'Node of type ${parentNode.nodeType} cannot have child of type $edgeType',
       );
-    } else if (!child.nodeType.permittedParents.contains(edgeType)) {
+    } else if (!childNode.nodeType.permittedParents.contains(edgeType)) {
       throw EdgeException(
-        'Node of type ${child.nodeType} cannot have a child of type $edgeType',
+        'Node of type ${childNode.nodeType} cannot have a child of type $edgeType',
       );
-    } else if (parent == child) {
+    } else if (parentNode == childNode) {
       throw const EdgeException('A node may not consume it\'s own output');
     }
 
@@ -110,21 +110,21 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
   EdgeDependencies determineDependencies() => switch (edgeType) {
     EdgeType.requestItems => EdgeDependencies(
       parentProdLineDep: parentProdLine,
-      parentEdgeDeps: parent.children[item]!
+      parentEdgeDeps: parentNode.children[item]!
           .where((edge) => edge.edgeType != EdgeType.requestItems)
           .toList(),
     ),
 
     EdgeType.pushExcess => EdgeDependencies(
       childProdLineDep: childProdLine,
-      childEdgeDeps: child.parents[item]!
+      childEdgeDeps: childNode.parents[item]!
           .where((edge) => edge.edgeType == EdgeType.pushExcess)
           .toList(),
     ),
 
     EdgeType.requestExcess => EdgeDependencies(
       parentProdLineDep: parentProdLine,
-      parentEdgeDeps: parent.children[item]!
+      parentEdgeDeps: parentNode.children[item]!
           .where(
             (edge) =>
                 edge.edgeType == EdgeType.pushExcess ||
@@ -133,7 +133,7 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
           )
           .toList(),
       childProdLineDep: childProdLine,
-      childEdgeDeps: child.parents[item]!
+      childEdgeDeps: childNode.parents[item]!
           .where(
             (edge) =>
                 edge.edgeType != EdgeType.requestItems ||
@@ -160,18 +160,23 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
     switch (edgeType) {
       case EdgeType.requestItems:
         newAmount = _getAmountToRequest(dependencies) * percentage;
-        unusedIoCheckNodes = [parentProdLine, parent];
+        unusedIoCheckNodes = [parentProdLine, parentNode];
 
       case EdgeType.pushExcess:
         newAmount = _getAmountToPush(dependencies) * percentage;
-        unusedIoCheckNodes = [childProdLine, child];
+        unusedIoCheckNodes = [childProdLine, childNode];
 
       case EdgeType.requestExcess:
         var request = _getAmountToRequest(dependencies);
         var push = _getAmountToPush(dependencies);
         newAmount = request > push ? request : push;
 
-        unusedIoCheckNodes = [parentProdLine, parent, childProdLine, child];
+        unusedIoCheckNodes = [
+          parentProdLine,
+          parentNode,
+          childProdLine,
+          childNode,
+        ];
     }
 
     if (newAmount != amount) {
@@ -192,7 +197,7 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
 
     EdgeType.pushExcess => [
       parentProdLine,
-      parent,
+      parentNode,
       ...parentProdLine.children[item]!.where(
         (edge) => edge.edgeType != EdgeType.pushExcess,
       ),
@@ -200,7 +205,7 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
 
     EdgeType.requestExcess => [
       parentProdLine,
-      parent,
+      parentNode,
       ...parentProdLine.children[item]!.where(
         (edge) =>
             edge.edgeType == EdgeType.pushExcess ||
@@ -213,7 +218,7 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
   List<BasePlannerElement> determineChildDependants() => switch (edgeType) {
     EdgeType.requestItems => [
       childProdLine,
-      child,
+      childNode,
       ...childProdLine.parents[item]!.where(
         (edge) => edge.edgeType != EdgeType.requestItems,
       ),
@@ -223,7 +228,7 @@ class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
 
     EdgeType.requestExcess => [
       childProdLine,
-      child,
+      childNode,
       ...childProdLine.parents[item]!.where(
         (edge) =>
             edge.edgeType == EdgeType.requestItems ||

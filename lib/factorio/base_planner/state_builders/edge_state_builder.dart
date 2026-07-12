@@ -145,16 +145,16 @@ class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
   }
 
   void _updateParentIfParentIsGraphNode() {
-    if (_element.parent is Graph) {
-      var parentGraphNode = (_element.parent as Graph);
+    if (_element.parentNode is Graph) {
+      var parentGraphNode = (_element.parentNode as Graph);
       parentGraphNode.getStateBuilder()._clearCachedChildren();
       _snapshotBuilder.queueRequiredIoUpdate(parentGraphNode);
     }
   }
 
   void _updateChildIfChildIsGraphNode() {
-    if (_element.child is Graph) {
-      var childGraphNode = (_element.child as Graph);
+    if (_element.childNode is Graph) {
+      var childGraphNode = (_element.childNode as Graph);
       childGraphNode.getStateBuilder()._clearCachedParents();
       _snapshotBuilder.queueRequiredIoUpdate(childGraphNode);
     }
