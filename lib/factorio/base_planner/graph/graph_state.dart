@@ -130,7 +130,7 @@ class GraphStateImpl implements GraphState, ToJson {
     }
   }
 
-  const GraphStateImpl._rootGraph(this.icon)
+  GraphStateImpl.rootGraphFirstState(this.icon)
     : name = 'Root Graph',
       prodLineNodes = const {},
       graphNodes = const {},

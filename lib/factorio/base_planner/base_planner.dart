@@ -92,9 +92,12 @@ class BasePlanner
         ),
       ) {
     // Create first snapshot and root graph
-    rootGraph = Graph.rootGraph(this, db.surfaceMap['nauvis']);
+    // TODO - root graph should have no surface in space age
+    var nauvis = db.surfaceMap['nauvis']!;
+    var firstState = GraphStateImpl.rootGraphFirstState(nauvis.icon);
+    rootGraph = Graph.rootGraph(this, firstState, nauvis);
     _activeGraph = rootGraph;
-    _snapshots.add(Snapshot._({rootGraph: rootGraph.state}));
+    _snapshots.add(Snapshot._({rootGraph: firstState}));
   }
 
   void selectElement(BasePlannerElement element) {

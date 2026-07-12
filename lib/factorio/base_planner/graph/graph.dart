@@ -27,28 +27,28 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
   GraphStateImpl _internalState;
   GraphStateBuilder? _stateBuilder;
 
-  GraphState get state => _stateBuilder ?? _internalState;
+  GraphState get _state => _stateBuilder ?? _internalState;
 
   // For convenience
-  String get name => state.name;
-  Icon? get icon => state.icon;
+  String get name => _state.name;
+  Icon? get icon => _state.icon;
   @override
-  NodeGeometryImpl get geometry => state.geometry;
+  NodeGeometryImpl get geometry => _state.geometry;
   @override
-  Map<InGameItem, Set<Edge>> get parents => state.parents;
+  Map<InGameItem, Set<Edge>> get parents => _state.parents;
   @override
-  Map<InGameItem, Set<Edge>> get children => state.children;
-  Set<Graph> get graphNodes => state.graphNodes;
-  Set<ProdLineNode> get prodLineNodes => state.prodLineNodes;
-  Map<InGameItem, ProdLineNode> get outputNodes => state.outputNodes;
-  Map<InGameItem, ProdLineNode> get inputNodes => state.inputNodes;
-  Set<NodeElement> get allNodes => state.allNodes;
-  GraphLayout get layout => state.layout;
-  Set<Edge> get edges => state.edges;
+  Map<InGameItem, Set<Edge>> get children => _state.children;
+  Set<Graph> get graphNodes => _state.graphNodes;
+  Set<ProdLineNode> get prodLineNodes => _state.prodLineNodes;
+  Map<InGameItem, ProdLineNode> get outputNodes => _state.outputNodes;
+  Map<InGameItem, ProdLineNode> get inputNodes => _state.inputNodes;
+  Set<NodeElement> get allNodes => _state.allNodes;
+  GraphLayout get layout => _state.layout;
+  Set<Edge> get edges => _state.edges;
   @override
-  Set<InGameItem> get inputItems => state.inputItems;
+  Set<InGameItem> get inputItems => _state.inputItems;
   @override
-  Set<InGameItem> get outputItems => state.outputItems;
+  Set<InGameItem> get outputItems => _state.outputItems;
 
   @override
   ProductionLineType get productionLineType => ProductionLineType.graph;
@@ -58,14 +58,14 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
   ItemIoImpl? get internalConstraints => null;
 
   @override
-  GraphIo get ioData => state.ioData;
+  GraphIo get ioData => _state.ioData;
 
   @override
   ItemIoImpl get edgeConstraints => ioData.constraints;
   @override
-  ItemIoImpl get unusedIo => state.unusedIo;
+  ItemIoImpl get unusedIo => _state.unusedIo;
   @override
-  ItemIoImpl get ioRatios => state.ioRatios;
+  ItemIoImpl get ioRatios => _state.ioRatios;
 
   bool get isRoot => this == parentGraph;
   bool get hasBuilder => _stateBuilder != null;
@@ -83,8 +83,8 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
     _stateBuilder = GraphStateBuilder.initial(this);
   }
 
-  Graph.rootGraph(super.basePlanner, [this.surface])
-    : _internalState = GraphStateImpl._rootGraph(surface?.icon),
+  Graph.rootGraph(super.basePlanner, GraphStateImpl state, [this.surface])
+    : _internalState = state,
       _surfaceProperties =
           basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
     parentGraph = this;
