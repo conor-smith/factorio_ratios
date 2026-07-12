@@ -70,17 +70,18 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   @override
   Snapshot build() {
-    for (var removedElement in _removedElements) {
-      _newElements.remove(removedElement);
-      _elementUpdateStatus.remove(removedElement);
-    }
+    throw UnimplementedError();
+    // for (var removedElement in _removedElements) {
+    //   _newElements.remove(removedElement);
+    //   _elementUpdateStatus.remove(removedElement);
+    // }
 
-    _checkForCircularDependencies();
-    _performIoUdpates();
-    _performGraphLayoutUpdates();
-    var newStateMap = _performStateUpdateAndReturnMap();
+    // _checkForCircularDependencies();
+    // _performIoUdpates();
+    // _performGraphLayoutUpdates();
+    // var newStateMap = _performStateUpdateAndReturnMap();
 
-    return Snapshot(newStateMap);
+    // return Snapshot(newStateMap);
   }
 
   IoUpdateStatus _getOrCreateUpdateStatus(BasePlannerElement element) =>

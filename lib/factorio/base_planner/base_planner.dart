@@ -8,7 +8,6 @@ import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/json/json.dart';
-import 'package:factorio_ratios/utility/collections.dart';
 
 part 'base_planner_element.dart';
 part 'event_notifier.dart';
@@ -95,7 +94,9 @@ class BasePlanner
     var firstState = GraphStateImpl.rootGraphFirstState(nauvis.icon);
     rootGraph = Graph.rootGraph(this, firstState, nauvis);
     _activeGraph = rootGraph;
-    _snapshots.add(Snapshot({rootGraph: firstState}));
+    _snapshots.add(
+      Snapshot({rootGraph: ElementAndState(rootGraph, firstState)}),
+    );
   }
 
   void selectElement(BasePlannerElement element) {
@@ -161,7 +162,7 @@ class BasePlanner
         }
         _snapshots.add(newSnapshot);
 
-        _applySnapshotAndUpdateListeners(oldSnapshot, newSnapshot);
+        _applySnapshot(oldSnapshot, newSnapshot);
       } else if (firstCall && !_snapshotBuilder!.hasChanges) {
         _snapshotBuilder = null;
       }
@@ -170,9 +171,9 @@ class BasePlanner
     } catch (e) {
       if (firstCall) {
         // Reset all states to current snapshot
-        _snapshots[_snapshotIndex].states.forEach((element, newState) {
+        _snapshots[_snapshotIndex].states.forEach((element, eAndS) {
           element.cancelStateBuilder();
-          element.updateState(newState);
+          element.updateState(eAndS);
         });
       }
       _mutationLock--;
@@ -206,32 +207,13 @@ class BasePlanner
     }
   }
 
-  void _applySnapshotAndUpdateListeners(
-    Snapshot oldSnapshot,
-    Snapshot newSnapshot,
-  ) {
+  void _applySnapshot(Snapshot oldSnapshot, Snapshot newSnapshot) {
     _mutationLock++;
     try {
-      Map<BasePlannerElement, Pair> stateUpdates = {};
-      newSnapshot.states.forEach((element, newState) {
-        var oldState = oldSnapshot.states[element];
-
-        if (newState != oldState) {
-          element.updateState(newState);
-        }
-
-        if (oldState != null) {
-          stateUpdates[element] = Pair(oldState, newState);
-        }
+      newSnapshot.states.forEach((element, eAndS) {
+        eAndS.updateAndNotify(oldSnapshot.states[element]);
       });
       _mutationLock--;
-
-      stateUpdates.forEach(
-        (element, stateUpdate) => element.notifyListenersOfStateUpdate(
-          stateUpdate.item1,
-          stateUpdate.item2,
-        ),
-      );
 
       var removedElements = oldSnapshot.states.keys.toSet().difference(
         newSnapshot.states.keys.toSet(),
@@ -275,19 +257,20 @@ class ElementAndState<St> {
 
   ElementAndState(this.element, this.state);
 
-  void updateAndNotify(ElementAndState<St> oldState) {
-    if (oldState != state) {
-      element.updateState(state);
-      element.notifyListenersOfStateUpdate(oldState.state, state);
+  void updateAndNotify([ElementAndState<St>? oldEAndS]) {
+    element.updateState(state);
+
+    if (oldEAndS != null && oldEAndS.state != state) {
+      element.notifyListenersOfStateUpdate(oldEAndS.state, state);
     }
   }
 }
 
 /// Represents a snapshot of all states of elements in [BasePlanner].
 class Snapshot {
-  final Map<BasePlannerElement, dynamic> states;
+  final Map<BasePlannerElement, ElementAndState> states;
 
-  Snapshot(Map<BasePlannerElement, dynamic> states)
+  Snapshot(Map<BasePlannerElement, ElementAndState> states)
     : states = Map.unmodifiable(states);
 }
 
