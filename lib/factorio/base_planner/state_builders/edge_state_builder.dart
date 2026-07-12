@@ -1,6 +1,7 @@
 part of 'state_builders.dart';
 
-class EdgeStateBuilder extends StateBuilder<EdgeState> implements EdgeState {
+class EdgeStateBuilder extends StateBuilder<EdgeStateImpl>
+    implements EdgeState {
   @override
   final Edge _element;
 

@@ -17,7 +17,7 @@ import 'package:factorio_ratios/utility/collections.dart';
 part 'graph_state.dart';
 
 /// Represents a graph of [NodeElement]s connected by [Edge]s.
-class Graph extends NodeElement<GraphState, GraphEvent> {
+class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   // TODO - Graph preferred layout
   final Surface? surface;
   @override

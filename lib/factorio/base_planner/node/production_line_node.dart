@@ -1,6 +1,6 @@
 part of 'node.dart';
 
-class ProdLineNode extends NodeElement<ProdLineNodeState, NodeEvent> {
+class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   @override
   final Graph parentGraph;
   @override

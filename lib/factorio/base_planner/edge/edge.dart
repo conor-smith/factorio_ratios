@@ -10,7 +10,7 @@ part 'edge_state.dart';
 
 /// Represents an edge connecting two [NodeElement]s.
 /// Items flow from [childProdLine] to [parentProdLine].
-class Edge extends BasePlannerElement<EdgeState, EdgeEvent> {
+class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
   @override
   final Graph parentGraph;
   final EdgeType edgeType;

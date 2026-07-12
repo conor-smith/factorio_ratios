@@ -4,11 +4,6 @@ part of 'base_planner.dart';
 ///
 /// As all elements are listenable, state changes should only be
 /// registered via events.
-///
-/// [state], once set, is an immutable object.
-/// However, [getStateBuilder] will return a relevant builder.
-/// Any changes to the stateBuilder will be reflected in [state] unless
-/// [cancelStateBuilder] is called, at which point, [state] will be reset.
 abstract class BasePlannerElement<St, E>
     with EventNotifier<E>
     implements ToJson {
@@ -27,7 +22,7 @@ abstract class BasePlannerElement<St, E>
   Iterable<BasePlannerElement> determineDependants();
 
   /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
-  void updateState(covariant St state);
+  void updateState(St state);
 
   /// Return mutable object representing [state].
   /// All changes will be reflected unless [cancelStateBuilder] is called.
@@ -39,10 +34,7 @@ abstract class BasePlannerElement<St, E>
   void notifyListenersOfGeometryUpdate(covariant Geometry geometry);
 
   /// Used whenever state is updated
-  void notifyListenersOfStateUpdate(
-    covariant St oldState,
-    covariant St newState,
-  );
+  void notifyListenersOfStateUpdate(St oldState, St newState);
 
   /// Updates relevant fields for item input output.
   /// Returns true if update occurred, false otherwise
