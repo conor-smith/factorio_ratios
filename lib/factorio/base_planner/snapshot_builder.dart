@@ -12,7 +12,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   final Map<BasePlannerElement, Dependencies> _cachedDependencies = {};
 
-  final Map<BasePlannerElement, UpdateStatus> _elementUpdateStatus = {};
+  final Map<BasePlannerElement, IoUpdateStatus> _elementUpdateStatus = {};
   final Set<NodeElement> _nodesToCheckUnusedIo = {};
 
   final Set<Graph> _graphsToUpdateLayout = {};
@@ -47,7 +47,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
       );
     }
 
-    _elementUpdateStatus[element] = UpdateStatus.required;
+    _elementUpdateStatus[element] = IoUpdateStatus.required;
   }
 
   void queueUnusedIoCheck(NodeElement node) => _nodesToCheckUnusedIo.add(node);
@@ -75,10 +75,10 @@ class SnapshotBuilder implements Builder<Snapshot> {
     return Snapshot._(newStateMap);
   }
 
-  UpdateStatus _getOrCreateUpdateStatus(BasePlannerElement element) =>
+  IoUpdateStatus _getOrCreateUpdateStatus(BasePlannerElement element) =>
       _elementUpdateStatus.putIfAbsent(
         element,
-        () => UpdateStatus.checkDependencies,
+        () => IoUpdateStatus.checkDependencies,
       );
 
   void _checkForCircularDependencies() {
@@ -129,22 +129,22 @@ class SnapshotBuilder implements Builder<Snapshot> {
       // 1. Explicitly marked as required via UpdateStatus.required
       // 2. One or more dependencies have were updated
       var updateRequired =
-          updateStatus == UpdateStatus.required ||
+          updateStatus == IoUpdateStatus.required ||
           dependencies.allDependencies.any(
             (dependency) =>
                 _getOrCreateUpdateStatus(dependency) ==
-                UpdateStatus.completeUpdate,
+                IoUpdateStatus.completeUpdate,
           );
 
       // If update is required and update returns true, add dependents to end of queue
       // Otherwise, mark element as completeNoUpdate
       // Remove element from queue in both scenarios
       if (updateRequired && toUpdate.calculateIo(dependencies)) {
-        _elementUpdateStatus[toUpdate] = UpdateStatus.completeUpdate;
+        _elementUpdateStatus[toUpdate] = IoUpdateStatus.completeUpdate;
 
         updateQueue.addAll(toUpdate.determineDependants());
       } else {
-        _elementUpdateStatus[toUpdate] = UpdateStatus.completeNoUpdate;
+        _elementUpdateStatus[toUpdate] = IoUpdateStatus.completeNoUpdate;
       }
     }
 
@@ -183,7 +183,55 @@ class SnapshotBuilder implements Builder<Snapshot> {
   }
 }
 
-enum UpdateStatus {
+abstract class SnapshotBuilderElement<St, D extends Dependencies>
+    implements Builder<ElementAndState<St>> {
+  final ElementAndState<St> oldEAndS;
+
+  final StateBuilder<St> Function() _stateBuilderFactory;
+  final D Function() _dependenciesFactory;
+
+  StateBuilder<St>? _cachedStateBuilder;
+  D? _cachedDependencies;
+
+  bool toRemove = false;
+  bool circularDependencyCheck = false;
+  IoUpdateStatus ioUpdateStatus = IoUpdateStatus.notQueued;
+
+  SnapshotBuilderElement(
+    this.oldEAndS,
+    StateBuilder<St> Function() stateBuilderFactory,
+    D Function() dependenciesFactory,
+  ) : _stateBuilderFactory = stateBuilderFactory,
+      _dependenciesFactory = dependenciesFactory;
+
+  St get state;
+  bool calculateIo();
+  void checkForCircularDependencies;
+
+  StateBuilder<St> get stateBuilder {
+    _cachedStateBuilder ??= _stateBuilderFactory();
+
+    return _cachedStateBuilder!;
+  }
+
+  D get cachedDependencies {
+    _cachedDependencies ??= _dependenciesFactory();
+
+    return _cachedDependencies!;
+  }
+
+  @override
+  ElementAndState<St> build() {
+    if (_cachedStateBuilder == null) {
+      return oldEAndS;
+    } else {
+      return ElementAndState(oldEAndS.element, _cachedStateBuilder!.build());
+    }
+  }
+}
+
+enum IoUpdateStatus {
+  notQueued(false),
   checkDependencies(false),
   required(false),
   completeNoUpdate(true),
@@ -191,7 +239,7 @@ enum UpdateStatus {
 
   final bool isComplete;
 
-  const UpdateStatus(this.isComplete);
+  const IoUpdateStatus(this.isComplete);
 }
 
 enum SnapshotBuildStage {

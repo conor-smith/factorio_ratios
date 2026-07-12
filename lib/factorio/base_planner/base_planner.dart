@@ -271,6 +271,20 @@ class BasePlanner
   }
 }
 
+class ElementAndState<St> {
+  final BasePlannerElement<St, dynamic> element;
+  final St state;
+
+  ElementAndState(this.element, this.state);
+
+  void updateAndNotify(ElementAndState<St> oldState) {
+    if (oldState != state) {
+      element.updateState(state);
+      element.notifyListenersOfStateUpdate(oldState.state, state);
+    }
+  }
+}
+
 /// Represents a snapshot of all states of elements in [BasePlanner].
 class Snapshot {
   final Map<BasePlannerElement, dynamic> states;
