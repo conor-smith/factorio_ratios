@@ -200,6 +200,8 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
+  void updateLayout(GraphLayout newLayout) => _layout = newLayout;
+
   @override
   GraphStateImpl build() => GraphStateImpl(
     graph: _element,

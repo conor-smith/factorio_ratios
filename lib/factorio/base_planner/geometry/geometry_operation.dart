@@ -10,17 +10,18 @@ import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 
 class GeometryOperation {
-  final BasePlanner _basePlanner;
+  final BasePlanner basePlanner;
+  final Graph parentGraph;
 
   final Map<NodeElement, NodeGeometryBuilder> _nodeGeometries = {};
   final Map<Edge, EdgeGeometryBuilder> _edgeGeometries = {};
   final Map<Edge, EdgeGeometryBuilder> _affectedEdgeGeometries = {};
 
   GeometryOperation.drag(
-    BasePlanner basePlanner,
-    Graph parentGraph, {
-    Iterable<NodeElement> selectedNodes = const [],
-  }) : _basePlanner = basePlanner {
+    this.basePlanner,
+    this.parentGraph,
+    Iterable<NodeElement> selectedNodes,
+  ) {
     for (var node in selectedNodes) {
       _nodeGeometries[node] = NodeGeometryBuilder.from(node.geometry);
     }
@@ -28,6 +29,7 @@ class GeometryOperation {
     var allEdges = selectedNodes
         .expand((node) => node.allParents.followedBy(node.allChildren))
         .toSet();
+
     for (var edge in allEdges) {
       var parentGeometry = _nodeGeometries[edge.parent];
       var childGeometry = _nodeGeometries[edge.child];
@@ -66,18 +68,21 @@ class GeometryOperation {
   }
 
   void applyUpdate() {
-    _basePlanner.buildNextSnapshot(() {
+    basePlanner.buildNextSnapshot(() {
+      if (parentGraph.layout != GraphLayout.custom) {
+        parentGraph.getStateBuilder().updateLayout(GraphLayout.custom);
+      }
+
       _nodeGeometries.forEach(
         (node, builder) =>
             node.getStateBuilder().updateGeometry(builder.build()),
       );
 
-      Map<Edge, EdgeGeometryBuilder>.from(_edgeGeometries)
-        ..addAll(_affectedEdgeGeometries)
-        ..forEach(
-          (edge, builder) =>
-              edge.getStateBuilder().updateGeometry(builder.build()),
-        );
+      var allEdges = _edgeGeometries..addAll(_affectedEdgeGeometries);
+      allEdges.forEach(
+        (edge, builder) =>
+            edge.getStateBuilder().updateGeometry(builder.build()),
+      );
     });
   }
 }
@@ -86,22 +91,22 @@ class NodeGeometryBuilder
     implements GeometryBuilder<NodeGeometryImpl>, NodeGeometry {
   final NodeGeometryImpl _original;
 
-  Rect _minimalRect;
+  Rect _rect;
 
   @override
-  Rect get rect => _minimalRect;
+  Rect get rect => _rect;
 
   NodeGeometryBuilder.from(NodeGeometryImpl geometry)
     : _original = geometry,
-      _minimalRect = geometry.rect;
+      _rect = geometry.rect;
 
   @override
-  void shift(Offset offset) => _minimalRect = _original.rect.shift(offset);
+  void shift(Offset offset) => _rect = _original.rect.shift(offset);
 
-  void updateRect(Rect newRect) => _minimalRect = newRect;
+  void updateRect(Rect newRect) => _rect = newRect;
 
   @override
-  NodeGeometryImpl build() => NodeGeometryImpl(_minimalRect);
+  NodeGeometryImpl build() => NodeGeometryImpl(_rect);
 }
 
 class EdgeGeometryBuilder
@@ -115,7 +120,7 @@ class EdgeGeometryBuilder
   @override
   EdgeGeometryType get geometryType => original.geometryType;
   @override
-  Rect get rect => original.rect;
+  Rect get rect => Rect.largest;
   @override
   late final List<Line> lines = UnmodifiableListView(_lines);
 
