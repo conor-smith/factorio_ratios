@@ -19,7 +19,8 @@ part 'snapshot.dart';
 ///
 /// Ultimately represents a tree. Each [Graph] can have an arbitrary amount of
 /// [Graph.graphNodes], and each graph node can have only one parent.
-/// The only [Graph] with no value for [Graph.parentGraph] is the [rootGraph].
+/// The root of the tree is represented by the [rootGraph] where [Graph.parentGraph]
+/// is itself.
 ///
 /// State changes can only be made within [buildNextSnapshot].
 /// Any attempts to call [BasePlannerElement.getStateBuilder] outside of this
@@ -29,9 +30,9 @@ part 'snapshot.dart';
 /// Snapshots can be navigated via [goToSnapshot], at which point, the state of
 /// all objects will be reset to the state they were in during that snapshot.
 ///
-/// [snapshots] cannot be longer than [maxSnapshots]. If a new snapshot is added
-/// after it reaches this length, the first snapshot will be removed, and all
-/// elements will be moved back 1.
+/// The [snapshots] list cannot be longer than [maxSnapshots].
+/// If a new snapshot is added after it reaches this length,
+/// the first snapshot in the list will be removed.
 /// Alternatively, if the user navigates to a previous snapshot and builds a new
 /// one from there, all subsequent snapshots will be deleted.
 ///
@@ -45,8 +46,6 @@ class BasePlanner
   final FactorioDatabase db;
   late final Graph rootGraph;
 
-  /// A list of all available machines, in descending order by speed
-  final List<InGameMachine> sortedMachines;
   final Map<Surface, SurfaceProperties> surfaceProperties;
 
   // TODO - Rename, document, and make mutable
@@ -81,7 +80,8 @@ class BasePlanner
           surface,
           SurfaceProperties._(
             defaultRecipes: surface.recipes.where(
-              (recipe) => recipe.isSimple && recipe.craftingMachines.isNotEmpty,
+              (recipe) =>
+                  recipe.isSimple && recipe.sortedCraftingMachines.isNotEmpty,
             ),
             resources: surface.resourceItems.map((item) => InGameItem(item)),
             availableSolidFuels: surface.resourceItems
@@ -90,15 +90,6 @@ class BasePlanner
                 .map((solidItem) => InGameSolidItem(solidItem)),
           ),
         ),
-      ),
-      sortedMachines = List.unmodifiable(
-        db.craftingMachineMap.values
-            .map((machine) => InGameMachine(machine))
-            .toList()
-          ..sort(
-            (machine1, machine2) =>
-                machine2.craftingSpeed.compareTo(machine1.craftingSpeed),
-          ),
       ) {
     // Create first snapshot and root graph
     rootGraph = Graph.rootGraph(this, db.surfaceMap['nauvis']);

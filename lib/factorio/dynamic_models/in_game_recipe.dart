@@ -70,7 +70,8 @@ class InGameRecipe implements Recipe, ToJson {
   @override
   List<String> get categories => internalRecipe.categories;
   @override
-  List<CraftingMachine> get craftingMachines => internalRecipe.craftingMachines;
+  List<CraftingMachine> get sortedCraftingMachines =>
+      internalRecipe.sortedCraftingMachines;
   @override
   double get defaultScale => internalRecipe.defaultScale;
   @override

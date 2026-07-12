@@ -46,14 +46,19 @@ class Recipe extends PrototypeWithIcon {
 
   late final Item? mainProduct = _determineMainProduct();
 
-  late final List<CraftingMachine> craftingMachines = List.unmodifiable(
+  /// Crafting machines sorted by speed in descending order
+  late final List<CraftingMachine> sortedCraftingMachines = List.unmodifiable(
     categories
-        .map(
+        .expand(
           (category) =>
               factorioDb._craftingCategoryToMachines[category] ?? const [],
         )
-        .expand((i) => i)
-        .toSet(),
+        .toSet() // Removes duplicates
+        .toList()
+      ..sort(
+        (machine1, machine2) =>
+            machine2.craftingSpeed.compareTo(machine1.craftingSpeed),
+      ),
   );
 
   late final List<Surface> surfaces = List.unmodifiable(

@@ -32,7 +32,7 @@ void main() {
 
     db.recipeMap.forEach((name, recipe) {
       _logger.info('Testing lazy relationships on recipe $name');
-      List<String> machineNameList = recipe.craftingMachines
+      List<String> machineNameList = recipe.sortedCraftingMachines
           .map((recipe) => recipe.name)
           .toList();
       machineNameList.sort();

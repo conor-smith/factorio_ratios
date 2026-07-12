@@ -384,9 +384,7 @@ class Graph extends NodeElement<GraphState, GraphEvent> {
       var inGameRecipe = InGameRecipe(baseRecipe, quality);
 
       var inGameMachine = InGameMachine(
-        basePlanner.sortedMachines.firstWhere(
-          (machine) => machine.recipes.contains(baseRecipe),
-        ),
+        baseRecipe.sortedCraftingMachines.first,
       );
 
       InGameSolidItem? fuel;
