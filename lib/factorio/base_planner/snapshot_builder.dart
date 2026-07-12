@@ -1,13 +1,5 @@
 part of 'base_planner.dart';
 
-/// Represents a snapshot of all states of elements in [BasePlanner].
-class Snapshot {
-  final Map<BasePlannerElement, dynamic> states;
-
-  Snapshot._(Map<BasePlannerElement, dynamic> states)
-    : states = Map.unmodifiable(states);
-}
-
 // TODO - Document
 class SnapshotBuilder implements Builder<Snapshot> {
   final Snapshot _previousSnapshot;

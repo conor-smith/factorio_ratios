@@ -13,7 +13,7 @@ import 'package:factorio_ratios/utility/collections.dart';
 
 part 'base_planner_element.dart';
 part 'event_notifier.dart';
-part 'snapshot.dart';
+part 'snapshot_builder.dart';
 
 /// The single source of truth for the application.
 ///
@@ -269,6 +269,14 @@ class BasePlanner
       rethrow;
     }
   }
+}
+
+/// Represents a snapshot of all states of elements in [BasePlanner].
+class Snapshot {
+  final Map<BasePlannerElement, dynamic> states;
+
+  Snapshot._(Map<BasePlannerElement, dynamic> states)
+    : states = Map.unmodifiable(states);
 }
 
 class BasePlannerEvent {
