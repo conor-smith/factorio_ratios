@@ -1,12 +1,17 @@
 part of 'snapshot_builder.dart';
 
-abstract class SnapshotBuilderElement<St, D extends Dependencies>
-    implements Builder<ElementAndState<St>> {
+abstract class SnapshotBuilderElement<
+  E extends BasePlannerElement<St, dynamic>,
+  St,
+  D extends Dependencies,
+  B extends StateBuilder<St>
+>
+    implements Builder<ElementAndState<E, St>> {
   final SnapshotBuilder snapshotBuilder;
-  final BasePlannerElement<St, dynamic> element;
-  final ElementAndState<St>? oldEAndS;
+  final E element;
+  final ElementAndState<E, St>? oldEAndS;
 
-  StateBuilder<St>? _cachedStateBuilder;
+  B? _cachedStateBuilder;
   D? _cachedDependencies;
 
   bool toRemove;
@@ -15,7 +20,7 @@ abstract class SnapshotBuilderElement<St, D extends Dependencies>
 
   SnapshotBuilderElement(
     this.snapshotBuilder,
-    ElementAndState<St> this.oldEAndS,
+    ElementAndState<E, St> this.oldEAndS,
   ) : element = oldEAndS.element,
       toRemove = false,
       circularDependencyCheck = false,
@@ -24,7 +29,7 @@ abstract class SnapshotBuilderElement<St, D extends Dependencies>
   SnapshotBuilderElement.newElement(
     this.snapshotBuilder,
     this.element,
-    StateBuilder<St> stateBuilder,
+    B stateBuilder,
   ) : oldEAndS = null,
       _cachedStateBuilder = stateBuilder,
       toRemove = false,
@@ -38,29 +43,50 @@ abstract class SnapshotBuilderElement<St, D extends Dependencies>
     Set<BasePlannerElement> safeElements,
     Set<BasePlannerElement> visitedElements,
   );
-  StateBuilder<St> createStateBuilder();
-  D determineDependencies();
-  Iterable<BasePlannerElement> determineDependants();
   void removeSelf();
 
-  StateBuilder<St> get stateBuilder {
-    _cachedStateBuilder ??= createStateBuilder();
+  B _createStateBuilder();
+  D _determineDependencies();
+  Iterable<BasePlannerElement> _determineDependants();
+
+  B get stateBuilder {
+    _cachedStateBuilder ??= _createStateBuilder();
 
     return _cachedStateBuilder!;
   }
 
   D get cachedDependencies {
-    _cachedDependencies ??= determineDependencies();
+    _cachedDependencies ??= _determineDependencies();
 
     return _cachedDependencies!;
   }
 
   @override
-  ElementAndState<St> build() {
+  ElementAndState<E, St> build() {
     if (_cachedStateBuilder == null && oldEAndS != null) {
       return oldEAndS!;
     } else {
       return ElementAndState(element, _cachedStateBuilder!.build());
     }
   }
+}
+
+abstract class SnapshotBuilderNode<
+  E extends NodeElement<St, dynamic>,
+  St,
+  D extends Dependencies,
+  B extends NodeStateBuilder<St>
+>
+    extends SnapshotBuilderElement<E, St, D, B> {
+  bool unusedIoCheck;
+
+  SnapshotBuilderNode(super.snapshotBuilder, super.oldEAndS)
+    : unusedIoCheck = false;
+
+  SnapshotBuilderNode.newElement(
+    super.snapshotBuilder,
+    super.element,
+    super.stateBuilder,
+  ) : unusedIoCheck = true,
+      super.newElement();
 }

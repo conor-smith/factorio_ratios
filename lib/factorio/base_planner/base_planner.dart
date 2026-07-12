@@ -251,13 +251,13 @@ class BasePlanner
   }
 }
 
-class ElementAndState<St> {
-  final BasePlannerElement<St, dynamic> element;
+class ElementAndState<E extends BasePlannerElement<St, dynamic>, St> {
+  final E element;
   final St state;
 
   ElementAndState(this.element, this.state);
 
-  void updateAndNotify([ElementAndState<St>? oldEAndS]) {
+  void updateAndNotify([ElementAndState<E, St>? oldEAndS]) {
     element.updateState(state);
 
     if (oldEAndS != null && oldEAndS.state != state) {
