@@ -18,16 +18,11 @@ abstract class BasePlannerElement<St, E>
   void select();
   void deselect();
 
-  Dependencies determineDependencies();
-  Iterable<BasePlannerElement> determineDependants();
-
   /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
   void updateState(St state);
 
-  /// Return mutable object representing [state].
-  /// All changes will be reflected unless [cancelStateBuilder] is called.
+  SnapshotBuilderElement getSnapshotBuilderElement();
   StateBuilder<St> getStateBuilder();
-  void cancelStateBuilder();
 
   /// Used in the event of a dragging or resizing operation.
   /// Allows notifying listeners of some [Geometry] object without updating [state].
@@ -35,34 +30,6 @@ abstract class BasePlannerElement<St, E>
 
   /// Used whenever state is updated
   void notifyListenersOfStateUpdate(St oldState, St newState);
-
-  /// Updates relevant fields for item input output.
-  /// Returns true if update occurred, false otherwise
-  bool calculateIo(covariant Dependencies dependencies);
-
-  void checkForCircularDependencies(
-    Set<BasePlannerElement> safeElements,
-    Set<BasePlannerElement> visitedElements,
-  ) {
-    if (visitedElements.contains(this)) {
-      throw BasePlannerException('Circular dependency detected at $this');
-    }
-
-    if (!safeElements.contains(this)) {
-      visitedElements.add(this);
-
-      var dependencies = basePlanner.getSnapshotBuilder().getCachedDependencies(
-        this,
-      );
-
-      for (var dependency in dependencies.allDependencies) {
-        dependency.checkForCircularDependencies(safeElements, visitedElements);
-      }
-
-      visitedElements.remove(this);
-      safeElements.add(this);
-    }
-  }
 }
 
 abstract interface class Dependencies {

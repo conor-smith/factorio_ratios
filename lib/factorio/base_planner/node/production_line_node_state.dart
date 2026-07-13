@@ -1,19 +1,21 @@
 part of 'node.dart';
 
-abstract class ProdLineNodeState {
+abstract mixin class ProdLineNodeState implements NodeState {
+  const ProdLineNodeState();
+
   ItemIoImpl? get internalConstraints;
-  ItemIoImpl get edgeConstraints;
-  ItemIoImpl get unusedIo;
 
   ProductionLine get productionLine;
 
-  Map<InGameItem, Set<Edge>> get parents;
-  Map<InGameItem, Set<Edge>> get children;
-  ProductionLineIoData get ioData;
-  NodeGeometryImpl get geometry;
+  @override
+  ItemIoImpl get ioRatios => productionLine.ioRatios;
+  @override
+  Set<InGameItem> get inputItems => productionLine.inputItems;
+  @override
+  Set<InGameItem> get outputItems => productionLine.outputItems;
 }
 
-class ProdLineNodeStateImpl implements ProdLineNodeState, ToJson {
+class ProdLineNodeStateImpl with ProdLineNodeState implements ToJson {
   static const uninitialised = ProdLineNodeStateImpl._uninitialised();
 
   @override

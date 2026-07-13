@@ -1,6 +1,6 @@
 part of 'graph.dart';
 
-abstract class GraphState {
+abstract class GraphState extends NodeState {
   String get name;
   Icon? get icon;
   Set<ProdLineNode> get prodLineNodes;
@@ -9,17 +9,11 @@ abstract class GraphState {
   Map<InGameItem, ProdLineNode> get outputNodes;
   Set<NodeElement> get allNodes;
   Set<Edge> get edges;
-  Set<InGameItem> get inputItems;
-  Set<InGameItem> get outputItems;
-
-  Map<InGameItem, Set<Edge>> get parents;
-  Map<InGameItem, Set<Edge>> get children;
-  ItemIoImpl get ioRatios;
-  ItemIoImpl get unusedIo;
-  GraphIo get ioData;
-  NodeGeometryImpl get geometry;
 
   GraphLayout get layout;
+
+  @override
+  GraphIo get ioData;
 
   static Iterable<NodeElement> calculateAllNodes(
     Iterable<ProdLineNode> prodLineNodes,
@@ -61,6 +55,15 @@ class GraphStateImpl implements GraphState, ToJson {
   final Map<InGameItem, ProdLineNode> outputNodes;
   @override
   final Set<Edge> edges;
+
+  @override
+  final ItemIoImpl edgeConstraints;
+  @override
+  final ItemIoImpl ioRatios;
+  @override
+  final ItemIoImpl unusedIo;
+  @override
+  final GraphIo ioData;
   @override
   final NodeGeometryImpl geometry;
   @override
@@ -76,13 +79,6 @@ class GraphStateImpl implements GraphState, ToJson {
   final Set<NodeElement> allNodes;
 
   @override
-  final ItemIoImpl ioRatios;
-  @override
-  final ItemIoImpl unusedIo;
-  @override
-  final GraphIo ioData;
-
-  @override
   final GraphLayout layout;
 
   GraphStateImpl({
@@ -96,6 +92,7 @@ class GraphStateImpl implements GraphState, ToJson {
     required Map<InGameItem, ProdLineNode> outputNodes,
     required this.ioRatios,
     required this.unusedIo,
+    required this.edgeConstraints,
     required this.geometry,
     required this.ioData,
     required this.layout,
@@ -142,6 +139,7 @@ class GraphStateImpl implements GraphState, ToJson {
       outputItems = const {},
       parents = const {},
       children = const {},
+      edgeConstraints = ItemIoImpl.empty,
       ioRatios = ItemIoImpl.empty,
       unusedIo = ItemIoImpl.empty,
       geometry = NodeGeometryImpl.uninitialised,
@@ -161,6 +159,7 @@ class GraphStateImpl implements GraphState, ToJson {
       outputItems = const {},
       parents = const {},
       children = const {},
+      edgeConstraints = ItemIoImpl.empty,
       ioRatios = ItemIoImpl.empty,
       unusedIo = ItemIoImpl.empty,
       geometry = NodeGeometryImpl.uninitialised,

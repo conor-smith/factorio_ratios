@@ -22,6 +22,7 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
   GraphIo _ioData;
   ItemIoImpl _ioRatios;
   ItemIoImpl _unusedIo;
+  ItemIoImpl _edgeConstraints;
 
   Map<InGameItem, List<NodeElement>>? _cachedNodeOutputIndex;
   Map<InGameItem, NodeElement>? _cachedDisposalNodes;
@@ -51,6 +52,8 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
 
   @override
   ItemIoImpl get ioRatios => _ioRatios;
+  @override
+  ItemIoImpl get edgeConstraints => _edgeConstraints;
   @override
   ItemIoImpl get unusedIo => _unusedIo;
 
@@ -104,6 +107,7 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
       _ioData = const GraphIo.empty(),
       _ioRatios = ItemIoImpl.empty,
       _unusedIo = ItemIoImpl.empty,
+      _edgeConstraints = ItemIoImpl.empty,
       _prodLineNodes = {},
       _graphNodes = {},
       _inputNodes = {},
@@ -129,6 +133,7 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
       _inputNodes = Map.from(previousState.inputNodes),
       _outputNodes = Map.from(previousState.outputNodes),
       _edges = Set.from(previousState.edges),
+      _edgeConstraints = previousState.edgeConstraints,
       _cachedParents = previousState.parents,
       _cachedChildren = previousState.children,
       _geometry = previousState.geometry,
@@ -140,15 +145,15 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
 
   @override
   void removeSelf() {
-    for (var parent in parents.values.expand((edgeSet) => edgeSet)) {
-      parent.getStateBuilder()._removeSelfAndUpdateParentOnly();
-    }
+    // for (var parent in parents.values.expand((edgeSet) => edgeSet)) {
+    //   parent.getStateBuilder()._removeSelfAndUpdateParentOnly();
+    // }
 
-    for (var child in children.values.expand((edgeSet) => edgeSet)) {
-      child.getStateBuilder()._removeSelfAndUpdateChildOnly();
-    }
+    // for (var child in children.values.expand((edgeSet) => edgeSet)) {
+    //   child.getStateBuilder()._removeSelfAndUpdateChildOnly();
+    // }
 
-    _removeSelfButNotOthers();
+    // _removeSelfButNotOthers();
   }
 
   @override
@@ -159,31 +164,31 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
   }
 
   void removeAllNodesExceptIo() {
-    _snapshotBuilder.queueRequiredIoUpdate(_element);
+    // _snapshotBuilder.queueRequiredIoUpdate(_element);
 
-    for (var node in _prodLineNodes) {
-      node.getStateBuilder()._removeSelfButNotOthers();
-    }
-    for (var graphNode in _graphNodes) {
-      graphNode.getStateBuilder()._removeSelfButNotOthers();
-    }
-    for (var edge in _edges) {
-      _snapshotBuilder.removeFromSnapshot(edge);
-    }
+    // for (var node in _prodLineNodes) {
+    //   node.getStateBuilder()._removeSelfButNotOthers();
+    // }
+    // for (var graphNode in _graphNodes) {
+    //   graphNode.getStateBuilder()._removeSelfButNotOthers();
+    // }
+    // for (var edge in _edges) {
+    //   _snapshotBuilder.removeFromSnapshot(edge);
+    // }
 
-    for (var inputNode in inputNodes.values) {
-      inputNode.getStateBuilder()._parents.clear();
-    }
-    for (var outputNode in outputNodes.values) {
-      outputNode.getStateBuilder()._children.clear();
-    }
+    // for (var inputNode in inputNodes.values) {
+    //   inputNode.getStateBuilder()._parents.clear();
+    // }
+    // for (var outputNode in outputNodes.values) {
+    //   outputNode.getStateBuilder()._children.clear();
+    // }
 
-    for (var ioNode in [...inputNodes.values, ...outputNodes.values]) {
-      _snapshotBuilder.queueRequiredIoUpdate(ioNode);
-    }
+    // for (var ioNode in [...inputNodes.values, ...outputNodes.values]) {
+    //   _snapshotBuilder.queueRequiredIoUpdate(ioNode);
+    // }
 
-    _prodLineNodes.clear();
-    _edges.clear();
+    // _prodLineNodes.clear();
+    // _edges.clear();
   }
 
   void updateName(String newName) => _name = newName;
@@ -214,6 +219,7 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
     edges: _edges,
     geometry: _geometry,
     ioRatios: ItemIoImpl.empty, // TODO
+    edgeConstraints: _edgeConstraints,
     unusedIo: _unusedIo,
     layout: _layout,
     ioData: GraphIo.fromState(this),
@@ -221,27 +227,27 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
 
   // Used when parent graph is doing bulk removal
   void _removeSelfButNotOthers() {
-    _snapshotBuilder.removeFromSnapshot(_element);
+    // _snapshotBuilder.removeFromSnapshot(_element);
 
-    var allProdLineNodes = _prodLineNodes
-        .followedBy(_inputNodes.values)
-        .followedBy(_outputNodes.values);
+    // var allProdLineNodes = _prodLineNodes
+    //     .followedBy(_inputNodes.values)
+    //     .followedBy(_outputNodes.values);
 
-    for (var prodLine in allProdLineNodes) {
-      prodLine.getStateBuilder()._removeSelfButNotOthers();
-    }
-    for (var graphNode in _graphNodes) {
-      graphNode.getStateBuilder()._removeSelfButNotOthers();
-    }
-    for (var edge in _edges) {
-      _snapshotBuilder.removeFromSnapshot(edge);
-    }
+    // for (var prodLine in allProdLineNodes) {
+    //   prodLine.getStateBuilder()._removeSelfButNotOthers();
+    // }
+    // for (var graphNode in _graphNodes) {
+    //   graphNode.getStateBuilder()._removeSelfButNotOthers();
+    // }
+    // for (var edge in _edges) {
+    //   _snapshotBuilder.removeFromSnapshot(edge);
+    // }
 
-    _prodLineNodes.clear();
-    _inputNodes.clear();
-    _outputNodes.clear();
-    _graphNodes.clear();
-    _edges.clear();
+    // _prodLineNodes.clear();
+    // _inputNodes.clear();
+    // _outputNodes.clear();
+    // _graphNodes.clear();
+    // _edges.clear();
   }
 
   Map<InGameItem, List<NodeElement>> _createNodeOutputIndex() {
@@ -303,18 +309,18 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
   }
 
   void _removeNodeFromNodeCaches(NodeElement node) {
-    if (_cachedNodeOutputIndex != null && node.nodeType.outputPriority < 100) {
-      for (var output in node.outputItems) {
-        _cachedNodeOutputIndex![output]?.remove(node);
-      }
+    // if (_cachedNodeOutputIndex != null && node.nodeType.outputPriority < 100) {
+    //   for (var output in node.outputItems) {
+    //     _cachedNodeOutputIndex![output]?.remove(node);
+    //   }
 
-      if (node.nodeType == NodeType.output && _element.parentGraph.hasBuilder) {
-        _element.parentGraph.getStateBuilder()._clearCachedOutputIndex();
-      }
-    } else if (_cachedDisposalNodes != null &&
-        node.nodeType == NodeType.disposal) {
-      _clearCachedDisposalNodes();
-    }
+    //   if (node.nodeType == NodeType.output && _element.parentGraph.hasBuilder) {
+    //     _element.parentGraph.getStateBuilder()._clearCachedOutputIndex();
+    //   }
+    // } else if (_cachedDisposalNodes != null &&
+    //     node.nodeType == NodeType.disposal) {
+    //   _clearCachedDisposalNodes();
+    // }
   }
 
   void _clearCachedOutputIndex() => _cachedNodeOutputIndex = null;

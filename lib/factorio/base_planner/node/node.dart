@@ -2,6 +2,7 @@ import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
+import 'package:factorio_ratios/factorio/base_planner/snapshot_builder/snapshot_builder.dart';
 import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
@@ -10,7 +11,7 @@ import 'package:factorio_ratios/json/json.dart';
 part 'production_line_node.dart';
 part 'production_line_node_state.dart';
 
-abstract class NodeElement<St, E extends NodeEvent>
+abstract class NodeElement<St extends NodeState, E extends NodeEvent>
     extends BasePlannerElement<St, E> {
   NodeElement(super.basePlanner);
 
@@ -50,39 +51,21 @@ abstract class NodeElement<St, E extends NodeEvent>
   ProdLineNode getOutputItemNode(InGameItem item);
   ProdLineNode getInputItemNode(InGameItem item);
 
-  void calculateUnusedIo() {
-    var itemIo = ioData.itemIo;
+  void calculateUnusedIo() {}
+}
 
-    ItemIoBuilder unusedIoBuilder = ItemIoBuilder();
+abstract class NodeState {
+  ProductionLineIoData get ioData;
+  ItemIoImpl get edgeConstraints;
+  ItemIoImpl get ioRatios;
+  ItemIoImpl get unusedIo;
 
-    parents.forEach((item, edges) {
-      var unconsumedOutput =
-          itemIo.outputs[item]! -
-          edges.fold(0.0, (sum, edge) => sum + edge.amount);
+  Set<InGameItem> get inputItems;
+  Set<InGameItem> get outputItems;
 
-      // Account for floating point errors
-      if (unconsumedOutput > 0.000001) {
-        unusedIoBuilder.addToOutputs(item, unconsumedOutput);
-      }
-    });
-
-    children.forEach((item, edges) {
-      var unfulfilledInput =
-          itemIo.inputs[item]! -
-          edges.fold(0.0, (sum, edge) => sum + edge.amount);
-
-      // Account for floating point errors
-      if (unfulfilledInput > 0.000001) {
-        unusedIoBuilder.addToOutputs(item, unfulfilledInput);
-      }
-    });
-
-    var newUnusedIo = unusedIoBuilder.build();
-
-    if (newUnusedIo != unusedIo) {
-      getStateBuilder().updateUnusedIo(newUnusedIo);
-    }
-  }
+  Map<InGameItem, Set<Edge>> get parents;
+  Map<InGameItem, Set<Edge>> get children;
+  NodeGeometryImpl get geometry;
 }
 
 enum NodeType implements Comparable<NodeType> {

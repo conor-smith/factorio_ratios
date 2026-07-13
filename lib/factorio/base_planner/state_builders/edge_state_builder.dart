@@ -64,24 +64,24 @@ class EdgeStateBuilder extends StateBuilder<EdgeStateImpl>
 
   @override
   void removeSelf() {
-    _snapshotBuilder
-      ..removeFromSnapshot(_element)
-      ..queueLayoutUpdate(_element.parentGraph);
+    // _snapshotBuilder
+    //   ..removeFromSnapshot(_element)
+    //   ..queueLayoutUpdate(_element.parentGraph);
 
-    _element.parentProdLine.getStateBuilder()._children[_element.item]!.remove(
-      _element,
-    );
-    _element.childProdLine.getStateBuilder()._parents[_element.item]!.remove(
-      _element,
-    );
-    _element.parentGraph.getStateBuilder()._edges.remove(_element);
+    // _element.parentProdLine.getStateBuilder()._children[_element.item]!.remove(
+    //   _element,
+    // );
+    // _element.childProdLine.getStateBuilder()._parents[_element.item]!.remove(
+    //   _element,
+    // );
+    // _element.parentGraph.getStateBuilder()._edges.remove(_element);
 
-    _updateParentIfParentIsGraphNode();
-    _updateChildIfChildIsGraphNode();
+    // _updateParentIfParentIsGraphNode();
+    // _updateChildIfChildIsGraphNode();
 
-    for (var dependant in _element.determineDependants()) {
-      _snapshotBuilder.queueRequiredIoUpdate(dependant);
-    }
+    // for (var dependant in _element.determineDependants()) {
+    //   _snapshotBuilder.queueRequiredIoUpdate(dependant);
+    // }
   }
 
   void updateAmount(double newAmount) {
@@ -91,18 +91,18 @@ class EdgeStateBuilder extends StateBuilder<EdgeStateImpl>
   }
 
   void updatePercentage(double newPercentage) {
-    _snapshotBuilder.queueRequiredIoUpdate(_element);
-    _percentage = newPercentage;
+    // _snapshotBuilder.queueRequiredIoUpdate(_element);
+    // _percentage = newPercentage;
   }
 
   void updateParentPriority(int newPriority) {
-    _snapshotBuilder.queueRequiredIoUpdate(_element);
-    _parentPriority = newPriority;
+    // _snapshotBuilder.queueRequiredIoUpdate(_element);
+    // _parentPriority = newPriority;
   }
 
   void updateChildPriority(int newPriority) {
-    _snapshotBuilder.queueRequiredIoUpdate(_element);
-    _childPriority = newPriority;
+    // _snapshotBuilder.queueRequiredIoUpdate(_element);
+    // _childPriority = newPriority;
   }
 
   void updateGeometry(EdgeGeometryImpl geometry) => _geometry = geometry;
@@ -118,46 +118,46 @@ class EdgeStateBuilder extends StateBuilder<EdgeStateImpl>
   );
 
   void _removeSelfAndUpdateParentOnly() {
-    _snapshotBuilder
-      ..removeFromSnapshot(_element)
-      ..queueLayoutUpdate(_element.parentGraph);
+    //   _snapshotBuilder
+    //     ..removeFromSnapshot(_element)
+    //     ..queueLayoutUpdate(_element.parentGraph);
 
-    _element.parentProdLine.children[_element.item]!.remove(_element);
+    //   _element.parentProdLine.children[_element.item]!.remove(_element);
 
-    _updateParentIfParentIsGraphNode();
+    //   _updateParentIfParentIsGraphNode();
 
-    for (var parentDependant in _element.determineParentDependants()) {
-      _snapshotBuilder.queueRequiredIoUpdate(parentDependant);
-    }
-  }
+    //   for (var parentDependant in _element.determineParentDependants()) {
+    //     _snapshotBuilder.queueRequiredIoUpdate(parentDependant);
+    //   }
+    // }
 
-  void _removeSelfAndUpdateChildOnly() {
-    _snapshotBuilder
-      ..removeFromSnapshot(_element)
-      ..queueLayoutUpdate(_element.parentGraph);
+    // void _removeSelfAndUpdateChildOnly() {
+    //   _snapshotBuilder
+    //     ..removeFromSnapshot(_element)
+    //     ..queueLayoutUpdate(_element.parentGraph);
 
-    _element.childProdLine.parents[_element.item]!.remove(_element);
+    //   _element.childProdLine.parents[_element.item]!.remove(_element);
 
-    _updateChildIfChildIsGraphNode();
+    //   _updateChildIfChildIsGraphNode();
 
-    for (var childDependant in _element.determineChildDependants()) {
-      _snapshotBuilder.queueRequiredIoUpdate(childDependant);
-    }
+    //   for (var childDependant in _element.determineChildDependants()) {
+    //     _snapshotBuilder.queueRequiredIoUpdate(childDependant);
+    //   }
   }
 
   void _updateParentIfParentIsGraphNode() {
-    if (_element.parentNode is Graph) {
-      var parentGraphNode = (_element.parentNode as Graph);
-      parentGraphNode.getStateBuilder()._clearCachedChildren();
-      _snapshotBuilder.queueRequiredIoUpdate(parentGraphNode);
-    }
+    // if (_element.parentNode is Graph) {
+    //   var parentGraphNode = (_element.parentNode as Graph);
+    //   parentGraphNode.getStateBuilder()._clearCachedChildren();
+    //   _snapshotBuilder.queueRequiredIoUpdate(parentGraphNode);
+    // }
   }
 
   void _updateChildIfChildIsGraphNode() {
-    if (_element.childNode is Graph) {
-      var childGraphNode = (_element.childNode as Graph);
-      childGraphNode.getStateBuilder()._clearCachedParents();
-      _snapshotBuilder.queueRequiredIoUpdate(childGraphNode);
-    }
+    // if (_element.childNode is Graph) {
+    //   var childGraphNode = (_element.childNode as Graph);
+    //   childGraphNode.getStateBuilder()._clearCachedParents();
+    //   _snapshotBuilder.queueRequiredIoUpdate(childGraphNode);
+    // }
   }
 }

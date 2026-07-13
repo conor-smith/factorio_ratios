@@ -23,20 +23,19 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   ProductionLine get productionLine => state.productionLine;
 
   @override
-  ItemIoImpl get ioRatios => productionLine.ioRatios;
+  ItemIoImpl get ioRatios => state.ioRatios;
   @override
   ProductionLineType get productionLineType =>
       productionLine.productionLineType;
   @override
-  Set<InGameItem> get inputItems => productionLine.inputItems;
+  Set<InGameItem> get inputItems => state.inputItems;
   @override
-  Set<InGameItem> get outputItems => productionLine.outputItems;
+  Set<InGameItem> get outputItems => state.outputItems;
 
   @override
   ProductionLineIoData get ioData => state.ioData;
 
   ProdLineNodeStateImpl _internalState;
-  ProdLineNodeStateBuilder? _stateBuilder;
 
   ProdLineNode.addToBasePlanner(
     super.basePlanner, {
@@ -44,27 +43,34 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
     required this.nodeType,
     required ProductionLine productionLine,
   }) : _internalState = ProdLineNodeStateImpl.uninitialised {
-    _stateBuilder = ProdLineNodeStateBuilder.initial(this, productionLine);
+    basePlanner
+        .getSnapshotBuilderOrThrow()
+        .nodeBuilders[this] = SnapshotBuilderProdLineNode.newNode(
+      this,
+      _internalState,
+      ProdLineNodeStateBuilder.initial(this, productionLine),
+    );
   }
 
-  ProdLineNodeState get state => _stateBuilder ?? _internalState;
+  ProdLineNodeState get state =>
+      basePlanner.snapshotBuilder?.nodeBuilders[this]?.state ?? _internalState;
 
   @override
   void updateState(ProdLineNodeStateImpl state) {
     basePlanner.throwIfMutationNotPermitted();
-    _stateBuilder = null;
     _internalState = state;
   }
 
   @override
-  ProdLineNodeStateBuilder getStateBuilder() {
-    _stateBuilder ??= ProdLineNodeStateBuilder.from(this, _internalState);
-
-    return _stateBuilder!;
-  }
+  SnapshotBuilderProdLineNode getSnapshotBuilderElement() =>
+      basePlanner.getSnapshotBuilderOrThrow().nodeBuilders.putIfAbsent(
+        this,
+        () => SnapshotBuilderProdLineNode(this, _internalState),
+      );
 
   @override
-  void cancelStateBuilder() => _stateBuilder = null;
+  ProdLineNodeStateBuilder getStateBuilder() =>
+      getSnapshotBuilderElement().stateBuilder;
 
   @override
   bool get isSelected => basePlanner.selectedElements.contains(this);
@@ -143,32 +149,33 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   // TODO - Actually check if an upate occurs rather than always returning true
   @override
   bool calculateIo(NodeDependencies dependencies) {
-    ItemIoImpl constraints;
+    throw UnimplementedError();
+    // ItemIoImpl constraints;
 
-    if (nodeType.hasInternalConstraints) {
-      constraints = internalConstraints!;
-    } else {
-      constraints = _calculateEdgeConstraints(dependencies);
-      getStateBuilder().updateEdgeConstraints(constraints);
-    }
+    // if (nodeType.hasInternalConstraints) {
+    //   constraints = internalConstraints!;
+    // } else {
+    //   constraints = _calculateEdgeConstraints(dependencies);
+    //   getStateBuilder().updateEdgeConstraints(constraints);
+    // }
 
-    // Check if update is required
-    // This will only occur if constraints or production line are different
-    if (constraints != _internalState.ioData.constraints ||
-        productionLine != _internalState.productionLine) {
-      var newIoData = productionLine.calculateIoData(constraints);
+    // // Check if update is required
+    // // This will only occur if constraints or production line are different
+    // if (constraints != _internalState.ioData.constraints ||
+    //     productionLine != _internalState.productionLine) {
+    //   var newIoData = productionLine.calculateIoData(constraints);
 
-      getStateBuilder().updateIoData(newIoData);
-      basePlanner.getSnapshotBuilder().queueUnusedIoCheck(this);
+    //   getStateBuilder().updateIoData(newIoData);
+    //   basePlanner.getSnapshotBuilderOrThrow().queueUnusedIoCheck(this);
 
-      if (nodeType.isIo) {
-        basePlanner.getSnapshotBuilder().queueUnusedIoCheck(parentGraph);
-      }
+    //   if (nodeType.isIo) {
+    //     basePlanner.getSnapshotBuilderOrThrow().queueUnusedIoCheck(parentGraph);
+    //   }
 
-      return true;
-    } else {
-      return false;
-    }
+    //   return true;
+    // } else {
+    //   return false;
+    // }
   }
 
   @override

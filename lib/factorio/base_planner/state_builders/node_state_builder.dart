@@ -1,7 +1,7 @@
 part of 'state_builders.dart';
 
 class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
-    implements ProdLineNodeState {
+    with ProdLineNodeState {
   @override
   final ProdLineNode _element;
 
@@ -46,41 +46,41 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
       _parents = {},
       _children = {},
       super.initial() {
-    var parentGraph = _element.parentGraph;
+    // var parentGraph = _element.parentGraph;
 
-    _snapshotBuilder.queueLayoutUpdate(parentGraph);
+    // _snapshotBuilder.queueLayoutUpdate(parentGraph);
 
-    switch (_element.nodeType) {
-      case NodeType.input:
-        var inputItem = productionLine.inputItems.first;
-        if (parentGraph.inputNodes.containsKey(inputItem)) {
-          throw GraphException(
-            'Input node for item $inputItem in graph $parentGraph already exists',
-          );
-        } else {
-          parentGraph.getStateBuilder()._inputNodes[inputItem] = _element;
-        }
+    // switch (_element.nodeType) {
+    //   case NodeType.input:
+    //     var inputItem = productionLine.inputItems.first;
+    //     if (parentGraph.inputNodes.containsKey(inputItem)) {
+    //       throw GraphException(
+    //         'Input node for item $inputItem in graph $parentGraph already exists',
+    //       );
+    //     } else {
+    //       parentGraph.getStateBuilder()._inputNodes[inputItem] = _element;
+    //     }
 
-      case NodeType.output:
-        var outputItem = productionLine.outputItems.first;
-        if (parentGraph.outputNodes.containsKey(outputItem)) {
-          throw GraphException(
-            'Output node for item $outputItem in graph $parentGraph already exists',
-          );
-        } else {
-          parentGraph.getStateBuilder()._outputNodes[outputItem] = _element;
-        }
+    //   case NodeType.output:
+    //     var outputItem = productionLine.outputItems.first;
+    //     if (parentGraph.outputNodes.containsKey(outputItem)) {
+    //       throw GraphException(
+    //         'Output node for item $outputItem in graph $parentGraph already exists',
+    //       );
+    //     } else {
+    //       parentGraph.getStateBuilder()._outputNodes[outputItem] = _element;
+    //     }
 
-        // Clear cached output index of "grandparent graph" if required
-        if (parentGraph.parentGraph.hasBuilder) {
-          parentGraph.parentGraph.getStateBuilder()._clearCachedOutputIndex();
-        }
+    //     // Clear cached output index of "grandparent graph" if required
+    //     if (parentGraph.parentGraph.hasBuilder) {
+    //       parentGraph.parentGraph.getStateBuilder()._clearCachedOutputIndex();
+    //     }
 
-      default:
-        _element.parentGraph.getStateBuilder()._prodLineNodes.add(_element);
-    }
+    //   default:
+    //     _element.parentGraph.getStateBuilder()._prodLineNodes.add(_element);
+    // }
 
-    parentGraph.getStateBuilder()._addNodeToNodeCaches(_element);
+    // parentGraph.getStateBuilder()._addNodeToNodeCaches(_element);
   }
 
   ProdLineNodeStateBuilder.from(
@@ -97,49 +97,49 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
         ..updateAll((item, edgeSet) => Set.from(edgeSet)),
       _ioData = previousState.ioData,
       super.from() {
-    if (_element.parentGraph.hasBuilder) {
-      _element.parentGraph.getStateBuilder()._addNodeToNodeCaches(_element);
-    }
+    // if (_element.parentGraph.hasBuilder) {
+    //   _element.parentGraph.getStateBuilder()._addNodeToNodeCaches(_element);
+    // }
   }
 
   @override
   void removeSelf() {
-    var parentGraph = _element.parentGraph;
+    // var parentGraph = _element.parentGraph;
 
-    _snapshotBuilder
-      ..queueRequiredIoUpdate(parentGraph)
-      ..queueLayoutUpdate(parentGraph)
-      ..removeFromSnapshot(_element);
-    for (var parent in _parents.values.expand((edgeSet) => edgeSet)) {
-      parent.getStateBuilder()._removeSelfAndUpdateParentOnly();
-    }
+    // _snapshotBuilder
+    //   ..queueRequiredIoUpdate(parentGraph)
+    //   ..queueLayoutUpdate(parentGraph)
+    //   ..removeFromSnapshot(_element);
+    // for (var parent in _parents.values.expand((edgeSet) => edgeSet)) {
+    //   parent.getStateBuilder()._removeSelfAndUpdateParentOnly();
+    // }
 
-    for (var child in _children.values.expand((edgeSet) => edgeSet)) {
-      child.getStateBuilder()._removeSelfAndUpdateChildOnly();
-    }
+    // for (var child in _children.values.expand((edgeSet) => edgeSet)) {
+    //   child.getStateBuilder()._removeSelfAndUpdateChildOnly();
+    // }
 
-    _parents.clear();
-    _children.clear();
+    // _parents.clear();
+    // _children.clear();
 
-    switch (_element.nodeType) {
-      case NodeType.input:
-        parentGraph.getStateBuilder()._inputNodes.remove(
-          _productionLine.inputItems.first,
-        );
+    // switch (_element.nodeType) {
+    //   case NodeType.input:
+    //     parentGraph.getStateBuilder()._inputNodes.remove(
+    //       _productionLine.inputItems.first,
+    //     );
 
-      case NodeType.output:
-        parentGraph.getStateBuilder()._outputNodes.remove(
-          _productionLine.outputItems.first,
-        );
-        if (parentGraph.parentGraph.hasBuilder) {
-          parentGraph.parentGraph.getStateBuilder()._clearCachedOutputIndex();
-        }
+    //   case NodeType.output:
+    //     parentGraph.getStateBuilder()._outputNodes.remove(
+    //       _productionLine.outputItems.first,
+    //     );
+    //     if (parentGraph.parentGraph.hasBuilder) {
+    //       parentGraph.parentGraph.getStateBuilder()._clearCachedOutputIndex();
+    //     }
 
-      default:
-        parentGraph.getStateBuilder()._prodLineNodes.remove(_element);
-    }
+    //   default:
+    //     parentGraph.getStateBuilder()._prodLineNodes.remove(_element);
+    // }
 
-    parentGraph.getStateBuilder()._removeNodeFromNodeCaches(_element);
+    // parentGraph.getStateBuilder()._removeNodeFromNodeCaches(_element);
   }
 
   @override
@@ -153,8 +153,8 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
   }
 
   void updateInternalConstraints(ItemIoImpl newConstraints) {
-    _snapshotBuilder.queueRequiredIoUpdate(_element);
-    _internalConstraints = newConstraints;
+    // _snapshotBuilder.queueRequiredIoUpdate(_element);
+    // _internalConstraints = newConstraints;
   }
 
   void updateIoData(ProductionLineIoData newIoData) {
@@ -170,49 +170,49 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
   }
 
   void updateProductionLine(ProductionLine newLine) {
-    _snapshotBuilder.queueRequiredIoUpdate(_element);
+    // _snapshotBuilder.queueRequiredIoUpdate(_element);
 
-    var removedOutputs = _productionLine.outputItems.difference(
-      newLine.outputItems,
-    );
-    var parentsToRemove = removedOutputs
-        .map((removedOutput) => _parents[removedOutput])
-        .nonNulls
-        .expand((parentSet) => parentSet)
-        .toList();
+    // var removedOutputs = _productionLine.outputItems.difference(
+    //   newLine.outputItems,
+    // );
+    // var parentsToRemove = removedOutputs
+    //     .map((removedOutput) => _parents[removedOutput])
+    //     .nonNulls
+    //     .expand((parentSet) => parentSet)
+    //     .toList();
 
-    for (var output in removedOutputs) {
-      _parents.remove(output);
-    }
-    for (var parent in parentsToRemove) {
-      parent.getStateBuilder()._removeSelfAndUpdateParentOnly();
-    }
+    // for (var output in removedOutputs) {
+    //   _parents.remove(output);
+    // }
+    // for (var parent in parentsToRemove) {
+    //   parent.getStateBuilder()._removeSelfAndUpdateParentOnly();
+    // }
 
-    var removedInputs = _productionLine.inputItems.difference(
-      newLine.inputItems,
-    );
-    var childrenToRemove = removedInputs
-        .map((removedInput) => _children[removedInput])
-        .nonNulls
-        .expand((childSet) => childSet)
-        .toList();
+    // var removedInputs = _productionLine.inputItems.difference(
+    //   newLine.inputItems,
+    // );
+    // var childrenToRemove = removedInputs
+    //     .map((removedInput) => _children[removedInput])
+    //     .nonNulls
+    //     .expand((childSet) => childSet)
+    //     .toList();
 
-    for (var input in removedInputs) {
-      _children.remove(input);
-    }
-    for (var child in childrenToRemove) {
-      child.getStateBuilder()._removeSelfAndUpdateChildOnly();
-    }
+    // for (var input in removedInputs) {
+    //   _children.remove(input);
+    // }
+    // for (var child in childrenToRemove) {
+    //   child.getStateBuilder()._removeSelfAndUpdateChildOnly();
+    // }
 
-    if (_element.parentGraph.hasBuilder) {
-      if (_element.nodeType.outputPriority < 100) {
-        _element.parentGraph.getStateBuilder()._clearCachedOutputIndex();
-      } else if (_element.nodeType == NodeType.disposal) {
-        _element.parentGraph.getStateBuilder()._clearCachedDisposalNodes();
-      }
-    }
+    // if (_element.parentGraph.hasBuilder) {
+    //   if (_element.nodeType.outputPriority < 100) {
+    //     _element.parentGraph.getStateBuilder()._clearCachedOutputIndex();
+    //   } else if (_element.nodeType == NodeType.disposal) {
+    //     _element.parentGraph.getStateBuilder()._clearCachedDisposalNodes();
+    //   }
+    // }
 
-    _productionLine = newLine;
+    // _productionLine = newLine;
   }
 
   @override
@@ -230,9 +230,9 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
 
   // Used by parentGraph when doing bulk removals
   void _removeSelfButNotOthers() {
-    _snapshotBuilder.removeFromSnapshot(_element);
+    // _snapshotBuilder.removeFromSnapshot(_element);
 
-    _parents.clear();
-    _children.clear();
+    // _parents.clear();
+    // _children.clear();
   }
 }

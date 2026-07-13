@@ -9,28 +9,26 @@ abstract class SnapshotBuilderElement<
     implements Builder<ElementAndState<E, St>> {
   final SnapshotBuilder snapshotBuilder;
   final E element;
-  final ElementAndState<E, St>? oldEAndS;
+  final St previousState;
 
   B? _cachedStateBuilder;
   D? _cachedDependencies;
 
-  bool toRemove;
   final bool circularDependencyCheck;
+  bool toRemove;
   IoUpdateStatus ioUpdateStatus;
 
-  SnapshotBuilderElement(
-    this.snapshotBuilder,
-    ElementAndState<E, St> this.oldEAndS,
-  ) : element = oldEAndS.element,
+  SnapshotBuilderElement(this.element, this.previousState)
+    : snapshotBuilder = element.basePlanner.getSnapshotBuilderOrThrow(),
       toRemove = false,
       circularDependencyCheck = false,
       ioUpdateStatus = IoUpdateStatus.notQueued;
 
   SnapshotBuilderElement.newElement(
-    this.snapshotBuilder,
     this.element,
+    this.previousState,
     B stateBuilder,
-  ) : oldEAndS = null,
+  ) : snapshotBuilder = element.basePlanner.getSnapshotBuilderOrThrow(),
       _cachedStateBuilder = stateBuilder,
       toRemove = false,
       circularDependencyCheck = true,
@@ -39,11 +37,6 @@ abstract class SnapshotBuilderElement<
   St get state;
 
   bool calculateIo();
-  void checkForCircularDependencies(
-    Set<BasePlannerElement> safeElements,
-    Set<BasePlannerElement> visitedElements,
-  );
-  void removeSelf();
 
   B _createStateBuilder();
   D _determineDependencies();
@@ -61,10 +54,35 @@ abstract class SnapshotBuilderElement<
     return _cachedDependencies!;
   }
 
+  void removeSelf() => toRemove = true;
+
+  void checkForCircularDependencies(
+    Set<BasePlannerElement> safeElements,
+    Set<BasePlannerElement> visitedElements,
+  ) {
+    if (visitedElements.contains(element)) {
+      throw BasePlannerException('Circular dependency detected at $element');
+    }
+
+    if (!safeElements.contains(element)) {
+      visitedElements.add(element);
+
+      for (var dependency in cachedDependencies.allDependencies) {
+        dependency.getSnapshotBuilderElement().checkForCircularDependencies(
+          safeElements,
+          visitedElements,
+        );
+      }
+
+      visitedElements.remove(element);
+      safeElements.add(element);
+    }
+  }
+
   @override
   ElementAndState<E, St> build() {
-    if (_cachedStateBuilder == null && oldEAndS != null) {
-      return oldEAndS!;
+    if (_cachedStateBuilder == null) {
+      return ElementAndState(element, previousState);
     } else {
       return ElementAndState(element, _cachedStateBuilder!.build());
     }
@@ -73,20 +91,54 @@ abstract class SnapshotBuilderElement<
 
 abstract class SnapshotBuilderNode<
   E extends NodeElement<St, dynamic>,
-  St,
+  St extends NodeState,
   D extends Dependencies,
   B extends NodeStateBuilder<St>
 >
     extends SnapshotBuilderElement<E, St, D, B> {
   bool unusedIoCheck;
 
-  SnapshotBuilderNode(super.snapshotBuilder, super.oldEAndS)
+  SnapshotBuilderNode(super.element, super.previousState)
     : unusedIoCheck = false;
 
   SnapshotBuilderNode.newElement(
-    super.snapshotBuilder,
     super.element,
+    super.previousState,
     super.stateBuilder,
   ) : unusedIoCheck = true,
       super.newElement();
+
+  void checkForUnusedIo() {
+    var itemIo = state.ioData.itemIo;
+
+    ItemIoBuilder unusedIoBuilder = ItemIoBuilder();
+
+    state.parents.forEach((item, edges) {
+      var unconsumedOutput =
+          itemIo.outputs[item]! -
+          edges.fold(0.0, (sum, edge) => sum + edge.amount);
+
+      // Account for floating point errors
+      if (unconsumedOutput > 0.000001) {
+        unusedIoBuilder.addToOutputs(item, unconsumedOutput);
+      }
+    });
+
+    state.children.forEach((item, edges) {
+      var unfulfilledInput =
+          itemIo.inputs[item]! -
+          edges.fold(0.0, (sum, edge) => sum + edge.amount);
+
+      // Account for floating point errors
+      if (unfulfilledInput > 0.000001) {
+        unusedIoBuilder.addToOutputs(item, unfulfilledInput);
+      }
+    });
+
+    var newUnusedIo = unusedIoBuilder.build();
+
+    if (newUnusedIo != state.unusedIo) {
+      stateBuilder.updateUnusedIo(newUnusedIo);
+    }
+  }
 }

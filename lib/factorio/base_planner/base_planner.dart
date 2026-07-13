@@ -62,6 +62,8 @@ class BasePlanner
   /// List of saved snapshots. Current snapshot is given by [snapshotIndex]
   late final List<Snapshot> snapshots = UnmodifiableListView(_snapshots);
 
+  SnapshotBuilder? get snapshotBuilder => _snapshotBuilder;
+
   late Graph _activeGraph;
   final Set<BasePlannerElement> _selectedElements = {};
 
@@ -172,7 +174,6 @@ class BasePlanner
       if (firstCall) {
         // Reset all states to current snapshot
         _snapshots[_snapshotIndex].states.forEach((element, eAndS) {
-          element.cancelStateBuilder();
           element.updateState(eAndS);
         });
       }
@@ -184,7 +185,7 @@ class BasePlanner
 
   /// Can only be called within [buildNextSnapshot].
   /// Will throw an exception otherwise
-  SnapshotBuilder getSnapshotBuilder() {
+  SnapshotBuilder getSnapshotBuilderOrThrow() {
     if (_snapshotBuilder == null) {
       throw const BasePlannerException('No snapshot currently being built');
     }

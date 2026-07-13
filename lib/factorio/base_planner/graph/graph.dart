@@ -6,6 +6,7 @@ import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/factorio/base_planner/snapshot_builder/snapshot_builder.dart';
 import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
@@ -25,9 +26,9 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   final SurfaceProperties _surfaceProperties;
 
   GraphStateImpl _internalState;
-  GraphStateBuilder? _stateBuilder;
 
-  GraphState get _state => _stateBuilder ?? _internalState;
+  GraphState get _state =>
+      basePlanner.snapshotBuilder?.graphBuilders[this]?.state ?? _internalState;
 
   // For convenience
   String get name => _state.name;
@@ -68,7 +69,6 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   ItemIoImpl get ioRatios => _state.ioRatios;
 
   bool get isRoot => this == parentGraph;
-  bool get hasBuilder => _stateBuilder != null;
 
   Graph.addToBasePlanner(
     super.basePlanner, {
@@ -80,7 +80,13 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   }) : _internalState = GraphStateImpl.uninitialised,
        _surfaceProperties =
            basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
-    _stateBuilder = GraphStateBuilder.initial(this);
+    basePlanner
+        .getSnapshotBuilderOrThrow()
+        .graphBuilders[this] = SnapshotBuilderGraph.newGraph(
+      this,
+      _internalState,
+      GraphStateBuilder.initial(this),
+    );
   }
 
   Graph.rootGraph(super.basePlanner, GraphStateImpl state, [this.surface])
@@ -93,19 +99,18 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   @override
   void updateState(GraphStateImpl state) {
     basePlanner.throwIfMutationNotPermitted();
-    _stateBuilder = null;
     _internalState = state;
   }
 
   @override
-  GraphStateBuilder getStateBuilder() {
-    _stateBuilder ??= GraphStateBuilder.from(this, _internalState);
-
-    return _stateBuilder!;
-  }
+  SnapshotBuilderGraph getSnapshotBuilderElement() => basePlanner
+      .getSnapshotBuilderOrThrow()
+      .graphBuilders
+      .putIfAbsent(this, () => SnapshotBuilderGraph(this, _internalState));
 
   @override
-  void cancelStateBuilder() => _stateBuilder = null;
+  GraphStateBuilder getStateBuilder() =>
+      getSnapshotBuilderElement().stateBuilder;
 
   @override
   bool get isSelected => basePlanner.selectedElements.contains(this);
@@ -166,28 +171,6 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
         );
       }
     }
-  }
-
-  @override
-  GraphDependencies determineDependencies() => GraphDependencies(allNodes);
-
-  @override
-  Iterable<BasePlannerElement> determineDependants() => [parentGraph];
-
-  @override
-  bool calculateIo(GraphDependencies dependencies) {
-    // Due to the nature of graphs,
-    // we can assume there is always an update
-    var ioBuilder = GraphIoBuilder();
-
-    for (var node in dependencies.allNodes) {
-      ioBuilder.add(node);
-    }
-
-    getStateBuilder().updateIoData(ioBuilder.build());
-    basePlanner.getSnapshotBuilder().queueUnusedIoCheck(this);
-
-    return true;
   }
 
   /// Clears all nodes except IO nodes

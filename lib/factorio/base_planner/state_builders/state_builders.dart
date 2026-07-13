@@ -19,27 +19,27 @@ part 'graph_state_builder.dart';
 abstract class StateBuilder<T> implements Builder<T> {
   BasePlannerElement get _element;
   late final SnapshotBuilder _snapshotBuilder = _element.basePlanner
-      .getSnapshotBuilder();
+      .getSnapshotBuilderOrThrow();
 
   StateBuilder.from() {
-    _snapshotBuilder
-      ..throwIfNotStage(SnapshotBuildStage.userOperations)
-      ..addToSnapshot(_element, this);
+    // _snapshotBuilder
+    //   ..throwIfNotStage(SnapshotBuildStage.userOperations)
+    //   ..addToSnapshot(_element, this);
   }
 
   StateBuilder.initial() {
-    _snapshotBuilder
-      ..throwIfNotStage(SnapshotBuildStage.userOperations)
-      ..addToSnapshot(_element, this)
-      ..queueCircularDependencyCheck(_element)
-      ..queueRequiredIoUpdate(_element)
-      ..queueLayoutUpdate(_element.parentGraph);
+    // _snapshotBuilder
+    //   ..throwIfNotStage(SnapshotBuildStage.userOperations)
+    //   ..addToSnapshot(_element, this)
+    //   ..queueCircularDependencyCheck(_element)
+    //   ..queueRequiredIoUpdate(_element)
+    //   ..queueLayoutUpdate(_element.parentGraph);
   }
 
   void removeSelf();
 }
 
-abstract class NodeStateBuilder<T> extends StateBuilder<T> {
+abstract class NodeStateBuilder<T extends NodeState> extends StateBuilder<T> {
   NodeStateBuilder.from() : super.from();
   NodeStateBuilder.initial() : super.initial();
 

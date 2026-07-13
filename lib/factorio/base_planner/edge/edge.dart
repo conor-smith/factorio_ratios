@@ -2,6 +2,7 @@ import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/factorio/base_planner/snapshot_builder/snapshot_builder.dart';
 import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/json/json.dart';
@@ -29,7 +30,6 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
   final InGameItem item;
 
   EdgeStateImpl _internalState;
-  EdgeStateBuilder? _stateBuilder;
 
   // For convenience
   double get percentage => state.percentage;
@@ -62,26 +62,33 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
       throw const EdgeException('A node may not consume it\'s own output');
     }
 
-    _stateBuilder = EdgeStateBuilder.initial(this);
+    basePlanner
+        .getSnapshotBuilderOrThrow()
+        .edgeBuilders[this] = SnapshotBuilderEdge.newEdge(
+      this,
+      _internalState,
+      EdgeStateBuilder.initial(this),
+    );
   }
 
-  EdgeState get state => _stateBuilder ?? _internalState;
+  EdgeState get state =>
+      basePlanner.snapshotBuilder?.edgeBuilders[this]?.state ?? _internalState;
+
   @override
   void updateState(EdgeStateImpl state) {
     basePlanner.throwIfMutationNotPermitted();
-    _stateBuilder = null;
     _internalState = state;
   }
 
   @override
-  EdgeStateBuilder getStateBuilder() {
-    _stateBuilder ??= EdgeStateBuilder.from(this, _internalState);
-
-    return _stateBuilder!;
-  }
+  SnapshotBuilderEdge getSnapshotBuilderElement() => basePlanner
+      .getSnapshotBuilderOrThrow()
+      .edgeBuilders
+      .putIfAbsent(this, () => SnapshotBuilderEdge(this, _internalState));
 
   @override
-  void cancelStateBuilder() => _stateBuilder = null;
+  EdgeStateBuilder getStateBuilder() =>
+      getSnapshotBuilderElement().stateBuilder;
 
   @override
   bool get isSelected => basePlanner.selectedElements.contains(this);
@@ -154,42 +161,43 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
 
   @override
   bool calculateIo(EdgeDependencies dependencies) {
-    double newAmount;
-    List<NodeElement> unusedIoCheckNodes;
+    throw UnimplementedError();
+    // double newAmount;
+    // List<NodeElement> unusedIoCheckNodes;
 
-    switch (edgeType) {
-      case EdgeType.requestItems:
-        newAmount = _getAmountToRequest(dependencies) * percentage;
-        unusedIoCheckNodes = [parentProdLine, parentNode];
+    // switch (edgeType) {
+    //   case EdgeType.requestItems:
+    //     newAmount = _getAmountToRequest(dependencies) * percentage;
+    //     unusedIoCheckNodes = [parentProdLine, parentNode];
 
-      case EdgeType.pushExcess:
-        newAmount = _getAmountToPush(dependencies) * percentage;
-        unusedIoCheckNodes = [childProdLine, childNode];
+    //   case EdgeType.pushExcess:
+    //     newAmount = _getAmountToPush(dependencies) * percentage;
+    //     unusedIoCheckNodes = [childProdLine, childNode];
 
-      case EdgeType.requestExcess:
-        var request = _getAmountToRequest(dependencies);
-        var push = _getAmountToPush(dependencies);
-        newAmount = request > push ? request : push;
+    //   case EdgeType.requestExcess:
+    //     var request = _getAmountToRequest(dependencies);
+    //     var push = _getAmountToPush(dependencies);
+    //     newAmount = request > push ? request : push;
 
-        unusedIoCheckNodes = [
-          parentProdLine,
-          parentNode,
-          childProdLine,
-          childNode,
-        ];
-    }
+    //     unusedIoCheckNodes = [
+    //       parentProdLine,
+    //       parentNode,
+    //       childProdLine,
+    //       childNode,
+    //     ];
+    // }
 
-    if (newAmount != amount) {
-      getStateBuilder().updateAmount(newAmount);
+    // if (newAmount != amount) {
+    //   getStateBuilder().updateAmount(newAmount);
 
-      for (var node in unusedIoCheckNodes) {
-        basePlanner.getSnapshotBuilder().queueUnusedIoCheck(node);
-      }
+    //   for (var node in unusedIoCheckNodes) {
+    //     basePlanner.getSnapshotBuilderOrThrow().queueUnusedIoCheck(node);
+    //   }
 
-      return true;
-    } else {
-      return false;
-    }
+    //   return true;
+    // } else {
+    //   return false;
+    // }
   }
 
   List<BasePlannerElement> determineParentDependants() => switch (edgeType) {
