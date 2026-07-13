@@ -7,7 +7,6 @@ import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dar
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/base_planner/snapshot_builder/snapshot_builder.dart';
-import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
@@ -39,6 +38,11 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   Map<InGameItem, Set<Edge>> get parents => _state.parents;
   @override
   Map<InGameItem, Set<Edge>> get children => _state.children;
+  @override
+  Set<Edge> get allParents => _state.allParents;
+  @override
+  Set<Edge> get allChildren => _state.allChildren;
+
   Set<Graph> get graphNodes => _state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => _state.prodLineNodes;
   Map<InGameItem, ProdLineNode> get outputNodes => _state.outputNodes;
@@ -85,7 +89,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
         .graphBuilders[this] = SnapshotBuilderGraph.newGraph(
       this,
       _internalState,
-      GraphStateBuilder.initial(this),
+      GraphStateBuilder.initial(icon),
     );
   }
 
@@ -176,10 +180,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   /// Clears all nodes except IO nodes
   void clear() {
     basePlanner.buildNextSnapshot(() {
-      var nonIoNodes = allNodes.where((node) => !node.nodeType.isIo).toList();
-      for (var node in nonIoNodes) {
-        node.getStateBuilder().removeSelf();
-      }
+      getSnapshotBuilderElement().removeAllNodesExceptIo();
     });
   }
 
@@ -315,7 +316,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
 
     for (var input in requiredInputs) {
       var nextNode =
-          getStateBuilder().cachedNodeOutputIndex[input]?.firstOrNull;
+          getSnapshotBuilderElement().cachedNodeOutputIndex[input]?.firstOrNull;
 
       if (nextNode == null) {
         nextNode =
@@ -378,9 +379,8 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
         var existingNodeFuel = burner.fuelItems
             .where(
               (fuelItem) =>
-                  getStateBuilder().cachedDisposalNodes[InGameSolidItem(
-                    fuelItem,
-                  )] !=
+                  getSnapshotBuilderElement()
+                      .cachedDisposalNodes[InGameSolidItem(fuelItem)] !=
                   null,
             )
             .map((item) => InGameSolidItem(item));

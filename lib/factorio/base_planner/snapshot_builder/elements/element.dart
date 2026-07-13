@@ -1,4 +1,4 @@
-part of 'snapshot_builder.dart';
+part of '../snapshot_builder.dart';
 
 abstract class SnapshotBuilderElement<
   E extends BasePlannerElement<St, dynamic>,
@@ -15,14 +15,13 @@ abstract class SnapshotBuilderElement<
   D? _cachedDependencies;
 
   final bool circularDependencyCheck;
-  bool toRemove;
-  IoUpdateStatus ioUpdateStatus;
+  bool _toRemove;
+  IoUpdateStatus? _ioUpdateStatus;
 
   SnapshotBuilderElement(this.element, this.previousState)
     : snapshotBuilder = element.basePlanner.getSnapshotBuilderOrThrow(),
-      toRemove = false,
-      circularDependencyCheck = false,
-      ioUpdateStatus = IoUpdateStatus.notQueued;
+      _toRemove = false,
+      circularDependencyCheck = false;
 
   SnapshotBuilderElement.newElement(
     this.element,
@@ -30,17 +29,23 @@ abstract class SnapshotBuilderElement<
     B stateBuilder,
   ) : snapshotBuilder = element.basePlanner.getSnapshotBuilderOrThrow(),
       _cachedStateBuilder = stateBuilder,
-      toRemove = false,
+      _toRemove = false,
       circularDependencyCheck = true,
-      ioUpdateStatus = IoUpdateStatus.required;
+      _ioUpdateStatus = IoUpdateStatus.required {
+    element.parentGraph.getSnapshotBuilderElement().queueLayoutUpdate();
+  }
 
-  St get state;
+  Object get state;
 
   bool calculateIo();
+  Iterable<BasePlannerElement> determineDependants();
+  void removeSelf();
 
   B _createStateBuilder();
   D _determineDependencies();
-  Iterable<BasePlannerElement> _determineDependants();
+  void _removeSelfOnly();
+
+  bool get toRemove => _toRemove;
 
   B get stateBuilder {
     _cachedStateBuilder ??= _createStateBuilder();
@@ -54,7 +59,13 @@ abstract class SnapshotBuilderElement<
     return _cachedDependencies!;
   }
 
-  void removeSelf() => toRemove = true;
+  IoUpdateStatus get ioUpdateStatus {
+    _ioUpdateStatus ??= IoUpdateStatus.checkDependencies;
+
+    return _ioUpdateStatus!;
+  }
+
+  void queueIoUpdate() => _ioUpdateStatus = IoUpdateStatus.required;
 
   void checkForCircularDependencies(
     Set<BasePlannerElement> safeElements,
@@ -90,23 +101,34 @@ abstract class SnapshotBuilderElement<
 }
 
 abstract class SnapshotBuilderNode<
-  E extends NodeElement<St, dynamic>,
+  E extends NodeElement<St, NodeEvent>,
   St extends NodeState,
   D extends Dependencies,
   B extends NodeStateBuilder<St>
 >
     extends SnapshotBuilderElement<E, St, D, B> {
-  bool unusedIoCheck;
+  bool _unusedIoCheck;
+
+  bool get unusedIoCheck => _unusedIoCheck;
 
   SnapshotBuilderNode(super.element, super.previousState)
-    : unusedIoCheck = false;
+    : _unusedIoCheck = false;
 
-  SnapshotBuilderNode.newElement(
+  SnapshotBuilderNode.newNode(
     super.element,
     super.previousState,
     super.stateBuilder,
-  ) : unusedIoCheck = true,
-      super.newElement();
+  ) : _unusedIoCheck = true,
+      super.newElement() {
+    element.parentGraph.getSnapshotBuilderElement()._addNodeToNodeCaches(
+      element,
+    );
+  }
+
+  @override
+  NodeState get state;
+
+  void queueUnusedIoCheck() => _unusedIoCheck = true;
 
   void checkForUnusedIo() {
     var itemIo = state.ioData.itemIo;
@@ -140,5 +162,12 @@ abstract class SnapshotBuilderNode<
     if (newUnusedIo != state.unusedIo) {
       stateBuilder.updateUnusedIo(newUnusedIo);
     }
+  }
+
+  void _removeSelfAndUpdateParentGraphSnapshotBuilder() {
+    element.parentGraph.getSnapshotBuilderElement()
+      ..queueLayoutUpdate()
+      ..queueIoUpdate()
+      .._removeNodeFromNodeCaches(element);
   }
 }

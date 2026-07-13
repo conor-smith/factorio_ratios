@@ -1,16 +1,24 @@
-// TODO - Document
+import 'dart:collection';
+
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
-import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
+import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/utility/builder.dart';
 
-part 'snapshot_builder_edge.dart';
-part 'snapshot_builder_graph.dart';
-part 'snapshot_builder_element.dart';
-part 'snapshot_builder_prod_line.dart';
+part 'elements/edge.dart';
+part 'elements/element.dart';
+part 'elements/graph.dart';
+part 'elements/prod_line_node.dart';
+part 'state_builders/edge.dart';
+part 'state_builders/graph.dart';
+part 'state_builders/prod_line_node.dart';
+part 'state_builders/state_builders.dart';
 
 class SnapshotBuilder implements Builder<Snapshot> {
   final Snapshot _previousSnapshot;
@@ -161,7 +169,6 @@ class SnapshotBuilder implements Builder<Snapshot> {
 }
 
 enum IoUpdateStatus {
-  notQueued(false),
   checkDependencies(false),
   required(false),
   completeNoUpdate(true),

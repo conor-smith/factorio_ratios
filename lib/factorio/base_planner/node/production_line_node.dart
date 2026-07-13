@@ -19,6 +19,10 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   Map<InGameItem, Set<Edge>> get parents => state.parents;
   @override
   Map<InGameItem, Set<Edge>> get children => state.children;
+  @override
+  Set<Edge> get allParents => state.allParents;
+  @override
+  Set<Edge> get allChildren => state.allChildren;
 
   ProductionLine get productionLine => state.productionLine;
 
@@ -114,98 +118,9 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   }
 
   @override
-  NodeDependencies determineDependencies() {
-    Map<InGameItem, Set<Edge>> parentDeps = Map.from(parents)
-      ..updateAll(
-        (item, edgeSet) => edgeSet
-            .where((edge) => edge.edgeType == EdgeType.requestItems)
-            .toSet(),
-      )
-      ..removeWhere((item, edgeSet) => edgeSet.isEmpty);
-
-    Map<InGameItem, Set<Edge>> childDeps = Map.from(children)
-      ..updateAll(
-        (item, edgeSet) => edgeSet
-            .where((edge) => edge.edgeType == EdgeType.pushExcess)
-            .toSet(),
-      )
-      ..removeWhere((item, edgeSet) => edgeSet.isEmpty);
-
-    return NodeDependencies(parentDeps: parentDeps, childDeps: childDeps);
-  }
-
-  @override
-  List<BasePlannerElement> determineDependants() {
-    var parentDependants = allParents.where(
-      (parent) => parent.edgeType != EdgeType.requestItems,
-    );
-    var childDependants = allChildren.where(
-      (child) => child.edgeType != EdgeType.pushExcess,
-    );
-
-    return [...parentDependants, ...childDependants, parentGraph];
-  }
-
-  // TODO - Actually check if an upate occurs rather than always returning true
-  @override
-  bool calculateIo(NodeDependencies dependencies) {
-    throw UnimplementedError();
-    // ItemIoImpl constraints;
-
-    // if (nodeType.hasInternalConstraints) {
-    //   constraints = internalConstraints!;
-    // } else {
-    //   constraints = _calculateEdgeConstraints(dependencies);
-    //   getStateBuilder().updateEdgeConstraints(constraints);
-    // }
-
-    // // Check if update is required
-    // // This will only occur if constraints or production line are different
-    // if (constraints != _internalState.ioData.constraints ||
-    //     productionLine != _internalState.productionLine) {
-    //   var newIoData = productionLine.calculateIoData(constraints);
-
-    //   getStateBuilder().updateIoData(newIoData);
-    //   basePlanner.getSnapshotBuilderOrThrow().queueUnusedIoCheck(this);
-
-    //   if (nodeType.isIo) {
-    //     basePlanner.getSnapshotBuilderOrThrow().queueUnusedIoCheck(parentGraph);
-    //   }
-
-    //   return true;
-    // } else {
-    //   return false;
-    // }
-  }
-
-  @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
-  }
-
-  ItemIoImpl _calculateEdgeConstraints(NodeDependencies dependencies) {
-    ItemIoBuilder builder = ItemIoBuilder();
-
-    dependencies.parentDeps.forEach((item, requestItemEdges) {
-      builder.addToOutputs(
-        item,
-        requestItemEdges
-            .map((edge) => edge.amount)
-            .reduce((amount1, amount2) => amount1 + amount2),
-      );
-    });
-
-    dependencies.childDeps.forEach((item, pushExcessEdges) {
-      builder.addToInputs(
-        item,
-        pushExcessEdges
-            .map((edge) => edge.amount)
-            .reduce((amount1, amount2) => amount1 + amount2),
-      );
-    });
-
-    return builder.build();
   }
 
   @override

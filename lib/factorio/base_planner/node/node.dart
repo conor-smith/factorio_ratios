@@ -3,7 +3,6 @@ import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/snapshot_builder/snapshot_builder.dart';
-import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/json/json.dart';
@@ -36,14 +35,15 @@ abstract class NodeElement<St extends NodeState, E extends NodeEvent>
   @override
   NodeGeometryImpl get geometry;
   @override
+  SnapshotBuilderNode getSnapshotBuilderElement();
+  @override
   NodeStateBuilder<St> getStateBuilder();
 
   Map<InGameItem, Set<Edge>> get parents;
   Map<InGameItem, Set<Edge>> get children;
 
-  Iterable<Edge> get allParents => parents.values.expand((edgeSet) => edgeSet);
-  Iterable<Edge> get allChildren =>
-      children.values.expand((edgeSet) => edgeSet);
+  Iterable<Edge> get allParents;
+  Iterable<Edge> get allChildren;
 
   Set<InGameItem> get inputItems;
   Set<InGameItem> get outputItems;
@@ -54,7 +54,7 @@ abstract class NodeElement<St extends NodeState, E extends NodeEvent>
   void calculateUnusedIo() {}
 }
 
-abstract class NodeState {
+abstract mixin class NodeState {
   ProductionLineIoData get ioData;
   ItemIoImpl get edgeConstraints;
   ItemIoImpl get ioRatios;
@@ -66,6 +66,11 @@ abstract class NodeState {
   Map<InGameItem, Set<Edge>> get parents;
   Map<InGameItem, Set<Edge>> get children;
   NodeGeometryImpl get geometry;
+
+  Set<Edge> get allParents =>
+      parents.values.expand((edgeSet) => edgeSet).toSet();
+  Set<Edge> get allChildren =>
+      children.values.expand((edgeSet) => edgeSet).toSet();
 }
 
 enum NodeType implements Comparable<NodeType> {

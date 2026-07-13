@@ -3,7 +3,6 @@ import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dar
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/base_planner/snapshot_builder/snapshot_builder.dart';
-import 'package:factorio_ratios/factorio/base_planner/state_builders/state_builders.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/json/json.dart';
 
@@ -114,157 +113,10 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
   }
 
   @override
-  EdgeDependencies determineDependencies() => switch (edgeType) {
-    EdgeType.requestItems => EdgeDependencies(
-      parentProdLineDep: parentProdLine,
-      parentEdgeDeps: parentNode.children[item]!
-          .where((edge) => edge.edgeType != EdgeType.requestItems)
-          .toList(),
-    ),
-
-    EdgeType.pushExcess => EdgeDependencies(
-      childProdLineDep: childProdLine,
-      childEdgeDeps: childNode.parents[item]!
-          .where((edge) => edge.edgeType == EdgeType.pushExcess)
-          .toList(),
-    ),
-
-    EdgeType.requestExcess => EdgeDependencies(
-      parentProdLineDep: parentProdLine,
-      parentEdgeDeps: parentNode.children[item]!
-          .where(
-            (edge) =>
-                edge.edgeType == EdgeType.pushExcess ||
-                (edge.edgeType == EdgeType.requestExcess &&
-                    edge.parentPriority < parentPriority),
-          )
-          .toList(),
-      childProdLineDep: childProdLine,
-      childEdgeDeps: childNode.parents[item]!
-          .where(
-            (edge) =>
-                edge.edgeType != EdgeType.requestItems ||
-                (edge.edgeType == EdgeType.requestExcess &&
-                    edge.childPriority < childPriority),
-          )
-          .toList(),
-    ),
-  };
-
-  // Adding both childProdLine and child ensures child is updated if child is a graph
-  // Same goes for parent. Even if this does result in some duplication
-  @override
-  List<BasePlannerElement> determineDependants() => [
-    ...determineParentDependants(),
-    ...determineChildDependants(),
-  ];
-
-  @override
-  bool calculateIo(EdgeDependencies dependencies) {
-    throw UnimplementedError();
-    // double newAmount;
-    // List<NodeElement> unusedIoCheckNodes;
-
-    // switch (edgeType) {
-    //   case EdgeType.requestItems:
-    //     newAmount = _getAmountToRequest(dependencies) * percentage;
-    //     unusedIoCheckNodes = [parentProdLine, parentNode];
-
-    //   case EdgeType.pushExcess:
-    //     newAmount = _getAmountToPush(dependencies) * percentage;
-    //     unusedIoCheckNodes = [childProdLine, childNode];
-
-    //   case EdgeType.requestExcess:
-    //     var request = _getAmountToRequest(dependencies);
-    //     var push = _getAmountToPush(dependencies);
-    //     newAmount = request > push ? request : push;
-
-    //     unusedIoCheckNodes = [
-    //       parentProdLine,
-    //       parentNode,
-    //       childProdLine,
-    //       childNode,
-    //     ];
-    // }
-
-    // if (newAmount != amount) {
-    //   getStateBuilder().updateAmount(newAmount);
-
-    //   for (var node in unusedIoCheckNodes) {
-    //     basePlanner.getSnapshotBuilderOrThrow().queueUnusedIoCheck(node);
-    //   }
-
-    //   return true;
-    // } else {
-    //   return false;
-    // }
-  }
-
-  List<BasePlannerElement> determineParentDependants() => switch (edgeType) {
-    EdgeType.requestItems => const [],
-
-    EdgeType.pushExcess => [
-      parentProdLine,
-      parentNode,
-      ...parentProdLine.children[item]!.where(
-        (edge) => edge.edgeType != EdgeType.pushExcess,
-      ),
-    ],
-
-    EdgeType.requestExcess => [
-      parentProdLine,
-      parentNode,
-      ...parentProdLine.children[item]!.where(
-        (edge) =>
-            edge.edgeType == EdgeType.pushExcess ||
-            (edge.edgeType == EdgeType.requestExcess &&
-                edge.childPriority > childPriority),
-      ),
-    ],
-  };
-
-  List<BasePlannerElement> determineChildDependants() => switch (edgeType) {
-    EdgeType.requestItems => [
-      childProdLine,
-      childNode,
-      ...childProdLine.parents[item]!.where(
-        (edge) => edge.edgeType != EdgeType.requestItems,
-      ),
-    ],
-
-    EdgeType.pushExcess => const [],
-
-    EdgeType.requestExcess => [
-      childProdLine,
-      childNode,
-      ...childProdLine.parents[item]!.where(
-        (edge) =>
-            edge.edgeType == EdgeType.requestItems ||
-            (edge.edgeType == EdgeType.requestExcess &&
-                edge.parentPriority > parentPriority),
-      ),
-    ],
-  };
-
-  @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
   }
-
-  double _getAmountToRequest(EdgeDependencies dependencies) =>
-      dependencies.parentProdLineDep!.ioData.itemIo.inputs[item]! -
-      dependencies.orderedParentEdgeDeps!.fold(
-        0.0,
-        (amount, edge) => amount + edge.amount,
-      );
-
-  double _getAmountToPush(EdgeDependencies dependencies) =>
-      dependencies.childProdLineDep!.ioData.itemIo.outputs[item]! -
-      dependencies.orderedChildEdgeDeps!.fold(
-        0.0,
-        (amount, edge) => amount + edge.amount,
-      );
 }
 
 class EdgeEvent {

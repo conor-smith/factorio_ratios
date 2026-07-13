@@ -38,7 +38,7 @@ abstract class GraphState extends NodeState {
   )..removeWhere((item, edges) => edges.isEmpty);
 }
 
-class GraphStateImpl implements GraphState, ToJson {
+class GraphStateImpl with NodeState implements GraphState, ToJson {
   static const uninitialised = GraphStateImpl._uninitialised();
 
   @override
@@ -82,7 +82,6 @@ class GraphStateImpl implements GraphState, ToJson {
   final GraphLayout layout;
 
   GraphStateImpl({
-    required Graph graph,
     required this.name,
     required this.icon,
     required Iterable<ProdLineNode> prodLineNodes,
@@ -118,14 +117,7 @@ class GraphStateImpl implements GraphState, ToJson {
            ..updateAll((item, edges) => Set.unmodifiable(edges)),
        ),
        inputItems = Set.unmodifiable(inputNodes.keys),
-       outputItems = Set.unmodifiable(outputNodes.keys) {
-    if (graph.isRoot &&
-        (this.inputNodes.isNotEmpty || this.outputNodes.isNotEmpty)) {
-      throw const GraphException(
-        'Root graph is not permitted to have output or input nodes',
-      );
-    }
-  }
+       outputItems = Set.unmodifiable(outputNodes.keys);
 
   GraphStateImpl.rootGraphFirstState(this.icon)
     : name = 'Root Graph',
