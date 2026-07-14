@@ -89,15 +89,6 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
   EdgeStateBuilder getStateBuilder() => getChangeTracker().stateBuilder;
 
   @override
-  bool get isSelected => basePlanner.selectedElements.contains(this);
-
-  @override
-  void select() => basePlanner.selectElement(this);
-
-  @override
-  void deselect() => basePlanner.deselectElement(this);
-
-  @override
   void notifyListenersOfGeometryUpdate(EdgeGeometry geometry) =>
       notifyListeners(EdgeEvent.geometryOp(geometry));
 

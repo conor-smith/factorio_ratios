@@ -75,15 +75,6 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   ProdLineNodeStateBuilder getStateBuilder() => getChangeTracker().stateBuilder;
 
   @override
-  bool get isSelected => basePlanner.selectedElements.contains(this);
-
-  @override
-  void select() => basePlanner.selectElement(this);
-
-  @override
-  void deselect() => basePlanner.deselectElement(this);
-
-  @override
   ProdLineNode getOutputItemNode(InGameItem item) {
     if (outputItems.contains(item)) {
       return this;

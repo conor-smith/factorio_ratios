@@ -116,15 +116,6 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   GraphStateBuilder getStateBuilder() => getChangeTracker().stateBuilder;
 
   @override
-  bool get isSelected => basePlanner.selectedElements.contains(this);
-
-  @override
-  void select() => basePlanner.selectElement(this);
-
-  @override
-  void deselect() => basePlanner.deselectElement(this);
-
-  @override
   ProdLineNode getOutputItemNode(InGameItem item) {
     var outputNode = outputNodes[item];
 

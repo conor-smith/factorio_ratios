@@ -14,10 +14,6 @@ abstract class BasePlannerElement<St, E>
   Graph get parentGraph;
   Geometry get geometry;
 
-  bool get isSelected;
-  void select();
-  void deselect();
-
   /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
   void updateState(St state);
 
@@ -30,6 +26,10 @@ abstract class BasePlannerElement<St, E>
 
   /// Used whenever state is updated
   void notifyListenersOfStateUpdate(St oldState, St newState);
+
+  void select() => basePlanner.selectedElements.add(this);
+  void deselect() => basePlanner.selectedElements.remove(this);
+  bool get isSelected => basePlanner.selectedElements.contains(this);
 }
 
 abstract interface class Dependencies {
