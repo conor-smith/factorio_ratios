@@ -53,7 +53,7 @@ class ProdLineNodeChangeTracker
   ProdLineNodeState get state => _cachedStateBuilder ?? previousState;
 
   @override
-  Iterable<BasePlannerElement> determineDependants() {
+  Iterable<BasePlannerElement> _determineDependants() {
     var parentDependants = state.allParents.where(
       (parent) => parent.edgeType != EdgeType.requestItems,
     );
@@ -65,14 +65,14 @@ class ProdLineNodeChangeTracker
   }
 
   @override
-  bool calculateIo() {
+  bool _calculateIo() {
     ItemIoImpl constraints;
 
     if (element.nodeType.hasInternalConstraints) {
       constraints = state.internalConstraints!;
     } else {
       constraints = _calculateEdgeConstraints();
-      stateBuilder.updateEdgeConstraints(constraints);
+      stateBuilder._updateEdgeConstraints(constraints);
     }
 
     // Check if update is required
@@ -80,7 +80,7 @@ class ProdLineNodeChangeTracker
         state.productionLine != previousState.productionLine) {
       var newIoData = state.productionLine.calculateIoData(constraints);
 
-      stateBuilder.updateIoData(newIoData);
+      stateBuilder._updateIoData(newIoData);
       queueUnusedIoCheck();
 
       if (element.nodeType.isIo) {
@@ -155,7 +155,7 @@ class ProdLineNodeChangeTracker
 
   @override
   void _removeSelfOnly() {
-    _toRemove = true;
+    _queuedForRemoval = true;
 
     stateBuilder
       .._parents.clear()

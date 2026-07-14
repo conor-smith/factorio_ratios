@@ -14,6 +14,9 @@ class GraphChangeTracker
   Map<InGameItem, List<NodeElement>>? _cachedNodeOutputIndex;
   Map<InGameItem, NodeElement>? _cachedDisposalNodes;
 
+  static int _orderByNodeType(NodeElement node1, NodeElement node2) =>
+      node1.nodeType.compareTo(node2.nodeType);
+
   GraphChangeTracker(super.element, super.previousState);
 
   GraphChangeTracker.newGraph(
@@ -23,9 +26,6 @@ class GraphChangeTracker
   ) : super.newNode() {
     element.parentGraph.getStateBuilder()._graphNodes.add(element);
   }
-
-  static int _orderByNodeType(NodeElement node1, NodeElement node2) =>
-      node1.nodeType.compareTo(node2.nodeType);
 
   /// DO NOT modify this value outside this class
   Map<InGameItem, List<NodeElement>> get cachedNodeOutputIndex {
@@ -77,20 +77,7 @@ class GraphChangeTracker
   }
 
   @override
-  bool calculateIo() {
-    var builder = GraphIoBuilder();
-
-    for (var node in state.allNodes) {
-      builder.add(node);
-    }
-
-    stateBuilder.updateIoData(builder.build());
-
-    return true;
-  }
-
-  @override
-  Iterable<Graph> determineDependants() {
+  Iterable<Graph> _determineDependants() {
     if (element.isRoot) {
       return const [];
     } else {
@@ -99,6 +86,12 @@ class GraphChangeTracker
   }
 
   void removeAllNodesExceptIo() {
+    if (state.prodLineNodes.isEmpty &&
+        state.graphNodes.isEmpty &&
+        state.edges.isEmpty) {
+      return;
+    }
+
     queueIoUpdate();
     queueLayoutUpdate();
 
@@ -136,7 +129,20 @@ class GraphChangeTracker
       .._edges.clear();
   }
 
-  void performLayoutUptdate() {
+  @override
+  bool _calculateIo() {
+    var builder = GraphIoBuilder();
+
+    for (var node in state.allNodes) {
+      builder.add(node);
+    }
+
+    stateBuilder._updateIoData(builder.build());
+
+    return true;
+  }
+
+  void _performLayoutUpdate() {
     // TODO
     throw UnimplementedError();
   }
@@ -151,7 +157,7 @@ class GraphChangeTracker
 
   @override
   void _removeSelfOnly() {
-    _toRemove = true;
+    _queuedForRemoval = true;
     _clearCachedDisposalNodes();
     _clearCachedOutputIndex();
 

@@ -1,10 +1,8 @@
 import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/base_planner/change_tracker/change_trackers.dart';
-import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
@@ -13,7 +11,6 @@ import 'package:factorio_ratios/utility/builder.dart';
 
 part 'base_planner_element.dart';
 part 'event_notifier.dart';
-part 'snapshot_builder.dart';
 
 /// The single source of truth for the application.
 ///
@@ -155,8 +152,8 @@ class BasePlanner
       function();
 
       if (firstCall) {
-        var newSnapshot = _snapshotBuilder!.build();
-        if (newSnapshot != null) {
+        if (_snapshotBuilder!.performAllQueuedOperationsAndReturnHasChanges()) {
+          var newSnapshot = _snapshotBuilder!.build();
           var oldSnapshot = _snapshots[_snapshotIndex];
 
           if (_snapshotIndex == maxSnapshots - 1) {
@@ -176,11 +173,6 @@ class BasePlanner
       _mutationLock--;
     } catch (e) {
       if (firstCall) {
-        // Reset all states to current snapshot
-        _snapshots[_snapshotIndex].stateMap.forEach((element, eAndS) {
-          element.updateState(eAndS);
-        });
-
         _snapshotBuilder = null;
       }
       _mutationLock--;

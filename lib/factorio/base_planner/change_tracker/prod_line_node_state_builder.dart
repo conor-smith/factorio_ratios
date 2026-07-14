@@ -65,19 +65,6 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
-  @override
-  void updateUnusedIo(ItemIoImpl newUnusedIo) {
-    _unusedIo = newUnusedIo;
-  }
-
-  void updateIoData(ProductionLineIoData newIoData) {
-    _ioData = newIoData;
-  }
-
-  void updateEdgeConstraints(ItemIoImpl newEdgeConstraints) {
-    _edgeConstraints = newEdgeConstraints;
-  }
-
   void updateProductionLine(ProductionLine newLine) {
     _node.getChangeTracker().queueIoUpdate();
 
@@ -134,4 +121,17 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
     parents: parents..removeWhere((item, edges) => edges.isEmpty),
     children: children..removeWhere((item, edges) => edges.isEmpty),
   );
+
+  @override
+  void _updateUnusedIo(ItemIoImpl newUnusedIo) {
+    _unusedIo = newUnusedIo;
+  }
+
+  void _updateIoData(ProductionLineIoData newIoData) {
+    _ioData = newIoData;
+  }
+
+  void _updateEdgeConstraints(ItemIoImpl newEdgeConstraints) {
+    _edgeConstraints = newEdgeConstraints;
+  }
 }

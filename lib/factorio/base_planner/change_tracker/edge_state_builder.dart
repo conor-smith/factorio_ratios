@@ -41,10 +41,6 @@ class EdgeStateBuilder implements Builder<EdgeStateImpl>, EdgeState {
       _childPriority = previousState.childPriority,
       _geometry = previousState.geometry;
 
-  void updateAmount(double newAmount) {
-    _amount = newAmount;
-  }
-
   void updatePercentage(double newPercentage) {
     edge.getChangeTracker().queueIoUpdate();
     _percentage = newPercentage;
@@ -71,4 +67,8 @@ class EdgeStateBuilder implements Builder<EdgeStateImpl>, EdgeState {
     childPriority: _childPriority,
     geometry: _geometry,
   );
+
+  void _updateAmount(double newAmount) {
+    _amount = newAmount;
+  }
 }

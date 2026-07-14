@@ -115,20 +115,19 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
       _ioData = previousState.ioData,
       _unusedIo = previousState.unusedIo;
 
-  @override
-  void updateUnusedIo(ItemIoImpl newUnusedIo) => _unusedIo = newUnusedIo;
-
   void updateName(String newName) => _name = newName;
 
   void updateIcon(Icon newIcon) => _icon = newIcon;
   void clearIcon() => _icon = null;
 
-  void updateIoData(GraphIo newIoData) => _ioData = newIoData;
-
   @override
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
   void updateLayout(GraphLayout newLayout) => _layout = newLayout;
+
+  @override
+  void _updateUnusedIo(ItemIoImpl newUnusedIo) => _unusedIo = newUnusedIo;
+  void _updateIoData(GraphIo newIoData) => _ioData = newIoData;
 
   @override
   GraphStateImpl build() => GraphStateImpl(

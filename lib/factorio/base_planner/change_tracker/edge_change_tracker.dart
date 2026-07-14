@@ -50,7 +50,7 @@ class EdgeChangeTracker
     _updateParentIfParentIsGraphNode();
     _updateChildIfChildIsGraphNode();
 
-    for (var dependant in determineDependants()) {
+    for (var dependant in _determineDependants()) {
       dependant.getChangeTracker().queueIoUpdate();
     }
 
@@ -58,7 +58,7 @@ class EdgeChangeTracker
   }
 
   @override
-  bool calculateIo() {
+  bool _calculateIo() {
     double newAmount;
     List<NodeElement> unusedIoCheckNodes;
 
@@ -85,7 +85,7 @@ class EdgeChangeTracker
     }
 
     if (newAmount != state.amount) {
-      stateBuilder.updateAmount(newAmount);
+      stateBuilder._updateAmount(newAmount);
 
       for (var node in unusedIoCheckNodes) {
         node.getChangeTracker().queueUnusedIoCheck();
@@ -102,7 +102,7 @@ class EdgeChangeTracker
       EdgeStateBuilder.from(element, previousState);
 
   @override
-  List<BasePlannerElement> determineDependants() => [
+  List<BasePlannerElement> _determineDependants() => [
     ..._determineParentDependants(),
     ..._determineChildDependants(),
   ];
@@ -147,7 +147,7 @@ class EdgeChangeTracker
 
   @override
   void _removeSelfOnly() {
-    _toRemove = true;
+    _queuedForRemoval = true;
   }
 
   void _removeSelfFromParentOnly() {

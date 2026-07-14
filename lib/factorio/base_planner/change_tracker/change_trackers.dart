@@ -17,6 +17,7 @@ part 'graph_change_tracker.dart';
 part 'graph_state_builder.dart';
 part 'prod_line_node_change_tracker.dart';
 part 'prod_line_node_state_builder.dart';
+part 'snapshot_builder.dart';
 
 abstract class ElementChangeTracker<
   E extends BasePlannerElement<St, dynamic>,
@@ -32,14 +33,14 @@ abstract class ElementChangeTracker<
   B? _cachedStateBuilder;
   D? _cachedDependencies;
 
-  final bool circularDependencyCheck;
-  bool _toRemove;
+  final bool checkForCircularDependency;
+  bool _queuedForRemoval;
   IoUpdateStatus _ioUpdateStatus;
 
   ElementChangeTracker(this.element, this.previousState)
     : snapshotBuilder = element.basePlanner.getSnapshotBuilderOrThrow(),
-      _toRemove = false,
-      circularDependencyCheck = false,
+      _queuedForRemoval = false,
+      checkForCircularDependency = false,
       _ioUpdateStatus = IoUpdateStatus.checkDependencies {
     snapshotBuilder.allTrackers.add(this);
   }
@@ -50,8 +51,8 @@ abstract class ElementChangeTracker<
     B stateBuilder,
   ) : snapshotBuilder = element.basePlanner.getSnapshotBuilderOrThrow(),
       _cachedStateBuilder = stateBuilder,
-      _toRemove = false,
-      circularDependencyCheck = true,
+      _queuedForRemoval = false,
+      checkForCircularDependency = true,
       _ioUpdateStatus = IoUpdateStatus.required {
     element.parentGraph.getChangeTracker().queueLayoutUpdate();
     snapshotBuilder.allTrackers.add(this);
@@ -59,15 +60,15 @@ abstract class ElementChangeTracker<
 
   Object get state;
 
-  bool calculateIo();
-  Iterable<BasePlannerElement> determineDependants();
   void removeSelf();
 
+  bool _calculateIo();
   B _createStateBuilder();
   D _determineDependencies();
+  Iterable<BasePlannerElement> _determineDependants();
   void _removeSelfOnly();
 
-  bool get toRemove => _toRemove;
+  bool get queuedForRemoval => _queuedForRemoval;
   IoUpdateStatus get ioUpdateStatus => _ioUpdateStatus;
   bool get hasUpdates => _cachedStateBuilder != null;
 
@@ -84,12 +85,17 @@ abstract class ElementChangeTracker<
   }
 
   void queueIoUpdate() => _ioUpdateStatus = IoUpdateStatus.required;
-  void setIoCompleteWithUpdate() =>
-      _ioUpdateStatus = IoUpdateStatus.completeUpdate;
-  void setIoCompleteWithNoUpdate() =>
-      _ioUpdateStatus = IoUpdateStatus.completeNoUpdate;
 
-  void checkForCircularDependencies(
+  @override
+  ElementAndState<E, St> build() {
+    if (_cachedStateBuilder == null) {
+      return ElementAndState(element, previousState);
+    } else {
+      return ElementAndState(element, _cachedStateBuilder!.build());
+    }
+  }
+
+  void _checkForCircularDependencies(
     Set<BasePlannerElement> safeElements,
     Set<BasePlannerElement> visitedElements,
   ) {
@@ -101,7 +107,7 @@ abstract class ElementChangeTracker<
       visitedElements.add(element);
 
       for (var dependency in cachedDependencies.allElements) {
-        dependency.getChangeTracker().checkForCircularDependencies(
+        dependency.getChangeTracker()._checkForCircularDependencies(
           safeElements,
           visitedElements,
         );
@@ -109,15 +115,6 @@ abstract class ElementChangeTracker<
 
       visitedElements.remove(element);
       safeElements.add(element);
-    }
-  }
-
-  @override
-  ElementAndState<E, St> build() {
-    if (_cachedStateBuilder == null) {
-      return ElementAndState(element, previousState);
-    } else {
-      return ElementAndState(element, _cachedStateBuilder!.build());
     }
   }
 }
@@ -129,18 +126,16 @@ abstract class NodeChangeTracker<
   B extends NodeStateBuilder<St>
 >
     extends ElementChangeTracker<E, St, D, B> {
-  bool _unusedIoCheck;
-
-  bool get unusedIoCheck => _unusedIoCheck;
+  bool _checkForUnusedIo;
 
   NodeChangeTracker(super.element, super.previousState)
-    : _unusedIoCheck = false;
+    : _checkForUnusedIo = false;
 
   NodeChangeTracker.newNode(
     super.element,
     super.previousState,
     super.stateBuilder,
-  ) : _unusedIoCheck = true,
+  ) : _checkForUnusedIo = true,
       super.newElement() {
     element.parentGraph.getChangeTracker()._addNodeToNodeCaches(element);
   }
@@ -148,9 +143,11 @@ abstract class NodeChangeTracker<
   @override
   NodeState get state;
 
-  void queueUnusedIoCheck() => _unusedIoCheck = true;
+  bool get checkForUnusedIo => _checkForUnusedIo;
 
-  void checkForUnusedIo() {
+  void queueUnusedIoCheck() => _checkForUnusedIo = true;
+
+  void _performUnusedIoCheck() {
     var itemIo = state.ioData.itemIo;
 
     ItemIoBuilder unusedIoBuilder = ItemIoBuilder();
@@ -180,7 +177,7 @@ abstract class NodeChangeTracker<
     var newUnusedIo = unusedIoBuilder.build();
 
     if (newUnusedIo != state.unusedIo) {
-      stateBuilder.updateUnusedIo(newUnusedIo);
+      stateBuilder._updateUnusedIo(newUnusedIo);
     }
   }
 
@@ -195,7 +192,7 @@ abstract class NodeChangeTracker<
 abstract class NodeStateBuilder<T extends NodeState>
     with NodeState
     implements Builder<T> {
-  void updateUnusedIo(ItemIoImpl newUnusedIo);
+  void _updateUnusedIo(ItemIoImpl newUnusedIo);
   void updateGeometry(NodeGeometryImpl geometry);
 }
 
