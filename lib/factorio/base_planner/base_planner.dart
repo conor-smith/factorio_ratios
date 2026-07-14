@@ -150,21 +150,22 @@ class BasePlanner
 
       function();
 
-      if (firstCall && _snapshotBuilder!.hasChanges) {
-        var oldSnapshot = _snapshots[_snapshotIndex];
+      if (firstCall) {
         var newSnapshot = _snapshotBuilder!.build();
-        _snapshotBuilder = null;
+        if (newSnapshot != null) {
+          var oldSnapshot = _snapshots[_snapshotIndex];
 
-        if (_snapshotIndex == maxSnapshots - 1) {
-          _snapshots.removeAt(0);
-        } else {
-          _snapshotIndex++;
-          _snapshots.removeRange(_snapshotIndex, _snapshots.length);
+          if (_snapshotIndex == maxSnapshots - 1) {
+            _snapshots.removeAt(0);
+          } else {
+            _snapshotIndex++;
+            _snapshots.removeRange(_snapshotIndex, _snapshots.length);
+          }
+          _snapshots.add(newSnapshot);
+
+          _applySnapshot(oldSnapshot, newSnapshot);
         }
-        _snapshots.add(newSnapshot);
 
-        _applySnapshot(oldSnapshot, newSnapshot);
-      } else if (firstCall && !_snapshotBuilder!.hasChanges) {
         _snapshotBuilder = null;
       }
 
@@ -172,9 +173,11 @@ class BasePlanner
     } catch (e) {
       if (firstCall) {
         // Reset all states to current snapshot
-        _snapshots[_snapshotIndex].states.forEach((element, eAndS) {
+        _snapshots[_snapshotIndex].stateMap.forEach((element, eAndS) {
           element.updateState(eAndS);
         });
+
+        _snapshotBuilder = null;
       }
       _mutationLock--;
 
@@ -210,13 +213,13 @@ class BasePlanner
   void _applySnapshot(Snapshot oldSnapshot, Snapshot newSnapshot) {
     _mutationLock++;
     try {
-      newSnapshot.states.forEach((element, eAndS) {
-        eAndS.updateAndNotify(oldSnapshot.states[element]);
+      newSnapshot.stateMap.forEach((element, eAndS) {
+        eAndS.updateAndNotify(oldSnapshot.stateMap[element]);
       });
       _mutationLock--;
 
-      var removedElements = oldSnapshot.states.keys.toSet().difference(
-        newSnapshot.states.keys.toSet(),
+      var removedElements = oldSnapshot.stateMap.keys.toSet().difference(
+        newSnapshot.stateMap.keys.toSet(),
       );
 
       _selectedElements.removeAll(removedElements);
@@ -268,10 +271,10 @@ class ElementAndState<E extends BasePlannerElement<St, dynamic>, St> {
 
 /// Represents a snapshot of all states of elements in [BasePlanner].
 class Snapshot {
-  final Map<BasePlannerElement, ElementAndState> states;
+  final Map<BasePlannerElement, ElementAndState> stateMap;
 
-  Snapshot(Map<BasePlannerElement, ElementAndState> states)
-    : states = Map.unmodifiable(states);
+  Snapshot(Map<BasePlannerElement, ElementAndState> stateMap)
+    : stateMap = Map.unmodifiable(stateMap);
 }
 
 class BasePlannerEvent {

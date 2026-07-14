@@ -20,51 +20,59 @@ part 'state_builders/graph.dart';
 part 'state_builders/prod_line_node.dart';
 part 'state_builders/state_builders.dart';
 
-class SnapshotBuilder implements Builder<Snapshot> {
+class SnapshotBuilder implements Builder<Snapshot?> {
   final Snapshot _previousSnapshot;
 
   final Map<Graph, GraphChangeTracker> graphTrackers = {};
   final Map<ProdLineNode, ProdLineNodeChangeTracker> nodeTrackers = {};
   final Map<Edge, EdgeChangeTracker> edgeTrackers = {};
 
-  final List<ElementChangeTracker> _allTrackers = [];
+  final Set<ElementChangeTracker> allTrackers = {};
 
   SnapshotBuilder.from(this._previousSnapshot);
 
-  bool get hasChanges =>
-      graphTrackers.isNotEmpty ||
-      nodeTrackers.isNotEmpty ||
-      edgeTrackers.isNotEmpty;
-
   @override
-  Snapshot build() {
-    Map<BasePlannerElement, ElementChangeTracker> toRemove = Map.fromEntries(
-      <MapEntry<BasePlannerElement, ElementChangeTracker>>[
-        ...graphTrackers.entries,
-        ...nodeTrackers.entries,
-        ...edgeTrackers.entries,
-      ].where((entry) => entry.value.toRemove),
-    );
+  Snapshot? build() {
+    List<BasePlannerElement> elementsToRemove = [];
 
-    graphTrackers.removeWhere((_, builder) => builder.toRemove);
-    nodeTrackers.removeWhere((_, builder) => builder.toRemove);
-    edgeTrackers.removeWhere((_, builder) => builder.toRemove);
-
-    _allTrackers
-      ..addAll(graphTrackers.values)
-      ..addAll(nodeTrackers.values)
-      ..addAll(edgeTrackers.values);
+    allTrackers.removeWhere((tracker) {
+      if (tracker.toRemove) {
+        elementsToRemove.add(tracker.element);
+        return true;
+      } else {
+        return false;
+      }
+    });
 
     _checkForCircularDependencies();
     _performIoUdpates();
+    _calculateUnusedIo();
+    _performGraphLayoutUpdates();
 
-    throw UnimplementedError();
+    if (elementsToRemove.isNotEmpty ||
+        allTrackers.any((tracker) => tracker.hasUpdates)) {
+      Map<BasePlannerElement, ElementAndState> newStateMap = Map.from(
+        _previousSnapshot.stateMap,
+      );
+
+      for (var toRemove in elementsToRemove) {
+        newStateMap.remove(toRemove);
+      }
+
+      for (var update in allTrackers.where((tracker) => tracker.hasUpdates)) {
+        newStateMap[update.element] = update.build();
+      }
+
+      return Snapshot(newStateMap);
+    } else {
+      return null;
+    }
   }
 
   void _checkForCircularDependencies() {
     Set<BasePlannerElement> safeElements = {};
 
-    var elementsToCheck = _allTrackers.where(
+    var elementsToCheck = allTrackers.where(
       (elementBuilder) => elementBuilder.circularDependencyCheck,
     );
 
@@ -75,7 +83,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   void _performIoUdpates() {
     Queue<ElementChangeTracker> updateQueue = Queue.from(
-      _allTrackers.where(
+      allTrackers.where(
         (elementBuilder) =>
             elementBuilder.ioUpdateStatus == IoUpdateStatus.required,
       ),
@@ -135,10 +143,19 @@ class SnapshotBuilder implements Builder<Snapshot> {
         trackerToUpdate._ioUpdateStatus = IoUpdateStatus.completeNoUpdate;
       }
     }
+
+    // New trackers may have been created as part of IO update step
+    var trackersToAdd = <ElementChangeTracker>[
+      ...graphTrackers.values,
+      ...nodeTrackers.values,
+      ...edgeTrackers.values,
+    ].where((tracker) => !tracker.toRemove);
+
+    allTrackers.addAll(trackersToAdd);
   }
 
   void _calculateUnusedIo() {
-    var nodeTrackers = _allTrackers.whereType<NodeChangeTracker>().where(
+    var nodeTrackers = allTrackers.whereType<NodeChangeTracker>().where(
       (element) => element.unusedIoCheck,
     );
 
@@ -148,32 +165,14 @@ class SnapshotBuilder implements Builder<Snapshot> {
   }
 
   void _performGraphLayoutUpdates() {
-    var graphsToUpdate = graphTrackers.values.where(
+    var graphsToUpdate = allTrackers.whereType<GraphChangeTracker>().where(
       (tracker) => tracker.layoutUpdate,
     );
 
-    // TODO
+    for (var toUpdate in graphsToUpdate) {
+      toUpdate.performLayoutUptdate();
+    }
   }
-
-  // Map<BasePlannerElement, dynamic> _performStateUpdateAndReturnMap() {
-  //   _stage = SnapshotBuildStage.buildStates;
-
-  //   Map<BasePlannerElement, dynamic> newStateMap = Map.from(
-  //     _previousSnapshot.states,
-  //   );
-
-  //   for (var removedElement in _removedElements) {
-  //     removedElement.cancelStateBuilder();
-  //     newStateMap.remove(removedElement);
-  //   }
-
-  //   var updatedStates = _updatedElements.map(
-  //     (element, builder) => MapEntry(element, builder.build()),
-  //   );
-  //   newStateMap.addAll(updatedStates);
-
-  //   return newStateMap;
-  // }
 }
 
 enum IoUpdateStatus {

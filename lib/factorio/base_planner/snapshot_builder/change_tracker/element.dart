@@ -22,7 +22,9 @@ abstract class ElementChangeTracker<
     : snapshotBuilder = element.basePlanner.getSnapshotBuilderOrThrow(),
       _toRemove = false,
       circularDependencyCheck = false,
-      _ioUpdateStatus = IoUpdateStatus.checkDependencies;
+      _ioUpdateStatus = IoUpdateStatus.checkDependencies {
+    snapshotBuilder.allTrackers.add(this);
+  }
 
   ElementChangeTracker.newElement(
     this.element,
@@ -34,6 +36,7 @@ abstract class ElementChangeTracker<
       circularDependencyCheck = true,
       _ioUpdateStatus = IoUpdateStatus.required {
     element.parentGraph.getChangeTracker().queueLayoutUpdate();
+    snapshotBuilder.allTrackers.add(this);
   }
 
   Object get state;
@@ -48,6 +51,7 @@ abstract class ElementChangeTracker<
 
   bool get toRemove => _toRemove;
   IoUpdateStatus get ioUpdateStatus => _ioUpdateStatus;
+  bool get hasUpdates => _cachedStateBuilder != null;
 
   B get stateBuilder {
     _cachedStateBuilder ??= _createStateBuilder();

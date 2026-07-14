@@ -136,6 +136,11 @@ class GraphChangeTracker
       .._edges.clear();
   }
 
+  void performLayoutUptdate() {
+    // TODO
+    throw UnimplementedError();
+  }
+
   @override
   GraphDependencies _determineDependencies() =>
       GraphDependencies(state.allNodes);
