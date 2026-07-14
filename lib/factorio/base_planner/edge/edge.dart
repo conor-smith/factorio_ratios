@@ -150,7 +150,7 @@ class EdgeDependencies implements Dependencies {
   }
 
   @override
-  Iterable<BasePlannerElement> get allDependencies => <BasePlannerElement?>[
+  Iterable<BasePlannerElement> get allElements => <BasePlannerElement?>[
     parentProdLineDep,
     childProdLineDep,
     ...?orderedParentEdgeDeps,

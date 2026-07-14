@@ -134,7 +134,7 @@ class NodeDependencies implements Dependencies {
   NodeDependencies({required this.childDeps, required this.parentDeps});
 
   @override
-  Iterable<Edge> get allDependencies => childDeps.values
+  Iterable<Edge> get allElements => childDeps.values
       .followedBy(parentDeps.values)
       .expand((edgeSet) => edgeSet);
 }

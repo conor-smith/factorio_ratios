@@ -16,12 +16,13 @@ abstract class SnapshotBuilderElement<
 
   final bool circularDependencyCheck;
   bool _toRemove;
-  IoUpdateStatus? _ioUpdateStatus;
+  IoUpdateStatus _ioUpdateStatus;
 
   SnapshotBuilderElement(this.element, this.previousState)
     : snapshotBuilder = element.basePlanner.getSnapshotBuilderOrThrow(),
       _toRemove = false,
-      circularDependencyCheck = false;
+      circularDependencyCheck = false,
+      _ioUpdateStatus = IoUpdateStatus.checkDependencies;
 
   SnapshotBuilderElement.newElement(
     this.element,
@@ -46,6 +47,7 @@ abstract class SnapshotBuilderElement<
   void _removeSelfOnly();
 
   bool get toRemove => _toRemove;
+  IoUpdateStatus get ioUpdateStatus => _ioUpdateStatus;
 
   B get stateBuilder {
     _cachedStateBuilder ??= _createStateBuilder();
@@ -57,12 +59,6 @@ abstract class SnapshotBuilderElement<
     _cachedDependencies ??= _determineDependencies();
 
     return _cachedDependencies!;
-  }
-
-  IoUpdateStatus get ioUpdateStatus {
-    _ioUpdateStatus ??= IoUpdateStatus.checkDependencies;
-
-    return _ioUpdateStatus!;
   }
 
   void queueIoUpdate() => _ioUpdateStatus = IoUpdateStatus.required;
@@ -78,7 +74,7 @@ abstract class SnapshotBuilderElement<
     if (!safeElements.contains(element)) {
       visitedElements.add(element);
 
-      for (var dependency in cachedDependencies.allDependencies) {
+      for (var dependency in cachedDependencies.allElements) {
         dependency.getSnapshotBuilderElement().checkForCircularDependencies(
           safeElements,
           visitedElements,

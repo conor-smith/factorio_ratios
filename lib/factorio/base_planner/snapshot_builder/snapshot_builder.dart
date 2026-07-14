@@ -27,7 +27,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
   final Map<ProdLineNode, SnapshotBuilderProdLineNode> nodeBuilders = {};
   final Map<Edge, SnapshotBuilderEdge> edgeBuilders = {};
 
-  SnapshotBuildStage _stage = SnapshotBuildStage.userOperations;
+  final List<SnapshotBuilderElement> _allElements = [];
 
   SnapshotBuilder.from(this._previousSnapshot);
 
@@ -36,116 +36,126 @@ class SnapshotBuilder implements Builder<Snapshot> {
       nodeBuilders.isNotEmpty ||
       edgeBuilders.isNotEmpty;
 
-  void throwIfNotStage(SnapshotBuildStage stage) {
-    if (_stage != stage) {
-      throw BasePlannerException(
-        'Can only perform this operation at stage $stage. Current stage is $_stage',
-      );
+  @override
+  Snapshot build() {
+    Map<BasePlannerElement, SnapshotBuilderElement> toRemove = Map.fromEntries(
+      <MapEntry<BasePlannerElement, SnapshotBuilderElement>>[
+        ...graphBuilders.entries,
+        ...nodeBuilders.entries,
+        ...edgeBuilders.entries,
+      ].where((entry) => entry.value.toRemove),
+    );
+
+    graphBuilders.removeWhere((_, builder) => builder.toRemove);
+    nodeBuilders.removeWhere((_, builder) => builder.toRemove);
+    edgeBuilders.removeWhere((_, builder) => builder.toRemove);
+
+    _allElements
+      ..addAll(graphBuilders.values)
+      ..addAll(nodeBuilders.values)
+      ..addAll(edgeBuilders.values);
+
+    _checkForCircularDependencies();
+    _performIoUdpates();
+
+    throw UnimplementedError();
+  }
+
+  void _checkForCircularDependencies() {
+    Set<BasePlannerElement> safeElements = {};
+
+    var elementsToCheck = _allElements.where(
+      (elementBuilder) => elementBuilder.circularDependencyCheck,
+    );
+
+    for (var elementBuilder in elementsToCheck) {
+      elementBuilder.checkForCircularDependencies(safeElements, {});
     }
   }
 
-  @override
-  Snapshot build() {
-    throw UnimplementedError();
-    // for (var removedElement in _removedElements) {
-    //   _newElements.remove(removedElement);
-    //   _elementUpdateStatus.remove(removedElement);
-    // }
+  void _performIoUdpates() {
+    Queue<SnapshotBuilderElement> updateQueue = Queue.from(
+      _allElements.where(
+        (elementBuilder) =>
+            elementBuilder.ioUpdateStatus == IoUpdateStatus.required,
+      ),
+    );
 
-    // _checkForCircularDependencies();
-    // _performIoUdpates();
-    // _performGraphLayoutUpdates();
-    // var newStateMap = _performStateUpdateAndReturnMap();
+    while (updateQueue.isNotEmpty) {
+      var toUpdate = updateQueue.removeFirst();
+      var updateStatus = toUpdate.ioUpdateStatus;
 
-    // return Snapshot(newStateMap);
+      // If element is already completed, restart loop
+      if (updateStatus.isComplete) {
+        continue;
+      }
+
+      var dependencies = toUpdate.cachedDependencies;
+
+      // If unresolved dependencies exist,
+      // Place said dependencies at front of queue and restart loop
+      var unresolvedDeps = dependencies.allElements
+          .where(
+            (dependency) => !dependency
+                .getSnapshotBuilderElement()
+                .ioUpdateStatus
+                .isComplete,
+          )
+          .toList();
+      if (unresolvedDeps.isNotEmpty) {
+        updateQueue.addFirst(toUpdate);
+        for (var dep in unresolvedDeps) {
+          updateQueue.addFirst(dep.getSnapshotBuilderElement());
+        }
+
+        continue;
+      }
+
+      // An IO update is required in two scenarios
+      // 1. Explicitly marked as required via UpdateStatus.required
+      // 2. One or more dependencies have were updated
+      var updateRequired =
+          updateStatus == IoUpdateStatus.required ||
+          dependencies.allElements.any(
+            (dependency) =>
+                dependency.getSnapshotBuilderElement().ioUpdateStatus ==
+                IoUpdateStatus.completeUpdate,
+          );
+
+      // If update is required and update returns true, add dependents to end of queue
+      // Otherwise, mark element as completeNoUpdate
+      // Remove element from queue in both scenarios
+      if (updateRequired && toUpdate.calculateIo()) {
+        toUpdate._ioUpdateStatus = IoUpdateStatus.completeUpdate;
+
+        updateQueue.addAll(
+          toUpdate.determineDependants().map(
+            (element) => element.getSnapshotBuilderElement(),
+          ),
+        );
+      } else {
+        toUpdate._ioUpdateStatus = IoUpdateStatus.completeNoUpdate;
+      }
+    }
   }
 
-  // IoUpdateStatus _getOrCreateUpdateStatus(BasePlannerElement element) =>
-  //     _elementUpdateStatus.putIfAbsent(
-  //       element,
-  //       () => IoUpdateStatus.checkDependencies,
-  //     );
+  void _calculateUnusedIo() {
+    var nodeElements = _allElements.whereType<SnapshotBuilderNode>().where(
+      (element) => element.unusedIoCheck,
+    );
 
-  // void _checkForCircularDependencies() {
-  //   _stage = SnapshotBuildStage.circularDependencyCheck;
+    for (var node in nodeElements) {
+      node.checkForUnusedIo();
+    }
+  }
 
-  //   Set<BasePlannerElement> safeElements = {};
+  void _performGraphLayoutUpdates() {
+    var graphsToUpdate = graphBuilders.values.where(
+      (tracker) => tracker.layoutUpdate,
+    );
 
-  //   for (var element in _newElements) {
-  //     element.checkForCircularDependencies(safeElements, {});
-  //   }
-  // }
-
-  // void _performIoUdpates() {
-  //   _stage = SnapshotBuildStage.buildIo;
-
-  //   Queue<BasePlannerElement> updateQueue = Queue.from(
-  //     _elementUpdateStatus.keys,
-  //   );
-
-  //   while (updateQueue.isNotEmpty) {
-  //     var toUpdate = updateQueue.removeFirst();
-  //     var updateStatus = _getOrCreateUpdateStatus(toUpdate);
-
-  //     // If element is already completed, restart loop
-  //     if (updateStatus.isComplete) {
-  //       continue;
-  //     }
-
-  //     var dependencies = getCachedDependencies(toUpdate);
-
-  //     // If unresolved dependencies exist,
-  //     // Place said dependencies at front of queue and restart loop
-  //     var unresolvedDeps = dependencies.allDependencies
-  //         .where(
-  //           (dependency) => !_getOrCreateUpdateStatus(dependency).isComplete,
-  //         )
-  //         .toList();
-  //     if (unresolvedDeps.isNotEmpty) {
-  //       updateQueue.addFirst(toUpdate);
-  //       for (var dep in unresolvedDeps) {
-  //         updateQueue.addFirst(dep);
-  //       }
-
-  //       continue;
-  //     }
-
-  //     // An IO update is required in two scenarios
-  //     // 1. Explicitly marked as required via UpdateStatus.required
-  //     // 2. One or more dependencies have were updated
-  //     var updateRequired =
-  //         updateStatus == IoUpdateStatus.required ||
-  //         dependencies.allDependencies.any(
-  //           (dependency) =>
-  //               _getOrCreateUpdateStatus(dependency) ==
-  //               IoUpdateStatus.completeUpdate,
-  //         );
-
-  //     // If update is required and update returns true, add dependents to end of queue
-  //     // Otherwise, mark element as completeNoUpdate
-  //     // Remove element from queue in both scenarios
-  //     if (updateRequired && toUpdate.calculateIo(dependencies)) {
-  //       _elementUpdateStatus[toUpdate] = IoUpdateStatus.completeUpdate;
-
-  //       updateQueue.addAll(toUpdate.determineDependants());
-  //     } else {
-  //       _elementUpdateStatus[toUpdate] = IoUpdateStatus.completeNoUpdate;
-  //     }
-  //   }
-
-  //   // Once all IO updates are done, we can check for unused IO
-  //   for (var node in _nodesToCheckUnusedIo) {
-  //     node.calculateUnusedIo();
-  //   }
-  // }
-
-  // void _performGraphLayoutUpdates() {
-  //   _stage = SnapshotBuildStage.updateGraphLayouts;
-
-  //   for (var graph in _graphsToUpdateLayout) {
-  //     graph.defaultLayout();
-  //   }
-  // }
+    // TODO
+  }
 
   // Map<BasePlannerElement, dynamic> _performStateUpdateAndReturnMap() {
   //   _stage = SnapshotBuildStage.buildStates;
@@ -177,12 +187,4 @@ enum IoUpdateStatus {
   final bool isComplete;
 
   const IoUpdateStatus(this.isComplete);
-}
-
-enum SnapshotBuildStage {
-  userOperations,
-  circularDependencyCheck,
-  buildIo,
-  updateGraphLayouts,
-  buildStates,
 }

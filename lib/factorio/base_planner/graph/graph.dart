@@ -570,7 +570,7 @@ class GraphDependencies implements Dependencies {
   GraphDependencies(this.allNodes);
 
   @override
-  Iterable<BasePlannerElement> get allDependencies => allNodes;
+  Iterable<BasePlannerElement> get allElements => allNodes;
 }
 
 enum GraphEventType { updateNodesAndEdges, childrenGeometryUpdate, nodeEvent }
