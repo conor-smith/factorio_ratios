@@ -58,8 +58,6 @@ class GraphStateImpl with NodeState implements GraphState, ToJson {
   final Set<Edge> edges;
 
   @override
-  final ItemIoImpl edgeConstraints;
-  @override
   final ItemIoImpl ioRatios;
   @override
   final ItemIoImpl unusedIo;
@@ -84,6 +82,9 @@ class GraphStateImpl with NodeState implements GraphState, ToJson {
   @override
   final LayoutOrientation orientation;
 
+  @override
+  ItemIoImpl get edgeConstraints => ioData.constraints;
+
   GraphStateImpl({
     required this.name,
     required this.icon,
@@ -94,7 +95,6 @@ class GraphStateImpl with NodeState implements GraphState, ToJson {
     required Map<InGameItem, ProdLineNode> outputNodes,
     required this.ioRatios,
     required this.unusedIo,
-    required this.edgeConstraints,
     required this.geometry,
     required this.ioData,
     required this.layout,
@@ -135,7 +135,6 @@ class GraphStateImpl with NodeState implements GraphState, ToJson {
       outputItems = const {},
       parents = const {},
       children = const {},
-      edgeConstraints = ItemIoImpl.empty,
       ioRatios = ItemIoImpl.empty,
       unusedIo = ItemIoImpl.empty,
       geometry = NodeGeometryImpl.uninitialised,
@@ -156,7 +155,6 @@ class GraphStateImpl with NodeState implements GraphState, ToJson {
       outputItems = const {},
       parents = const {},
       children = const {},
-      edgeConstraints = ItemIoImpl.empty,
       ioRatios = ItemIoImpl.empty,
       unusedIo = ItemIoImpl.empty,
       geometry = NodeGeometryImpl.uninitialised,

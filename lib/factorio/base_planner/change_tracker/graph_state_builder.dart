@@ -20,7 +20,6 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
   GraphIo _ioData;
   ItemIoImpl _ioRatios;
   ItemIoImpl _unusedIo;
-  ItemIoImpl _edgeConstraints;
 
   @override
   String get name => _name;
@@ -48,7 +47,7 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
   @override
   ItemIoImpl get ioRatios => _ioRatios;
   @override
-  ItemIoImpl get edgeConstraints => _edgeConstraints;
+  ItemIoImpl get edgeConstraints => _ioData.constraints;
   @override
   ItemIoImpl get unusedIo => _unusedIo;
 
@@ -90,7 +89,6 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
       _ioData = const GraphIo.empty(),
       _ioRatios = ItemIoImpl.empty,
       _unusedIo = ItemIoImpl.empty,
-      _edgeConstraints = ItemIoImpl.empty,
       _prodLineNodes = {},
       _graphNodes = {},
       _inputNodes = {},
@@ -110,7 +108,6 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
       _inputNodes = Map.from(previousState.inputNodes),
       _outputNodes = Map.from(previousState.outputNodes),
       _edges = Set.from(previousState.edges),
-      _edgeConstraints = previousState.edgeConstraints,
       _cachedParents = previousState.parents,
       _cachedChildren = previousState.children,
       _geometry = previousState.geometry,
@@ -134,7 +131,10 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
 
   @override
   void _updateUnusedIo(ItemIoImpl newUnusedIo) => _unusedIo = newUnusedIo;
-  void _updateIoData(GraphIo newIoData) => _ioData = newIoData;
+  void _updateIoData(GraphIo newIoData) {
+    _ioData = newIoData;
+    _ioRatios = newIoData.itemIo.convertToRatios();
+  }
 
   @override
   GraphStateImpl build() => GraphStateImpl(
@@ -146,8 +146,7 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
     outputNodes: _outputNodes,
     edges: _edges,
     geometry: _geometry,
-    ioRatios: ItemIoImpl.empty, // TODO
-    edgeConstraints: _edgeConstraints,
+    ioRatios: _ioRatios,
     unusedIo: _unusedIo,
     layout: _layout,
     orientation: _orientation,

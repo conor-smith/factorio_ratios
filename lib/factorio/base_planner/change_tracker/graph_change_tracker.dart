@@ -137,7 +137,8 @@ class GraphChangeTracker
       builder.add(node);
     }
 
-    stateBuilder._updateIoData(builder.build());
+    var newIoData = builder.build();
+    stateBuilder._updateIoData(newIoData);
 
     return true;
   }
