@@ -49,6 +49,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   Map<InGameItem, ProdLineNode> get inputNodes => _state.inputNodes;
   Set<NodeElement> get allNodes => _state.allNodes;
   GraphLayout get layout => _state.layout;
+  LayoutOrientation get orientation => _state.orientation;
   Set<Edge> get edges => _state.edges;
   @override
   Set<InGameItem> get inputItems => _state.inputItems;
@@ -200,94 +201,33 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       _createNodeTree(consumerNode);
 
       // TODO: Is this the best layout?
-      defaultLayout();
+      _tableLayout();
     });
   }
 
-  void defaultLayout() {
-    if (allNodes.isEmpty) {
-      return;
-    }
-
+  void layoutNodes({
+    GraphLayout? newLayout,
+    LayoutOrientation? newOrientation,
+  }) {
     basePlanner.buildNextSnapshot(() {
-      Map<NodeElement, int> nodeToRowNumber = {};
-
-      var consumerNodesFirstRow = 0;
-      var maxRowNumber = 0;
-
-      if (outputNodes.isNotEmpty) {
-        consumerNodesFirstRow = 1;
-
-        maxRowNumber = outputNodes.values
-            .map(
-              (outputNode) => _determineAndReturnMaxRowNumber(
-                outputNode,
-                0,
-                nodeToRowNumber,
-              ),
-            )
-            .reduce(_returnLargest);
+      if (newLayout != null && newLayout != layout) {
+        getStateBuilder().updateLayout(newLayout);
       }
 
-      maxRowNumber = allNodes
-          .where((node) => !node.nodeType.isIo && node.parents.isEmpty)
-          .map(
-            (node) => _determineAndReturnMaxRowNumber(
-              node,
-              consumerNodesFirstRow,
-              nodeToRowNumber,
-            ),
-          )
-          .fold(maxRowNumber, _returnLargest);
-
-      if (inputNodes.isNotEmpty) {
-        for (var inputNode in inputNodes.values) {
-          nodeToRowNumber[inputNode] = maxRowNumber;
-        }
-
-        maxRowNumber++;
+      if (newOrientation != null && newOrientation != orientation) {
+        getStateBuilder().updateOrientation(newOrientation);
       }
 
-      List<List<NodeElement>> rows = List.generate(
-        maxRowNumber,
-        (_) => [],
-        growable: false,
-      );
-
-      nodeToRowNumber.forEach((node, rowNumber) => rows[rowNumber].add(node));
-
-      for (var row = 0; row < rows.length; row++) {
-        for (var column = 0; column < rows[row].length; column++) {
-          var topLeftCorner = Offset(
-            NodeGeometryImpl.defaultPadding +
-                (NodeGeometryImpl.defaultWidth +
-                        NodeGeometryImpl.defaultPadding) *
-                    column,
-            NodeGeometryImpl.defaultPadding +
-                (NodeGeometryImpl.defaultHeight +
-                        NodeGeometryImpl.defaultPadding) *
-                    row,
-          );
-          var bottomRightCorner =
-              topLeftCorner +
-              const Offset(
-                NodeGeometryImpl.defaultWidth,
-                NodeGeometryImpl.defaultHeight,
-              );
-
-          rows[row][column].getStateBuilder().updateGeometry(
-            NodeGeometryImpl(Rect.fromPoints(topLeftCorner, bottomRightCorner)),
-          );
-        }
+      if (allNodes.isEmpty) {
+        return;
       }
 
-      for (var edge in edges) {
-        edge.getStateBuilder().updateGeometry(
-          EdgeGeometryImpl.shortestPath(
-            edge.parentNode.geometry,
-            edge.childNode.geometry,
-          ),
-        );
+      switch (layout) {
+        case GraphLayout.table:
+          _tableLayout();
+
+        case GraphLayout.custom:
+          break;
       }
     });
   }
@@ -422,6 +362,85 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
         productionLine: MagicLine.singleItemProducer(requiredOutput),
       );
 
+  void _tableLayout() {
+    Map<NodeElement, int> nodeToRowNumber = {};
+
+    var consumerNodesFirstRow = 0;
+    var maxRowNumber = 0;
+
+    if (outputNodes.isNotEmpty) {
+      consumerNodesFirstRow = 1;
+
+      maxRowNumber = outputNodes.values
+          .map(
+            (outputNode) =>
+                _determineAndReturnMaxRowNumber(outputNode, 0, nodeToRowNumber),
+          )
+          .reduce(_returnLargest);
+    }
+
+    maxRowNumber = allNodes
+        .where((node) => !node.nodeType.isIo && node.parents.isEmpty)
+        .map(
+          (node) => _determineAndReturnMaxRowNumber(
+            node,
+            consumerNodesFirstRow,
+            nodeToRowNumber,
+          ),
+        )
+        .fold(maxRowNumber, _returnLargest);
+
+    if (inputNodes.isNotEmpty) {
+      for (var inputNode in inputNodes.values) {
+        nodeToRowNumber[inputNode] = maxRowNumber;
+      }
+
+      maxRowNumber++;
+    }
+
+    List<List<NodeElement>> rows = List.generate(
+      maxRowNumber,
+      (_) => [],
+      growable: false,
+    );
+
+    nodeToRowNumber.forEach((node, rowNumber) => rows[rowNumber].add(node));
+
+    for (var row = 0; row < rows.length; row++) {
+      for (var column = 0; column < rows[row].length; column++) {
+        var topLeftCorner = Offset(
+          NodeGeometryImpl.defaultPadding +
+              (NodeGeometryImpl.defaultWidth +
+                      NodeGeometryImpl.defaultPadding) *
+                  column,
+          NodeGeometryImpl.defaultPadding +
+              (NodeGeometryImpl.defaultHeight +
+                      NodeGeometryImpl.defaultPadding) *
+                  row,
+        );
+        var bottomRightCorner =
+            topLeftCorner +
+            const Offset(
+              NodeGeometryImpl.defaultWidth,
+              NodeGeometryImpl.defaultHeight,
+            );
+
+        rows[row][column].getStateBuilder().updateGeometry(
+          NodeGeometryImpl(Rect.fromPoints(topLeftCorner, bottomRightCorner)),
+        );
+      }
+    }
+
+    for (var edge in edges) {
+      edge.getStateBuilder().updateGeometry(
+        EdgeGeometryImpl.shortestPath(
+          edge.parentNode.geometry,
+          edge.childNode.geometry,
+        ),
+      );
+    }
+  }
+
   int _determineAndReturnMaxRowNumber(
     NodeElement node,
     int rowNumber,
@@ -446,8 +465,6 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
     }
   }
 }
-
-enum GraphLayout { table, custom }
 
 class GraphIo extends ProductionLineIoData {
   factory GraphIo.fromState(GraphState state) {
@@ -565,5 +582,9 @@ class GraphDependencies implements Dependencies {
 }
 
 enum GraphEventType { updateNodesAndEdges, childrenGeometryUpdate, nodeEvent }
+
+enum GraphLayout { table, custom }
+
+enum LayoutOrientation { up, left, down, right }
 
 int _returnLargest(int val1, int val2) => val1 > val2 ? val1 : val2;

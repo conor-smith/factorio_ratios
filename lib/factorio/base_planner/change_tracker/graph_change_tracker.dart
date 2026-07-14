@@ -8,9 +8,9 @@ class GraphChangeTracker
           GraphDependencies,
           GraphStateBuilder
         > {
-  bool get layoutUpdate => _layoutUpdate;
+  bool get layoutUpdateQueued => _layoutUpdateQueued;
 
-  bool _layoutUpdate = false;
+  bool _layoutUpdateQueued = false;
   Map<InGameItem, List<NodeElement>>? _cachedNodeOutputIndex;
   Map<InGameItem, NodeElement>? _cachedDisposalNodes;
 
@@ -41,7 +41,7 @@ class GraphChangeTracker
     return _cachedNodeOutputIndex!;
   }
 
-  void queueLayoutUpdate() => _layoutUpdate = true;
+  void queueLayoutUpdate() => _layoutUpdateQueued = true;
 
   @override
   GraphState get state => _cachedStateBuilder ?? previousState;
@@ -142,10 +142,7 @@ class GraphChangeTracker
     return true;
   }
 
-  void _performLayoutUpdate() {
-    // TODO
-    throw UnimplementedError();
-  }
+  void _performLayoutUpdate() => element.layoutNodes();
 
   @override
   GraphDependencies _determineDependencies() =>

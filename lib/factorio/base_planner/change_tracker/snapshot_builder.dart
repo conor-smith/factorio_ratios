@@ -145,7 +145,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   void _performGraphLayoutUpdates() {
     var graphsToUpdate = allTrackers.whereType<GraphChangeTracker>().where(
-      (tracker) => tracker.layoutUpdate,
+      (tracker) => tracker.layoutUpdateQueued,
     );
 
     for (var toUpdate in graphsToUpdate) {

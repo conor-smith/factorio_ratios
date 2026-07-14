@@ -11,6 +11,7 @@ abstract class GraphState extends NodeState {
   Set<Edge> get edges;
 
   GraphLayout get layout;
+  LayoutOrientation get orientation;
 
   @override
   GraphIo get ioData;
@@ -80,6 +81,8 @@ class GraphStateImpl with NodeState implements GraphState, ToJson {
 
   @override
   final GraphLayout layout;
+  @override
+  final LayoutOrientation orientation;
 
   GraphStateImpl({
     required this.name,
@@ -95,6 +98,7 @@ class GraphStateImpl with NodeState implements GraphState, ToJson {
     required this.geometry,
     required this.ioData,
     required this.layout,
+    required this.orientation,
   }) : prodLineNodes = Set.unmodifiable(prodLineNodes),
        graphNodes = Set.unmodifiable(graphNodes),
        edges = Set.unmodifiable(edges),
@@ -136,7 +140,8 @@ class GraphStateImpl with NodeState implements GraphState, ToJson {
       unusedIo = ItemIoImpl.empty,
       geometry = NodeGeometryImpl.uninitialised,
       ioData = const GraphIo.empty(),
-      layout = GraphLayout.table;
+      layout = GraphLayout.table,
+      orientation = LayoutOrientation.up;
 
   const GraphStateImpl._uninitialised()
     : name = '',
@@ -156,7 +161,8 @@ class GraphStateImpl with NodeState implements GraphState, ToJson {
       unusedIo = ItemIoImpl.empty,
       geometry = NodeGeometryImpl.uninitialised,
       ioData = const GraphIo.empty(),
-      layout = GraphLayout.table;
+      layout = GraphLayout.table,
+      orientation = LayoutOrientation.up;
 
   @override
   Map<String, dynamic> toJson() {

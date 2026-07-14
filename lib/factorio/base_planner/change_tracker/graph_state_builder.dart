@@ -12,6 +12,7 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
   NodeGeometryImpl _geometry;
 
   GraphLayout _layout;
+  LayoutOrientation _orientation;
 
   Map<InGameItem, Set<Edge>>? _cachedParents;
   Map<InGameItem, Set<Edge>>? _cachedChildren;
@@ -80,6 +81,8 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
 
   @override
   GraphLayout get layout => _layout;
+  @override
+  LayoutOrientation get orientation => _orientation;
 
   GraphStateBuilder.initial([Icon? icon])
     : _name = 'graph',
@@ -95,6 +98,7 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
       _edges = {},
       _geometry = NodeGeometryImpl.uninitialised,
       _layout = GraphLayout.table,
+      _orientation = LayoutOrientation.up,
       _cachedParents = {},
       _cachedChildren = {};
 
@@ -111,6 +115,7 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
       _cachedChildren = previousState.children,
       _geometry = previousState.geometry,
       _layout = previousState.layout,
+      _orientation = previousState.orientation,
       _ioRatios = previousState.ioRatios,
       _ioData = previousState.ioData,
       _unusedIo = previousState.unusedIo;
@@ -124,6 +129,8 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
   void updateGeometry(NodeGeometryImpl geometry) => _geometry = geometry;
 
   void updateLayout(GraphLayout newLayout) => _layout = newLayout;
+  void updateOrientation(LayoutOrientation newOrientation) =>
+      _orientation = newOrientation;
 
   @override
   void _updateUnusedIo(ItemIoImpl newUnusedIo) => _unusedIo = newUnusedIo;
@@ -143,6 +150,7 @@ class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
     edgeConstraints: _edgeConstraints,
     unusedIo: _unusedIo,
     layout: _layout,
-    ioData: GraphIo.fromState(this),
+    orientation: _orientation,
+    ioData: _ioData,
   );
 }
