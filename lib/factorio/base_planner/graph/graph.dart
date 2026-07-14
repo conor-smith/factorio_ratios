@@ -391,15 +391,14 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
         .fold(maxRowNumber, _returnLargest);
 
     if (inputNodes.isNotEmpty) {
+      maxRowNumber++;
       for (var inputNode in inputNodes.values) {
         nodeToRowNumber[inputNode] = maxRowNumber;
       }
-
-      maxRowNumber++;
     }
 
     List<List<NodeElement>> rows = List.generate(
-      maxRowNumber,
+      maxRowNumber + 1,
       (_) => [],
       growable: false,
     );
@@ -450,18 +449,17 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       return rowNumber;
     } else {
       nodeToRowNumber[node] = rowNumber;
-      int nextRow = rowNumber + 1;
 
       return node.allChildren
           .where((edge) => edge.childNode.nodeType != NodeType.input)
           .map(
             (edge) => _determineAndReturnMaxRowNumber(
               edge.childNode,
-              nextRow,
+              rowNumber + 1,
               nodeToRowNumber,
             ),
           )
-          .fold(nextRow, _returnLargest);
+          .fold(rowNumber, _returnLargest);
     }
   }
 }
