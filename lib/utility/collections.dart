@@ -40,12 +40,8 @@ bool compareLists<T>(List<T> list1, List<T> list2) {
 Map<K, double> multiplyMap<K>(Map<K, double> toMultiply, double multiplier) =>
     toMultiply.map((key, value) => MapEntry(key, value * multiplier));
 
-class Pair<A, B> {
-  final A item1;
-  final B item2;
-
-  const Pair(this.item1, this.item2);
-}
+Map<K, double> divideMap<K>(Map<K, double> toDivide, double divisor) =>
+    toDivide.map((key, value) => MapEntry(key, value / divisor));
 
 T? maxOrNull<T>(Iterable<T> iterable, Comparator<T> comparator) {
   if (iterable.isEmpty) {

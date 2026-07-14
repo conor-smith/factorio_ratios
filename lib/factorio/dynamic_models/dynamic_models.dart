@@ -43,52 +43,31 @@ class ItemIoImpl extends ItemIo {
     : inputs = Map.unmodifiable(inputs),
       outputs = Map.unmodifiable(outputs) {
     inputs.forEach((input, amount) {
-      if (amount < 0) {
+      if (amount <= 0) {
         throw FactorioException('Input $input had invalid value $amount');
       }
     });
 
     outputs.forEach((output, amount) {
-      if (amount < 0) {
+      if (amount <= 0) {
         throw FactorioException('Output $output had invalid value $amount');
       }
     });
   }
 
-  factory ItemIoImpl.sum(Iterable<ItemIoImpl> toSum) {
-    ItemAmounts inputSum = {};
-    ItemAmounts outputSum = {};
-
-    for (var itemIo in toSum) {
-      itemIo.inputs.forEach(
-        (item, amount) => inputSum.update(
-          item,
-          (amountSum) => amountSum + amount,
-          ifAbsent: () => amount,
-        ),
-      );
-      itemIo.outputs.forEach(
-        (item, amount) => outputSum.update(
-          item,
-          (amountSum) => amountSum + amount,
-          ifAbsent: () => amount,
-        ),
-      );
+  ItemIoImpl convertToRatios() {
+    if (isEmpty) {
+      return this;
     }
 
-    return ItemIoImpl(inputs: inputSum, outputs: outputSum);
-  }
+    double smallestValue = inputs.values
+        .followedBy(outputs.values)
+        .reduce((val1, val2) => val1 < val2 ? val1 : val2);
 
-  ItemIoImpl zeroAll() => multiplyValues(0);
-
-  ItemIoImpl multiplyValues(double multiplier) {
-    ItemAmounts newInputs = Map.from(inputs);
-    ItemAmounts newOutputs = Map.from(outputs);
-
-    newInputs.updateAll((item, amount) => amount * multiplier);
-    newOutputs.updateAll((item, amount) => amount * multiplier);
-
-    return ItemIoImpl(inputs: newInputs, outputs: newOutputs);
+    return ItemIoImpl(
+      inputs: divideMap(inputs, smallestValue),
+      outputs: divideMap(outputs, smallestValue),
+    );
   }
 
   @override

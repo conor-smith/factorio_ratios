@@ -186,16 +186,12 @@ class SingleRecipeLine
       }
     });
 
-    var smallestValue = machineNetInputs.values
-        .followedBy(machineNetOutputs.values)
-        .reduce((val1, val2) => val1 < val2 ? val1 : val2);
+    var machineNetIo = ItemIoImpl(
+      inputs: machineNetInputs,
+      outputs: machineNetOutputs,
+    );
 
-    ItemAmounts machineNetInputRatios = machineNetInputs.map(
-      (item, amount) => MapEntry(item, amount / smallestValue),
-    );
-    ItemAmounts machineNetOutputRatios = machineNetOutputs.map(
-      (item, amount) => MapEntry(item, amount / smallestValue),
-    );
+    var ioRatios = machineNetIo.convertToRatios();
 
     Map<InGameItem, InGameItem> potentialSpoilage = Map.fromEntries(
       machineNetInputs.keys
@@ -223,15 +219,9 @@ class SingleRecipeLine
       fuel: fuel,
       inputItems: machineNetInputs.keys,
       outputItems: machineNetOutputs.keys,
-      ioRatios: ItemIoImpl(
-        inputs: machineNetInputRatios,
-        outputs: machineNetOutputRatios,
-      ),
+      ioRatios: ioRatios,
       machineCyclesPerMinute: cyclesPerMinute,
-      machineNetIo: ItemIoImpl(
-        inputs: machineNetInputs,
-        outputs: machineNetOutputs,
-      ),
+      machineNetIo: machineNetIo,
       machineTotalIo: ItemIoImpl(
         inputs: machineTotalInput,
         outputs: machineTotalOutput,
