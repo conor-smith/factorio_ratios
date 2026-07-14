@@ -1,10 +1,28 @@
-part of '../snapshot_builder.dart';
+import 'dart:collection';
+
+import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
+import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
+import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
+import 'package:factorio_ratios/utility/builder.dart';
+
+part 'edge_change_tracker.dart';
+part 'edge_state_builder.dart';
+part 'graph_change_tracker.dart';
+part 'graph_state_builder.dart';
+part 'prod_line_node_change_tracker.dart';
+part 'prod_line_node_state_builder.dart';
 
 abstract class ElementChangeTracker<
   E extends BasePlannerElement<St, dynamic>,
   St,
   D extends Dependencies,
-  B extends StateBuilder<St>
+  B extends Builder<St>
 >
     implements Builder<ElementAndState<E, St>> {
   final SnapshotBuilder snapshotBuilder;
@@ -66,6 +84,10 @@ abstract class ElementChangeTracker<
   }
 
   void queueIoUpdate() => _ioUpdateStatus = IoUpdateStatus.required;
+  void setIoCompleteWithUpdate() =>
+      _ioUpdateStatus = IoUpdateStatus.completeUpdate;
+  void setIoCompleteWithNoUpdate() =>
+      _ioUpdateStatus = IoUpdateStatus.completeNoUpdate;
 
   void checkForCircularDependencies(
     Set<BasePlannerElement> safeElements,
@@ -168,4 +190,22 @@ abstract class NodeChangeTracker<
       ..queueIoUpdate()
       .._removeNodeFromNodeCaches(element);
   }
+}
+
+abstract class NodeStateBuilder<T extends NodeState>
+    with NodeState
+    implements Builder<T> {
+  void updateUnusedIo(ItemIoImpl newUnusedIo);
+  void updateGeometry(NodeGeometryImpl geometry);
+}
+
+enum IoUpdateStatus {
+  checkDependencies(false),
+  required(false),
+  completeNoUpdate(true),
+  completeUpdate(true);
+
+  final bool isComplete;
+
+  const IoUpdateStatus(this.isComplete);
 }

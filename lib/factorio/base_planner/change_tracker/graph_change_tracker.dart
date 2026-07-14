@@ -1,4 +1,4 @@
-part of '../snapshot_builder.dart';
+part of 'change_trackers.dart';
 
 class GraphChangeTracker
     extends

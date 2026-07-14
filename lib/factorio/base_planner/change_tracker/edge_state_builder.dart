@@ -1,7 +1,6 @@
-part of '../snapshot_builder.dart';
+part of 'change_trackers.dart';
 
-class EdgeStateBuilder extends StateBuilder<EdgeStateImpl>
-    implements EdgeState {
+class EdgeStateBuilder implements Builder<EdgeStateImpl>, EdgeState {
   final Edge edge;
 
   double _amount;
@@ -47,18 +46,18 @@ class EdgeStateBuilder extends StateBuilder<EdgeStateImpl>
   }
 
   void updatePercentage(double newPercentage) {
-    // _snapshotBuilder.queueRequiredIoUpdate(_element);
-    // _percentage = newPercentage;
+    edge.getChangeTracker().queueIoUpdate();
+    _percentage = newPercentage;
   }
 
   void updateParentPriority(int newPriority) {
-    // _snapshotBuilder.queueRequiredIoUpdate(_element);
-    // _parentPriority = newPriority;
+    edge.getChangeTracker().queueIoUpdate();
+    _parentPriority = newPriority;
   }
 
   void updateChildPriority(int newPriority) {
-    // _snapshotBuilder.queueRequiredIoUpdate(_element);
-    // _childPriority = newPriority;
+    edge.getChangeTracker().queueIoUpdate();
+    _childPriority = newPriority;
   }
 
   void updateGeometry(EdgeGeometryImpl geometry) => _geometry = geometry;

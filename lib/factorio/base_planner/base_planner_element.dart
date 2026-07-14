@@ -22,7 +22,7 @@ abstract class BasePlannerElement<St, E>
   void updateState(St state);
 
   ElementChangeTracker getChangeTracker();
-  StateBuilder<St> getStateBuilder();
+  Builder<St> getStateBuilder();
 
   /// Used in the event of a dragging or resizing operation.
   /// Allows notifying listeners of some [Geometry] object without updating [state].

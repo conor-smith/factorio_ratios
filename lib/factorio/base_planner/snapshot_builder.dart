@@ -1,24 +1,4 @@
-import 'dart:collection';
-
-import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
-import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
-import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
-import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
-import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
-import 'package:factorio_ratios/factorio/models/models.dart';
-import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
-import 'package:factorio_ratios/utility/builder.dart';
-
-part 'change_tracker/edge.dart';
-part 'change_tracker/element.dart';
-part 'change_tracker/graph.dart';
-part 'change_tracker/prod_line_node.dart';
-part 'state_builders/edge.dart';
-part 'state_builders/graph.dart';
-part 'state_builders/prod_line_node.dart';
-part 'state_builders/state_builders.dart';
+part of 'base_planner.dart';
 
 class SnapshotBuilder implements Builder<Snapshot?> {
   final Snapshot _previousSnapshot;
@@ -132,7 +112,7 @@ class SnapshotBuilder implements Builder<Snapshot?> {
       // Otherwise, mark element as completeNoUpdate
       // Remove element from queue in both scenarios
       if (updateRequired && trackerToUpdate.calculateIo()) {
-        trackerToUpdate._ioUpdateStatus = IoUpdateStatus.completeUpdate;
+        trackerToUpdate.setIoCompleteWithUpdate();
 
         updateQueue.addAll(
           trackerToUpdate.determineDependants().map(
@@ -140,7 +120,7 @@ class SnapshotBuilder implements Builder<Snapshot?> {
           ),
         );
       } else {
-        trackerToUpdate._ioUpdateStatus = IoUpdateStatus.completeNoUpdate;
+        trackerToUpdate.setIoCompleteWithNoUpdate();
       }
     }
 
@@ -173,15 +153,4 @@ class SnapshotBuilder implements Builder<Snapshot?> {
       toUpdate.performLayoutUptdate();
     }
   }
-}
-
-enum IoUpdateStatus {
-  checkDependencies(false),
-  required(false),
-  completeNoUpdate(true),
-  completeUpdate(true);
-
-  final bool isComplete;
-
-  const IoUpdateStatus(this.isComplete);
 }
