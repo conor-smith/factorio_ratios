@@ -21,7 +21,7 @@ abstract class BasePlannerElement<St, E>
   /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
   void updateState(St state);
 
-  SnapshotBuilderElement getSnapshotBuilderElement();
+  ElementChangeTracker getChangeTracker();
   StateBuilder<St> getStateBuilder();
 
   /// Used in the event of a dragging or resizing operation.

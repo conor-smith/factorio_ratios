@@ -27,7 +27,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   GraphStateImpl _internalState;
 
   GraphState get _state =>
-      basePlanner.snapshotBuilder?.graphBuilders[this]?.state ?? _internalState;
+      basePlanner.snapshotBuilder?.graphTrackers[this]?.state ?? _internalState;
 
   // For convenience
   String get name => _state.name;
@@ -86,7 +86,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
            basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
     basePlanner
         .getSnapshotBuilderOrThrow()
-        .graphBuilders[this] = SnapshotBuilderGraph.newGraph(
+        .graphTrackers[this] = GraphChangeTracker.newGraph(
       this,
       _internalState,
       GraphStateBuilder.initial(icon),
@@ -107,14 +107,13 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   }
 
   @override
-  SnapshotBuilderGraph getSnapshotBuilderElement() => basePlanner
+  GraphChangeTracker getChangeTracker() => basePlanner
       .getSnapshotBuilderOrThrow()
-      .graphBuilders
-      .putIfAbsent(this, () => SnapshotBuilderGraph(this, _internalState));
+      .graphTrackers
+      .putIfAbsent(this, () => GraphChangeTracker(this, _internalState));
 
   @override
-  GraphStateBuilder getStateBuilder() =>
-      getSnapshotBuilderElement().stateBuilder;
+  GraphStateBuilder getStateBuilder() => getChangeTracker().stateBuilder;
 
   @override
   bool get isSelected => basePlanner.selectedElements.contains(this);
@@ -180,7 +179,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   /// Clears all nodes except IO nodes
   void clear() {
     basePlanner.buildNextSnapshot(() {
-      getSnapshotBuilderElement().removeAllNodesExceptIo();
+      getChangeTracker().removeAllNodesExceptIo();
     });
   }
 
@@ -316,7 +315,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
 
     for (var input in requiredInputs) {
       var nextNode =
-          getSnapshotBuilderElement().cachedNodeOutputIndex[input]?.firstOrNull;
+          getChangeTracker().cachedNodeOutputIndex[input]?.firstOrNull;
 
       if (nextNode == null) {
         nextNode =
@@ -379,8 +378,9 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
         var existingNodeFuel = burner.fuelItems
             .where(
               (fuelItem) =>
-                  getSnapshotBuilderElement()
-                      .cachedDisposalNodes[InGameSolidItem(fuelItem)] !=
+                  getChangeTracker().cachedDisposalNodes[InGameSolidItem(
+                    fuelItem,
+                  )] !=
                   null,
             )
             .map((item) => InGameSolidItem(item));

@@ -1,16 +1,16 @@
 part of '../snapshot_builder.dart';
 
-class SnapshotBuilderEdge
+class EdgeChangeTracker
     extends
-        SnapshotBuilderElement<
+        ElementChangeTracker<
           Edge,
           EdgeStateImpl,
           EdgeDependencies,
           EdgeStateBuilder
         > {
-  SnapshotBuilderEdge(super.element, super.previousState);
+  EdgeChangeTracker(super.element, super.previousState);
 
-  SnapshotBuilderEdge.newEdge(
+  EdgeChangeTracker.newEdge(
     super.element,
     super.previousState,
     super.stateBuilder,
@@ -51,7 +51,7 @@ class SnapshotBuilderEdge
     _updateChildIfChildIsGraphNode();
 
     for (var dependant in determineDependants()) {
-      dependant.getSnapshotBuilderElement().queueIoUpdate();
+      dependant.getChangeTracker().queueIoUpdate();
     }
 
     _removeSelfOnly();
@@ -88,7 +88,7 @@ class SnapshotBuilderEdge
       stateBuilder.updateAmount(newAmount);
 
       for (var node in unusedIoCheckNodes) {
-        node.getSnapshotBuilderElement().queueUnusedIoCheck();
+        node.getChangeTracker().queueUnusedIoCheck();
       }
 
       return true;
@@ -158,7 +158,7 @@ class SnapshotBuilderEdge
     _updateParentIfParentIsGraphNode();
 
     for (var parentDependant in _determineParentDependants()) {
-      parentDependant.getSnapshotBuilderElement().queueIoUpdate();
+      parentDependant.getChangeTracker().queueIoUpdate();
     }
 
     _removeSelfOnly();
@@ -172,7 +172,7 @@ class SnapshotBuilderEdge
     _updateChildIfChildIsGraphNode();
 
     for (var childDependant in _determineChildDependants()) {
-      childDependant.getSnapshotBuilderElement().queueIoUpdate();
+      childDependant.getChangeTracker().queueIoUpdate();
     }
 
     _removeSelfOnly();
@@ -230,7 +230,7 @@ class SnapshotBuilderEdge
     if (element.parentNode is Graph) {
       (element.parentNode as Graph)
         ..getStateBuilder()._cachedChildren = null
-        ..getSnapshotBuilderElement().queueIoUpdate();
+        ..getChangeTracker().queueIoUpdate();
     }
   }
 
@@ -238,12 +238,12 @@ class SnapshotBuilderEdge
     if (element.childNode is Graph) {
       (element.childNode as Graph)
         ..getStateBuilder()._cachedParents = null
-        ..getSnapshotBuilderElement().queueIoUpdate();
+        ..getChangeTracker().queueIoUpdate();
     }
   }
 
   void _removeSelfAndUpdateParentGraph() => element.parentGraph
-    ..getSnapshotBuilderElement().queueLayoutUpdate()
+    ..getChangeTracker().queueLayoutUpdate()
     ..getStateBuilder()._edges.remove(element);
 
   double _getAmountToRequest() =>

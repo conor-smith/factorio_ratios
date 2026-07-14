@@ -63,7 +63,7 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
 
     basePlanner
         .getSnapshotBuilderOrThrow()
-        .edgeBuilders[this] = SnapshotBuilderEdge.newEdge(
+        .edgeTrackers[this] = EdgeChangeTracker.newEdge(
       this,
       _internalState,
       EdgeStateBuilder.initial(this),
@@ -71,7 +71,7 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
   }
 
   EdgeState get state =>
-      basePlanner.snapshotBuilder?.edgeBuilders[this]?.state ?? _internalState;
+      basePlanner.snapshotBuilder?.edgeTrackers[this]?.state ?? _internalState;
 
   @override
   void updateState(EdgeStateImpl state) {
@@ -80,14 +80,13 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
   }
 
   @override
-  SnapshotBuilderEdge getSnapshotBuilderElement() => basePlanner
+  EdgeChangeTracker getChangeTracker() => basePlanner
       .getSnapshotBuilderOrThrow()
-      .edgeBuilders
-      .putIfAbsent(this, () => SnapshotBuilderEdge(this, _internalState));
+      .edgeTrackers
+      .putIfAbsent(this, () => EdgeChangeTracker(this, _internalState));
 
   @override
-  EdgeStateBuilder getStateBuilder() =>
-      getSnapshotBuilderElement().stateBuilder;
+  EdgeStateBuilder getStateBuilder() => getChangeTracker().stateBuilder;
 
   @override
   bool get isSelected => basePlanner.selectedElements.contains(this);

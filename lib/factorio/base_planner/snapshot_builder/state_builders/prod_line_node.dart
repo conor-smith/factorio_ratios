@@ -59,7 +59,7 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
 
   void updateInternalConstraints(ItemIoImpl newConstraints) {
     _internalConstraints = newConstraints;
-    _node.getSnapshotBuilderElement().queueIoUpdate();
+    _node.getChangeTracker().queueIoUpdate();
   }
 
   @override
@@ -79,7 +79,7 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
   }
 
   void updateProductionLine(ProductionLine newLine) {
-    _node.getSnapshotBuilderElement().queueIoUpdate();
+    _node.getChangeTracker().queueIoUpdate();
 
     var removedOutputs = _productionLine.outputItems.difference(
       newLine.outputItems,
@@ -91,7 +91,7 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
         .toList();
 
     for (var parent in parentsToRemove) {
-      parent.getSnapshotBuilderElement()._removeSelfFromParentOnly();
+      parent.getChangeTracker()._removeSelfFromParentOnly();
     }
     for (var output in removedOutputs) {
       _parents.remove(output);
@@ -107,16 +107,16 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
         .toList();
 
     for (var child in childrenToRemove) {
-      child.getSnapshotBuilderElement()._removeSelfFromChildOnly();
+      child.getChangeTracker()._removeSelfFromChildOnly();
     }
     for (var input in removedInputs) {
       _children.remove(input);
     }
 
     if (_node.nodeType.outputPriority < 100) {
-      _node.parentGraph.getSnapshotBuilderElement()._clearCachedOutputIndex();
+      _node.parentGraph.getChangeTracker()._clearCachedOutputIndex();
     } else if (_node.nodeType == NodeType.disposal) {
-      _node.parentGraph.getSnapshotBuilderElement()._clearCachedDisposalNodes();
+      _node.parentGraph.getChangeTracker()._clearCachedDisposalNodes();
     }
 
     _productionLine = newLine;

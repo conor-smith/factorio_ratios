@@ -1,8 +1,8 @@
 part of '../snapshot_builder.dart';
 
-class SnapshotBuilderGraph
+class GraphChangeTracker
     extends
-        SnapshotBuilderNode<
+        NodeChangeTracker<
           Graph,
           GraphStateImpl,
           GraphDependencies,
@@ -14,9 +14,9 @@ class SnapshotBuilderGraph
   Map<InGameItem, List<NodeElement>>? _cachedNodeOutputIndex;
   Map<InGameItem, NodeElement>? _cachedDisposalNodes;
 
-  SnapshotBuilderGraph(super.element, super.previousState);
+  GraphChangeTracker(super.element, super.previousState);
 
-  SnapshotBuilderGraph.newGraph(
+  GraphChangeTracker.newGraph(
     super.element,
     super.previousState,
     super.stateBuilder,
@@ -49,11 +49,11 @@ class SnapshotBuilderGraph
   @override
   void removeSelf() {
     for (var parent in state.allParents) {
-      parent.getSnapshotBuilderElement()._removeSelfFromParentOnly();
+      parent.getChangeTracker()._removeSelfFromParentOnly();
     }
 
     for (var child in state.allChildren) {
-      child.getSnapshotBuilderElement()._removeSelfFromChildOnly();
+      child.getChangeTracker()._removeSelfFromChildOnly();
     }
 
     List<BasePlannerElement> allElements = [
@@ -65,14 +65,12 @@ class SnapshotBuilderGraph
     ];
 
     for (var element in allElements) {
-      element.getSnapshotBuilderElement()._removeSelfOnly();
+      element.getChangeTracker()._removeSelfOnly();
     }
 
-    element.parentGraph
-        .getSnapshotBuilderElement()
-        .stateBuilder
-        ._graphNodes
-        .remove(element);
+    element.parentGraph.getChangeTracker().stateBuilder._graphNodes.remove(
+      element,
+    );
 
     _removeSelfAndUpdateParentGraphSnapshotBuilder();
     _removeSelfOnly();
@@ -113,7 +111,7 @@ class SnapshotBuilderGraph
       ...state.edges,
     ];
     for (var element in elementsToRemove) {
-      element.getSnapshotBuilderElement()._removeSelfOnly();
+      element.getChangeTracker()._removeSelfOnly();
     }
 
     for (var inputNode in state.inputNodes.values) {
@@ -127,7 +125,7 @@ class SnapshotBuilderGraph
       ...state.inputNodes.values,
       ...state.outputNodes.values,
     ]) {
-      ioNode.getSnapshotBuilderElement()
+      ioNode.getChangeTracker()
         ..queueIoUpdate()
         ..queueUnusedIoCheck();
     }
@@ -208,7 +206,7 @@ class SnapshotBuilderGraph
           output,
           (nodes) => nodes
             ..add(node)
-            ..sort(SnapshotBuilderGraph._orderByNodeType),
+            ..sort(GraphChangeTracker._orderByNodeType),
           ifAbsent: () => [node],
         );
       }
@@ -227,9 +225,7 @@ class SnapshotBuilderGraph
       }
 
       if (node.nodeType == NodeType.output) {
-        element.parentGraph
-            .getSnapshotBuilderElement()
-            ._clearCachedOutputIndex();
+        element.parentGraph.getChangeTracker()._clearCachedOutputIndex();
       }
     } else if (_cachedDisposalNodes != null &&
         node.nodeType == NodeType.disposal) {

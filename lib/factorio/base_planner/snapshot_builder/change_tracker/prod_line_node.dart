@@ -1,16 +1,16 @@
 part of '../snapshot_builder.dart';
 
-class SnapshotBuilderProdLineNode
+class ProdLineNodeChangeTracker
     extends
-        SnapshotBuilderNode<
+        NodeChangeTracker<
           ProdLineNode,
           ProdLineNodeStateImpl,
           NodeDependencies,
           ProdLineNodeStateBuilder
         > {
-  SnapshotBuilderProdLineNode(super.element, super.previousState);
+  ProdLineNodeChangeTracker(super.element, super.previousState);
 
-  SnapshotBuilderProdLineNode.newNode(
+  ProdLineNodeChangeTracker.newProdLineNode(
     super.element,
     super.previousState,
     super.stateBuilder,
@@ -42,9 +42,7 @@ class SnapshotBuilderProdLineNode
         parentGraphBuilder._outputNodes[outputItem] = element;
 
         // Clear output cached of "grandparentGraph"
-        parentGraph.parentGraph
-            .getSnapshotBuilderElement()
-            ._clearCachedOutputIndex();
+        parentGraph.parentGraph.getChangeTracker()._clearCachedOutputIndex();
 
       default:
         parentGraphBuilder._prodLineNodes.add(element);
@@ -86,7 +84,7 @@ class SnapshotBuilderProdLineNode
       queueUnusedIoCheck();
 
       if (element.nodeType.isIo) {
-        element.parentGraph.getSnapshotBuilderElement().queueUnusedIoCheck();
+        element.parentGraph.getChangeTracker().queueUnusedIoCheck();
       }
 
       return true;
@@ -98,11 +96,11 @@ class SnapshotBuilderProdLineNode
   @override
   void removeSelf() {
     for (var parent in state.allParents) {
-      parent.getSnapshotBuilderElement()._removeSelfFromParentOnly();
+      parent.getChangeTracker()._removeSelfFromParentOnly();
     }
 
     for (var child in state.allChildren) {
-      child.getSnapshotBuilderElement()._removeSelfFromChildOnly();
+      child.getChangeTracker()._removeSelfFromChildOnly();
     }
 
     var parentGraphBuilder = element.parentGraph.getStateBuilder();
@@ -120,7 +118,7 @@ class SnapshotBuilderProdLineNode
 
         // Clear output cached of "grandparentGraph"
         element.parentGraph.parentGraph
-            .getSnapshotBuilderElement()
+            .getChangeTracker()
             ._clearCachedOutputIndex();
 
       default:

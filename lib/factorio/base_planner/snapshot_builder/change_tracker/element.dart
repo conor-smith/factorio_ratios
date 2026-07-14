@@ -1,6 +1,6 @@
 part of '../snapshot_builder.dart';
 
-abstract class SnapshotBuilderElement<
+abstract class ElementChangeTracker<
   E extends BasePlannerElement<St, dynamic>,
   St,
   D extends Dependencies,
@@ -18,13 +18,13 @@ abstract class SnapshotBuilderElement<
   bool _toRemove;
   IoUpdateStatus _ioUpdateStatus;
 
-  SnapshotBuilderElement(this.element, this.previousState)
+  ElementChangeTracker(this.element, this.previousState)
     : snapshotBuilder = element.basePlanner.getSnapshotBuilderOrThrow(),
       _toRemove = false,
       circularDependencyCheck = false,
       _ioUpdateStatus = IoUpdateStatus.checkDependencies;
 
-  SnapshotBuilderElement.newElement(
+  ElementChangeTracker.newElement(
     this.element,
     this.previousState,
     B stateBuilder,
@@ -33,7 +33,7 @@ abstract class SnapshotBuilderElement<
       _toRemove = false,
       circularDependencyCheck = true,
       _ioUpdateStatus = IoUpdateStatus.required {
-    element.parentGraph.getSnapshotBuilderElement().queueLayoutUpdate();
+    element.parentGraph.getChangeTracker().queueLayoutUpdate();
   }
 
   Object get state;
@@ -75,7 +75,7 @@ abstract class SnapshotBuilderElement<
       visitedElements.add(element);
 
       for (var dependency in cachedDependencies.allElements) {
-        dependency.getSnapshotBuilderElement().checkForCircularDependencies(
+        dependency.getChangeTracker().checkForCircularDependencies(
           safeElements,
           visitedElements,
         );
@@ -96,29 +96,27 @@ abstract class SnapshotBuilderElement<
   }
 }
 
-abstract class SnapshotBuilderNode<
+abstract class NodeChangeTracker<
   E extends NodeElement<St, NodeEvent>,
   St extends NodeState,
   D extends Dependencies,
   B extends NodeStateBuilder<St>
 >
-    extends SnapshotBuilderElement<E, St, D, B> {
+    extends ElementChangeTracker<E, St, D, B> {
   bool _unusedIoCheck;
 
   bool get unusedIoCheck => _unusedIoCheck;
 
-  SnapshotBuilderNode(super.element, super.previousState)
+  NodeChangeTracker(super.element, super.previousState)
     : _unusedIoCheck = false;
 
-  SnapshotBuilderNode.newNode(
+  NodeChangeTracker.newNode(
     super.element,
     super.previousState,
     super.stateBuilder,
   ) : _unusedIoCheck = true,
       super.newElement() {
-    element.parentGraph.getSnapshotBuilderElement()._addNodeToNodeCaches(
-      element,
-    );
+    element.parentGraph.getChangeTracker()._addNodeToNodeCaches(element);
   }
 
   @override
@@ -161,7 +159,7 @@ abstract class SnapshotBuilderNode<
   }
 
   void _removeSelfAndUpdateParentGraphSnapshotBuilder() {
-    element.parentGraph.getSnapshotBuilderElement()
+    element.parentGraph.getChangeTracker()
       ..queueLayoutUpdate()
       ..queueIoUpdate()
       .._removeNodeFromNodeCaches(element);

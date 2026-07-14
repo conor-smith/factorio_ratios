@@ -11,10 +11,10 @@ import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/utility/builder.dart';
 
-part 'elements/edge.dart';
-part 'elements/element.dart';
-part 'elements/graph.dart';
-part 'elements/prod_line_node.dart';
+part 'change_tracker/edge.dart';
+part 'change_tracker/element.dart';
+part 'change_tracker/graph.dart';
+part 'change_tracker/prod_line_node.dart';
 part 'state_builders/edge.dart';
 part 'state_builders/graph.dart';
 part 'state_builders/prod_line_node.dart';
@@ -23,37 +23,37 @@ part 'state_builders/state_builders.dart';
 class SnapshotBuilder implements Builder<Snapshot> {
   final Snapshot _previousSnapshot;
 
-  final Map<Graph, SnapshotBuilderGraph> graphBuilders = {};
-  final Map<ProdLineNode, SnapshotBuilderProdLineNode> nodeBuilders = {};
-  final Map<Edge, SnapshotBuilderEdge> edgeBuilders = {};
+  final Map<Graph, GraphChangeTracker> graphTrackers = {};
+  final Map<ProdLineNode, ProdLineNodeChangeTracker> nodeTrackers = {};
+  final Map<Edge, EdgeChangeTracker> edgeTrackers = {};
 
-  final List<SnapshotBuilderElement> _allElements = [];
+  final List<ElementChangeTracker> _allTrackers = [];
 
   SnapshotBuilder.from(this._previousSnapshot);
 
   bool get hasChanges =>
-      graphBuilders.isNotEmpty ||
-      nodeBuilders.isNotEmpty ||
-      edgeBuilders.isNotEmpty;
+      graphTrackers.isNotEmpty ||
+      nodeTrackers.isNotEmpty ||
+      edgeTrackers.isNotEmpty;
 
   @override
   Snapshot build() {
-    Map<BasePlannerElement, SnapshotBuilderElement> toRemove = Map.fromEntries(
-      <MapEntry<BasePlannerElement, SnapshotBuilderElement>>[
-        ...graphBuilders.entries,
-        ...nodeBuilders.entries,
-        ...edgeBuilders.entries,
+    Map<BasePlannerElement, ElementChangeTracker> toRemove = Map.fromEntries(
+      <MapEntry<BasePlannerElement, ElementChangeTracker>>[
+        ...graphTrackers.entries,
+        ...nodeTrackers.entries,
+        ...edgeTrackers.entries,
       ].where((entry) => entry.value.toRemove),
     );
 
-    graphBuilders.removeWhere((_, builder) => builder.toRemove);
-    nodeBuilders.removeWhere((_, builder) => builder.toRemove);
-    edgeBuilders.removeWhere((_, builder) => builder.toRemove);
+    graphTrackers.removeWhere((_, builder) => builder.toRemove);
+    nodeTrackers.removeWhere((_, builder) => builder.toRemove);
+    edgeTrackers.removeWhere((_, builder) => builder.toRemove);
 
-    _allElements
-      ..addAll(graphBuilders.values)
-      ..addAll(nodeBuilders.values)
-      ..addAll(edgeBuilders.values);
+    _allTrackers
+      ..addAll(graphTrackers.values)
+      ..addAll(nodeTrackers.values)
+      ..addAll(edgeTrackers.values);
 
     _checkForCircularDependencies();
     _performIoUdpates();
@@ -64,7 +64,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
   void _checkForCircularDependencies() {
     Set<BasePlannerElement> safeElements = {};
 
-    var elementsToCheck = _allElements.where(
+    var elementsToCheck = _allTrackers.where(
       (elementBuilder) => elementBuilder.circularDependencyCheck,
     );
 
@@ -74,38 +74,36 @@ class SnapshotBuilder implements Builder<Snapshot> {
   }
 
   void _performIoUdpates() {
-    Queue<SnapshotBuilderElement> updateQueue = Queue.from(
-      _allElements.where(
+    Queue<ElementChangeTracker> updateQueue = Queue.from(
+      _allTrackers.where(
         (elementBuilder) =>
             elementBuilder.ioUpdateStatus == IoUpdateStatus.required,
       ),
     );
 
     while (updateQueue.isNotEmpty) {
-      var toUpdate = updateQueue.removeFirst();
-      var updateStatus = toUpdate.ioUpdateStatus;
+      var trackerToUpdate = updateQueue.removeFirst();
+      var updateStatus = trackerToUpdate.ioUpdateStatus;
 
       // If element is already completed, restart loop
       if (updateStatus.isComplete) {
         continue;
       }
 
-      var dependencies = toUpdate.cachedDependencies;
+      var dependencies = trackerToUpdate.cachedDependencies;
 
       // If unresolved dependencies exist,
       // Place said dependencies at front of queue and restart loop
       var unresolvedDeps = dependencies.allElements
           .where(
-            (dependency) => !dependency
-                .getSnapshotBuilderElement()
-                .ioUpdateStatus
-                .isComplete,
+            (dependency) =>
+                !dependency.getChangeTracker().ioUpdateStatus.isComplete,
           )
           .toList();
       if (unresolvedDeps.isNotEmpty) {
-        updateQueue.addFirst(toUpdate);
+        updateQueue.addFirst(trackerToUpdate);
         for (var dep in unresolvedDeps) {
-          updateQueue.addFirst(dep.getSnapshotBuilderElement());
+          updateQueue.addFirst(dep.getChangeTracker());
         }
 
         continue;
@@ -118,39 +116,39 @@ class SnapshotBuilder implements Builder<Snapshot> {
           updateStatus == IoUpdateStatus.required ||
           dependencies.allElements.any(
             (dependency) =>
-                dependency.getSnapshotBuilderElement().ioUpdateStatus ==
+                dependency.getChangeTracker().ioUpdateStatus ==
                 IoUpdateStatus.completeUpdate,
           );
 
       // If update is required and update returns true, add dependents to end of queue
       // Otherwise, mark element as completeNoUpdate
       // Remove element from queue in both scenarios
-      if (updateRequired && toUpdate.calculateIo()) {
-        toUpdate._ioUpdateStatus = IoUpdateStatus.completeUpdate;
+      if (updateRequired && trackerToUpdate.calculateIo()) {
+        trackerToUpdate._ioUpdateStatus = IoUpdateStatus.completeUpdate;
 
         updateQueue.addAll(
-          toUpdate.determineDependants().map(
-            (element) => element.getSnapshotBuilderElement(),
+          trackerToUpdate.determineDependants().map(
+            (element) => element.getChangeTracker(),
           ),
         );
       } else {
-        toUpdate._ioUpdateStatus = IoUpdateStatus.completeNoUpdate;
+        trackerToUpdate._ioUpdateStatus = IoUpdateStatus.completeNoUpdate;
       }
     }
   }
 
   void _calculateUnusedIo() {
-    var nodeElements = _allElements.whereType<SnapshotBuilderNode>().where(
+    var nodeTrackers = _allTrackers.whereType<NodeChangeTracker>().where(
       (element) => element.unusedIoCheck,
     );
 
-    for (var node in nodeElements) {
+    for (var node in nodeTrackers) {
       node.checkForUnusedIo();
     }
   }
 
   void _performGraphLayoutUpdates() {
-    var graphsToUpdate = graphBuilders.values.where(
+    var graphsToUpdate = graphTrackers.values.where(
       (tracker) => tracker.layoutUpdate,
     );
 

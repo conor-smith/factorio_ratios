@@ -49,7 +49,7 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   }) : _internalState = ProdLineNodeStateImpl.uninitialised {
     basePlanner
         .getSnapshotBuilderOrThrow()
-        .nodeBuilders[this] = SnapshotBuilderProdLineNode.newNode(
+        .nodeTrackers[this] = ProdLineNodeChangeTracker.newProdLineNode(
       this,
       _internalState,
       ProdLineNodeStateBuilder.initial(this, productionLine),
@@ -57,7 +57,7 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   }
 
   ProdLineNodeState get state =>
-      basePlanner.snapshotBuilder?.nodeBuilders[this]?.state ?? _internalState;
+      basePlanner.snapshotBuilder?.nodeTrackers[this]?.state ?? _internalState;
 
   @override
   void updateState(ProdLineNodeStateImpl state) {
@@ -66,15 +66,13 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   }
 
   @override
-  SnapshotBuilderProdLineNode getSnapshotBuilderElement() =>
-      basePlanner.getSnapshotBuilderOrThrow().nodeBuilders.putIfAbsent(
-        this,
-        () => SnapshotBuilderProdLineNode(this, _internalState),
-      );
+  ProdLineNodeChangeTracker getChangeTracker() => basePlanner
+      .getSnapshotBuilderOrThrow()
+      .nodeTrackers
+      .putIfAbsent(this, () => ProdLineNodeChangeTracker(this, _internalState));
 
   @override
-  ProdLineNodeStateBuilder getStateBuilder() =>
-      getSnapshotBuilderElement().stateBuilder;
+  ProdLineNodeStateBuilder getStateBuilder() => getChangeTracker().stateBuilder;
 
   @override
   bool get isSelected => basePlanner.selectedElements.contains(this);

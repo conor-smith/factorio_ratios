@@ -35,7 +35,7 @@ abstract class NodeElement<St extends NodeState, E extends NodeEvent>
   @override
   NodeGeometryImpl get geometry;
   @override
-  SnapshotBuilderNode getSnapshotBuilderElement();
+  NodeChangeTracker getChangeTracker();
   @override
   NodeStateBuilder<St> getStateBuilder();
 
