@@ -10,11 +10,12 @@ import 'package:flutter/material.dart';
 class BasePlannerWidget extends StatefulWidget {
   final BasePlanner basePlanner;
 
-  const BasePlannerWidget({super.key, required this.basePlanner});
+  final IconWidgetCache _cache = IconWidgetCache();
+
+  BasePlannerWidget({super.key, required this.basePlanner});
 
   static IconWidgetCache getWidgetCache(BuildContext context) =>
-      context.findAncestorStateOfType<_BasePlannerWidgetState>()?.cache ??
-      IconWidgetCache();
+      context.findAncestorWidgetOfExactType<BasePlannerWidget>()!._cache;
 
   @override
   State<BasePlannerWidget> createState() => _BasePlannerWidgetState();
@@ -24,7 +25,6 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
   BasePlanner get basePlanner => widget.basePlanner;
   bool consumerMenuActive = false;
 
-  final IconWidgetCache cache = IconWidgetCache();
   final Map<Graph, GraphWidget> graphWidgets = {};
   late final FactorioGroupMenuWidget<Item> consumerMenu =
       FactorioGroupMenuWidget(
