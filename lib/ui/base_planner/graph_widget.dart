@@ -24,7 +24,6 @@ class _GraphWidgetState extends State<GraphWidget> {
   final Map<NodeElement, NodeWidget> nodeWidgets = {};
   final Map<Edge, EdgeWidget> edgeWidgets = {};
   Rect minBounds = Rect.zero;
-  final TransformationController controller = TransformationController();
 
   Graph get graph => widget.graph;
 
@@ -111,18 +110,15 @@ class _GraphWidgetState extends State<GraphWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return InteractiveViewer(
-      transformationController: controller,
-      child: Stack(
-        children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => widget.toggleConsumerMenu(),
-          ),
-          ...nodeWidgets.values,
-          ...edgeWidgets.values,
-        ],
-      ),
+    return Stack(
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => widget.toggleConsumerMenu(),
+        ),
+        ...nodeWidgets.values,
+        ...edgeWidgets.values,
+      ],
     );
   }
 }
