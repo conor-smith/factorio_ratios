@@ -16,79 +16,31 @@ class FactorioIconWidget extends StatelessWidget {
   final double defaultScale;
   final double size;
 
-  const FactorioIconWidget({
+  final List<Widget> iconWidgets;
+
+  FactorioIconWidget({
     super.key,
     required this.icon,
     required this.expectedIconSize,
     required this.defaultScale,
     required this.size,
-  });
+  }) : iconWidgets = icon.icons
+           .map(
+             (iconData) => _createWidgetFromIconData(
+               iconData,
+               size / (expectedIconSize * defaultScale),
+               size,
+             ),
+           )
+           .toList(growable: false);
 
   @override
   Widget build(BuildContext context) {
-    double scaleMultiplier = size / (expectedIconSize * defaultScale);
-
-    List<Widget> iconWidgets = icon.icons
-        .map(
-          (iconData) =>
-              _createWidgetFromIconData(iconData, scaleMultiplier, size),
-        )
-        .toList();
-
     return Container(
       width: size,
       height: size,
       clipBehavior: Clip.none,
       child: Stack(clipBehavior: Clip.none, children: iconWidgets),
-    );
-  }
-
-  String _buildFullFilePath(String partialPath) {
-    int firstSlash = partialPath.indexOf('/');
-    return _homeDir +
-        _factorioFilesPath +
-        partialPath.substring(0, firstSlash).replaceAll('__', '') +
-        partialPath.substring(firstSlash);
-  }
-
-  Widget _createWidgetFromIconData(
-    IconData iconData,
-    double scaleMultiplier,
-    double size,
-  ) {
-    double finalScale = iconData.scale * scaleMultiplier;
-    double finalSize = finalScale * iconData.iconSize;
-    finalSize = finalSize > size && iconData.floating ? finalSize : size;
-
-    Widget imageWidget = Image.file(
-      File(_buildFullFilePath(iconData.icon)),
-      scale: finalScale,
-      fit: BoxFit.none,
-      color: Color.from(
-        alpha: 1,
-        red: iconData.tint.r,
-        green: iconData.tint.g,
-        blue: iconData.tint.b,
-      ),
-      opacity: AlwaysStoppedAnimation(iconData.tint.a),
-      colorBlendMode: BlendMode.modulate,
-    );
-
-    double offsetX = (finalSize - size + iconData.shift.x) * finalScale;
-    double offsetY = (finalSize - size + iconData.shift.y) * finalScale;
-
-    return Positioned(
-      top: -offsetX,
-      left: -offsetY,
-      child: ClipRect(
-        clipper: _CustomRectClipper(
-          Rect.fromPoints(
-            Offset(offsetX, offsetY),
-            Offset(offsetX + finalSize, offsetY + finalSize),
-          ),
-        ),
-        child: imageWidget,
-      ),
     );
   }
 }
@@ -125,4 +77,53 @@ class _CustomRectClipper extends CustomClipper<Rect> {
 
   @override
   bool shouldReclip(covariant _CustomRectClipper oldClipper) => false;
+}
+
+Widget _createWidgetFromIconData(
+  IconData iconData,
+  double scaleMultiplier,
+  double size,
+) {
+  double finalScale = iconData.scale * scaleMultiplier;
+  double finalSize = finalScale * iconData.iconSize;
+  finalSize = finalSize > size && iconData.floating ? finalSize : size;
+
+  Widget imageWidget = Image.file(
+    File(_buildFullFilePath(iconData.icon)),
+    scale: finalScale,
+    fit: BoxFit.none,
+    color: Color.from(
+      alpha: 1,
+      red: iconData.tint.r,
+      green: iconData.tint.g,
+      blue: iconData.tint.b,
+    ),
+    opacity: AlwaysStoppedAnimation(iconData.tint.a),
+    colorBlendMode: BlendMode.modulate,
+  );
+
+  double offsetX = (finalSize - size + iconData.shift.x) * finalScale;
+  double offsetY = (finalSize - size + iconData.shift.y) * finalScale;
+
+  return Positioned(
+    top: -offsetX,
+    left: -offsetY,
+    child: ClipRect(
+      clipper: _CustomRectClipper(
+        Rect.fromPoints(
+          Offset(offsetX, offsetY),
+          Offset(offsetX + finalSize, offsetY + finalSize),
+        ),
+      ),
+      child: imageWidget,
+    ),
+  );
+}
+
+String _buildFullFilePath(String partialPath) {
+  int firstSlash = partialPath.indexOf('/');
+  return _homeDir +
+      _factorioFilesPath +
+      partialPath.substring(0, firstSlash).replaceAll('__', '') +
+      partialPath.substring(firstSlash);
 }
