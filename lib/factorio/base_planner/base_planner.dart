@@ -97,7 +97,12 @@ class BasePlanner
     rootGraph = Graph.rootGraph(this, firstState, nauvis);
     _activeGraph = rootGraph;
     _snapshots.add(
-      Snapshot({rootGraph: ElementAndState(rootGraph, firstState)}),
+      Snapshot({
+        rootGraph: ElementAndState<Graph, GraphStateImpl>(
+          rootGraph,
+          firstState,
+        ),
+      }),
     );
   }
 

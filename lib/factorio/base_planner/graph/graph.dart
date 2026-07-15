@@ -85,9 +85,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   }) : _internalState = GraphStateImpl.uninitialised,
        _surfaceProperties =
            basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
-    basePlanner
-        .getSnapshotBuilderOrThrow()
-        .graphTrackers[this] = GraphChangeTracker.newGraph(
+    GraphChangeTracker.newGraph(
       this,
       _internalState,
       GraphStateBuilder.initial(icon),
@@ -110,8 +108,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   @override
   GraphChangeTracker getChangeTracker() => basePlanner
       .getSnapshotBuilderOrThrow()
-      .graphTrackers
-      .putIfAbsent(this, () => GraphChangeTracker(this, _internalState));
+      .getGraphChangeTracker(this, _internalState);
 
   @override
   GraphStateBuilder getStateBuilder() => getChangeTracker().stateBuilder;
@@ -477,7 +474,7 @@ class GraphIo extends ProductionLineIoData {
 
   GraphIo({
     required super.constraints,
-    required super.io,
+    required super.itemIo,
     required super.totalProductionAndConsumption,
     required super.electricPowerConsumption,
     super.displayData = const [],
@@ -563,7 +560,7 @@ class GraphIoBuilder implements Builder<GraphIo> {
   @override
   GraphIo build() => GraphIo(
     constraints: constraintsBuilder.build(),
-    io: itemIoBuilder.build(),
+    itemIo: itemIoBuilder.build(),
     totalProductionAndConsumption: conAndProdBuilder.build(),
     electricPowerConsumption: electricPowerConsumption,
     emissions: emissions,

@@ -42,7 +42,7 @@ abstract class ElementChangeTracker<
       _queuedForRemoval = false,
       checkForCircularDependency = false,
       _ioUpdateStatus = IoUpdateStatus.checkDependencies {
-    snapshotBuilder.allTrackers.add(this);
+    _addSelfToSnapshotBuilder();
   }
 
   ElementChangeTracker.newElement(
@@ -54,8 +54,8 @@ abstract class ElementChangeTracker<
       _queuedForRemoval = false,
       checkForCircularDependency = true,
       _ioUpdateStatus = IoUpdateStatus.required {
+    _addSelfToSnapshotBuilder();
     element.parentGraph.getChangeTracker().queueLayoutUpdate();
-    snapshotBuilder.allTrackers.add(this);
   }
 
   Object get state;
@@ -66,6 +66,7 @@ abstract class ElementChangeTracker<
   B _createStateBuilder();
   D _determineDependencies();
   Iterable<BasePlannerElement> _determineDependants();
+  void _addSelfToSnapshotBuilder();
   void _removeSelfOnly();
 
   bool get queuedForRemoval => _queuedForRemoval;

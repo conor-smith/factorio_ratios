@@ -130,6 +130,12 @@ class GraphChangeTracker
   }
 
   @override
+  void _addSelfToSnapshotBuilder() {
+    snapshotBuilder._graphTrackers[element] = this;
+    snapshotBuilder.allTrackers.add(this);
+  }
+
+  @override
   bool _calculateIo() {
     var builder = GraphIoBuilder();
 
@@ -176,7 +182,7 @@ class GraphChangeTracker
       (node) => node.nodeType.outputPriority < 100,
     )) {
       for (var nodeOutput in node.outputItems) {
-        _cachedNodeOutputIndex!.update(
+        nodeOutputIndex.update(
           nodeOutput,
           (nodes) => nodes..add(node),
           ifAbsent: () => [node],
@@ -184,9 +190,7 @@ class GraphChangeTracker
       }
     }
 
-    _cachedNodeOutputIndex!.updateAll(
-      (item, nodes) => nodes..sort(_orderByNodeType),
-    );
+    nodeOutputIndex.updateAll((item, nodes) => nodes..sort(_orderByNodeType));
 
     return nodeOutputIndex;
   }

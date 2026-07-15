@@ -3,14 +3,38 @@ part of 'change_trackers.dart';
 class SnapshotBuilder implements Builder<Snapshot> {
   final Snapshot _previousSnapshot;
 
-  final Map<Graph, GraphChangeTracker> graphTrackers = {};
-  final Map<ProdLineNode, ProdLineNodeChangeTracker> nodeTrackers = {};
-  final Map<Edge, EdgeChangeTracker> edgeTrackers = {};
+  final Map<Graph, GraphChangeTracker> _graphTrackers = {};
+  final Map<ProdLineNode, ProdLineNodeChangeTracker> _nodeTrackers = {};
+  final Map<Edge, EdgeChangeTracker> _edgeTrackers = {};
 
   final Set<ElementChangeTracker> allTrackers = {};
   final List<BasePlannerElement> elementsToRemove = [];
 
+  late final Map<Graph, GraphChangeTracker> graphTrackers = UnmodifiableMapView(
+    _graphTrackers,
+  );
+  late final Map<ProdLineNode, ProdLineNodeChangeTracker> nodeTrackers =
+      UnmodifiableMapView(_nodeTrackers);
+  late final Map<Edge, EdgeChangeTracker> edgeTrackers = UnmodifiableMapView(
+    _edgeTrackers,
+  );
+
   SnapshotBuilder.from(this._previousSnapshot);
+
+  GraphChangeTracker getGraphChangeTracker(
+    Graph graph,
+    GraphStateImpl currentState,
+  ) => _graphTrackers[graph] ?? GraphChangeTracker(graph, currentState);
+
+  ProdLineNodeChangeTracker getProdLineChangeTracker(
+    ProdLineNode node,
+    ProdLineNodeStateImpl currentState,
+  ) => _nodeTrackers[node] ?? ProdLineNodeChangeTracker(node, currentState);
+
+  EdgeChangeTracker getEdgeChangeTracker(
+    Edge edge,
+    EdgeStateImpl currentState,
+  ) => _edgeTrackers[edge] ?? EdgeChangeTracker(edge, currentState);
 
   bool performAllQueuedOperationsAndReturnHasChanges() {
     allTrackers.removeWhere((tracker) {
@@ -125,9 +149,9 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
     // New trackers may have been created as part of IO update step
     var trackersToAdd = <ElementChangeTracker>[
-      ...graphTrackers.values,
-      ...nodeTrackers.values,
-      ...edgeTrackers.values,
+      ..._graphTrackers.values,
+      ..._nodeTrackers.values,
+      ..._edgeTrackers.values,
     ].where((tracker) => !tracker.queuedForRemoval);
 
     allTrackers.addAll(trackersToAdd);

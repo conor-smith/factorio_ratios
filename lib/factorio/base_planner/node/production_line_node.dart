@@ -8,36 +8,36 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
 
   // For convenience
   @override
-  ItemIoImpl? get internalConstraints => state.internalConstraints;
+  ItemIoImpl? get internalConstraints => _state.internalConstraints;
   @override
-  ItemIo get edgeConstraints => state.edgeConstraints;
+  ItemIo get edgeConstraints => _state.edgeConstraints;
   @override
-  ItemIoImpl get unusedIo => state.unusedIo;
+  ItemIoImpl get unusedIo => _state.unusedIo;
   @override
-  NodeGeometryImpl get geometry => state.geometry;
+  NodeGeometryImpl get geometry => _state.geometry;
   @override
-  Map<InGameItem, Set<Edge>> get parents => state.parents;
+  Map<InGameItem, Set<Edge>> get parents => _state.parents;
   @override
-  Map<InGameItem, Set<Edge>> get children => state.children;
+  Map<InGameItem, Set<Edge>> get children => _state.children;
   @override
-  Set<Edge> get allParents => state.allParents;
+  Set<Edge> get allParents => _state.allParents;
   @override
-  Set<Edge> get allChildren => state.allChildren;
+  Set<Edge> get allChildren => _state.allChildren;
 
-  ProductionLine get productionLine => state.productionLine;
+  ProductionLine get productionLine => _state.productionLine;
 
   @override
-  ItemIoImpl get ioRatios => state.ioRatios;
+  ItemIoImpl get ioRatios => _state.ioRatios;
   @override
   ProductionLineType get productionLineType =>
       productionLine.productionLineType;
   @override
-  Set<InGameItem> get inputItems => state.inputItems;
+  Set<InGameItem> get inputItems => _state.inputItems;
   @override
-  Set<InGameItem> get outputItems => state.outputItems;
+  Set<InGameItem> get outputItems => _state.outputItems;
 
   @override
-  ProductionLineIoData get ioData => state.ioData;
+  ProductionLineIoData get ioData => _state.ioData;
 
   ProdLineNodeStateImpl _internalState;
 
@@ -46,17 +46,24 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
     required this.parentGraph,
     required this.nodeType,
     required ProductionLine productionLine,
+    ItemIoImpl? internalConstraints,
   }) : _internalState = ProdLineNodeStateImpl.uninitialised {
-    basePlanner
-        .getSnapshotBuilderOrThrow()
-        .nodeTrackers[this] = ProdLineNodeChangeTracker.newProdLineNode(
+    if (nodeType.hasInternalConstraints) {
+      internalConstraints ??= ItemIoImpl.empty;
+    }
+
+    ProdLineNodeChangeTracker.newProdLineNode(
       this,
       _internalState,
-      ProdLineNodeStateBuilder.initial(this, productionLine),
+      ProdLineNodeStateBuilder.initial(
+        this,
+        productionLine,
+        internalConstraints,
+      ),
     );
   }
 
-  ProdLineNodeState get state =>
+  ProdLineNodeState get _state =>
       basePlanner.snapshotBuilder?.nodeTrackers[this]?.state ?? _internalState;
 
   @override
@@ -68,8 +75,7 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   @override
   ProdLineNodeChangeTracker getChangeTracker() => basePlanner
       .getSnapshotBuilderOrThrow()
-      .nodeTrackers
-      .putIfAbsent(this, () => ProdLineNodeChangeTracker(this, _internalState));
+      .getProdLineChangeTracker(this, _internalState);
 
   @override
   ProdLineNodeStateBuilder getStateBuilder() => getChangeTracker().stateBuilder;

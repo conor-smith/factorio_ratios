@@ -35,12 +35,15 @@ class MagicLine with ProductionLine<ProductionLineIoData> {
   ProductionLineIoData calculateIoData([
     ItemIoImpl constraints = ItemIoImpl.empty,
   ]) {
-    if (constraints.isEmpty) {
-      return const ProductionLineIoData.empty();
-    }
-
     verifyConstraints(constraints);
 
-    return ProductionLineIoData(constraints: constraints);
+    if (constraints.isZero) {
+      return ProductionLineIoData(
+        constraints: constraints,
+        itemIo: ioRatios.zeroAllValues(),
+      );
+    } else {
+      return ProductionLineIoData(constraints: constraints);
+    }
   }
 }

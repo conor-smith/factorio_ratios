@@ -113,14 +113,14 @@ class ProductionLineIoData {
 
   ProductionLineIoData({
     this.constraints = ItemIoImpl.empty,
-    ItemIoImpl? io = ItemIoImpl.empty,
+    ItemIoImpl? itemIo = ItemIoImpl.empty,
     ItemIoImpl? totalProductionAndConsumption,
     this.electricPowerConsumption = 0,
     Map<String, double> emissions = const {},
     Iterable<DisplayData> displayData = const [],
-  }) : itemIo = io ?? constraints,
+  }) : itemIo = itemIo ?? constraints,
        totalProductionAndConsumption =
-           totalProductionAndConsumption ?? io ?? constraints,
+           totalProductionAndConsumption ?? itemIo ?? constraints,
        emissions = Map.unmodifiable(emissions),
        displayData = List.unmodifiable(displayData);
 

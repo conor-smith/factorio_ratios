@@ -43,13 +43,13 @@ class ItemIoImpl extends ItemIo {
     : inputs = Map.unmodifiable(inputs),
       outputs = Map.unmodifiable(outputs) {
     inputs.forEach((input, amount) {
-      if (amount <= 0) {
+      if (amount < 0) {
         throw FactorioException('Input $input had invalid value $amount');
       }
     });
 
     outputs.forEach((output, amount) {
-      if (amount <= 0) {
+      if (amount < 0) {
         throw FactorioException('Output $output had invalid value $amount');
       }
     });
@@ -64,9 +64,24 @@ class ItemIoImpl extends ItemIo {
         .followedBy(outputs.values)
         .reduce((val1, val2) => val1 < val2 ? val1 : val2);
 
+    if (smallestValue == 0.0) {
+      return zeroAllValues();
+    } else {
+      return ItemIoImpl(
+        inputs: divideMap(inputs, smallestValue),
+        outputs: divideMap(outputs, smallestValue),
+      );
+    }
+  }
+
+  ItemIoImpl zeroAllValues() {
+    if (isEmpty) {
+      return this;
+    }
+
     return ItemIoImpl(
-      inputs: divideMap(inputs, smallestValue),
-      outputs: divideMap(outputs, smallestValue),
+      inputs: inputs.map((item, _) => MapEntry(item, 0.0)),
+      outputs: outputs.map((item, _) => MapEntry(item, 0)),
     );
   }
 

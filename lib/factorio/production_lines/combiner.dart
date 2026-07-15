@@ -28,21 +28,24 @@ class CombinerLine with ProductionLine<ProductionLineIoData> {
   ProductionLineIoData calculateIoData([
     ItemIoImpl constraints = ItemIoImpl.empty,
   ]) {
-    if (constraints.isEmpty) {
-      return const ProductionLineIoData.empty();
-    }
-
     verifyConstraints(constraints);
 
-    var amountMap = {
-      item: constraints.inputs[item]! > constraints.outputs[item]!
-          ? constraints.inputs[item]!
-          : constraints.outputs[item]!,
-    };
+    ItemIoImpl io;
+    if (constraints.isZero) {
+      io = ioRatios.zeroAllValues();
+    } else {
+      var amountMap = {
+        item: constraints.inputs[item]! > constraints.outputs[item]!
+            ? constraints.inputs[item]!
+            : constraints.outputs[item]!,
+      };
+
+      io = ItemIoImpl(inputs: amountMap, outputs: amountMap);
+    }
 
     return ProductionLineIoData(
       constraints: constraints,
-      io: ItemIoImpl(inputs: amountMap, outputs: amountMap),
+      itemIo: io,
       totalProductionAndConsumption: ItemIoImpl.empty,
     );
   }

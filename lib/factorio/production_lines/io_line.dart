@@ -29,22 +29,21 @@ class IoLine with ProductionLine<IoLineIoData> {
 
   @override
   IoLineIoData calculateIoData([ItemIoImpl constraints = ItemIoImpl.empty]) {
-    if (constraints.isEmpty) {
-      return const IoLineIoData.empty();
-    }
-
     verifyConstraints(constraints);
 
-    var requiredInput = constraints.inputs[ioItem]!;
-    var requiredOutput = constraints.outputs[ioItem]!;
-    var requiredIo = requiredInput > requiredOutput
-        ? requiredInput
-        : requiredOutput;
+    double amount;
+    if (constraints.isZero) {
+      amount = 0;
+    } else {
+      var requiredInput = constraints.inputs[ioItem]!;
+      var requiredOutput = constraints.outputs[ioItem]!;
+      amount = requiredInput > requiredOutput ? requiredInput : requiredOutput;
+    }
 
     return IoLineIoData(
       constraints: constraints,
       ioItem: ioItem,
-      amount: requiredIo,
+      amount: amount,
     );
   }
 }
@@ -55,7 +54,10 @@ class IoLineIoData extends ProductionLineIoData {
     required InGameItem ioItem,
     required double amount,
   }) : super(
-         io: ItemIoImpl(inputs: {ioItem: amount}, outputs: {ioItem: amount}),
+         itemIo: ItemIoImpl(
+           inputs: {ioItem: amount},
+           outputs: {ioItem: amount},
+         ),
          totalProductionAndConsumption: ItemIoImpl.empty,
        );
 

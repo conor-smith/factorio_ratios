@@ -58,6 +58,12 @@ class EdgeChangeTracker
   }
 
   @override
+  void _addSelfToSnapshotBuilder() {
+    snapshotBuilder._edgeTrackers[element] = this;
+    snapshotBuilder.allTrackers.add(this);
+  }
+
+  @override
   bool _calculateIo() {
     double newAmount;
     List<NodeElement> unusedIoCheckNodes;

@@ -53,6 +53,12 @@ class ProdLineNodeChangeTracker
   ProdLineNodeState get state => _cachedStateBuilder ?? previousState;
 
   @override
+  void _addSelfToSnapshotBuilder() {
+    snapshotBuilder._nodeTrackers[element] = this;
+    snapshotBuilder.allTrackers.add(this);
+  }
+
+  @override
   Iterable<BasePlannerElement> _determineDependants() {
     var parentDependants = state.allParents.where(
       (parent) => parent.edgeType != EdgeType.requestItems,

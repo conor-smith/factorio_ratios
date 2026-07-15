@@ -266,11 +266,11 @@ class SingleRecipeLine
   SingleRecipeLineIoData calculateIoData([
     ItemIoImpl constraints = ItemIoImpl.empty,
   ]) {
-    if (constraints.isEmpty) {
-      return const SingleRecipeLineIoData.empty();
-    }
-
     verifyConstraints(constraints);
+
+    if (constraints.isZero) {
+      return SingleRecipeLineIoData.zeroConstraints(constraints, ioRatios);
+    }
 
     var machineCount = 0.0;
 
@@ -300,7 +300,7 @@ class SingleRecipeLine
       constraints: constraints,
       machineCount: machineCount,
       totalCyclesPerMinute: machineCyclesPerMinute,
-      io: ItemIoImpl(
+      itemIo: ItemIoImpl(
         inputs: multiplyMap(machineNetIo.inputs, machineCount),
         outputs: multiplyMap(machineNetIo.outputs, machineCount),
       ),
@@ -320,7 +320,7 @@ class SingleRecipeLineIoData extends ProductionLineIoData {
 
   SingleRecipeLineIoData({
     required super.constraints,
-    required super.io,
+    required super.itemIo,
     required super.totalProductionAndConsumption,
     required super.electricPowerConsumption,
     super.displayData = const [],
@@ -329,8 +329,16 @@ class SingleRecipeLineIoData extends ProductionLineIoData {
     required this.totalCyclesPerMinute,
   });
 
-  const SingleRecipeLineIoData.empty()
-    : machineCount = 0,
-      totalCyclesPerMinute = 0,
-      super.empty();
+  SingleRecipeLineIoData.zeroConstraints(
+    ItemIoImpl constraints,
+    ItemIoImpl ioRatios,
+  ) : this(
+        constraints: constraints,
+        itemIo: ioRatios.zeroAllValues(),
+        totalProductionAndConsumption: ioRatios.zeroAllValues(),
+        electricPowerConsumption: 0,
+        emissions: const {},
+        machineCount: 0,
+        totalCyclesPerMinute: 0,
+      );
 }

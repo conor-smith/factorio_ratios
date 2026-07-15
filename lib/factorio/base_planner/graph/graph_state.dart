@@ -21,10 +21,12 @@ abstract class GraphState extends NodeState {
     Iterable<Graph> graphNodes,
     Map<InGameItem, ProdLineNode> inputNodes,
     Map<InGameItem, ProdLineNode> outputNodes,
-  ) => (prodLineNodes as Iterable<NodeElement>)
-      .followedBy(graphNodes)
-      .followedBy(inputNodes.values)
-      .followedBy(outputNodes.values);
+  ) => [
+    ...prodLineNodes,
+    ...graphNodes,
+    ...inputNodes.values,
+    ...outputNodes.values,
+  ];
 
   static Map<InGameItem, Set<Edge>> calculateParents(
     Map<InGameItem, ProdLineNode> outputNodes,

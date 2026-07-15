@@ -36,14 +36,14 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
 
   ProdLineNodeStateBuilder.initial(
     this._node,
-    this._productionLine, [
+    this._productionLine,
     this._internalConstraints,
-  ]) : _edgeConstraints = ItemIoImpl.empty,
-       _unusedIo = ItemIoImpl.empty,
-       _geometry = NodeGeometryImpl.uninitialised,
-       _ioData = ProductionLineIoData.uninitialised,
-       _parents = {},
-       _children = {};
+  ) : _edgeConstraints = ItemIoImpl.empty,
+      _unusedIo = ItemIoImpl.empty,
+      _geometry = NodeGeometryImpl.uninitialised,
+      _ioData = ProductionLineIoData.uninitialised,
+      _parents = {},
+      _children = {};
 
   ProdLineNodeStateBuilder.from(this._node, ProdLineNodeStateImpl previousState)
     : _internalConstraints = previousState.internalConstraints,
@@ -118,8 +118,8 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
     productionLine: productionLine,
     ioData: _ioData,
     geometry: _geometry,
-    parents: parents..removeWhere((item, edges) => edges.isEmpty),
-    children: children..removeWhere((item, edges) => edges.isEmpty),
+    parents: _parents..removeWhere((item, edges) => edges.isEmpty),
+    children: _children..removeWhere((item, edges) => edges.isEmpty),
   );
 
   @override

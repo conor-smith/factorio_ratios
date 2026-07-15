@@ -31,13 +31,13 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
   EdgeStateImpl _internalState;
 
   // For convenience
-  double get percentage => state.percentage;
-  int get parentPriority => state.parentPriority;
-  int get childPriority => state.childPriority;
+  double get percentage => _state.percentage;
+  int get parentPriority => _state.parentPriority;
+  int get childPriority => _state.childPriority;
   @override
-  EdgeGeometryImpl get geometry => state.geometry;
+  EdgeGeometryImpl get geometry => _state.geometry;
 
-  double get amount => state.amount;
+  double get amount => _state.amount;
 
   Edge.addToBasePlanner(
     super.basePlanner, {
@@ -61,16 +61,14 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
       throw const EdgeException('A node may not consume it\'s own output');
     }
 
-    basePlanner
-        .getSnapshotBuilderOrThrow()
-        .edgeTrackers[this] = EdgeChangeTracker.newEdge(
+    EdgeChangeTracker.newEdge(
       this,
       _internalState,
       EdgeStateBuilder.initial(this),
     );
   }
 
-  EdgeState get state =>
+  EdgeState get _state =>
       basePlanner.snapshotBuilder?.edgeTrackers[this]?.state ?? _internalState;
 
   @override
@@ -82,8 +80,7 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
   @override
   EdgeChangeTracker getChangeTracker() => basePlanner
       .getSnapshotBuilderOrThrow()
-      .edgeTrackers
-      .putIfAbsent(this, () => EdgeChangeTracker(this, _internalState));
+      .getEdgeChangeTracker(this, _internalState);
 
   @override
   EdgeStateBuilder getStateBuilder() => getChangeTracker().stateBuilder;
