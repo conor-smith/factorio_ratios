@@ -6,7 +6,7 @@ import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
-import 'package:factorio_ratios/json/json.dart';
+import 'package:factorio_ratios/utility/json.dart';
 import 'package:factorio_ratios/utility/builder.dart';
 
 part 'base_planner_element.dart';

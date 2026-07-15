@@ -4,7 +4,7 @@ import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dar
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
-import 'package:factorio_ratios/json/json.dart';
+import 'package:factorio_ratios/utility/json.dart';
 
 part 'edge_state.dart';
 

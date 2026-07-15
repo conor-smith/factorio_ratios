@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
-import 'package:factorio_ratios/json/json.dart';
+import 'package:factorio_ratios/utility/json.dart';
 
 abstract interface class EdgeGeometry implements Geometry {
   EdgeGeometryType get geometryType;
