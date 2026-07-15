@@ -20,7 +20,7 @@ part 'event_notifier.dart';
 /// is itself.
 ///
 /// State changes can only be made within [buildNextSnapshot].
-/// Any attempts to call [BasePlannerElement.getStateBuilder] outside of this
+/// Any attempts to call [BasePlannerElement.getChangeTracker] outside of this
 /// method will throw an exception.
 /// Once the function passed to [buildNextSnapshot] is complete, a new
 /// [Snapshot] will be created and added to [snapshots].
@@ -127,20 +127,27 @@ class BasePlanner
   }
 
   /// Check out a particular snapshot in [snapshots].
-  /// Will reset [BasePlannerElement.state] of all elements in tree.
+  /// Will reset the state of all elements and call
+  /// [BasePlannerElement.notifyListeners] where appropriate
   void goToSnapshot(int snapshotIndex) {
     if (snapshotIndex < 0 || snapshotIndex >= _snapshots.length) {
       throw BasePlannerException(
         'Snapshot index $snapshotIndex is out of bounds',
       );
+    } else if (snapshotIndex != _snapshotIndex) {
+      _applySnapshot(_snapshots[_snapshotIndex], _snapshots[snapshotIndex]);
     }
   }
 
-  /// Any updates to element state via [BasePlannerElement.getStateBuilder]
+  /// Any updates to element state via [BasePlannerElement.getChangeTracker]
   /// must happen in here.
   /// Once [function] is complete, states will be saved and a new [Snapshot] will
   /// be created and added to [snapshots].
   /// [snapshotIndex] will be updated to the index of this new snapshot.
+  ///
+  /// If an error is thrown at any point during this process, the new
+  /// snapshot will be abandoned, and all states will be reset to their current
+  /// snapshot.
   void buildNextSnapshot(Function function) {
     var firstCall = _mutationLock == 0;
     try {
