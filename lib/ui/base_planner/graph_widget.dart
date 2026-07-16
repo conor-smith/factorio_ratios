@@ -8,13 +8,8 @@ import 'package:flutter/material.dart';
 
 class GraphWidget extends StatefulWidget {
   final Graph graph;
-  final Function toggleConsumerMenu;
 
-  const GraphWidget({
-    super.key,
-    required this.graph,
-    required this.toggleConsumerMenu,
-  });
+  const GraphWidget({super.key, required this.graph});
 
   @override
   State<GraphWidget> createState() => _GraphWidgetState();
@@ -110,15 +105,8 @@ class _GraphWidgetState extends State<GraphWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => widget.toggleConsumerMenu(),
-        ),
-        ...nodeWidgets.values,
-        ...edgeWidgets.values,
-      ],
+    return IgnorePointer(
+      child: Stack(children: [...nodeWidgets.values, ...edgeWidgets.values]),
     );
   }
 }
