@@ -34,7 +34,6 @@ part 'event_notifier.dart';
 /// one from there, all subsequent snapshots will be deleted.
 ///
 /// [activeGraph] represents the current [Graph] to be displayed.
-/// Everytime [activeGraph] is updated, [selectedElements] will be cleared.
 class BasePlanner
     with EventNotifier<BasePlannerEvent>
     implements ToJson, EventNotifier<BasePlannerEvent> {
@@ -60,7 +59,6 @@ class BasePlanner
   SnapshotBuilder? get snapshotBuilder => _snapshotBuilder;
 
   late Graph _activeGraph;
-  final Set<BasePlannerElement> _selectedElements = {};
 
   final List<Snapshot> _snapshots = [];
   int _snapshotIndex = 0;
@@ -99,16 +97,6 @@ class BasePlanner
         ),
       }),
     );
-  }
-
-  void selectElement(BasePlannerElement element) {
-    if (element.parentGraph != _activeGraph) {
-      _selectedElements.add(element);
-    }
-  }
-
-  void deselectElement(BasePlannerElement element) {
-    _selectedElements.remove(element);
   }
 
   void updateActiveGraph(Graph newActiveGraph) {
@@ -205,11 +193,13 @@ class BasePlanner
   }
 
   void _updateActiveGraph(Graph newActiveGraph, [bool updateListeners = true]) {
-    _activeGraph = newActiveGraph;
-    _selectedElements.clear();
+    if (newActiveGraph != activeGraph) {
+      _activeGraph.deselectAll();
+      _activeGraph = newActiveGraph;
 
-    if (updateListeners) {
-      notifyListeners(BasePlannerEvent._(newActiveGraph: true));
+      if (updateListeners) {
+        notifyListeners(BasePlannerEvent._(newActiveGraph: true));
+      }
     }
   }
 
@@ -225,7 +215,6 @@ class BasePlanner
         newSnapshot.stateMap.keys.toSet(),
       );
 
-      _selectedElements.removeAll(removedElements);
       for (var element in removedElements) {
         element.clearListeners();
       }
