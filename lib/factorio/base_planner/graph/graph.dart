@@ -22,14 +22,19 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   final Surface? surface;
   @override
   late final Graph parentGraph;
+  bool get isRoot => this == parentGraph;
+
+  final Set<BasePlannerElement> _selectedElements = {};
+  late final Set<BasePlannerElement> selectedElements = UnmodifiableSetView(
+    _selectedElements,
+  );
+
   final SurfaceProperties _surfaceProperties;
 
   GraphStateImpl _internalState;
-
   GraphState get _state =>
       basePlanner.snapshotBuilder?.graphTrackers[this]?.state ?? _internalState;
 
-  // For convenience
   String get name => _state.name;
   Icon? get icon => _state.icon;
   @override
@@ -73,8 +78,6 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   @override
   ItemIoImpl get ioRatios => _state.ioRatios;
 
-  bool get isRoot => this == parentGraph;
-
   Graph.addToBasePlanner(
     super.basePlanner, {
     required this.parentGraph,
@@ -98,6 +101,8 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
           basePlanner.surfaceProperties[surface] ?? SurfaceProperties.empty {
     parentGraph = this;
   }
+
+  void deselectAll() => _selectedElements.clear();
 
   @override
   void updateState(GraphStateImpl state) {

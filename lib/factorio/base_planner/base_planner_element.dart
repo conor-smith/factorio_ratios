@@ -27,9 +27,7 @@ abstract class BasePlannerElement<St, E>
   /// Used whenever state is updated
   void notifyListenersOfStateUpdate(St oldState, St newState);
 
-  void select() => basePlanner.selectedElements.add(this);
-  void deselect() => basePlanner.selectedElements.remove(this);
-  bool get isSelected => basePlanner.selectedElements.contains(this);
+  bool get isSelected => parentGraph.selectedElements.contains(this);
 }
 
 abstract interface class Dependencies {

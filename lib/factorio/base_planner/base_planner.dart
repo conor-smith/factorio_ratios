@@ -51,11 +51,6 @@ class BasePlanner
   /// Current graph to display in UI
   Graph get activeGraph => _activeGraph;
 
-  /// Currently selected elements
-  late final Set<BasePlannerElement> selectedElements = UnmodifiableSetView(
-    _selectedElements,
-  );
-
   /// Current active snapshot in [snapshots]
   int get snapshotIndex => _snapshotIndex;
 
