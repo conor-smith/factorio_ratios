@@ -142,7 +142,13 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
         break;
     }
 
-    return Stack(fit: StackFit.expand, children: children);
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('Factorio Ratios'),
+      ),
+      body: Stack(fit: StackFit.expand, children: children),
+    );
   }
 }
 
