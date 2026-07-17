@@ -21,10 +21,6 @@ class Resource extends PrototypeWithIcon {
 
   @override
   final Icon? icon;
-  @override
-  double get expectedIconSize => _expectedIconSize;
-  @override
-  double get defaultScale => _defaultScale;
 
   final String? _subgroupString;
   final List<String> _resultsString;
@@ -71,7 +67,7 @@ class Resource extends PrototypeWithIcon {
       localisedName: json['name'],
       subgroup: json['subgroup'],
       order: json['order'] ?? '',
-      icon: Icon.fromTopLevelJson(json, Item._expectedIconSize),
+      icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
       resultsString: resultsString,
     );
   }

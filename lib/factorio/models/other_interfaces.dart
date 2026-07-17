@@ -18,6 +18,4 @@ abstract class Prototype implements Comparable<Prototype> {
 // Not technically a factorio type, but helpful for this use case
 abstract class PrototypeWithIcon extends Prototype {
   Icon? get icon;
-  double get expectedIconSize;
-  double get defaultScale;
 }

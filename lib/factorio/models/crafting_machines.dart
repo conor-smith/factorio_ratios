@@ -2,9 +2,6 @@ part of 'models.dart';
 
 class CraftingMachine extends PrototypeWithIcon {
   // TODO - Quality effects on module and energy usage
-  static const double _expectedIconSize = 64,
-      _defaultScale = (_expectedIconSize / 2) / _expectedIconSize;
-
   final FactorioDatabase factorioDb;
 
   @override
@@ -19,10 +16,6 @@ class CraftingMachine extends PrototypeWithIcon {
   late final ItemSubgroup? subgroup = _determineSubGroup();
   @override
   late final Icon? icon = _icon ?? item?.icon;
-  @override
-  double get expectedIconSize => _expectedIconSize;
-  @override
-  double get defaultScale => _defaultScale;
 
   final double craftingSpeed;
   final double energyUsage;
@@ -108,7 +101,7 @@ class CraftingMachine extends PrototypeWithIcon {
         json['crafting_categories'] as List,
       ).cast(),
       allowedEffects: allowedEffects,
-      icon: Icon.fromTopLevelJson(json, CraftingMachine._expectedIconSize),
+      icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
     );
   }
 

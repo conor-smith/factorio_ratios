@@ -31,12 +31,6 @@ abstract class InGameItem implements Item, ToJson {
   List<Recipe> get consumedBy => internalItem.consumedBy;
 
   @override
-  double get defaultScale => internalItem.defaultScale;
-
-  @override
-  double get expectedIconSize => internalItem.expectedIconSize;
-
-  @override
   double? get fuelValue => internalItem.fuelValue;
 
   @override

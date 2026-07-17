@@ -61,7 +61,10 @@ class _FactorioGroupMenuWidgetState<T extends PrototypeWithIcon>
                 .map(
                   (item) => TextButton(
                     onPressed: () => widget.onSelected(item),
-                    child: Tooltip(message: item.name, child: cache.get(item)),
+                    child: Tooltip(
+                      message: item.name,
+                      child: cache.get(item.icon),
+                    ),
                   ),
                 )
                 .toList(),

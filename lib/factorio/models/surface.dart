@@ -1,10 +1,6 @@
 part of 'models.dart';
 
 class Surface extends PrototypeWithIcon {
-  static const double _expectedIconSize = 64;
-  static const double _defaultScale =
-      (_expectedIconSize / 2) / _expectedIconSize;
-
   final FactorioDatabase factorioDb;
 
   @override
@@ -21,10 +17,6 @@ class Surface extends PrototypeWithIcon {
 
   @override
   final Icon? icon;
-  @override
-  double get expectedIconSize => _expectedIconSize;
-  @override
-  double get defaultScale => _defaultScale;
 
   final Map<String, double> surfaceProperties;
 
@@ -71,7 +63,7 @@ class Surface extends PrototypeWithIcon {
       name: json['name'],
       type: json['type'],
       localisedName: json['name'], // TODO
-      icon: Icon.fromTopLevelJson(json, _expectedIconSize),
+      icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
       order: json['order'],
       subgroup: json['subgroup'],
       surfaceProperties: _parseStringDoubleMap(json['surface_properties']),

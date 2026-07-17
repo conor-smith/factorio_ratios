@@ -1,10 +1,6 @@
 part of 'models.dart';
 
 class ItemGroup extends PrototypeWithIcon {
-  static const double _expectedIconSize = 128;
-  static const double _defaultScale =
-      (_expectedIconSize / 2) / _expectedIconSize;
-
   final FactorioDatabase factorioDb;
 
   @override
@@ -21,10 +17,6 @@ class ItemGroup extends PrototypeWithIcon {
 
   @override
   final Icon? icon;
-  @override
-  double get expectedIconSize => _expectedIconSize;
-  @override
-  double get defaultScale => _defaultScale;
 
   ItemGroup._({
     required this.factorioDb,
@@ -42,6 +34,6 @@ class ItemGroup extends PrototypeWithIcon {
         type: json['type'],
         order: json['order'],
         localisedName: json['name'],
-        icon: Icon.fromTopLevelJson(json, ItemGroup._expectedIconSize),
+        icon: Icon.fromTopLevelJson(json, ExpectedIconSize.itemGroup),
       );
 }

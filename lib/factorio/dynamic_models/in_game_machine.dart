@@ -67,10 +67,6 @@ class InGameMachine implements CraftingMachine, ToJson {
   @override
   List<Recipe> get recipes => internalMachine.recipes;
   @override
-  double get defaultScale => internalMachine.defaultScale;
-  @override
-  double get expectedIconSize => internalMachine.expectedIconSize;
-  @override
   String get order => internalMachine.order;
   @override
   ItemSubgroup? get subgroup => internalMachine.subgroup;

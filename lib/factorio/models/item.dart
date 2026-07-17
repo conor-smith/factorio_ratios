@@ -1,10 +1,6 @@
 part of 'models.dart';
 
 abstract class Item extends PrototypeWithIcon {
-  static const double _expectedIconSize = 64;
-  static const double _defaultScale =
-      (_expectedIconSize / 2) / _expectedIconSize;
-
   final FactorioDatabase factorioDb;
 
   @override
@@ -17,10 +13,6 @@ abstract class Item extends PrototypeWithIcon {
 
   @override
   final Icon? icon;
-  @override
-  double get expectedIconSize => _expectedIconSize;
-  @override
-  double get defaultScale => _defaultScale;
 
   @override
   final String type;
@@ -125,7 +117,7 @@ class SolidItem extends Item {
         fuelValue: _convertStringToEnergy(json['fuel_value']),
         subgroup: json['subgroup'],
         order: json['order'] ?? '',
-        icon: Icon.fromTopLevelJson(json, Item._expectedIconSize),
+        icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
         hidden: json['hidden'] ?? false,
         stackSize: json['stack_size'],
         spoilTicks: json['spoil_ticks'],
@@ -169,7 +161,7 @@ class FluidItem extends Item {
         localisedName: Item._getLocalisedName(json),
         order: json['order'] ?? '',
         subgroup: json['subgroup'],
-        icon: Icon.fromTopLevelJson(json, Item._expectedIconSize),
+        icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
         hidden: json['hidden'] ?? false,
         defaultTemperature: json['default_temperature'].toDouble(),
         heatCapacity: _convertStringToEnergy(json['heat_capacity']) ?? 1000,

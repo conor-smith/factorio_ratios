@@ -73,15 +73,11 @@ class InGameRecipe implements Recipe, ToJson {
   List<CraftingMachine> get sortedCraftingMachines =>
       internalRecipe.sortedCraftingMachines;
   @override
-  double get defaultScale => internalRecipe.defaultScale;
-  @override
   double get emissionsMultiplier => internalRecipe.emissionsMultiplier;
   @override
   bool get enabled => internalRecipe.enabled;
   @override
   double get energyRequired => internalRecipe.energyRequired;
-  @override
-  double get expectedIconSize => internalRecipe.expectedIconSize;
   @override
   FactorioDatabase get factorioDb => internalRecipe.factorioDb;
   @override

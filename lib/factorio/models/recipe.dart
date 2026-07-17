@@ -1,9 +1,7 @@
 part of 'models.dart';
 
 class Recipe extends PrototypeWithIcon {
-  static const double _expectedIconSize = 64,
-      _defaultScale = (_expectedIconSize / 2) / _expectedIconSize,
-      defaultEnergyRequired = 0.5;
+  static const double defaultEnergyRequired = 0.5;
 
   final FactorioDatabase factorioDb;
 
@@ -17,10 +15,6 @@ class Recipe extends PrototypeWithIcon {
   late final ItemSubgroup? subgroup = _determineSubGroup();
   @override
   late final Icon? icon = _icon ?? mainProduct?.icon;
-  @override
-  double get expectedIconSize => _expectedIconSize;
-  @override
-  double get defaultScale => _defaultScale;
   @override
   late final String localisedName = _getLocalisedName();
 
@@ -168,7 +162,7 @@ class Recipe extends PrototypeWithIcon {
       order: json['order'] ?? '',
       mainProduct: json['main_product'],
       subgroup: json['subgroup'],
-      icon: Icon.fromTopLevelJson(json, Recipe._expectedIconSize),
+      icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
       energyRequired:
           json['energy_required']?.toDouble() ?? defaultEnergyRequired,
       maximumProductivity:

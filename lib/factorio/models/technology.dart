@@ -3,8 +3,6 @@ part of 'models.dart';
 class Technology extends PrototypeWithIcon {
   // Only used to determine available recipes for now
   // But this class might be useful later. Best keep it around
-  static const double _expectedIconSize = 256,
-      _defaultScale = (_expectedIconSize / 2) / _expectedIconSize;
 
   final FactorioDatabase factorioDb;
 
@@ -22,10 +20,6 @@ class Technology extends PrototypeWithIcon {
 
   @override
   final Icon? icon;
-  @override
-  double get expectedIconSize => _expectedIconSize;
-  @override
-  double get defaultScale => _defaultScale;
 
   final List<Modifier> effects;
 
@@ -51,7 +45,7 @@ class Technology extends PrototypeWithIcon {
         type: json['type'],
         localisedName: json['name'],
         subgroup: json['subgroup'],
-        icon: Icon.fromTopLevelJson(json, Item._expectedIconSize),
+        icon: Icon.fromTopLevelJson(json, ExpectedIconSize.technology),
         effects: (json['effects'] as List? ?? const []).cast<Map>().map(
           (effectJson) => Modifier.fromJson(factorioDb, effectJson),
         ),

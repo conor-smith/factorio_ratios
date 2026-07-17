@@ -10,35 +10,24 @@ final String _homeDir = Platform.environment['HOME']!;
 const String _factorioFilesPath =
     '/.local/share/Steam/steamapps/common/Factorio/data/';
 
+// TODO - Adjust
+const double _scaleMultiplier = 2;
+
 class FactorioIconWidget extends StatelessWidget {
   final Icon icon;
-  final double expectedIconSize;
-  final double defaultScale;
-  final double size;
 
   final List<Widget> iconWidgets;
 
-  FactorioIconWidget({
-    super.key,
-    required this.icon,
-    required this.expectedIconSize,
-    required this.defaultScale,
-    required this.size,
-  }) : iconWidgets = icon.icons
-           .map(
-             (iconData) => _createWidgetFromIconData(
-               iconData,
-               size / (expectedIconSize * defaultScale),
-               size,
-             ),
-           )
-           .toList(growable: false);
+  FactorioIconWidget({super.key, required this.icon})
+    : iconWidgets = icon.icons
+          .map((iconData) => _createWidgetFromIconData(iconData, icon.size))
+          .toList(growable: false);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size,
-      height: size,
+      width: icon.size,
+      height: icon.size,
       clipBehavior: Clip.none,
       child: Stack(clipBehavior: Clip.none, children: iconWidgets),
     );
@@ -48,19 +37,15 @@ class FactorioIconWidget extends StatelessWidget {
 class IconWidgetCache {
   final Map<Icon, FactorioIconWidget> _cachedWidgets = {};
 
-  FactorioIconWidget get(PrototypeWithIcon prototype) {
-    var icon =
-        prototype.icon ??
-        Icon.unknownIcon(prototype.expectedIconSize * prototype.defaultScale);
+  FactorioIconWidget get(
+    Icon? icon, [
+    ExpectedIconSize expectedSize = ExpectedIconSize.other,
+  ]) {
+    icon ??= Icon.unknownIcon(expectedSize);
 
     return _cachedWidgets.putIfAbsent(
       icon,
-      () => FactorioIconWidget(
-        icon: icon,
-        expectedIconSize: prototype.expectedIconSize,
-        defaultScale: prototype.defaultScale,
-        size: prototype.expectedIconSize,
-      ),
+      () => FactorioIconWidget(icon: icon!),
     );
   }
 }
@@ -79,18 +64,13 @@ class _CustomRectClipper extends CustomClipper<Rect> {
   bool shouldReclip(covariant _CustomRectClipper oldClipper) => false;
 }
 
-Widget _createWidgetFromIconData(
-  IconData iconData,
-  double scaleMultiplier,
-  double size,
-) {
-  double finalScale = iconData.scale * scaleMultiplier;
-  double finalSize = finalScale * iconData.iconSize;
+Widget _createWidgetFromIconData(IconData iconData, double size) {
+  double finalSize = iconData.scale * iconData.iconSize;
   finalSize = finalSize > size && iconData.floating ? finalSize : size;
 
   Widget imageWidget = Image.file(
     File(_buildFullFilePath(iconData.icon)),
-    scale: finalScale,
+    scale: iconData.scale * _scaleMultiplier,
     fit: BoxFit.none,
     color: Color.from(
       alpha: 1,
@@ -102,8 +82,8 @@ Widget _createWidgetFromIconData(
     colorBlendMode: BlendMode.modulate,
   );
 
-  double offsetX = (finalSize - size + iconData.shift.x) * finalScale;
-  double offsetY = (finalSize - size + iconData.shift.y) * finalScale;
+  double offsetX = (finalSize - size + iconData.shift.x) * iconData.scale;
+  double offsetY = (finalSize - size + iconData.shift.y) * iconData.scale;
 
   return Positioned(
     top: -offsetX,
