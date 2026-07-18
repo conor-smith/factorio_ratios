@@ -24,19 +24,15 @@ class BasePlannerWidget extends StatefulWidget {
 
 class _BasePlannerWidgetState extends State<BasePlannerWidget> {
   BasePlanner get basePlanner => widget.basePlanner;
-  ActiveMenu activeMenu = ActiveMenu.noMenu;
-
-  int? pointerDownButton;
-
-  Offset? contextMenuPosition;
+  late final BasePlannerGlobalState _globalState = BasePlannerGlobalState._(
+    this,
+  );
   late final BasePlannerContextWidget contextMenu = BasePlannerContextWidget(
     options: {
       'Create consumer node': () =>
           setState(() => activeMenu = ActiveMenu.consumerMenu),
     },
   );
-
-  final Map<Graph, GraphWidget> graphWidgets = {};
   late final FactorioGroupMenuWidget<Item> consumerMenu =
       FactorioGroupMenuWidget(
         items: widget.basePlanner.db.itemMap.values.where(
@@ -44,6 +40,11 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
         ),
         onSelected: addConsumerNodeToActiveGraph,
       );
+
+  final Map<Graph, GraphWidget> graphWidgets = {};
+
+  ActiveMenu activeMenu = ActiveMenu.noMenu;
+  Offset? contextMenuPosition;
 
   @override
   void initState() {
@@ -57,6 +58,27 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     super.dispose();
 
     basePlanner.removeListener(this);
+  }
+
+  void toggleContextMenu(Offset globalPosition) {
+    var localPosition = Offset(globalPosition.dx, globalPosition.dy - 74);
+
+    switch (activeMenu) {
+      case ActiveMenu.noMenu:
+        setState(() {
+          activeMenu = ActiveMenu.contextMenu;
+          contextMenuPosition = localPosition;
+        });
+
+      case ActiveMenu.contextMenu:
+        setState(() {
+          activeMenu = ActiveMenu.noMenu;
+          contextMenuPosition = null;
+        });
+
+      case ActiveMenu.consumerMenu:
+        break;
+    }
   }
 
   void addConsumerNodeToActiveGraph(Item item) => setState(() {
@@ -77,36 +99,6 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
   @override
   Widget build(BuildContext context) {
     List<Widget> children = [
-      Listener(
-        onPointerDown: (event) {
-          pointerDownButton = event.buttons;
-        },
-        onPointerCancel: (event) {
-          pointerDownButton = null;
-          activeMenu = ActiveMenu.noMenu;
-        },
-        onPointerUp: (event) {
-          if (pointerDownButton == kSecondaryButton) {
-            setState(() {
-              if (activeMenu == ActiveMenu.noMenu) {
-                activeMenu = ActiveMenu.contextMenu;
-                contextMenuPosition = event.localPosition;
-              } else {
-                activeMenu = ActiveMenu.noMenu;
-                contextMenuPosition = null;
-              }
-            });
-          } else if (activeMenu != ActiveMenu.noMenu) {
-            setState(() {
-              activeMenu = ActiveMenu.noMenu;
-              contextMenuPosition = null;
-            });
-          }
-
-          pointerDownButton = null;
-        },
-        behavior: HitTestBehavior.opaque,
-      ),
       graphWidgets.putIfAbsent(
         basePlanner.activeGraph,
         () => GraphWidget(graph: basePlanner.activeGraph),
@@ -182,6 +174,26 @@ class BasePlannerContextWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+class BasePlannerGlobalState {
+  final _BasePlannerWidgetState _widgetState;
+
+  BasePlannerGlobalState._(this._widgetState);
+
+  static BasePlannerGlobalState of(BuildContext context) {
+    var ancestorState = context
+        .findAncestorStateOfType<_BasePlannerWidgetState>();
+
+    if (ancestorState != null) {
+      return ancestorState._globalState;
+    } else {
+      throw const BasePlannerException('BasePlanner widget not active');
+    }
+  }
+
+  void toggleContextMenu(Offset globalPosition) =>
+      _widgetState.toggleContextMenu(globalPosition);
 }
 
 enum ActiveMenu { noMenu, contextMenu, consumerMenu }
