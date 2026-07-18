@@ -10,9 +10,6 @@ final String _homeDir = Platform.environment['HOME']!;
 const String _factorioFilesPath =
     '/.local/share/Steam/steamapps/common/Factorio/data/';
 
-// TODO - Adjust
-const double _scaleMultiplier = 2;
-
 class FactorioIconWidget extends StatelessWidget {
   final Icon icon;
 
@@ -68,9 +65,11 @@ Widget _createWidgetFromIconData(IconData iconData, double size) {
   double finalSize = iconData.scale * iconData.iconSize;
   finalSize = finalSize > size && iconData.floating ? finalSize : size;
 
+  // TODO - What is going on with scale? Why does the image get bigger with
+  // smaller scale values?
   Widget imageWidget = Image.file(
     File(_buildFullFilePath(iconData.icon)),
-    scale: iconData.scale * _scaleMultiplier,
+    scale: iconData.scale * 2.0,
     fit: BoxFit.none,
     color: Color.from(
       alpha: 1,
