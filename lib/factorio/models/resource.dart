@@ -1,10 +1,6 @@
 part of 'models.dart';
 
 class Resource extends PrototypeWithIcon {
-  static const double _expectedIconSize = 64;
-  static const double _defaultScale =
-      (_expectedIconSize / 2) / _expectedIconSize;
-
   final FactorioDatabase factorioDb;
 
   @override
