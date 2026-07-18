@@ -25,9 +25,7 @@ class InGameRecipe implements Recipe, ToJson {
 
   InGameRecipe._(this.internalRecipe, this.quality)
     : name = internalRecipe.name + (quality == 1 ? '' : ': Q$quality'),
-      icon = internalRecipe.icon != null
-          ? Icon.withQuality(internalRecipe.icon!, quality)
-          : null,
+      icon = internalRecipe.icon?.withQuality(quality),
       mainProduct = internalRecipe.mainProduct != null
           ? InGameItem(internalRecipe.mainProduct!)
           : null,

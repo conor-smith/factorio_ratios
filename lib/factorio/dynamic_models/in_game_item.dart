@@ -73,9 +73,7 @@ class InGameSolidItem extends InGameItem implements SolidItem {
 
   InGameSolidItem(this.internalItem, [this.quality = 1])
     : name = internalItem.name + (quality == 1 ? '' : ': Q$quality'),
-      icon = internalItem.icon != null
-          ? Icon.withQuality(internalItem.icon!, quality)
-          : null,
+      icon = internalItem.icon?.withQuality(quality),
       spoilResult = internalItem.spoilResult != null
           ? InGameItem(internalItem.spoilResult!)
           : null,

@@ -13,11 +13,6 @@ class Icon {
           icons.fold(0, (sum, iconData) => sum + iconData.hashCode) +
           size.hashCode;
 
-  factory Icon.withQuality(Icon icon, int quality) {
-    // TODO
-    return icon;
-  }
-
   Icon.unknownIcon(ExpectedIconSize expectedSize)
     : this._([
         IconData._(
@@ -51,6 +46,33 @@ class Icon {
       );
     } else {
       return null;
+    }
+  }
+
+  Icon withQuality(int quality) {
+    // TODO
+    return this;
+  }
+
+  Icon resize(double newSize) {
+    if (newSize == size) {
+      return this;
+    } else {
+      var multiplier = newSize / size;
+
+      return Icon._(
+        icons.map(
+          (iconData) => IconData._(
+            icon: iconData.icon,
+            iconSize: iconData.iconSize * multiplier,
+            tint: iconData.tint,
+            shift: iconData.shift * multiplier,
+            scale: iconData.scale * multiplier,
+            floating: iconData.floating,
+          ),
+        ),
+        newSize,
+      );
     }
   }
 
@@ -215,6 +237,8 @@ class Vector {
       return Vector._(x: jsonList[0].toDouble(), y: jsonList[1].toDouble());
     }
   }
+
+  Vector operator *(num other) => Vector._(x: x * other, y: y * other);
 
   @override
   bool operator ==(Object other) =>

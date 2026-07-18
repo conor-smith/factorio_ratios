@@ -25,9 +25,7 @@ class InGameMachine implements CraftingMachine, ToJson {
       item = internalMachine.item != null
           ? InGameItem(internalMachine.item!, quality: quality)
           : null,
-      icon = internalMachine.icon != null
-          ? Icon.withQuality(internalMachine.icon!, quality)
-          : null;
+      icon = internalMachine.icon?.withQuality(quality);
 
   // Ensure that machines of different quality are separated
   @override
