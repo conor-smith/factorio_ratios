@@ -142,10 +142,22 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
         break;
     }
 
+    Widget? icon;
+    if (basePlanner.activeGraph.icon != null) {
+      icon = Padding(
+        padding: EdgeInsetsGeometry.all(5),
+        child: widget._cache.get(
+          basePlanner.activeGraph.icon!.resize(ExpectedIconSize.other.size),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('Factorio Ratios'),
+        leading: icon,
+        toolbarHeight: 74,
+        title: Text(basePlanner.activeGraph.name),
       ),
       body: Stack(fit: StackFit.expand, children: children),
     );
