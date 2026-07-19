@@ -24,6 +24,8 @@ class _GraphWidgetState extends State<GraphWidget> {
   Rect minBounds = Rect.zero;
   int? pointerDownButton;
 
+  bool transformEnabled = true;
+
   Graph get graph => widget.graph;
 
   @override
@@ -31,7 +33,11 @@ class _GraphWidgetState extends State<GraphWidget> {
     super.initState();
 
     for (var node in graph.allNodes) {
-      nodeWidgets[node] = NodeWidget(node: node);
+      nodeWidgets[node] = NodeWidget(
+        node: node,
+        disableParentTransform: disableTransform,
+        enableParentTransform: enableTransform,
+      );
     }
     for (var edge in graph.edges) {
       edgeWidgets[edge] = EdgeWidget(edge: edge);
@@ -67,7 +73,11 @@ class _GraphWidgetState extends State<GraphWidget> {
 
   void addNewElements(GraphEvent event) {
     for (var newNode in event.newNodes) {
-      nodeWidgets[newNode] = NodeWidget(node: newNode);
+      nodeWidgets[newNode] = NodeWidget(
+        node: newNode,
+        disableParentTransform: disableTransform,
+        enableParentTransform: enableTransform,
+      );
     }
     for (var newEdge in event.newEdges) {
       edgeWidgets[newEdge] = EdgeWidget(edge: newEdge);
@@ -78,6 +88,18 @@ class _GraphWidgetState extends State<GraphWidget> {
     }
     for (var removedEdge in event.removedEdges) {
       edgeWidgets.remove(removedEdge);
+    }
+  }
+
+  void disableTransform() {
+    if (transformEnabled) {
+      setState(() => transformEnabled = false);
+    }
+  }
+
+  void enableTransform() {
+    if (!transformEnabled) {
+      setState(() => transformEnabled = true);
     }
   }
 
@@ -111,6 +133,8 @@ class _GraphWidgetState extends State<GraphWidget> {
   Widget build(BuildContext context) {
     return InteractiveViewer(
       transformationController: controller,
+      panEnabled: transformEnabled,
+      scaleEnabled: transformEnabled,
       child: Stack(
         children: [
           Listener(

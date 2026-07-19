@@ -99,7 +99,7 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   }
 
   @override
-  void notifyListenersOfGeometryUpdate(NodeGeometryImpl geometry) =>
+  void notifyListenersOfGeometryUpdate(NodeGeometry geometry) =>
       notifyListeners(NodeEvent.geometryOp(geometry));
 
   @override
@@ -113,8 +113,8 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   }
 
   @override
-  void notifyListenersOfSelectionUpdate() {
-    notifyListeners(const NodeEvent.selectionUpdate());
+  void notifyListenersOfUpdate() {
+    notifyListeners(const NodeEvent.update());
   }
 
   @override

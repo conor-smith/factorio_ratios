@@ -100,8 +100,8 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
   }
 
   @override
-  void notifyListenersOfSelectionUpdate() {
-    notifyListeners(const EdgeEvent.selectionUpdate());
+  void notifyListenersOfUpdate() {
+    notifyListeners(const EdgeEvent.update());
   }
 
   @override
@@ -116,7 +116,7 @@ class EdgeEvent {
 
   EdgeEvent.geometryOp(EdgeGeometry this.geometry);
 
-  const EdgeEvent.selectionUpdate() : geometry = null;
+  const EdgeEvent.update() : geometry = null;
 }
 
 class EdgeDependencies implements Dependencies {

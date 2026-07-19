@@ -26,7 +26,7 @@ abstract class BasePlannerElement<St, E>
 
   void notifyListenersOfStateUpdate(St oldState, St newState);
 
-  void notifyListenersOfSelectionUpdate();
+  void notifyListenersOfUpdate();
 
   bool get isSelected => parentGraph.selectedElements.contains(this);
 

@@ -105,12 +105,12 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
 
   void addToSelected(BasePlannerElement element) {
     _selectedElements.add(element);
-    element.notifyListenersOfSelectionUpdate();
+    element.notifyListenersOfUpdate();
   }
 
   void removeFromSelected(BasePlannerElement element) {
     _selectedElements.remove(element);
-    element.notifyListenersOfSelectionUpdate();
+    element.notifyListenersOfUpdate();
   }
 
   void clearSelected(bool notifyListeners) {
@@ -121,7 +121,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       _selectedElements.clear();
 
       for (var element in deselectedElements) {
-        element.notifyListenersOfSelectionUpdate();
+        element.notifyListenersOfUpdate();
       }
     } else {
       _selectedElements.clear();
@@ -195,8 +195,8 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   }
 
   @override
-  void notifyListenersOfSelectionUpdate() {
-    notifyListeners(const GraphEvent.selectionUpdate());
+  void notifyListenersOfUpdate() {
+    notifyListeners(const GraphEvent.update());
   }
 
   /// Clears all nodes except IO nodes
@@ -545,8 +545,7 @@ class GraphEvent implements NodeEvent {
          newEdges: newEdges.difference(oldEdges),
        );
 
-  const GraphEvent.selectionUpdate()
-    : this._nodeEvent(NodeEventType.selectionUpdate);
+  const GraphEvent.update() : this._nodeEvent(NodeEventType.selectionUpdate);
 
   const GraphEvent._nodeEvent(this.nodeEventType, [this.geometry])
     : graphEventType = GraphEventType.nodeEvent,
