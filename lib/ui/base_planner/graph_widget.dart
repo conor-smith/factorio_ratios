@@ -1,4 +1,3 @@
-import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';

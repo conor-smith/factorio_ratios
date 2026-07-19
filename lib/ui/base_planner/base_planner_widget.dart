@@ -5,7 +5,6 @@ import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/ui/factorio_menu.dart';
 import 'package:factorio_ratios/ui/base_planner/graph_widget.dart';
 import 'package:factorio_ratios/ui/icon_widgets.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 class BasePlannerWidget extends StatefulWidget {
