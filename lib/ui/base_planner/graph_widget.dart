@@ -1,6 +1,5 @@
-import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
-import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/edge_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/node_widget.dart';
@@ -17,8 +16,6 @@ class GraphWidget extends StatefulWidget {
 }
 
 class _GraphWidgetState extends State<GraphWidget> {
-  final Map<NodeElement, NodeWidget> nodeWidgets = {};
-  final Map<Edge, EdgeWidget> edgeWidgets = {};
   final TransformationController controller = TransformationController();
 
   Rect minBounds = Rect.zero;
@@ -31,17 +28,6 @@ class _GraphWidgetState extends State<GraphWidget> {
   @override
   void initState() {
     super.initState();
-
-    for (var node in graph.allNodes) {
-      nodeWidgets[node] = NodeWidget(
-        node: node,
-        disableParentTransform: disableTransform,
-        enableParentTransform: enableTransform,
-      );
-    }
-    for (var edge in graph.edges) {
-      edgeWidgets[edge] = EdgeWidget(edge: edge);
-    }
 
     graph.addListener(this, onEvent);
     updateMinBounds();
@@ -56,11 +42,8 @@ class _GraphWidgetState extends State<GraphWidget> {
 
   void onEvent(GraphEvent event) {
     switch (event.graphEventType) {
-      case GraphEventType.updateNodesAndEdges:
-        setState(() {
-          addNewElements(event);
-          updateMinBounds();
-        });
+      case GraphEventType.update:
+        setState(() {});
       case GraphEventType.childrenGeometryUpdate:
         setState(() {
           updateMinBounds();
@@ -71,25 +54,7 @@ class _GraphWidgetState extends State<GraphWidget> {
     }
   }
 
-  void addNewElements(GraphEvent event) {
-    for (var newNode in event.newNodes) {
-      nodeWidgets[newNode] = NodeWidget(
-        node: newNode,
-        disableParentTransform: disableTransform,
-        enableParentTransform: enableTransform,
-      );
-    }
-    for (var newEdge in event.newEdges) {
-      edgeWidgets[newEdge] = EdgeWidget(edge: newEdge);
-    }
-
-    for (var removedNode in event.removedNodes) {
-      nodeWidgets.remove(removedNode);
-    }
-    for (var removedEdge in event.removedEdges) {
-      edgeWidgets.remove(removedEdge);
-    }
-  }
+  void addNewElements(GraphEvent event) {}
 
   void disableTransform() {
     if (transformEnabled) {
@@ -153,10 +118,33 @@ class _GraphWidgetState extends State<GraphWidget> {
               pointerDownButton = null;
             },
           ),
-          ...nodeWidgets.values,
-          ...edgeWidgets.values,
+          ...graph.allNodes.map(
+            (node) => NodeWidget(
+              key: BasePlannerElementKey(node),
+              node: node,
+              disableParentTransform: disableTransform,
+              enableParentTransform: enableTransform,
+            ),
+          ),
+          ...graph.edges.map(
+            (edge) => EdgeWidget(key: BasePlannerElementKey(edge), edge: edge),
+          ),
         ],
       ),
     );
   }
+}
+
+class BasePlannerElementKey extends LocalKey {
+  final BasePlannerElement element;
+
+  const BasePlannerElementKey(this.element);
+
+  @override
+  bool operator ==(Object other) =>
+      super == other ||
+      (other is BasePlannerElementKey && other.element == element);
+
+  @override
+  int get hashCode => element.hashCode;
 }

@@ -196,7 +196,7 @@ class NodeEvent {
       geometry = null;
 
   const NodeEvent.update()
-    : nodeEventType = NodeEventType.selectionUpdate,
+    : nodeEventType = NodeEventType.update,
       geometry = null;
 
   NodeEvent.other() : nodeEventType = NodeEventType.other, geometry = null;
@@ -205,7 +205,7 @@ class NodeEvent {
 enum NodeEventType {
   geometryOp(true),
   stateUpdate(true),
-  selectionUpdate(true),
+  update(true),
   other(false);
 
   final bool updateRequired;

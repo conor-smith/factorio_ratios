@@ -181,15 +181,8 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       if (oldState.geometry != newState.geometry) {
         notifyListeners(GraphEvent.geometryOp(newState.geometry));
       } else if (!compareSets(oldState.allNodes, newState.allNodes) ||
-          compareSets(oldState.edges, newState.edges)) {
-        notifyListeners(
-          GraphEvent.updateNodesAndEdges(
-            oldNodes: oldState.allNodes,
-            newNodes: newState.allNodes,
-            oldEdges: oldState.edges,
-            newEdges: newState.edges,
-          ),
-        );
+          !compareSets(oldState.edges, newState.edges)) {
+        notifyListeners(GraphEvent.graphUpdate());
       }
     }
   }
@@ -526,42 +519,18 @@ class GraphEvent implements NodeEvent {
 
   final GraphEventType graphEventType;
 
-  final Set<NodeElement> newNodes, removedNodes;
-  final Set<Edge> newEdges, removedEdges;
-
   GraphEvent.geometryOp(NodeGeometry geometry)
     : this._nodeEvent(NodeEventType.geometryOp, geometry);
 
-  GraphEvent.updateNodesAndEdges({
-    required Set<NodeElement> oldNodes,
-    required Set<NodeElement> newNodes,
-    required Set<Edge> oldEdges,
-    required Set<Edge> newEdges,
-  }) : this._graphEvent(
-         GraphEventType.updateNodesAndEdges,
-         removedNodes: oldNodes.difference(newNodes),
-         newNodes: newNodes.difference(oldNodes),
-         removedEdges: oldEdges.difference(newEdges),
-         newEdges: newEdges.difference(oldEdges),
-       );
+  const GraphEvent.graphUpdate()
+    : nodeEventType = NodeEventType.other,
+      graphEventType = GraphEventType.update,
+      geometry = null;
 
-  const GraphEvent.update() : this._nodeEvent(NodeEventType.selectionUpdate);
+  const GraphEvent.update() : this._nodeEvent(NodeEventType.update);
 
   const GraphEvent._nodeEvent(this.nodeEventType, [this.geometry])
-    : graphEventType = GraphEventType.nodeEvent,
-      newNodes = const {},
-      removedNodes = const {},
-      newEdges = const {},
-      removedEdges = const {};
-
-  GraphEvent._graphEvent(
-    this.graphEventType, {
-    this.newNodes = const {},
-    this.removedNodes = const {},
-    this.newEdges = const {},
-    this.removedEdges = const {},
-  }) : nodeEventType = NodeEventType.other,
-       geometry = null;
+    : graphEventType = GraphEventType.nodeEvent;
 }
 
 class GraphException extends BasePlannerException {
@@ -612,7 +581,7 @@ class GraphDependencies implements Dependencies {
   Iterable<BasePlannerElement> get allElements => allNodes;
 }
 
-enum GraphEventType { updateNodesAndEdges, childrenGeometryUpdate, nodeEvent }
+enum GraphEventType { update, childrenGeometryUpdate, nodeEvent }
 
 enum GraphLayout { table, custom }
 
