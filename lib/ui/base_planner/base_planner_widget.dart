@@ -10,22 +10,18 @@ import 'package:flutter/material.dart';
 class BasePlannerWidget extends StatefulWidget {
   final BasePlanner basePlanner;
 
-  final IconWidgetCache _cache = IconWidgetCache();
-
-  BasePlannerWidget({super.key, required this.basePlanner});
-
-  static IconWidgetCache getWidgetCache(BuildContext context) =>
-      context.findAncestorWidgetOfExactType<BasePlannerWidget>()!._cache;
+  const BasePlannerWidget({super.key, required this.basePlanner});
 
   @override
   State<BasePlannerWidget> createState() => _BasePlannerWidgetState();
 }
 
 class _BasePlannerWidgetState extends State<BasePlannerWidget> {
-  BasePlanner get basePlanner => widget.basePlanner;
   late final BasePlannerGlobalState _globalState = BasePlannerGlobalState._(
     this,
   );
+  final IconWidgetCache iconCache = IconWidgetCache();
+
   late final BasePlannerContextWidget contextMenu = BasePlannerContextWidget(
     options: {
       'Create consumer node': () =>
@@ -58,6 +54,8 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
 
     basePlanner.removeListener(this);
   }
+
+  BasePlanner get basePlanner => widget.basePlanner;
 
   void toggleContextMenu(Offset globalPosition) {
     var localPosition = Offset(globalPosition.dx, globalPosition.dy - 74);
@@ -137,7 +135,7 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     if (basePlanner.activeGraph.icon != null) {
       icon = Padding(
         padding: EdgeInsetsGeometry.all(5),
-        child: widget._cache.get(
+        child: iconCache.get(
           basePlanner.activeGraph.icon!.resize(ExpectedIconSize.other.size),
         ),
       );
@@ -193,6 +191,8 @@ class BasePlannerGlobalState {
 
   void toggleContextMenu(Offset globalPosition) =>
       _widgetState.toggleContextMenu(globalPosition);
+
+  IconWidgetCache get iconCache => _widgetState.iconCache;
 }
 
 enum ActiveMenu { noMenu, contextMenu, consumerMenu }

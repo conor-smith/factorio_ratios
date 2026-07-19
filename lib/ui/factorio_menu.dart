@@ -52,7 +52,7 @@ class _FactorioGroupMenuWidgetState<T extends PrototypeWithIcon>
         )
         .toList();
 
-    var cache = BasePlannerWidget.getWidgetCache(context);
+    var cache = BasePlannerGlobalState.of(context).iconCache;
 
     List<Widget> subgroups = widget.sortedItems[selectedGroup]!.entries
         .map(
