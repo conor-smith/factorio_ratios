@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
@@ -406,7 +407,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
             (outputNode) =>
                 _determineAndReturnMaxRowNumber(outputNode, 0, nodeToRowNumber),
           )
-          .reduce(_returnLargest);
+          .reduce(math.max);
     }
 
     maxRowNumber = allNodes
@@ -418,7 +419,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
             nodeToRowNumber,
           ),
         )
-        .fold(maxRowNumber, _returnLargest);
+        .fold(maxRowNumber, math.max);
 
     if (inputNodes.isNotEmpty) {
       maxRowNumber++;
@@ -489,7 +490,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
               nodeToRowNumber,
             ),
           )
-          .fold(rowNumber, _returnLargest);
+          .fold(rowNumber, math.max);
     }
   }
 }
@@ -617,5 +618,3 @@ enum GraphEventType { updateNodesAndEdges, childrenGeometryUpdate, nodeEvent }
 enum GraphLayout { table, custom }
 
 enum LayoutOrientation { up, left, down, right }
-
-int _returnLargest(int val1, int val2) => val1 > val2 ? val1 : val2;
