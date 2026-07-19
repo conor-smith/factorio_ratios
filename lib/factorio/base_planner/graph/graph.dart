@@ -102,7 +102,30 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
     parentGraph = this;
   }
 
-  void deselectAll() => _selectedElements.clear();
+  void addToSelected(BasePlannerElement element) {
+    _selectedElements.add(element);
+    element.notifyListenersOfSelectionUpdate();
+  }
+
+  void removeFromSelected(BasePlannerElement element) {
+    _selectedElements.remove(element);
+    element.notifyListenersOfSelectionUpdate();
+  }
+
+  void clearSelected(bool notifyListeners) {
+    if (notifyListeners) {
+      List<BasePlannerElement> deselectedElements = List.from(
+        _selectedElements,
+      );
+      _selectedElements.clear();
+
+      for (var element in deselectedElements) {
+        element.notifyListenersOfSelectionUpdate();
+      }
+    } else {
+      _selectedElements.clear();
+    }
+  }
 
   @override
   void updateState(GraphStateImpl state) {
@@ -168,6 +191,11 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
         );
       }
     }
+  }
+
+  @override
+  void notifyListenersOfSelectionUpdate() {
+    notifyListeners(const GraphEvent.selectionUpdate());
   }
 
   /// Clears all nodes except IO nodes
@@ -516,7 +544,10 @@ class GraphEvent implements NodeEvent {
          newEdges: newEdges.difference(oldEdges),
        );
 
-  GraphEvent._nodeEvent(this.nodeEventType, [this.geometry])
+  const GraphEvent.selectionUpdate()
+    : this._nodeEvent(NodeEventType.selectionUpdate);
+
+  const GraphEvent._nodeEvent(this.nodeEventType, [this.geometry])
     : graphEventType = GraphEventType.nodeEvent,
       newNodes = const {},
       removedNodes = const {},

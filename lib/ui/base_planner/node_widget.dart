@@ -1,5 +1,6 @@
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 class NodeWidget extends StatefulWidget {
@@ -13,6 +14,8 @@ class NodeWidget extends StatefulWidget {
 
 class _NodeWidgetState extends State<NodeWidget> {
   late NodeGeometry geometry;
+
+  int? pointerDownButton;
 
   // For convenience
   NodeElement get node => widget.node;
@@ -51,9 +54,20 @@ class _NodeWidgetState extends State<NodeWidget> {
 
     return Positioned.fromRect(
       rect: geometry.rect,
-      child: Container(
-        decoration: selected ? selectedBoxDecoration : unselectedBoxDecoration,
-        child: Center(child: Text(widget.node.toString())),
+      child: Listener(
+        onPointerDown: (event) => pointerDownButton = event.buttons,
+        onPointerCancel: (_) => pointerDownButton = null,
+        onPointerUp: (_) {
+          if (pointerDownButton == kPrimaryButton) {
+            node.selectToggle(true);
+          }
+        },
+        child: Container(
+          decoration: selected
+              ? selectedBoxDecoration
+              : unselectedBoxDecoration,
+          child: Center(child: Text(widget.node.toString())),
+        ),
       ),
     );
   }

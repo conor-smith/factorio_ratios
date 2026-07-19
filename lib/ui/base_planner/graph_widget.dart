@@ -113,8 +113,6 @@ class _GraphWidgetState extends State<GraphWidget> {
       transformationController: controller,
       child: Stack(
         children: [
-          ...nodeWidgets.values,
-          ...edgeWidgets.values,
           Listener(
             behavior: HitTestBehavior.opaque,
             onPointerDown: (event) {
@@ -131,6 +129,8 @@ class _GraphWidgetState extends State<GraphWidget> {
               pointerDownButton = null;
             },
           ),
+          ...nodeWidgets.values,
+          ...edgeWidgets.values,
         ],
       ),
     );

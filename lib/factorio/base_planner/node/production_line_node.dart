@@ -113,6 +113,11 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
   }
 
   @override
+  void notifyListenersOfSelectionUpdate() {
+    notifyListeners(const NodeEvent.selectionUpdate());
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();

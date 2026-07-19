@@ -21,13 +21,28 @@ abstract class BasePlannerElement<St, E>
   Builder<St> getStateBuilder();
 
   /// Used in the event of a dragging or resizing operation.
-  /// Allows notifying listeners of some [Geometry] object without updating [state].
+  /// Allows notifying listeners of some [Geometry] object without updating state
   void notifyListenersOfGeometryUpdate(covariant Geometry geometry);
 
-  /// Used whenever state is updated
   void notifyListenersOfStateUpdate(St oldState, St newState);
 
+  void notifyListenersOfSelectionUpdate();
+
   bool get isSelected => parentGraph.selectedElements.contains(this);
+
+  void selectToggle(bool clearPreviousSelection) {
+    var isSelectedAtStart = isSelected;
+
+    if (clearPreviousSelection) {
+      parentGraph.clearSelected(true);
+    }
+
+    if (!isSelectedAtStart) {
+      parentGraph.addToSelected(this);
+    } else if (isSelectedAtStart && !clearPreviousSelection) {
+      parentGraph.removeFromSelected(this);
+    }
+  }
 }
 
 abstract interface class Dependencies {

@@ -194,7 +194,7 @@ class BasePlanner
 
   void _updateActiveGraph(Graph newActiveGraph, [bool updateListeners = true]) {
     if (newActiveGraph != activeGraph) {
-      _activeGraph.deselectAll();
+      _activeGraph.clearSelected(false);
       _activeGraph = newActiveGraph;
 
       if (updateListeners) {

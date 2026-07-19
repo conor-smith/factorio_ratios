@@ -100,6 +100,11 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
   }
 
   @override
+  void notifyListenersOfSelectionUpdate() {
+    notifyListeners(const EdgeEvent.selectionUpdate());
+  }
+
+  @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
@@ -110,6 +115,8 @@ class EdgeEvent {
   final EdgeGeometry? geometry;
 
   EdgeEvent.geometryOp(EdgeGeometry this.geometry);
+
+  const EdgeEvent.selectionUpdate() : geometry = null;
 }
 
 class EdgeDependencies implements Dependencies {
