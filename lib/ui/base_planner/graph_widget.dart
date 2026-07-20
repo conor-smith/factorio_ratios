@@ -20,7 +20,7 @@ class GraphWidget extends StatefulWidget {
 
 class _GraphWidgetState extends State<GraphWidget> {
   Rect minBounds = Rect.zero;
-  int? pointerDownButton;
+  PointerDownEvent? gestureStart;
 
   bool transformEnabled = true;
 
@@ -107,17 +107,17 @@ class _GraphWidgetState extends State<GraphWidget> {
           Listener(
             behavior: HitTestBehavior.opaque,
             onPointerDown: (event) {
-              pointerDownButton = event.buttons;
+              gestureStart = event;
             },
-            onPointerCancel: (event) => pointerDownButton = null,
+            onPointerCancel: (event) => gestureStart = null,
             onPointerUp: (event) {
-              if (pointerDownButton == kSecondaryButton) {
+              if (gestureStart?.buttons == kSecondaryButton) {
                 BasePlannerGlobalState.of(
                   context,
                 ).toggleContextMenu(event.position);
               }
 
-              pointerDownButton = null;
+              gestureStart = null;
             },
           ),
           ...graph.allNodes.map(
