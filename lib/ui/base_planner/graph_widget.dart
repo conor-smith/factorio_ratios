@@ -3,8 +3,10 @@ import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/edge_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/node_widget.dart';
-import 'package:flutter/gestures.dart';
+import 'package:factorio_ratios/utility/flutter.dart';
+import 'package:flutter/gestures.dart' as gestures;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class GraphWidget extends StatefulWidget {
   final Graph graph;
@@ -20,6 +22,8 @@ class GraphWidget extends StatefulWidget {
 
 class _GraphWidgetState extends State<GraphWidget> {
   Rect minBounds = Rect.zero;
+  FocusNode focusNode = FocusNode();
+  bool shiftKeyHeld = false;
   PointerDownEvent? gestureStart;
 
   bool transformEnabled = true;
@@ -31,6 +35,7 @@ class _GraphWidgetState extends State<GraphWidget> {
   void initState() {
     super.initState();
 
+    focusNode.requestFocus();
     graph.addListener(this, onEvent);
     updateMinBounds();
   }
@@ -40,6 +45,7 @@ class _GraphWidgetState extends State<GraphWidget> {
     super.dispose();
 
     graph.removeListener(this);
+    focusNode.dispose();
   }
 
   void onEvent(GraphEvent event) {
@@ -56,7 +62,21 @@ class _GraphWidgetState extends State<GraphWidget> {
     }
   }
 
-  void addNewElements(GraphEvent event) {}
+  void handleKeyEvent(KeyEvent event) {
+    var shiftKeys = const [
+      LogicalKeyboardKey.shiftLeft,
+      LogicalKeyboardKey.shiftRight,
+      LogicalKeyboardKey.shift,
+    ];
+
+    if (event is KeyDownEvent && shiftKeys.contains(event.logicalKey)) {
+      shiftKeyHeld = true;
+    } else if (shiftKeyHeld &&
+        event is KeyUpEvent &&
+        shiftKeys.contains(event.logicalKey)) {
+      shiftKeyHeld = false;
+    }
+  }
 
   void disableTransform() {
     if (transformEnabled) {
@@ -67,6 +87,19 @@ class _GraphWidgetState extends State<GraphWidget> {
   void enableTransform() {
     if (!transformEnabled) {
       setState(() => transformEnabled = true);
+    }
+  }
+
+  void endGesture(PointerUpEvent event) {
+    if (gestureStart != null && isSimpleClick(gestureStart!, event)) {
+      if (gestureStart!.buttons == gestures.kSecondaryButton) {
+        BasePlannerGlobalState.of(context).toggleContextMenu(event.position);
+      } else if (gestureStart!.buttons == gestures.kPrimaryButton &&
+          !shiftKeyHeld) {
+        graph.clearSelected(true);
+      }
+
+      gestureStart = null;
     }
   }
 
@@ -98,40 +131,38 @@ class _GraphWidgetState extends State<GraphWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return InteractiveViewer(
-      transformationController: controller,
-      panEnabled: transformEnabled,
-      scaleEnabled: transformEnabled,
-      child: Stack(
-        children: [
-          Listener(
-            behavior: HitTestBehavior.opaque,
-            onPointerDown: (event) {
-              gestureStart = event;
-            },
-            onPointerCancel: (event) => gestureStart = null,
-            onPointerUp: (event) {
-              if (gestureStart?.buttons == kSecondaryButton) {
-                BasePlannerGlobalState.of(
-                  context,
-                ).toggleContextMenu(event.position);
-              }
-
-              gestureStart = null;
-            },
-          ),
-          ...graph.allNodes.map(
-            (node) => NodeWidget(
-              key: BasePlannerElementKey(node),
-              node: node,
-              disableParentTransform: disableTransform,
-              enableParentTransform: enableTransform,
+    return KeyboardListener(
+      focusNode: focusNode,
+      onKeyEvent: handleKeyEvent,
+      child: InteractiveViewer(
+        transformationController: controller,
+        panEnabled: transformEnabled,
+        scaleEnabled: transformEnabled,
+        child: Stack(
+          children: [
+            Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: (event) {
+                gestureStart = event;
+              },
+              onPointerCancel: (event) => gestureStart = null,
+              onPointerUp: endGesture,
             ),
-          ),
-          ...graph.edges.map(
-            (edge) => EdgeWidget(key: BasePlannerElementKey(edge), edge: edge),
-          ),
-        ],
+            ...graph.allNodes.map(
+              (node) => NodeWidget(
+                key: BasePlannerElementKey(node),
+                node: node,
+                disableParentTransform: disableTransform,
+                enableParentTransform: enableTransform,
+                isShiftKeyHeld: () => shiftKeyHeld,
+              ),
+            ),
+            ...graph.edges.map(
+              (edge) =>
+                  EdgeWidget(key: BasePlannerElementKey(edge), edge: edge),
+            ),
+          ],
+        ),
       ),
     );
   }

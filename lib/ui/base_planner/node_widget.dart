@@ -1,6 +1,7 @@
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/utility/flutter.dart';
 import 'package:flutter/gestures.dart' as gestures;
 import 'package:flutter/material.dart';
 
@@ -8,12 +9,14 @@ class NodeWidget extends StatefulWidget {
   final NodeElement node;
   final Function() disableParentTransform;
   final Function() enableParentTransform;
+  final bool Function() isShiftKeyHeld;
 
   const NodeWidget({
     super.key,
     required this.node,
     required this.disableParentTransform,
     required this.enableParentTransform,
+    required this.isShiftKeyHeld,
   });
 
   @override
@@ -59,26 +62,16 @@ class _NodeWidgetState extends State<NodeWidget> {
     node.removeListener(this);
   }
 
-  bool isSimpleClick(PointerEvent event) {
-    if (gestureStart != null) {
-      var gestureTime = event.timeStamp - gestureStart!.timeStamp;
-      var gestureDistance = (event.position - gestureStart!.position).distance
-          .abs();
-
-      return gestureTime < const Duration(milliseconds: 100) &&
-          gestureDistance < 10;
-    } else {
-      return false;
-    }
-  }
-
   void beginGesture(PointerDownEvent event) {
-    if (node.isSelected && event.buttons == gestures.kPrimaryButton) {
-      operation = _GestureOperation.potentialDrag;
-      widget.disableParentTransform();
+    if (event.buttons == gestures.kPrimaryButton) {
       gestureStart = event;
-    } else if (!node.isSelected && event.buttons == gestures.kPrimaryButton) {
-      operation = _GestureOperation.beingSelected;
+
+      if (node.isSelected) {
+        operation = _GestureOperation.potentialDrag;
+        widget.disableParentTransform();
+      } else {
+        operation = _GestureOperation.beingSelected;
+      }
     }
   }
 
@@ -93,7 +86,7 @@ class _NodeWidgetState extends State<NodeWidget> {
   void handlePointerMove(PointerMoveEvent event) {
     switch (operation) {
       case _GestureOperation.potentialDrag:
-        if (!isSimpleClick(event)) {
+        if (gestureStart != null && isSimpleClick(gestureStart!, event)) {
           operation = _GestureOperation.activeDrag;
           geometryOperation = node.beginDrag();
           geometryOperation!.performOperation(
@@ -115,8 +108,8 @@ class _NodeWidgetState extends State<NodeWidget> {
     switch (operation) {
       case _GestureOperation.beingSelected:
       case _GestureOperation.potentialDrag:
-        if (isSimpleClick(event)) {
-          node.selectToggle(true);
+        if (gestureStart != null && isSimpleClick(gestureStart!, event)) {
+          node.selectToggle(!widget.isShiftKeyHeld());
         }
 
       case _GestureOperation.activeDrag:
