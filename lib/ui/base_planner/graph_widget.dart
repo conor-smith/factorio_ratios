@@ -8,6 +8,12 @@ import 'package:flutter/gestures.dart' as gestures;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+const List<LogicalKeyboardKey> _shiftKeys = [
+  LogicalKeyboardKey.shiftLeft,
+  LogicalKeyboardKey.shiftRight,
+  LogicalKeyboardKey.shift,
+];
+
 class GraphWidget extends StatefulWidget {
   final Graph graph;
 
@@ -63,17 +69,11 @@ class _GraphWidgetState extends State<GraphWidget> {
   }
 
   void handleKeyEvent(KeyEvent event) {
-    var shiftKeys = const [
-      LogicalKeyboardKey.shiftLeft,
-      LogicalKeyboardKey.shiftRight,
-      LogicalKeyboardKey.shift,
-    ];
-
-    if (event is KeyDownEvent && shiftKeys.contains(event.logicalKey)) {
+    if (event is KeyDownEvent && _shiftKeys.contains(event.logicalKey)) {
       shiftKeyHeld = true;
     } else if (shiftKeyHeld &&
         event is KeyUpEvent &&
-        shiftKeys.contains(event.logicalKey)) {
+        _shiftKeys.contains(event.logicalKey)) {
       shiftKeyHeld = false;
     }
   }
