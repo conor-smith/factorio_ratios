@@ -39,6 +39,8 @@ abstract class NodeElement<St extends NodeState, E extends NodeEvent>
   NodeChangeTracker getChangeTracker();
   @override
   NodeStateBuilder<St> getStateBuilder();
+  @override
+  void notifyListenersOfGeometryUpdate(NodeGeometry geometry);
 
   Map<InGameItem, Set<Edge>> get parents;
   Map<InGameItem, Set<Edge>> get children;
