@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 class GraphWidget extends StatefulWidget {
   final Graph graph;
 
-  // Made part of widget so it persists even graph is not active
+  // Made part of widget so it persists even when graph is not active
   final TransformationController _controller = TransformationController();
 
   GraphWidget({super.key, required this.graph});
