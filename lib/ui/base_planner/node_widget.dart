@@ -1,7 +1,7 @@
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
-import 'package:flutter/gestures.dart';
+import 'package:flutter/gestures.dart' as gestures;
 import 'package:flutter/material.dart';
 
 class NodeWidget extends StatefulWidget {
@@ -23,8 +23,8 @@ class NodeWidget extends StatefulWidget {
 class _NodeWidgetState extends State<NodeWidget> {
   late NodeGeometry geometry;
 
-  _PointerOperation operation = _PointerOperation.noOperation;
-  PointerDownEvent? dragOperationStart;
+  _GestureOperation operation = _GestureOperation.noOperation;
+  PointerDownEvent? gestureStart;
 
   GeometryOperation? geometryOperation;
 
@@ -59,71 +59,87 @@ class _NodeWidgetState extends State<NodeWidget> {
     node.removeListener(this);
   }
 
+  bool isSimpleClick(PointerEvent event) {
+    if (gestureStart != null) {
+      var gestureTime = event.timeStamp - gestureStart!.timeStamp;
+      var gestureDistance = (event.position - gestureStart!.position).distance
+          .abs();
+
+      return gestureTime < const Duration(milliseconds: 100) &&
+          gestureDistance < 10;
+    } else {
+      return false;
+    }
+  }
+
+  void beginGesture(PointerDownEvent event) {
+    if (node.isSelected && event.buttons == gestures.kPrimaryButton) {
+      operation = _GestureOperation.potentialDrag;
+      widget.disableParentTransform();
+      gestureStart = event;
+    } else if (!node.isSelected && event.buttons == gestures.kPrimaryButton) {
+      operation = _GestureOperation.beingSelected;
+    }
+  }
+
+  void clearGestureData() {
+    operation = _GestureOperation.noOperation;
+    widget.enableParentTransform();
+    gestureStart = null;
+    geometryOperation?.cancel();
+    geometryOperation = null;
+  }
+
+  void handlePointerMove(PointerMoveEvent event) {
+    switch (operation) {
+      case _GestureOperation.potentialDrag:
+        if (!isSimpleClick(event)) {
+          operation = _GestureOperation.activeDrag;
+          geometryOperation = node.beginDrag();
+          geometryOperation!.performOperation(
+            event.localPosition - gestureStart!.localPosition,
+          );
+        }
+
+      case _GestureOperation.activeDrag:
+        geometryOperation!.performOperation(
+          event.localPosition - gestureStart!.localPosition,
+        );
+
+      default:
+        break;
+    }
+  }
+
+  void endGesture(PointerUpEvent event) {
+    switch (operation) {
+      case _GestureOperation.beingSelected:
+      case _GestureOperation.potentialDrag:
+        if (isSimpleClick(event)) {
+          node.selectToggle(true);
+        }
+
+      case _GestureOperation.activeDrag:
+        geometryOperation!.applyUpdate();
+
+      default:
+        break;
+    }
+
+    clearGestureData();
+  }
+
   @override
   Widget build(BuildContext context) {
-    var selected = node.isSelected;
-
     return Positioned.fromRect(
       rect: geometry.rect,
       child: Listener(
-        onPointerDown: (event) {
-          // TODO - Clean up
-          if (selected && event.buttons == kPrimaryButton) {
-            operation = _PointerOperation.potentialDrag;
-            widget.disableParentTransform();
-            dragOperationStart = event;
-          } else if (!selected && event.buttons == kPrimaryButton) {
-            operation = _PointerOperation.beingSelected;
-          }
-        },
-        onPointerCancel: (_) {
-          operation = _PointerOperation.noOperation;
-          widget.enableParentTransform();
-          dragOperationStart = null;
-          geometryOperation?.cancel();
-          geometryOperation = null;
-        },
-        onPointerMove: (event) {
-          if (operation == _PointerOperation.potentialDrag) {
-            var timeSinceStart =
-                event.timeStamp - dragOperationStart!.timeStamp;
-            var distanceOnScreen =
-                (event.position - dragOperationStart!.position).distance.abs();
-
-            if (timeSinceStart > const Duration(milliseconds: 100) ||
-                distanceOnScreen > 10) {
-              operation = _PointerOperation.activeDrag;
-              geometryOperation = node.beginDrag();
-              geometryOperation!.performOperation(
-                event.localPosition - dragOperationStart!.localPosition,
-              );
-            }
-          } else if (operation == _PointerOperation.activeDrag) {
-            geometryOperation!.performOperation(
-              event.localPosition - dragOperationStart!.localPosition,
-            );
-          }
-        },
-        onPointerUp: (_) {
-          switch (operation) {
-            case _PointerOperation.beingSelected:
-            case _PointerOperation.potentialDrag:
-              node.selectToggle(true);
-
-            case _PointerOperation.activeDrag:
-              geometryOperation!.applyUpdate();
-
-            default:
-              break;
-          }
-
-          operation = _PointerOperation.noOperation;
-          widget.enableParentTransform();
-          dragOperationStart = null;
-          geometryOperation = null;
-        },
+        onPointerDown: beginGesture,
+        onPointerCancel: (_) => clearGestureData(),
+        onPointerMove: handlePointerMove,
+        onPointerUp: endGesture,
         child: Container(
-          decoration: selected
+          decoration: node.isSelected
               ? selectedBoxDecoration
               : unselectedBoxDecoration,
           child: Center(child: Text(widget.node.toString())),
@@ -133,4 +149,4 @@ class _NodeWidgetState extends State<NodeWidget> {
   }
 }
 
-enum _PointerOperation { noOperation, beingSelected, potentialDrag, activeDrag }
+enum _GestureOperation { noOperation, beingSelected, potentialDrag, activeDrag }
