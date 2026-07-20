@@ -9,21 +9,23 @@ import 'package:flutter/material.dart';
 class GraphWidget extends StatefulWidget {
   final Graph graph;
 
-  const GraphWidget({super.key, required this.graph});
+  // Made part of widget so it persists even graph is not active
+  final TransformationController _controller = TransformationController();
+
+  GraphWidget({super.key, required this.graph});
 
   @override
   State<GraphWidget> createState() => _GraphWidgetState();
 }
 
 class _GraphWidgetState extends State<GraphWidget> {
-  final TransformationController controller = TransformationController();
-
   Rect minBounds = Rect.zero;
   int? pointerDownButton;
 
   bool transformEnabled = true;
 
   Graph get graph => widget.graph;
+  TransformationController get controller => widget._controller;
 
   @override
   void initState() {
