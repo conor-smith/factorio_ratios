@@ -10,6 +10,7 @@ part 'display_data.dart';
 part 'in_game_item.dart';
 part 'in_game_recipe.dart';
 part 'in_game_machine.dart';
+part 'sorted_item_groups.dart';
 
 typedef ItemAmounts = Map<InGameItem, double>;
 
