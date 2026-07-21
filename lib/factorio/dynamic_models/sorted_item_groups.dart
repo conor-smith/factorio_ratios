@@ -19,7 +19,7 @@ class GroupAndSubgroups<T extends PrototypeWithIcon> {
 class SortedItemGroups<T extends PrototypeWithIcon> {
   final List<GroupAndSubgroups<T>> groups;
 
-  SortedItemGroups._(List<GroupAndSubgroups<T>> groups)
+  SortedItemGroups._(Iterable<GroupAndSubgroups<T>> groups)
     : groups = List.unmodifiable(groups);
 
   factory SortedItemGroups(Iterable<T> items) {
@@ -79,4 +79,20 @@ class SortedItemGroups<T extends PrototypeWithIcon> {
 
     return SortedItemGroups._(groupsList);
   }
+
+  SortedItemGroups<U> mapItems<U extends PrototypeWithIcon>(
+    U Function(T) mapFunction,
+  ) => SortedItemGroups._(
+    groups.map(
+      (groupAndSubgroups) => GroupAndSubgroups._(
+        groupAndSubgroups.itemGroup,
+        groupAndSubgroups.subgroups.map(
+          (subgroupAndItems) => SubgroupAndItems._(
+            subgroupAndItems.subgroup,
+            subgroupAndItems.items.map(mapFunction),
+          ),
+        ),
+      ),
+    ),
+  );
 }
