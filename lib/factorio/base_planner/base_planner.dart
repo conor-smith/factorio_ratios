@@ -117,13 +117,11 @@ class BasePlanner
   /// Check out a particular snapshot in [snapshots].
   /// Will reset the state of all elements and call
   /// [BasePlannerElement.notifyListeners] where appropriate
-  void goToSnapshot(int snapshotIndex) {
-    if (snapshotIndex < 0 || snapshotIndex >= _snapshots.length) {
-      throw BasePlannerException(
-        'Snapshot index $snapshotIndex is out of bounds',
-      );
-    } else if (snapshotIndex != _snapshotIndex) {
-      _applySnapshot(_snapshots[_snapshotIndex], _snapshots[snapshotIndex]);
+  void goToSnapshot(int newIndex) {
+    if (newIndex < 0 || newIndex >= _snapshots.length) {
+      throw BasePlannerException('Snapshot index $newIndex is out of bounds');
+    } else if (newIndex != _snapshotIndex) {
+      _applySnapshot(_snapshots[_snapshotIndex], _snapshots[newIndex]);
     }
   }
 
@@ -211,15 +209,15 @@ class BasePlanner
       });
       _mutationLock--;
 
-      var removedElements = oldSnapshot.stateMap.keys.toSet().difference(
-        newSnapshot.stateMap.keys.toSet(),
-      );
+      var removedElements = oldSnapshot.stateMap.keys
+          .where((oldElement) => !newSnapshot.stateMap.containsKey(oldElement))
+          .toList();
 
       for (var element in removedElements) {
         element.clearListeners();
       }
 
-      var removedGraphs = removedElements.whereType<Graph>().toSet();
+      var removedGraphs = removedElements.whereType<Graph>().toList();
       if (removedGraphs.isNotEmpty) {
         // If _activeGraph was removed, replace it with closest available parent graph
         Graph? newActiveGraph;
@@ -271,7 +269,7 @@ class Snapshot {
 
 class BasePlannerEvent {
   bool newActiveGraph;
-  Set<Graph> removedGraphs;
+  Iterable<Graph> removedGraphs;
 
   BasePlannerEvent._({
     this.removedGraphs = const {},
