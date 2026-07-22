@@ -13,19 +13,19 @@ class Icon {
           icons.fold(0, (sum, iconData) => sum + iconData.hashCode) +
           size.hashCode;
 
-  Icon.unknownIcon(ExpectedIconSize expectedSize)
+  Icon.unknownIcon(double expectedSize)
     : this._([
         IconData._(
           icon: '__core__/graphics/icons/unknown.png',
-          iconSize: ExpectedIconSize.other.size,
+          iconSize: ExpectedIconSize.other,
           tint: IconTint.defaultIconTint,
           shift: Vector.defaultVector,
-          scale: (expectedSize.size / 2) / ExpectedIconSize.other.size,
+          scale: (expectedSize / 2) / ExpectedIconSize.other,
           floating: false,
         ),
-      ], ExpectedIconSize.other.size);
+      ], ExpectedIconSize.other);
 
-  static Icon? fromTopLevelJson(Map json, ExpectedIconSize expectedSize) {
+  static Icon? fromTopLevelJson(Map json, double expectedSize) {
     String? icon = json['icon'];
     List<Map>? iconsJson = (json['icons'] as List?)?.cast();
 
@@ -34,15 +34,15 @@ class Icon {
         IconData._fromSingleIcon(
           icon,
           expectedSize,
-          json['icon_size']?.toDouble() ?? expectedSize.size,
+          json['icon_size']?.toDouble() ?? expectedSize,
         ),
-      ], expectedSize.size);
+      ], expectedSize);
     } else if (iconsJson != null) {
       return Icon._(
         iconsJson.map(
           (iconDataJson) => IconData.fromJson(iconDataJson, expectedSize),
         ),
-        expectedSize.size,
+        expectedSize,
       );
     } else {
       return null;
@@ -107,11 +107,10 @@ class IconData {
            scale.hashCode +
            floating.hashCode;
 
-  factory IconData.fromJson(Map json, ExpectedIconSize expectedSize) {
-    double iconSize =
-        json['icon_size']?.toDouble() ?? ExpectedIconSize.other.size;
+  factory IconData.fromJson(Map json, double expectedSize) {
+    double iconSize = json['icon_size']?.toDouble() ?? ExpectedIconSize.other;
     // default scale is 0.5 for most icons
-    double scale = json['scale'] ?? (expectedSize.size / 2) / iconSize;
+    double scale = json['scale'] ?? (expectedSize / 2) / iconSize;
 
     IconTint tint = json['tint'] != null
         ? IconTint.fromJson(json['tint'])
@@ -132,23 +131,23 @@ class IconData {
 
   factory IconData._fromSingleIcon(
     String path,
-    ExpectedIconSize expectedSize,
+    double expectedSize,
     double iconSize,
   ) => IconData._(
     icon: path,
     iconSize: iconSize,
     tint: IconTint.defaultIconTint,
     shift: Vector.defaultVector,
-    scale: (expectedSize.size / 2) / iconSize,
+    scale: (expectedSize / 2) / iconSize,
     floating: false,
   );
 
-  factory IconData.unknownIcon(ExpectedIconSize expectedSize) => IconData._(
+  factory IconData.unknownIcon(double expectedSize) => IconData._(
     icon: '__core__/graphics/icons/unknown.png',
-    iconSize: ExpectedIconSize.other.size,
+    iconSize: ExpectedIconSize.other,
     tint: IconTint.defaultIconTint,
     shift: Vector.defaultVector,
-    scale: (expectedSize.size / 2) / ExpectedIconSize.other.size,
+    scale: (expectedSize / 2) / ExpectedIconSize.other,
     floating: false,
   );
 
@@ -248,15 +247,11 @@ class Vector {
   int get hashCode => x.hashCode + (y * 500).hashCode;
 }
 
-enum ExpectedIconSize {
-  starmapIcon(512),
-  technology(256),
-  achievement(128),
-  itemGroup(128),
-  smallIcon(32),
-  other(64);
-
-  final double size;
-
-  const ExpectedIconSize(this.size);
+abstract final class ExpectedIconSize {
+  static const double starMapIcon = 512;
+  static const double technology = 256;
+  static const double achievement = 128;
+  static const double itemGroup = 128;
+  static const double other = 64;
+  static const double smallIcon = 32;
 }

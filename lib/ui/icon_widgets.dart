@@ -36,7 +36,7 @@ class IconWidgetCache {
 
   FactorioIconWidget get(
     Icon? icon, [
-    ExpectedIconSize expectedSize = ExpectedIconSize.other,
+    double expectedSize = ExpectedIconSize.other,
   ]) {
     icon ??= Icon.unknownIcon(expectedSize);
 

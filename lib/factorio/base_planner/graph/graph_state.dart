@@ -89,7 +89,7 @@ class GraphStateImpl with NodeState implements GraphState, ToJson {
 
   GraphStateImpl({
     required this.name,
-    required this.icon,
+    required Icon? icon,
     required Iterable<ProdLineNode> prodLineNodes,
     required Iterable<Graph> graphNodes,
     required Iterable<Edge> edges,
@@ -101,7 +101,8 @@ class GraphStateImpl with NodeState implements GraphState, ToJson {
     required this.ioData,
     required this.layout,
     required this.orientation,
-  }) : prodLineNodes = Set.unmodifiable(prodLineNodes),
+  }) : icon = icon?.resize(ExpectedIconSize.other),
+       prodLineNodes = Set.unmodifiable(prodLineNodes),
        graphNodes = Set.unmodifiable(graphNodes),
        edges = Set.unmodifiable(edges),
        inputNodes = Map.unmodifiable(inputNodes),
@@ -125,8 +126,9 @@ class GraphStateImpl with NodeState implements GraphState, ToJson {
        inputItems = Set.unmodifiable(inputNodes.keys),
        outputItems = Set.unmodifiable(outputNodes.keys);
 
-  GraphStateImpl.rootGraphFirstState(this.icon)
+  GraphStateImpl.rootGraphFirstState(Icon? icon)
     : name = 'Root Graph',
+      icon = icon?.resize(ExpectedIconSize.other),
       prodLineNodes = const {},
       graphNodes = const {},
       inputNodes = const {},

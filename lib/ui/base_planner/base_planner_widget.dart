@@ -135,9 +135,7 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     if (basePlanner.activeGraph.icon != null) {
       icon = Padding(
         padding: EdgeInsetsGeometry.all(5),
-        child: iconCache.get(
-          basePlanner.activeGraph.icon!.resize(ExpectedIconSize.other.size),
-        ),
+        child: iconCache.get(basePlanner.activeGraph.icon!),
       );
     }
 
