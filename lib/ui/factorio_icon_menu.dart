@@ -1,5 +1,4 @@
-import 'dart:collection';
-
+import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:flutter/material.dart';
@@ -8,13 +7,13 @@ class FactorioGroupMenuWidget<T extends PrototypeWithIcon>
     extends StatefulWidget {
   final Function(T item) onSelected;
 
-  final Map<ItemGroup?, Map<ItemSubgroup?, List<T>>> sortedItems;
+  final SortedItemGroups<T> itemGroups;
 
-  FactorioGroupMenuWidget({
+  const FactorioGroupMenuWidget({
     super.key,
-    required Iterable<T> items,
+    required this.itemGroups,
     required this.onSelected,
-  }) : sortedItems = _groupAndSortItems(items);
+  });
 
   @override
   State<FactorioGroupMenuWidget> createState() =>
@@ -28,14 +27,14 @@ class _FactorioGroupMenuWidgetState<T extends PrototypeWithIcon>
   @override
   void initState() {
     super.initState();
-    selectedGroup = widget.sortedItems.keys.first;
+    selectedGroup = widget.itemGroups.groups.first.itemGroup;
   }
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> itemGroupButtons = widget.sortedItems.keys
+    List<Widget> itemGroupButtons = widget.itemGroups.groups
         .map(
-          (itemGroup) => Container(
+          (group) => Container(
             decoration: BoxDecoration(border: Border.all()),
             constraints: BoxConstraints(
               minWidth: 128,
@@ -44,9 +43,9 @@ class _FactorioGroupMenuWidgetState<T extends PrototypeWithIcon>
             ),
             child: TextButton(
               onPressed: () => setState(() {
-                selectedGroup = itemGroup;
+                selectedGroup = group.itemGroup;
               }),
-              child: Center(child: Text(itemGroup?.name ?? 'null')),
+              child: Center(child: Text(group.itemGroup?.name ?? 'null')),
             ),
           ),
         )
@@ -54,10 +53,12 @@ class _FactorioGroupMenuWidgetState<T extends PrototypeWithIcon>
 
     var cache = BasePlannerGlobalState.of(context).iconCache;
 
-    List<Widget> subgroups = widget.sortedItems[selectedGroup]!.entries
+    List<Widget> subgroups = widget.itemGroups.groups
+        .firstWhere((group) => group.itemGroup == selectedGroup)
+        .subgroups
         .map(
-          (entry) => Row(
-            children: entry.value
+          (subgroup) => Row(
+            children: subgroup.items
                 .map(
                   (item) => TextButton(
                     onPressed: () => widget.onSelected(item),
@@ -92,59 +93,4 @@ class _FactorioGroupMenuWidgetState<T extends PrototypeWithIcon>
       ],
     );
   }
-}
-
-Map<ItemGroup?, Map<ItemSubgroup?, List<T>>>
-_groupAndSortItems<T extends PrototypeWithIcon>(Iterable<T> items) {
-  Map<ItemGroup?, Map<ItemSubgroup?, List<T>>> groupMap = {};
-
-  for (var item in items) {
-    groupMap.update(
-      item.subgroup?.group,
-      (subgroupMap) => subgroupMap
-        ..update(
-          item.subgroup,
-          (itemList) => itemList..add(item),
-          ifAbsent: () => [item],
-        ),
-      ifAbsent: () => {
-        item.subgroup: [item],
-      },
-    );
-  }
-
-  var groupSortedEntries = groupMap.entries.toList();
-  groupSortedEntries.sort((entry1, entry2) {
-    if (entry1.key == null) {
-      return 1;
-    } else if (entry2.key == null) {
-      return -1;
-    } else {
-      return entry1.key!.compareTo(entry2.key!);
-    }
-  });
-
-  var sortedGroupMap = LinkedHashMap.fromEntries(groupSortedEntries);
-
-  sortedGroupMap.updateAll((group, subgroupMap) {
-    var subgroupSortedEntries = subgroupMap.entries.toList();
-    subgroupSortedEntries.sort((entry1, entry2) {
-      if (entry1.key == null) {
-        return 1;
-      } else if (entry2.key == null) {
-        return -1;
-      } else {
-        return entry1.key!.compareTo(entry2.key!);
-      }
-    });
-
-    LinkedHashMap<ItemSubgroup?, List<T>> sortedMap = LinkedHashMap.fromEntries(
-      subgroupSortedEntries,
-    );
-    sortedMap.updateAll((subgroup, items) => items..sort());
-
-    return sortedMap;
-  });
-
-  return sortedGroupMap;
 }
