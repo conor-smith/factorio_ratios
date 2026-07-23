@@ -1,6 +1,7 @@
 part of 'node.dart';
 
-class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
+class ProdLineNode
+    extends NodeElement<ProdLineNodeStateImpl, ProdLineNodeEvent> {
   @override
   final Graph parentGraph;
   @override
@@ -67,9 +68,12 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
       basePlanner.snapshotBuilder?.nodeTrackers[this]?.state ?? _internalState;
 
   @override
-  void updateState(ProdLineNodeStateImpl state) {
+  void updateStateAndNotifyListeners(ProdLineNodeStateImpl newState) {
     basePlanner.throwIfMutationNotPermitted();
-    _internalState = state;
+    var oldState = _internalState;
+    _internalState = newState;
+
+    notifyListeners(ProdLineNodeEvent.stateUpdate(oldState, newState));
   }
 
   @override
@@ -100,21 +104,11 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
 
   @override
   void notifyListenersOfGeometryUpdate(NodeGeometry geometry) =>
-      notifyListeners(NodeEvent.geometryOp(geometry));
+      notifyListeners(ProdLineNodeEvent.geometryOp(geometry));
 
   @override
-  void notifyListenersOfStateUpdate(
-    ProdLineNodeStateImpl oldState,
-    ProdLineNodeStateImpl newState,
-  ) {
-    if (oldState.geometry != newState.geometry) {
-      notifyListeners(NodeEvent.geometryOp(newState.geometry));
-    }
-  }
-
-  @override
-  void notifyListenersOfUpdate() {
-    notifyListeners(const NodeEvent.update());
+  void notifyListenersOfSelectionUpdate() {
+    notifyListeners(const ProdLineNodeEvent.selectionUpdate());
   }
 
   @override
@@ -125,6 +119,31 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl, NodeEvent> {
 
   @override
   String toString() => productionLine.toString();
+}
+
+class ProdLineNodeEvent extends NodeEvent {
+  @override
+  final ProdLineNodeStateImpl? oldState;
+  @override
+  final ProdLineNodeStateImpl? newState;
+
+  const ProdLineNodeEvent._(
+    super.nodeEventType, {
+    super.geometry,
+    this.oldState,
+    this.newState,
+  });
+
+  ProdLineNodeEvent.stateUpdate(
+    ProdLineNodeStateImpl oldState,
+    ProdLineNodeStateImpl newState,
+  ) : this._(NodeEventType.stateUpdate, oldState: oldState, newState: newState);
+
+  ProdLineNodeEvent.geometryOp(NodeGeometry geometry)
+    : this._(NodeEventType.geometryOp, geometry: geometry);
+
+  const ProdLineNodeEvent.selectionUpdate()
+    : this._(NodeEventType.selectionUpdate);
 }
 
 class NodeDependencies implements Dependencies {

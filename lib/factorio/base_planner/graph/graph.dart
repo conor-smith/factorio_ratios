@@ -105,12 +105,12 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
 
   void addToSelected(BasePlannerElement element) {
     _selectedElements.add(element);
-    element.notifyListenersOfUpdate();
+    element.notifyListenersOfSelectionUpdate();
   }
 
   void removeFromSelected(BasePlannerElement element) {
     _selectedElements.remove(element);
-    element.notifyListenersOfUpdate();
+    element.notifyListenersOfSelectionUpdate();
   }
 
   void clearSelected(bool notifyListeners) {
@@ -121,7 +121,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       _selectedElements.clear();
 
       for (var element in deselectedElements) {
-        element.notifyListenersOfUpdate();
+        element.notifyListenersOfSelectionUpdate();
       }
     } else {
       _selectedElements.clear();
@@ -129,9 +129,12 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   }
 
   @override
-  void updateState(GraphStateImpl state) {
+  void updateStateAndNotifyListeners(GraphStateImpl newState) {
     basePlanner.throwIfMutationNotPermitted();
-    _internalState = state;
+    var oldState = _internalState;
+    _internalState = newState;
+
+    notifyListeners(GraphEvent.stateUpdate(oldState, newState));
   }
 
   @override
@@ -173,23 +176,8 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       notifyListeners(GraphEvent.geometryOp(geometry));
 
   @override
-  void notifyListenersOfStateUpdate(
-    GraphStateImpl oldState,
-    GraphStateImpl newState,
-  ) {
-    if (hasListeners) {
-      if (oldState.geometry != newState.geometry) {
-        notifyListeners(GraphEvent.geometryOp(newState.geometry));
-      } else if (!compareSets(oldState.allNodes, newState.allNodes) ||
-          !compareSets(oldState.edges, newState.edges)) {
-        notifyListeners(GraphEvent.graphUpdate());
-      }
-    }
-  }
-
-  @override
-  void notifyListenersOfUpdate() {
-    notifyListeners(const GraphEvent.update());
+  void notifyListenersOfSelectionUpdate() {
+    notifyListeners(const GraphEvent.selectionUpdate());
   }
 
   /// Clears all nodes except IO nodes
@@ -511,26 +499,39 @@ class GraphIo extends ProductionLineIoData {
   const GraphIo.empty() : super.empty();
 }
 
-class GraphEvent implements NodeEvent {
-  @override
-  final NodeEventType nodeEventType;
-  @override
-  final NodeGeometry? geometry;
-
+class GraphEvent extends NodeEvent {
   final GraphEventType graphEventType;
 
+  @override
+  final GraphStateImpl? oldState;
+  @override
+  final GraphStateImpl? newState;
+
   GraphEvent.geometryOp(NodeGeometry geometry)
-    : this._nodeEvent(NodeEventType.geometryOp, geometry);
+    : this._(
+        GraphEventType.nodeEvent,
+        NodeEventType.geometryOp,
+        geometry: geometry,
+      );
 
-  const GraphEvent.graphUpdate()
-    : nodeEventType = NodeEventType.other,
-      graphEventType = GraphEventType.update,
-      geometry = null;
+  GraphEvent.stateUpdate(GraphStateImpl oldState, GraphStateImpl newState)
+    : this._(
+        GraphEventType.stateUpdate,
+        NodeEventType.stateUpdate,
+        oldState: oldState,
+        newState: newState,
+      );
 
-  const GraphEvent.update() : this._nodeEvent(NodeEventType.update);
+  const GraphEvent.selectionUpdate()
+    : this._(GraphEventType.nodeEvent, NodeEventType.selectionUpdate);
 
-  const GraphEvent._nodeEvent(this.nodeEventType, [this.geometry])
-    : graphEventType = GraphEventType.nodeEvent;
+  const GraphEvent._(
+    this.graphEventType,
+    super.nodeEventType, {
+    super.geometry,
+    this.oldState,
+    this.newState,
+  });
 }
 
 class GraphException extends BasePlannerException {
@@ -581,7 +582,7 @@ class GraphDependencies implements Dependencies {
   Iterable<BasePlannerElement> get allElements => allNodes;
 }
 
-enum GraphEventType { update, childrenGeometryUpdate, nodeEvent }
+enum GraphEventType { stateUpdate, childrenGeometryUpdate, nodeEvent }
 
 enum GraphLayout { table, custom }
 

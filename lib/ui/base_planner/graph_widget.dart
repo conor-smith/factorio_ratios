@@ -56,7 +56,7 @@ class _GraphWidgetState extends State<GraphWidget> {
 
   void onEvent(GraphEvent event) {
     switch (event.graphEventType) {
-      case GraphEventType.update:
+      case GraphEventType.stateUpdate:
         setState(() {});
       case GraphEventType.childrenGeometryUpdate:
         setState(() {

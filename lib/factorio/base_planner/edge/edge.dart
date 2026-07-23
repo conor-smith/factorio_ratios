@@ -72,9 +72,12 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
       basePlanner.snapshotBuilder?.edgeTrackers[this]?.state ?? _internalState;
 
   @override
-  void updateState(EdgeStateImpl state) {
+  void updateStateAndNotifyListeners(EdgeStateImpl newState) {
     basePlanner.throwIfMutationNotPermitted();
-    _internalState = state;
+    var oldState = _internalState;
+    _internalState = newState;
+
+    notifyListeners(EdgeEvent.stateUpdate(oldState, newState));
   }
 
   @override
@@ -90,18 +93,8 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
       notifyListeners(EdgeEvent.geometryOp(geometry));
 
   @override
-  void notifyListenersOfStateUpdate(
-    EdgeStateImpl oldState,
-    EdgeStateImpl newState,
-  ) {
-    if (oldState.geometry != newState.geometry) {
-      notifyListeners(EdgeEvent.geometryOp(geometry));
-    }
-  }
-
-  @override
-  void notifyListenersOfUpdate() {
-    notifyListeners(const EdgeEvent.update());
+  void notifyListenersOfSelectionUpdate() {
+    notifyListeners(const EdgeEvent.selectionUpdate());
   }
 
   @override
@@ -112,11 +105,24 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
 }
 
 class EdgeEvent {
+  final EdgeEventType eventType;
   final EdgeGeometry? geometry;
+  final EdgeStateImpl? oldState, newState;
 
-  EdgeEvent.geometryOp(EdgeGeometry this.geometry);
+  EdgeEvent.geometryOp(EdgeGeometry geometry)
+    : this._(EdgeEventType.geometryOp, geometry: geometry);
 
-  const EdgeEvent.update() : geometry = null;
+  EdgeEvent.stateUpdate(EdgeStateImpl oldState, EdgeStateImpl newState)
+    : this._(EdgeEventType.stateUpdate, oldState: oldState, newState: newState);
+
+  const EdgeEvent.selectionUpdate() : this._(EdgeEventType.selectionUpdate);
+
+  const EdgeEvent._(
+    this.eventType, {
+    this.geometry,
+    this.oldState,
+    this.newState,
+  });
 }
 
 class EdgeDependencies implements Dependencies {
@@ -162,6 +168,8 @@ enum EdgeType {
   // TODO: Document
   requestExcess,
 }
+
+enum EdgeEventType { geometryOp, selectionUpdate, stateUpdate }
 
 class EdgeException extends BasePlannerException {
   const EdgeException(super.message, [super.cause]);

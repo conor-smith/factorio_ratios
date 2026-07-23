@@ -185,35 +185,18 @@ enum NodeType implements Comparable<NodeType> {
       outputPriority.compareTo(other.outputPriority);
 }
 
-class NodeEvent {
+abstract class NodeEvent {
   final NodeEventType nodeEventType;
 
   final NodeGeometry? geometry;
 
-  NodeEvent.geometryOp(NodeGeometry this.geometry)
-    : nodeEventType = NodeEventType.geometryOp;
+  NodeState? get oldState;
+  NodeState? get newState;
 
-  NodeEvent.stateUpdate()
-    : nodeEventType = NodeEventType.stateUpdate,
-      geometry = null;
-
-  const NodeEvent.update()
-    : nodeEventType = NodeEventType.update,
-      geometry = null;
-
-  NodeEvent.other() : nodeEventType = NodeEventType.other, geometry = null;
+  const NodeEvent(this.nodeEventType, {this.geometry});
 }
 
-enum NodeEventType {
-  geometryOp(true),
-  stateUpdate(true),
-  update(true),
-  other(false);
-
-  final bool updateRequired;
-
-  const NodeEventType(this.updateRequired);
-}
+enum NodeEventType { geometryOp, stateUpdate, selectionUpdate, other }
 
 class NodeException extends BasePlannerException {
   const NodeException(super.message, [super.cause]);

@@ -15,7 +15,7 @@ abstract class BasePlannerElement<St, E>
   Geometry get geometry;
 
   /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
-  void updateState(St state);
+  void updateStateAndNotifyListeners(St newState);
 
   ElementChangeTracker getChangeTracker();
   Builder<St> getStateBuilder();
@@ -24,9 +24,7 @@ abstract class BasePlannerElement<St, E>
   /// Allows notifying listeners of some [Geometry] object without updating state
   void notifyListenersOfGeometryUpdate(covariant Geometry geometry);
 
-  void notifyListenersOfStateUpdate(St oldState, St newState);
-
-  void notifyListenersOfUpdate();
+  void notifyListenersOfSelectionUpdate();
 
   bool get isSelected => parentGraph.selectedElements.contains(this);
 
