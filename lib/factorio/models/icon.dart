@@ -7,23 +7,30 @@ class Icon {
   @override
   final int hashCode;
 
+  final Map<double, Icon> _cachedIcons = {};
+
+  static final Map<double, Icon> _cachedUnknownIcons = {};
+
   Icon._(Iterable<IconData> icons, this.size)
     : icons = List.unmodifiable(icons),
       hashCode =
           icons.fold(0, (sum, iconData) => sum + iconData.hashCode) +
           size.hashCode;
 
-  Icon.unknownIcon(double expectedSize)
-    : this._([
-        IconData._(
-          icon: '__core__/graphics/icons/unknown.png',
-          iconSize: ExpectedIconSize.other,
-          tint: IconTint.defaultIconTint,
-          shift: Vector.defaultVector,
-          scale: (expectedSize / 2) / ExpectedIconSize.other,
-          floating: false,
-        ),
-      ], ExpectedIconSize.other);
+  factory Icon.unknownIcon(double expectedSize) =>
+      _cachedUnknownIcons.putIfAbsent(
+        expectedSize,
+        () => Icon._([
+          IconData._(
+            icon: '__core__/graphics/icons/unknown.png',
+            iconSize: ExpectedIconSize.other,
+            tint: IconTint.defaultIconTint,
+            shift: Vector.defaultVector,
+            scale: (expectedSize / 2) / ExpectedIconSize.other,
+            floating: false,
+          ),
+        ], ExpectedIconSize.other),
+      );
 
   static Icon? fromTopLevelJson(Map json, double expectedSize) {
     String? icon = json['icon'];
@@ -58,27 +65,29 @@ class Icon {
     if (newSize == size) {
       return this;
     } else {
-      var multiplier = newSize / size;
+      return _cachedIcons.putIfAbsent(newSize, () {
+        var multiplier = newSize / size;
 
-      return Icon._(
-        icons.map(
-          (iconData) => IconData._(
-            icon: iconData.icon,
-            iconSize: iconData.iconSize * multiplier,
-            tint: iconData.tint,
-            shift: iconData.shift * multiplier,
-            scale: iconData.scale * multiplier,
-            floating: iconData.floating,
+        return Icon._(
+          icons.map(
+            (iconData) => IconData._(
+              icon: iconData.icon,
+              iconSize: iconData.iconSize * multiplier,
+              tint: iconData.tint,
+              shift: iconData.shift * multiplier,
+              scale: iconData.scale * multiplier,
+              floating: iconData.floating,
+            ),
           ),
-        ),
-        newSize,
-      );
+          newSize,
+        );
+      });
     }
   }
 
   @override
   bool operator ==(Object other) =>
-      super == other || (other is Icon && compareLists(other.icons, icons));
+      super == other || (other is Icon && other.hashCode == hashCode);
 }
 
 class IconData {
