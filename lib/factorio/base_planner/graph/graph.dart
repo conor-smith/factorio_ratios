@@ -131,6 +131,17 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   @override
   void updateStateAndNotifyListeners(GraphStateImpl newState) {
     basePlanner.throwIfMutationNotPermitted();
+    if (_selectedElements.isNotEmpty) {
+      Set<BasePlannerElement> allElements = {
+        ...newState.allNodes,
+        ...newState.edges,
+      };
+
+      _selectedElements.removeWhere(
+        (element) => !allElements.contains(element),
+      );
+    }
+
     var oldState = _internalState;
     _internalState = newState;
 
