@@ -1,6 +1,5 @@
 import 'dart:collection';
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:factorio_ratios/factorio/factorio.dart';
 
@@ -15,17 +14,17 @@ part 'subgroup.dart';
 part 'surface.dart';
 part 'technology.dart';
 
-final Map<String, double> _multipliers = {
-  "k": pow(10, 3).toDouble(),
-  "M": pow(10, 6).toDouble(),
-  "G": pow(10, 9).toDouble(),
-  "T": pow(10, 12).toDouble(),
-  "P": pow(10, 15).toDouble(),
-  "E": pow(10, 18).toDouble(),
-  "Z": pow(10, 21).toDouble(),
-  "Y": pow(10, 24).toDouble(),
-  "R": pow(10, 27).toDouble(),
-  "Q": pow(10, 30).toDouble(),
+const Map<String, double> _multipliers = {
+  "k": 1.0e3,
+  "M": 1.0e6,
+  "G": 1.0e9,
+  "T": 1.0e12,
+  "P": 1.0e15,
+  "E": 1.0e18,
+  "Z": 1.0e21,
+  "Y": 1.0e24,
+  "R": 1.0e27,
+  "Q": 1.0e30,
 };
 
 enum Effects {
