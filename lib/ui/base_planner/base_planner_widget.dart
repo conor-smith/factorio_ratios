@@ -28,15 +28,12 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
           setState(() => activeMenu = ActiveMenu.consumerMenu),
     },
   );
-  late final FactorioGroupMenuWidget<Item> consumerMenu =
-      FactorioGroupMenuWidget(
-        itemGroups: SortedItemGroups(
-          basePlanner.db.itemMap.values.where(
-            (item) => item.producedBy.isNotEmpty,
-          ),
-        ),
-        onSelected: addConsumerNodeToActiveGraph,
-      );
+  late final FactorioIconMenuWidget<Item> consumerMenu = FactorioIconMenuWidget(
+    itemGroups: SortedItemGroups(
+      basePlanner.db.itemMap.values.where((item) => item.producedBy.isNotEmpty),
+    ),
+    onSelected: addConsumerNodeToActiveGraph,
+  );
 
   final Map<Graph, GraphWidget> graphWidgets = {};
 

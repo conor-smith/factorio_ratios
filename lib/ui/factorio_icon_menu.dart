@@ -3,25 +3,25 @@ import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:flutter/material.dart';
 
-class FactorioGroupMenuWidget<T extends PrototypeWithIcon>
+class FactorioIconMenuWidget<T extends PrototypeWithIcon>
     extends StatefulWidget {
   final Function(T item) onSelected;
 
   final SortedItemGroups<T> itemGroups;
 
-  const FactorioGroupMenuWidget({
+  const FactorioIconMenuWidget({
     super.key,
     required this.itemGroups,
     required this.onSelected,
   });
 
   @override
-  State<FactorioGroupMenuWidget> createState() =>
-      _FactorioGroupMenuWidgetState<T>();
+  State<FactorioIconMenuWidget> createState() =>
+      _FactorioIconMenuWidgetState<T>();
 }
 
-class _FactorioGroupMenuWidgetState<T extends PrototypeWithIcon>
-    extends State<FactorioGroupMenuWidget<T>> {
+class _FactorioIconMenuWidgetState<T extends PrototypeWithIcon>
+    extends State<FactorioIconMenuWidget<T>> {
   ItemGroup? selectedGroup;
 
   @override
