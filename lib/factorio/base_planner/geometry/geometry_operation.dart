@@ -92,7 +92,7 @@ class GeometryOperation {
       ..._edgeGeometries.keys,
       ..._affectedEdgeGeometries.keys,
     ]) {
-      element.notifyListenersOfSelectionUpdate();
+      element.notifyListenersOfUpdate();
     }
   }
 }

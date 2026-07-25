@@ -105,12 +105,12 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
 
   void addToSelected(BasePlannerElement element) {
     _selectedElements.add(element);
-    element.notifyListenersOfSelectionUpdate();
+    element.notifyListenersOfUpdate();
   }
 
   void removeFromSelected(BasePlannerElement element) {
     _selectedElements.remove(element);
-    element.notifyListenersOfSelectionUpdate();
+    element.notifyListenersOfUpdate();
   }
 
   void clearSelected(bool notifyListeners) {
@@ -121,7 +121,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       _selectedElements.clear();
 
       for (var element in deselectedElements) {
-        element.notifyListenersOfSelectionUpdate();
+        element.notifyListenersOfUpdate();
       }
     } else {
       _selectedElements.clear();
@@ -142,10 +142,9 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       );
     }
 
-    var oldState = _internalState;
     _internalState = newState;
 
-    notifyListeners(GraphEvent.stateUpdate(oldState, newState));
+    notifyListeners(const GraphEvent());
   }
 
   @override
@@ -187,8 +186,8 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       notifyListeners(GraphEvent.geometryOp(geometry));
 
   @override
-  void notifyListenersOfSelectionUpdate() {
-    notifyListeners(const GraphEvent.selectionUpdate());
+  void notifyListenersOfUpdate() {
+    notifyListeners(const GraphEvent());
   }
 
   /// Clears all nodes except IO nodes
@@ -511,38 +510,9 @@ class GraphIo extends ProductionLineIoData {
 }
 
 class GraphEvent extends NodeEvent {
-  final GraphEventType graphEventType;
+  GraphEvent.geometryOp(NodeGeometry super.geometry);
 
-  @override
-  final GraphStateImpl? oldState;
-  @override
-  final GraphStateImpl? newState;
-
-  GraphEvent.geometryOp(NodeGeometry geometry)
-    : this._(
-        GraphEventType.nodeEvent,
-        NodeEventType.geometryOp,
-        geometry: geometry,
-      );
-
-  GraphEvent.stateUpdate(GraphStateImpl oldState, GraphStateImpl newState)
-    : this._(
-        GraphEventType.stateUpdate,
-        NodeEventType.stateUpdate,
-        oldState: oldState,
-        newState: newState,
-      );
-
-  const GraphEvent.selectionUpdate()
-    : this._(GraphEventType.nodeEvent, NodeEventType.selectionUpdate);
-
-  const GraphEvent._(
-    this.graphEventType,
-    super.nodeEventType, {
-    super.geometry,
-    this.oldState,
-    this.newState,
-  });
+  const GraphEvent();
 }
 
 class GraphException extends BasePlannerException {
@@ -592,8 +562,6 @@ class GraphDependencies implements Dependencies {
   @override
   Iterable<BasePlannerElement> get allElements => allNodes;
 }
-
-enum GraphEventType { stateUpdate, childrenGeometryUpdate, nodeEvent }
 
 enum GraphLayout { table, custom }
 

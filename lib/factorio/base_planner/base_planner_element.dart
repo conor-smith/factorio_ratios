@@ -24,7 +24,7 @@ abstract class BasePlannerElement<St, E>
   /// Allows notifying listeners of some [Geometry] object without updating state
   void notifyListenersOfGeometryUpdate(covariant Geometry geometry);
 
-  void notifyListenersOfSelectionUpdate();
+  void notifyListenersOfUpdate();
 
   bool get isSelected => parentGraph.selectedElements.contains(this);
 

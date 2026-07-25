@@ -70,10 +70,9 @@ class ProdLineNode
   @override
   void updateStateAndNotifyListeners(ProdLineNodeStateImpl newState) {
     basePlanner.throwIfMutationNotPermitted();
-    var oldState = _internalState;
     _internalState = newState;
 
-    notifyListeners(ProdLineNodeEvent.stateUpdate(oldState, newState));
+    notifyListeners(ProdLineNodeEvent());
   }
 
   @override
@@ -107,8 +106,8 @@ class ProdLineNode
       notifyListeners(ProdLineNodeEvent.geometryOp(geometry));
 
   @override
-  void notifyListenersOfSelectionUpdate() {
-    notifyListeners(const ProdLineNodeEvent.selectionUpdate());
+  void notifyListenersOfUpdate() {
+    notifyListeners(const ProdLineNodeEvent());
   }
 
   @override
@@ -122,28 +121,9 @@ class ProdLineNode
 }
 
 class ProdLineNodeEvent extends NodeEvent {
-  @override
-  final ProdLineNodeStateImpl? oldState;
-  @override
-  final ProdLineNodeStateImpl? newState;
+  ProdLineNodeEvent.geometryOp(NodeGeometry super.geometry);
 
-  const ProdLineNodeEvent._(
-    super.nodeEventType, {
-    super.geometry,
-    this.oldState,
-    this.newState,
-  });
-
-  ProdLineNodeEvent.stateUpdate(
-    ProdLineNodeStateImpl oldState,
-    ProdLineNodeStateImpl newState,
-  ) : this._(NodeEventType.stateUpdate, oldState: oldState, newState: newState);
-
-  ProdLineNodeEvent.geometryOp(NodeGeometry geometry)
-    : this._(NodeEventType.geometryOp, geometry: geometry);
-
-  const ProdLineNodeEvent.selectionUpdate()
-    : this._(NodeEventType.selectionUpdate);
+  const ProdLineNodeEvent();
 }
 
 class NodeDependencies implements Dependencies {

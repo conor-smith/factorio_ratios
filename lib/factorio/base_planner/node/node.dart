@@ -186,17 +186,10 @@ enum NodeType implements Comparable<NodeType> {
 }
 
 abstract class NodeEvent {
-  final NodeEventType nodeEventType;
-
   final NodeGeometry? geometry;
 
-  NodeState? get oldState;
-  NodeState? get newState;
-
-  const NodeEvent(this.nodeEventType, {this.geometry});
+  const NodeEvent([this.geometry]);
 }
-
-enum NodeEventType { geometryOp, stateUpdate, selectionUpdate, other }
 
 class NodeException extends BasePlannerException {
   const NodeException(super.message, [super.cause]);
