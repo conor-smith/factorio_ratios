@@ -6,6 +6,7 @@ import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/utility/collections.dart';
 import 'package:factorio_ratios/utility/json.dart';
 import 'package:factorio_ratios/utility/builder.dart';
 
@@ -44,6 +45,9 @@ class BasePlanner
 
   final Map<Surface, SurfaceProperties> surfaceProperties;
 
+  /// Contains all items which can be produced by at least one non-recycling recipe
+  final SortedItemGroups<Item> validConsumerNodeItems;
+
   // TODO - Rename, document, and make mutable
   final double ioThreshold = 0.1;
 
@@ -81,6 +85,16 @@ class BasePlanner
                 .where((solidItem) => (solidItem.fuelValue ?? 0) > 0)
                 .map((solidItem) => InGameSolidItem(solidItem)),
           ),
+        ),
+      ),
+      validConsumerNodeItems = SortedItemGroups(
+        db.itemMap.values.where(
+          (item) => item.producedBy
+              .where(
+                (recipe) =>
+                    !compareLists(recipe.categories, const ['recycling']),
+              )
+              .isNotEmpty,
         ),
       ) {
     // Create first snapshot and root graph
@@ -196,7 +210,7 @@ class BasePlanner
       _activeGraph = newActiveGraph;
 
       if (updateListeners) {
-        notifyListeners(BasePlannerEvent._(newActiveGraph: true));
+        notifyListeners(const BasePlannerEvent());
       }
     }
   }
@@ -209,33 +223,14 @@ class BasePlanner
       });
       _mutationLock--;
 
-      var removedElements = oldSnapshot.stateMap.keys
-          .where((oldElement) => !newSnapshot.stateMap.containsKey(oldElement))
-          .toList();
+      if (!newSnapshot.stateMap.containsKey(activeGraph)) {
+        var newActiveGraph = activeGraph.parentGraph;
 
-      for (var element in removedElements) {
-        element.clearListeners();
-      }
-
-      var removedGraphs = removedElements.whereType<Graph>().toList();
-      if (removedGraphs.isNotEmpty) {
-        // If _activeGraph was removed, replace it with closest available parent graph
-        Graph? newActiveGraph;
-        if (removedGraphs.contains(_activeGraph)) {
-          newActiveGraph = _activeGraph.parentGraph;
-          while (removedGraphs.contains(newActiveGraph)) {
-            newActiveGraph = newActiveGraph!.parentGraph;
-          }
-
-          _updateActiveGraph(newActiveGraph!, false);
+        while (!newSnapshot.stateMap.containsKey(newActiveGraph)) {
+          newActiveGraph = newActiveGraph.parentGraph;
         }
 
-        notifyListeners(
-          BasePlannerEvent._(
-            removedGraphs: removedGraphs,
-            newActiveGraph: newActiveGraph != null,
-          ),
-        );
+        notifyListeners(const BasePlannerEvent());
       }
     } catch (e) {
       _mutationLock--;
@@ -266,13 +261,7 @@ class Snapshot {
 }
 
 class BasePlannerEvent {
-  bool newActiveGraph;
-  Iterable<Graph> removedGraphs;
-
-  BasePlannerEvent._({
-    this.removedGraphs = const {},
-    this.newActiveGraph = false,
-  });
+  const BasePlannerEvent();
 }
 
 class SurfaceProperties {

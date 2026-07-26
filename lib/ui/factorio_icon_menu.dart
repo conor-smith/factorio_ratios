@@ -1,6 +1,6 @@
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
-import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
+import 'package:factorio_ratios/ui/icon_widgets.dart';
 import 'package:flutter/material.dart';
 
 class FactorioIconMenuWidget<T extends PrototypeWithIcon>
@@ -51,8 +51,6 @@ class _FactorioIconMenuWidgetState<T extends PrototypeWithIcon>
         )
         .toList();
 
-    var cache = BasePlannerGlobalState.of(context).iconCache;
-
     List<Widget> subgroups = widget.itemGroups.groups
         .firstWhere((group) => group.itemGroup == selectedGroup)
         .subgroups
@@ -64,7 +62,7 @@ class _FactorioIconMenuWidgetState<T extends PrototypeWithIcon>
                     onPressed: () => widget.onSelected(item),
                     child: Tooltip(
                       message: item.name,
-                      child: cache.get(item.icon),
+                      child: IconWidgetCache.get(item.icon),
                     ),
                   ),
                 )

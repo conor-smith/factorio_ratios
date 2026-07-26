@@ -31,10 +31,10 @@ class FactorioIconWidget extends StatelessWidget {
   }
 }
 
-class IconWidgetCache {
-  final Map<Icon, FactorioIconWidget> _cachedWidgets = {};
+abstract final class IconWidgetCache {
+  static final Map<Icon, FactorioIconWidget> _cachedWidgets = {};
 
-  FactorioIconWidget get(
+  static FactorioIconWidget get(
     Icon? icon, [
     double expectedSize = ExpectedIconSize.other,
   ]) {
