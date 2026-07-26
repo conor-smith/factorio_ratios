@@ -20,9 +20,7 @@ class Icon {
        hashCode =
            icons.fold(0, (sum, iconData) => sum + iconData.hashCode) +
            size.hashCode {
-    if (cachedIconsMap == null) {
-      _cachedSizedIcons[size] = this;
-    }
+    _cachedSizedIcons[size] = this;
   }
 
   factory Icon.unknownIcon(double expectedSize) =>
@@ -74,10 +72,12 @@ class Icon {
   }
 
   Icon resize(double newSize) {
-    return _cachedSizedIcons.putIfAbsent(newSize, () {
+    var resized = _cachedSizedIcons[newSize];
+
+    if (resized == null) {
       var multiplier = newSize / size;
 
-      return Icon._(
+      resized = Icon._(
         icons.map(
           (iconData) => IconData._(
             icon: iconData.icon,
@@ -91,7 +91,9 @@ class Icon {
         newSize,
         _cachedSizedIcons,
       );
-    });
+    }
+
+    return resized;
   }
 
   @override
