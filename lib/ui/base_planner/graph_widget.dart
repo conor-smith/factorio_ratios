@@ -98,33 +98,7 @@ class _GraphWidgetState extends State<GraphWidget> {
 
     if (utility.isSimpleClick(gestureStart!, event) &&
         gestureStart!.buttons == gestures.kSecondaryButton) {
-      setState(() {
-        operation = _GraphWidgetOperation.overlayMenu;
-
-        overlayMenu = ContextMenu(
-          screenLocation: event.position,
-          options: [
-            MenuOption(
-              text: 'Create consumer node',
-              operation: () => setState(() {
-                operation = _GraphWidgetOperation.overlayMenu;
-
-                overlayMenu = Center(
-                  child: FactorioIconMenuWidget<Item>(
-                    itemGroups: graph.basePlanner.validConsumerNodeItems,
-                    onSelected: (item) {
-                      graph.addConsumerNodeAndTree(InGameItem(item));
-                      setState(() {
-                        operation = _GraphWidgetOperation.noOperation;
-                      });
-                    },
-                  ),
-                );
-              }),
-            ),
-          ],
-        );
-      });
+      createContextMenu(event.position, event.localPosition);
     } else {
       setState(() {
         operation = _GraphWidgetOperation.noOperation;
@@ -143,6 +117,40 @@ class _GraphWidgetState extends State<GraphWidget> {
   void endElementOperation() {
     setState(() {
       operation = _GraphWidgetOperation.noOperation;
+    });
+  }
+
+  void createContextMenu(Offset screenPosition, Offset graphPosition) {
+    setState(() {
+      operation = _GraphWidgetOperation.overlayMenu;
+
+      overlayMenu = ContextMenu(
+        screenLocation: screenPosition,
+        options: [
+          MenuOption(
+            text: 'Create consumer node',
+            operation: () => createConsumerMenu(graphPosition),
+          ),
+        ],
+      );
+    });
+  }
+
+  void createConsumerMenu(Offset graphPosition) {
+    setState(() {
+      operation = _GraphWidgetOperation.overlayMenu;
+
+      overlayMenu = Center(
+        child: FactorioIconMenuWidget<Item>(
+          itemGroups: graph.basePlanner.validConsumerNodeItems,
+          onSelected: (item) {
+            graph.addConsumerNodeAndTree(InGameItem(item));
+            setState(() {
+              operation = _GraphWidgetOperation.noOperation;
+            });
+          },
+        ),
+      );
     });
   }
 
