@@ -70,14 +70,14 @@ class _GraphWidgetState extends State<GraphWidget> {
   }
 
   void beginGesture(PointerDownEvent event) {
+    gestureStart = event;
+
     if (shiftKeyHeld && event.buttons == gestures.kPrimaryButton) {
       setState(() {
         operation = _GraphWidgetOperation.shiftGesture;
-        gestureStart = event;
       });
     } else {
       operation = _GraphWidgetOperation.nonShiftGesture;
-      gestureStart = event;
     }
   }
 
@@ -96,11 +96,9 @@ class _GraphWidgetState extends State<GraphWidget> {
       return;
     }
 
-    var start = gestureStart!;
-    if (utility.isSimpleClick(start, event) &&
-        event.buttons == gestures.kSecondaryButton) {
+    if (utility.isSimpleClick(gestureStart!, event) &&
+        gestureStart!.buttons == gestures.kSecondaryButton) {
       setState(() {
-        gestureStart = null;
         operation = _GraphWidgetOperation.overlayMenu;
 
         overlayMenu = ContextMenu(
@@ -124,8 +122,12 @@ class _GraphWidgetState extends State<GraphWidget> {
         );
       });
     } else {
-      gestureStart = null;
+      setState(() {
+        operation = _GraphWidgetOperation.noOperation;
+      });
     }
+
+    gestureStart = null;
   }
 
   void beginElementOperation() {
@@ -185,20 +187,19 @@ class GraphOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: EdgeInsetsGeometry.all(5),
-                    child: IconWidgetCache.get(icon),
-                  ),
-                  Text(name),
-                ],
+        Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: Colors.black)),
+          ),
+          child: Row(
+            children: [
+              Padding(
+                padding: EdgeInsetsGeometry.all(5),
+                child: IconWidgetCache.get(icon),
               ),
-            ),
-          ],
+              Text(name),
+            ],
+          ),
         ),
       ],
     );
@@ -236,6 +237,7 @@ class GraphWindow extends StatelessWidget {
       panEnabled: transformEnabled,
       scaleEnabled: transformEnabled,
       child: Stack(
+        fit: StackFit.expand,
         children: [
           Listener(
             behavior: HitTestBehavior.opaque,
