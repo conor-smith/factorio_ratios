@@ -38,9 +38,9 @@ class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
     this._node,
     this._productionLine,
     this._internalConstraints,
+    this._geometry,
   ) : _edgeConstraints = ItemIoImpl.empty,
       _unusedIo = ItemIoImpl.empty,
-      _geometry = NodeGeometryImpl.uninitialised,
       _ioData = ProductionLineIoData.uninitialised,
       _parents = {},
       _children = {};

@@ -195,6 +195,37 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
     });
   }
 
+  void addNode({
+    required NodeType nodeType,
+    required ProductionLine productionLine,
+    required Offset initialPosition,
+    ItemIoImpl? internalConstraints,
+  }) {
+    basePlanner.buildNextSnapshot(() {
+      NodeGeometryImpl initialGeometry;
+      if (layout == GraphLayout.custom) {
+        initialGeometry = NodeGeometryImpl(
+          Rect.fromCenter(
+            center: initialPosition,
+            width: NodeGeometryImpl.defaultWidth,
+            height: NodeGeometryImpl.defaultHeight,
+          ),
+        );
+      } else {
+        initialGeometry = NodeGeometryImpl.uninitialised;
+      }
+
+      ProdLineNode.addToBasePlanner(
+        basePlanner,
+        parentGraph: this,
+        nodeType: nodeType,
+        productionLine: productionLine,
+        internalConstraints: internalConstraints,
+        initialGeometry: initialGeometry,
+      );
+    });
+  }
+
   void addConsumerNodeAndTree(InGameItem item) {
     if (surface == null) {
       throw const GraphException(

@@ -48,6 +48,7 @@ class ProdLineNode
     required this.nodeType,
     required ProductionLine productionLine,
     ItemIoImpl? internalConstraints,
+    NodeGeometryImpl initialGeometry = NodeGeometryImpl.uninitialised,
   }) : _internalState = ProdLineNodeStateImpl.uninitialised {
     if (nodeType.hasInternalConstraints) {
       internalConstraints ??= ItemIoImpl.empty;
@@ -60,6 +61,7 @@ class ProdLineNode
         this,
         productionLine,
         internalConstraints,
+        initialGeometry,
       ),
     );
   }
