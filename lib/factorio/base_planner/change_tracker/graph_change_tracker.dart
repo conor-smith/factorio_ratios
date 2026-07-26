@@ -249,3 +249,12 @@ class GraphChangeTracker
   void _clearCachedOutputIndex() => _cachedNodeOutputIndex = null;
   void _clearCachedDisposalNodes() => _cachedDisposalNodes = null;
 }
+
+class GraphDependencies implements Dependencies {
+  final Set<NodeElement> allNodes;
+
+  GraphDependencies(this.allNodes);
+
+  @override
+  Iterable<BasePlannerElement> get allElements => allNodes;
+}

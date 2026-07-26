@@ -582,15 +582,6 @@ class GraphIoBuilder implements Builder<GraphIo> {
   );
 }
 
-class GraphDependencies implements Dependencies {
-  final Set<NodeElement> allNodes;
-
-  GraphDependencies(this.allNodes);
-
-  @override
-  Iterable<BasePlannerElement> get allElements => allNodes;
-}
-
 enum GraphLayout { table, custom }
 
 enum LayoutOrientation { up, left, down, right }

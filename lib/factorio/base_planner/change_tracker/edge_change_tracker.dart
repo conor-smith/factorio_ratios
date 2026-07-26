@@ -268,3 +268,36 @@ class EdgeChangeTracker
         (amount, edge) => amount + edge.amount,
       );
 }
+
+class EdgeDependencies implements Dependencies {
+  final ProdLineNode? parentProdLineDep;
+  final List<Edge>? orderedParentEdgeDeps;
+
+  final ProdLineNode? childProdLineDep;
+  final List<Edge>? orderedChildEdgeDeps;
+
+  EdgeDependencies({
+    this.parentProdLineDep,
+    List<Edge>? parentEdgeDeps,
+    this.childProdLineDep,
+    List<Edge>? childEdgeDeps,
+  }) : orderedParentEdgeDeps = parentEdgeDeps,
+       orderedChildEdgeDeps = childEdgeDeps {
+    orderedParentEdgeDeps?.sort(
+      (preEdge1, preEdge2) =>
+          preEdge1.parentPriority.compareTo(preEdge2.parentPriority),
+    );
+    orderedChildEdgeDeps?.sort(
+      (creEdge1, creEdge2) =>
+          creEdge1.childPriority.compareTo(creEdge2.childPriority),
+    );
+  }
+
+  @override
+  Iterable<BasePlannerElement> get allElements => <BasePlannerElement?>[
+    parentProdLineDep,
+    childProdLineDep,
+    ...?orderedParentEdgeDeps,
+    ...?orderedChildEdgeDeps,
+  ].nonNulls;
+}

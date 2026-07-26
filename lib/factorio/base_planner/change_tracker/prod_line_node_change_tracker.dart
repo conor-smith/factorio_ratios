@@ -194,3 +194,15 @@ class ProdLineNodeChangeTracker
     return builder.build();
   }
 }
+
+class NodeDependencies implements Dependencies {
+  final Map<InGameItem, Set<Edge>> childDeps;
+  final Map<InGameItem, Set<Edge>> parentDeps;
+
+  NodeDependencies({required this.childDeps, required this.parentDeps});
+
+  @override
+  Iterable<Edge> get allElements => childDeps.values
+      .followedBy(parentDeps.values)
+      .expand((edgeSet) => edgeSet);
+}
