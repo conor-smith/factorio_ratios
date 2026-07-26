@@ -68,11 +68,9 @@ class ProdLineNode
       basePlanner.snapshotBuilder?.nodeTrackers[this]?.state ?? _internalState;
 
   @override
-  void updateStateAndNotifyListeners(ProdLineNodeStateImpl newState) {
+  void updateState(ProdLineNodeStateImpl newState) {
     basePlanner.throwIfMutationNotPermitted();
     _internalState = newState;
-
-    notifyListeners(ProdLineNodeEvent());
   }
 
   @override

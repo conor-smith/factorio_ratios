@@ -112,8 +112,12 @@ class _GraphWidgetState extends State<GraphWidget> {
                 overlayMenu = Center(
                   child: FactorioIconMenuWidget<Item>(
                     itemGroups: graph.basePlanner.validConsumerNodeItems,
-                    onSelected: (item) =>
-                        graph.addConsumerNodeAndTree(InGameItem(item)),
+                    onSelected: (item) {
+                      graph.addConsumerNodeAndTree(InGameItem(item));
+                      setState(() {
+                        operation = _GraphWidgetOperation.noOperation;
+                      });
+                    },
                   ),
                 );
               }),
@@ -149,7 +153,7 @@ class _GraphWidgetState extends State<GraphWidget> {
         key: BasePlannerElementKey(graph),
         nodes: graph.allNodes,
         edges: graph.edges,
-        transformEnabled: operation.transformEnabled || !shiftKeyHeld,
+        transformEnabled: operation.transformEnabled && !shiftKeyHeld,
         shiftKeyHeld: shiftKeyHeld,
         onPointerDown: beginGesture,
         onPointerCancel: cancelGesture,
@@ -173,7 +177,11 @@ class _GraphWidgetState extends State<GraphWidget> {
         ..add(overlayMenu);
     }
 
-    return Stack(fit: StackFit.expand, children: children);
+    return KeyboardListener(
+      focusNode: focusNode,
+      onKeyEvent: handleKeyEvent,
+      child: Stack(fit: StackFit.expand, children: children),
+    );
   }
 }
 

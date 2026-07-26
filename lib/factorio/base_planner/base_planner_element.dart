@@ -15,7 +15,7 @@ abstract class BasePlannerElement<St, E>
   Geometry get geometry;
 
   /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
-  void updateStateAndNotifyListeners(St newState);
+  void updateState(St newState);
 
   ElementChangeTracker getChangeTracker();
   Builder<St> getStateBuilder();

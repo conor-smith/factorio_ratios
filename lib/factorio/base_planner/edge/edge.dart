@@ -72,11 +72,9 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
       basePlanner.snapshotBuilder?.edgeTrackers[this]?.state ?? _internalState;
 
   @override
-  void updateStateAndNotifyListeners(EdgeStateImpl newState) {
+  void updateState(EdgeStateImpl newState) {
     basePlanner.throwIfMutationNotPermitted();
     _internalState = newState;
-
-    notifyListeners(const EdgeEvent());
   }
 
   @override

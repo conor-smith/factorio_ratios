@@ -41,7 +41,7 @@ class _EdgeWidgetState extends State<EdgeWidget> {
   Widget build(BuildContext context) {
     return IgnorePointer(
       child: CustomPaint(
-        size: Size.infinite,
+        size: geometry.rect.size,
         painter: LinesPainter(geometry.lines[0], edge.isSelected),
       ),
     );

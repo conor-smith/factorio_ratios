@@ -219,9 +219,13 @@ class BasePlanner
     _mutationLock++;
     try {
       newSnapshot.stateMap.forEach((element, eAndS) {
-        eAndS.updateAndNotify(oldSnapshot.stateMap[element]);
+        eAndS.update(oldSnapshot.stateMap[element]);
       });
       _mutationLock--;
+
+      for (var element in newSnapshot.stateMap.keys) {
+        element.notifyListenersOfUpdate();
+      }
 
       if (!newSnapshot.stateMap.containsKey(activeGraph)) {
         var newActiveGraph = activeGraph.parentGraph;
@@ -245,11 +249,7 @@ class ElementAndState<E extends BasePlannerElement<St, dynamic>, St> {
 
   ElementAndState(this.element, this.state);
 
-  void updateAndNotify(ElementAndState<E, St>? oldEAndS) {
-    if (oldEAndS != null && oldEAndS.state != state) {
-      element.updateStateAndNotifyListeners(state);
-    }
-  }
+  void update(ElementAndState<E, St>? oldEAndS) => element.updateState(state);
 }
 
 /// Represents a snapshot of all states of elements in [BasePlanner].

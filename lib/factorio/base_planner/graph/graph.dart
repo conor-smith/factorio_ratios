@@ -129,7 +129,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   }
 
   @override
-  void updateStateAndNotifyListeners(GraphStateImpl newState) {
+  void updateState(GraphStateImpl newState) {
     basePlanner.throwIfMutationNotPermitted();
     if (_selectedElements.isNotEmpty) {
       Set<BasePlannerElement> allElements = {
@@ -143,8 +143,6 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
     }
 
     _internalState = newState;
-
-    notifyListeners(const GraphEvent());
   }
 
   @override
@@ -222,8 +220,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
 
       _createNodeTree(consumerNode);
 
-      // TODO: Is this the best layout?
-      _tableLayout();
+      layoutNodes();
     });
   }
 
@@ -455,8 +452,8 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
     for (var edge in edges) {
       edge.getStateBuilder().updateGeometry(
         EdgeGeometryImpl.shortestPath(
-          edge.parentNode.geometry,
           edge.childNode.geometry,
+          edge.parentNode.geometry,
         ),
       );
     }
