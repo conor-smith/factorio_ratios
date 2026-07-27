@@ -1,6 +1,6 @@
 part of 'node.dart';
 
-abstract mixin class ProdLineNodeState implements NodeState {
+abstract class ProdLineNodeState extends NodeState {
   ItemIoImpl? get internalConstraints;
 
   ProductionLine get productionLine;
@@ -11,11 +11,11 @@ abstract mixin class ProdLineNodeState implements NodeState {
   Set<InGameItem> get inputItems => productionLine.inputItems;
   @override
   Set<InGameItem> get outputItems => productionLine.outputItems;
+
+  const ProdLineNodeState();
 }
 
-class ProdLineNodeStateImpl
-    with ProdLineNodeState, NodeState
-    implements ToJson {
+class ProdLineNodeStateImpl extends ProdLineNodeState implements ToJson {
   static const uninitialised = ProdLineNodeStateImpl._uninitialised();
 
   @override

@@ -16,6 +16,8 @@ abstract class GraphState extends NodeState {
   @override
   GraphIo get ioData;
 
+  const GraphState();
+
   static Iterable<NodeElement> calculateAllNodes(
     Iterable<ProdLineNode> prodLineNodes,
     Iterable<Graph> graphNodes,
@@ -41,7 +43,7 @@ abstract class GraphState extends NodeState {
   )..removeWhere((item, edges) => edges.isEmpty);
 }
 
-class GraphStateImpl with NodeState implements GraphState, ToJson {
+class GraphStateImpl extends GraphState implements ToJson {
   static const uninitialised = GraphStateImpl._uninitialised();
 
   @override

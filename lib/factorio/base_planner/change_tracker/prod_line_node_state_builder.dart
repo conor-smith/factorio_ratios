@@ -1,7 +1,7 @@
 part of 'change_trackers.dart';
 
-class ProdLineNodeStateBuilder extends NodeStateBuilder<ProdLineNodeStateImpl>
-    with ProdLineNodeState {
+class ProdLineNodeStateBuilder extends ProdLineNodeState
+    implements NodeStateBuilder<ProdLineNodeStateImpl> {
   final ProdLineNode _node;
 
   ItemIoImpl? _internalConstraints;

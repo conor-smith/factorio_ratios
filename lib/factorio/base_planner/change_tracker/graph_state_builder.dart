@@ -1,7 +1,7 @@
 part of 'change_trackers.dart';
 
-class GraphStateBuilder extends NodeStateBuilder<GraphStateImpl>
-    implements GraphState {
+class GraphStateBuilder extends NodeState
+    implements NodeStateBuilder<GraphStateImpl>, GraphState {
   String _name;
   Icon? _icon;
   final Set<ProdLineNode> _prodLineNodes;

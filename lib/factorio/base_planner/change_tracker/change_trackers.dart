@@ -189,8 +189,7 @@ abstract class NodeChangeTracker<
 }
 
 abstract class NodeStateBuilder<T extends NodeState>
-    with NodeState
-    implements Builder<T> {
+    implements NodeState, Builder<T> {
   void _updateUnusedIo(ItemIoImpl newUnusedIo);
   void updateGeometry(NodeGeometryImpl geometry);
 }

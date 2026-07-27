@@ -61,7 +61,7 @@ abstract class NodeElement<St extends NodeState, E extends NodeEvent>
   );
 }
 
-abstract mixin class NodeState {
+abstract class NodeState {
   ProductionLineIoData get ioData;
   ItemIoImpl get edgeConstraints;
   ItemIoImpl get ioRatios;
@@ -78,6 +78,8 @@ abstract mixin class NodeState {
       parents.values.expand((edgeSet) => edgeSet).toSet();
   Set<Edge> get allChildren =>
       children.values.expand((edgeSet) => edgeSet).toSet();
+
+  const NodeState();
 }
 
 enum NodeType implements Comparable<NodeType> {
