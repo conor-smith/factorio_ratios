@@ -7,8 +7,8 @@ class SnapshotBuilder implements Builder<Snapshot> {
   final Map<ProdLineNode, ProdLineNodeChangeTracker> _nodeTrackers = {};
   final Map<Edge, EdgeChangeTracker> _edgeTrackers = {};
 
-  final Set<ElementChangeTracker> allTrackers = {};
-  final List<BasePlannerElement> elementsToRemove = [];
+  final List<ElementChangeTracker> _allTrackers = [];
+  final List<BasePlannerElement> _elementsToRemove = [];
 
   late final Map<Graph, GraphChangeTracker> graphTrackers = UnmodifiableMapView(
     _graphTrackers,
@@ -20,8 +20,8 @@ class SnapshotBuilder implements Builder<Snapshot> {
   );
 
   bool get hasChanges =>
-      elementsToRemove.isNotEmpty ||
-      allTrackers.any((tracker) => tracker.hasUpdates);
+      _elementsToRemove.isNotEmpty ||
+      _allTrackers.any((tracker) => tracker.hasUpdates);
 
   SnapshotBuilder.from(this._previousSnapshot);
 
@@ -43,9 +43,9 @@ class SnapshotBuilder implements Builder<Snapshot> {
   void performAllQueuedOperations() {
     // Any trackers queued for removal do not need to be processed
     // As such, they can be removed from this list
-    allTrackers.removeWhere((tracker) {
+    _allTrackers.removeWhere((tracker) {
       if (tracker._queuedForRemoval) {
-        elementsToRemove.add(tracker.element);
+        _elementsToRemove.add(tracker.element);
         return true;
       } else {
         return false;
@@ -54,7 +54,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
     // Just in case this has been called more than once
     // New elements may have been added, so caches must be cleared
-    for (var tracker in allTrackers) {
+    for (var tracker in _allTrackers) {
       tracker._cachedDependencies = null;
     }
 
@@ -70,11 +70,11 @@ class SnapshotBuilder implements Builder<Snapshot> {
       _previousSnapshot.stateMap,
     );
 
-    for (var toRemove in elementsToRemove) {
+    for (var toRemove in _elementsToRemove) {
       newStateMap.remove(toRemove);
     }
 
-    for (var update in allTrackers.where((tracker) => tracker.hasUpdates)) {
+    for (var update in _allTrackers.where((tracker) => tracker.hasUpdates)) {
       newStateMap[update.element] = update.build();
     }
 
@@ -84,7 +84,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
   void _checkForCircularDependencies() {
     Set<BasePlannerElement> safeElements = {};
 
-    var elementsToCheck = allTrackers
+    var elementsToCheck = _allTrackers
         .where((elementBuilder) => elementBuilder._circularDependencyCheck)
         .toList();
 
@@ -96,7 +96,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   void _performIoUdpates() {
     Queue<ElementChangeTracker> updateQueue = DoubleLinkedQueue.from(
-      allTrackers.where(
+      _allTrackers.where(
         (elementBuilder) =>
             elementBuilder._ioUpdateStatus == IoUpdateStatus.required,
       ),
@@ -161,7 +161,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
   }
 
   void _calculateUnusedIo() {
-    var nodeTrackers = allTrackers.whereType<NodeChangeTracker>().where(
+    var nodeTrackers = _allTrackers.whereType<NodeChangeTracker>().where(
       (element) => element.checkForUnusedIo,
     );
 
@@ -172,7 +172,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
   }
 
   void _performGraphLayoutUpdates() {
-    var graphsToUpdate = allTrackers.whereType<GraphChangeTracker>().where(
+    var graphsToUpdate = _allTrackers.whereType<GraphChangeTracker>().where(
       (tracker) => tracker.layoutUpdateQueued,
     );
 

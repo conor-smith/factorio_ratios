@@ -46,7 +46,7 @@ abstract class ElementChangeTracker<
       _queuedForRemoval = false,
       _circularDependencyCheck = false,
       _ioUpdateStatus = IoUpdateStatus.checkDependencies {
-    _addSelfToSnapshotBuilder();
+    snapshotBuilder._allTrackers.add(this);
   }
 
   ElementChangeTracker.newElement(
@@ -58,7 +58,8 @@ abstract class ElementChangeTracker<
       _queuedForRemoval = false,
       _circularDependencyCheck = true,
       _ioUpdateStatus = IoUpdateStatus.required {
-    _addSelfToSnapshotBuilder();
+    snapshotBuilder._allTrackers.add(this);
+
     element.parentGraph.getChangeTracker().queueLayoutUpdate();
   }
 
@@ -71,7 +72,6 @@ abstract class ElementChangeTracker<
   B _createStateBuilder();
   D _determineDependencies();
   Iterable<BasePlannerElement> _determineDependants();
-  void _addSelfToSnapshotBuilder();
   void _removeSelfOnly();
 
   bool get hasUpdates => _cachedStateBuilder != null;
@@ -135,9 +135,7 @@ abstract class NodeChangeTracker<
     super.previousState,
     super.stateBuilder,
   ) : _checkForUnusedIo = true,
-      super.newElement() {
-    element.parentGraph.getChangeTracker()._addNodeToNodeCaches(element);
-  }
+      super.newElement();
 
   @override
   NodeState get state;

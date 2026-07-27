@@ -8,13 +8,17 @@ class EdgeChangeTracker
           EdgeDependencies,
           EdgeStateBuilder
         > {
-  EdgeChangeTracker(super.element, super.previousState);
+  EdgeChangeTracker(super.element, super.previousState) {
+    snapshotBuilder._edgeTrackers[element] = this;
+  }
 
   EdgeChangeTracker.newEdge(
     super.element,
     super.previousState,
     super.stateBuilder,
   ) : super.newElement() {
+    snapshotBuilder._edgeTrackers[element] = this;
+
     element.parentGraph.getStateBuilder()._edges.add(element);
 
     element.parentProdLine.getStateBuilder()._children.update(
@@ -55,12 +59,6 @@ class EdgeChangeTracker
     }
 
     _removeSelfOnly();
-  }
-
-  @override
-  void _addSelfToSnapshotBuilder() {
-    snapshotBuilder._edgeTrackers[element] = this;
-    snapshotBuilder.allTrackers.add(this);
   }
 
   @override

@@ -8,13 +8,18 @@ class ProdLineNodeChangeTracker
           NodeDependencies,
           ProdLineNodeStateBuilder
         > {
-  ProdLineNodeChangeTracker(super.element, super.previousState);
+  ProdLineNodeChangeTracker(super.element, super.previousState) {
+    snapshotBuilder._nodeTrackers[element] = this;
+  }
 
   ProdLineNodeChangeTracker.newProdLineNode(
     super.element,
     super.previousState,
     super.stateBuilder,
   ) : super.newNode() {
+    snapshotBuilder._nodeTrackers[element] = this;
+    element.parentGraph.getChangeTracker()._addNodeToNodeCaches(element);
+
     var parentGraph = element.parentGraph;
     var parentGraphBuilder = parentGraph.getStateBuilder();
 
@@ -51,12 +56,6 @@ class ProdLineNodeChangeTracker
 
   @override
   ProdLineNodeState get state => _cachedStateBuilder ?? previousState;
-
-  @override
-  void _addSelfToSnapshotBuilder() {
-    snapshotBuilder._nodeTrackers[element] = this;
-    snapshotBuilder.allTrackers.add(this);
-  }
 
   @override
   List<BasePlannerElement> _determineDependants() {

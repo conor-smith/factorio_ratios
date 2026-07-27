@@ -17,13 +17,18 @@ class GraphChangeTracker
   static int _orderByNodeType(NodeElement node1, NodeElement node2) =>
       node1.nodeType.compareTo(node2.nodeType);
 
-  GraphChangeTracker(super.element, super.previousState);
+  GraphChangeTracker(super.element, super.previousState) {
+    snapshotBuilder._graphTrackers[element] = this;
+  }
 
   GraphChangeTracker.newGraph(
     super.element,
     super.previousState,
     super.stateBuilder,
   ) : super.newNode() {
+    snapshotBuilder._graphTrackers[element] = this;
+    element.parentGraph.getChangeTracker()._addNodeToNodeCaches(element);
+
     element.parentGraph.getStateBuilder()._graphNodes.add(element);
   }
 
@@ -125,12 +130,6 @@ class GraphChangeTracker
       .._prodLineNodes.clear()
       .._graphNodes.clear()
       .._edges.clear();
-  }
-
-  @override
-  void _addSelfToSnapshotBuilder() {
-    snapshotBuilder._graphTrackers[element] = this;
-    snapshotBuilder.allTrackers.add(this);
   }
 
   @override
