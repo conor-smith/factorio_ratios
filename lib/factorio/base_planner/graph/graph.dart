@@ -226,6 +226,48 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
     });
   }
 
+  /// This method ensures that every single node input and output is fulfilled.
+  ///
+  /// Any node with unfilfilled inputs will be connected to a node that outputs
+  /// the required item.
+  /// If no such node exists, or node does exist but does not provide enough,
+  /// a new node will be created.
+  /// This new node will either be a single recipe production line node, if a
+  /// matching recipe can be found, or a producer node.
+  ///
+  /// Excess output will simply be routed to existing disposal nodes. If no
+  /// such nodes exist, a new one will be created.
+  ///
+  /// This operation is applied to the root graph, and then recursively to all
+  /// graphs in the tree
+  void fulfilAllNodeIo() {
+    basePlanner.buildNextSnapshot(() {
+      var rootGraph = basePlanner.rootGraph;
+
+      // lazy iterable can be reused
+      var allUnfulfilledNodes = rootGraph
+          ._recursivelyGetAllProdLineNodes()
+          .where(
+            (node) => node.unusedIo.inputs.values
+                .followedBy(node.unusedIo.outputs.values)
+                .any((amount) => amount > basePlanner.ioThreshold),
+          );
+
+      // Perform operation max of 5 times
+      for (var i = 0; i < 5; i++) {
+        rootGraph._recursivelyCreateTree();
+
+        basePlanner.getSnapshotBuilderOrThrow().performAllQueuedOperations();
+
+        rootGraph._recursivelyFulfilAllIo();
+
+        if (allUnfulfilledNodes.isEmpty) {
+          break;
+        }
+      }
+    });
+  }
+
   void addConsumerNodeAndTree(InGameItem item) {
     if (surface == null) {
       throw const GraphException(
@@ -286,6 +328,21 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
+  }
+
+  Iterable<ProdLineNode> _recursivelyGetAllProdLineNodes() => prodLineNodes
+      .followedBy(inputNodes.values)
+      .followedBy(outputNodes.values)
+      .followedBy(
+        graphNodes.expand((graph) => graph._recursivelyGetAllProdLineNodes()),
+      );
+
+  void _recursivelyCreateTree() {
+    // TODO
+  }
+
+  void _recursivelyFulfilAllIo() {
+    // TODO
   }
 
   void _createNodeTree(NodeElement startNode) {
