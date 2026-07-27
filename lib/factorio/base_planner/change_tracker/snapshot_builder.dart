@@ -19,6 +19,10 @@ class SnapshotBuilder implements Builder<Snapshot> {
     _edgeTrackers,
   );
 
+  bool get hasChanges =>
+      elementsToRemove.isNotEmpty ||
+      allTrackers.any((tracker) => tracker.hasUpdates);
+
   SnapshotBuilder.from(this._previousSnapshot);
 
   GraphChangeTracker getGraphChangeTracker(
@@ -36,9 +40,11 @@ class SnapshotBuilder implements Builder<Snapshot> {
     EdgeStateImpl currentState,
   ) => _edgeTrackers[edge] ?? EdgeChangeTracker(edge, currentState);
 
-  bool performAllQueuedOperationsAndReturnHasChanges() {
+  void performAllQueuedOperations() {
+    // Any trackers queued for removal do not need to be processed
+    // As such, they can be removed from this list
     allTrackers.removeWhere((tracker) {
-      if (tracker.queuedForRemoval) {
+      if (tracker._queuedForRemoval) {
         elementsToRemove.add(tracker.element);
         return true;
       } else {
@@ -46,13 +52,16 @@ class SnapshotBuilder implements Builder<Snapshot> {
       }
     });
 
+    // Just in case this has been called more than once
+    // New elements may have been added, so caches must be cleared
+    for (var tracker in allTrackers) {
+      tracker._cachedDependencies = null;
+    }
+
     _checkForCircularDependencies();
     _performIoUdpates();
     _calculateUnusedIo();
     _performGraphLayoutUpdates();
-
-    return elementsToRemove.isNotEmpty ||
-        allTrackers.any((tracker) => tracker.hasUpdates);
   }
 
   @override
@@ -75,40 +84,40 @@ class SnapshotBuilder implements Builder<Snapshot> {
   void _checkForCircularDependencies() {
     Set<BasePlannerElement> safeElements = {};
 
-    var elementsToCheck = allTrackers.where(
-      (elementBuilder) => elementBuilder.checkForCircularDependency,
-    );
+    var elementsToCheck = allTrackers
+        .where((elementBuilder) => elementBuilder._circularDependencyCheck)
+        .toList();
 
     for (var elementBuilder in elementsToCheck) {
       elementBuilder._checkForCircularDependencies(safeElements, {});
+      elementBuilder._circularDependencyCheck = false;
     }
   }
 
   void _performIoUdpates() {
-    Queue<ElementChangeTracker> updateQueue = Queue.from(
+    Queue<ElementChangeTracker> updateQueue = DoubleLinkedQueue.from(
       allTrackers.where(
         (elementBuilder) =>
-            elementBuilder.ioUpdateStatus == IoUpdateStatus.required,
+            elementBuilder._ioUpdateStatus == IoUpdateStatus.required,
       ),
     );
 
     while (updateQueue.isNotEmpty) {
       var trackerToUpdate = updateQueue.removeFirst();
-      var updateStatus = trackerToUpdate.ioUpdateStatus;
 
       // If element is already completed, restart loop
-      if (updateStatus.isComplete) {
+      if (trackerToUpdate._ioUpdateStatus.isComplete) {
         continue;
       }
 
-      var dependencies = trackerToUpdate.cachedDependencies;
-
       // If unresolved dependencies exist,
       // Place said dependencies at front of queue and restart loop
-      var unresolvedDeps = dependencies.allElements
+      var unresolvedDeps = trackerToUpdate
+          ._getCachedDependencies()
+          .allElements
           .where(
             (dependency) =>
-                !dependency.getChangeTracker().ioUpdateStatus.isComplete,
+                !dependency.getChangeTracker()._ioUpdateStatus.isComplete,
           )
           .toList();
       if (unresolvedDeps.isNotEmpty) {
@@ -122,12 +131,13 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
       // An IO update is required in two scenarios
       // 1. Explicitly marked as required via UpdateStatus.required
-      // 2. One or more dependencies have were updated
+      // 2. Status is checkDependencies and one or more dependencies have were updated
+      // Thanks to previous steps, we know status can only be required or checkDependencies
       var updateRequired =
-          updateStatus == IoUpdateStatus.required ||
-          dependencies.allElements.any(
+          trackerToUpdate._ioUpdateStatus == IoUpdateStatus.required ||
+          trackerToUpdate._getCachedDependencies().allElements.any(
             (dependency) =>
-                dependency.getChangeTracker().ioUpdateStatus ==
+                dependency.getChangeTracker()._ioUpdateStatus ==
                 IoUpdateStatus.completeUpdate,
           );
 
@@ -137,24 +147,17 @@ class SnapshotBuilder implements Builder<Snapshot> {
       if (updateRequired && trackerToUpdate._calculateIo()) {
         trackerToUpdate._ioUpdateStatus = IoUpdateStatus.completeUpdate;
 
-        updateQueue.addAll(
-          trackerToUpdate._determineDependants().map(
-            (element) => element.getChangeTracker(),
-          ),
+        var dependantTrackers = trackerToUpdate._determineDependants().map(
+          (element) => element.getChangeTracker(),
         );
+        for (var tracker in dependantTrackers) {
+          tracker._ioUpdateStatus = IoUpdateStatus.checkDependencies;
+          updateQueue.addLast(tracker);
+        }
       } else {
         trackerToUpdate._ioUpdateStatus = IoUpdateStatus.completeNoUpdate;
       }
     }
-
-    // New trackers may have been created as part of IO update step
-    var trackersToAdd = <ElementChangeTracker>[
-      ..._graphTrackers.values,
-      ..._nodeTrackers.values,
-      ..._edgeTrackers.values,
-    ].where((tracker) => !tracker.queuedForRemoval);
-
-    allTrackers.addAll(trackersToAdd);
   }
 
   void _calculateUnusedIo() {
@@ -164,6 +167,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
     for (var node in nodeTrackers) {
       node._performUnusedIoCheck();
+      node._checkForUnusedIo = false;
     }
   }
 
@@ -174,6 +178,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
     for (var toUpdate in graphsToUpdate) {
       toUpdate._performLayoutUpdate();
+      toUpdate._layoutUpdateQueued = false;
     }
   }
 }

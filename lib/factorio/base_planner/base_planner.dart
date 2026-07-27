@@ -159,8 +159,11 @@ class BasePlanner
       function();
 
       if (firstCall) {
-        if (_snapshotBuilder!.performAllQueuedOperationsAndReturnHasChanges()) {
-          var newSnapshot = _snapshotBuilder!.build();
+        var snapshotBuilder = _snapshotBuilder!;
+        snapshotBuilder.performAllQueuedOperations();
+
+        if (snapshotBuilder.hasChanges) {
+          var newSnapshot = snapshotBuilder.build();
           var oldSnapshot = _snapshots[_snapshotIndex];
 
           if (_snapshotIndex == maxSnapshots - 1) {
@@ -216,15 +219,22 @@ class BasePlanner
   }
 
   void _applySnapshot(Snapshot oldSnapshot, Snapshot newSnapshot) {
-    _mutationLock++;
     try {
-      newSnapshot.stateMap.forEach((element, eAndS) {
-        eAndS.update(oldSnapshot.stateMap[element]);
-      });
+      _mutationLock++;
+      var updatedElements = newSnapshot.stateMap.values
+          .where((eAndS) => eAndS != oldSnapshot.stateMap[eAndS.element])
+          .toList();
+
+      for (var eAndS in updatedElements) {
+        eAndS.update();
+      }
+
       _mutationLock--;
 
-      for (var element in newSnapshot.stateMap.keys) {
-        element.notifyListenersOfUpdate();
+      // Due to complications with the UI, notifying listeners must take place
+      // after all state updates are complete
+      for (var eAndS in updatedElements) {
+        eAndS.element.notifyListenersOfUpdate();
       }
 
       if (!newSnapshot.stateMap.containsKey(activeGraph)) {
@@ -243,13 +253,14 @@ class BasePlanner
   }
 }
 
+// Just exists as a convenient way to skip type checks when updating state
 class ElementAndState<E extends BasePlannerElement<St, dynamic>, St> {
   final E element;
   final St state;
 
   ElementAndState(this.element, this.state);
 
-  void update(ElementAndState<E, St>? oldEAndS) => element.updateState(state);
+  void update() => element.updateState(state);
 }
 
 /// Represents a snapshot of all states of elements in [BasePlanner].

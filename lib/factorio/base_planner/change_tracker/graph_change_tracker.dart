@@ -149,7 +149,10 @@ class GraphChangeTracker
     return true;
   }
 
-  void _performLayoutUpdate() => element.layoutNodes();
+  void _performLayoutUpdate() {
+    element.layoutNodes();
+    _layoutUpdateQueued = false;
+  }
 
   @override
   GraphDependencies _determineDependencies() =>

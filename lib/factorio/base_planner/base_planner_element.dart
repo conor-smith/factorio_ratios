@@ -42,7 +42,3 @@ abstract class BasePlannerElement<St, E>
     }
   }
 }
-
-abstract interface class Dependencies {
-  Iterable<BasePlannerElement> get allElements;
-}

@@ -173,7 +173,7 @@ class ProdLineNodeChangeTracker
   ItemIoImpl _calculateEdgeConstraints() {
     ItemIoBuilder builder = ItemIoBuilder();
 
-    cachedDependencies.parentDeps.forEach((item, requestItemEdges) {
+    _getCachedDependencies().parentDeps.forEach((item, requestItemEdges) {
       builder.addToOutputs(
         item,
         requestItemEdges
@@ -182,7 +182,7 @@ class ProdLineNodeChangeTracker
       );
     });
 
-    cachedDependencies.childDeps.forEach((item, pushExcessEdges) {
+    _getCachedDependencies().childDeps.forEach((item, pushExcessEdges) {
       builder.addToInputs(
         item,
         pushExcessEdges

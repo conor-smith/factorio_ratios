@@ -19,6 +19,10 @@ part 'prod_line_node_change_tracker.dart';
 part 'prod_line_node_state_builder.dart';
 part 'snapshot_builder.dart';
 
+abstract interface class Dependencies {
+  Iterable<BasePlannerElement> get allElements;
+}
+
 abstract class ElementChangeTracker<
   E extends BasePlannerElement<St, dynamic>,
   St,
@@ -33,14 +37,14 @@ abstract class ElementChangeTracker<
   B? _cachedStateBuilder;
   D? _cachedDependencies;
 
-  final bool checkForCircularDependency;
+  bool _circularDependencyCheck;
   bool _queuedForRemoval;
   IoUpdateStatus _ioUpdateStatus;
 
   ElementChangeTracker(this.element, this.previousState)
     : snapshotBuilder = element.basePlanner.getSnapshotBuilderOrThrow(),
       _queuedForRemoval = false,
-      checkForCircularDependency = false,
+      _circularDependencyCheck = false,
       _ioUpdateStatus = IoUpdateStatus.checkDependencies {
     _addSelfToSnapshotBuilder();
   }
@@ -52,7 +56,7 @@ abstract class ElementChangeTracker<
   ) : snapshotBuilder = element.basePlanner.getSnapshotBuilderOrThrow(),
       _cachedStateBuilder = stateBuilder,
       _queuedForRemoval = false,
-      checkForCircularDependency = true,
+      _circularDependencyCheck = true,
       _ioUpdateStatus = IoUpdateStatus.required {
     _addSelfToSnapshotBuilder();
     element.parentGraph.getChangeTracker().queueLayoutUpdate();
@@ -62,6 +66,7 @@ abstract class ElementChangeTracker<
 
   void removeSelf();
 
+  // Returns true if update occurred, false otherwise
   bool _calculateIo();
   B _createStateBuilder();
   D _determineDependencies();
@@ -69,8 +74,6 @@ abstract class ElementChangeTracker<
   void _addSelfToSnapshotBuilder();
   void _removeSelfOnly();
 
-  bool get queuedForRemoval => _queuedForRemoval;
-  IoUpdateStatus get ioUpdateStatus => _ioUpdateStatus;
   bool get hasUpdates => _cachedStateBuilder != null;
 
   B get stateBuilder {
@@ -79,7 +82,7 @@ abstract class ElementChangeTracker<
     return _cachedStateBuilder!;
   }
 
-  D get cachedDependencies {
+  D _getCachedDependencies() {
     _cachedDependencies ??= _determineDependencies();
 
     return _cachedDependencies!;
@@ -88,13 +91,8 @@ abstract class ElementChangeTracker<
   void queueIoUpdate() => _ioUpdateStatus = IoUpdateStatus.required;
 
   @override
-  ElementAndState<E, St> build() {
-    if (_cachedStateBuilder == null) {
-      return ElementAndState(element, previousState);
-    } else {
-      return ElementAndState(element, _cachedStateBuilder!.build());
-    }
-  }
+  ElementAndState<E, St> build() =>
+      ElementAndState(element, _cachedStateBuilder?.build() ?? previousState);
 
   void _checkForCircularDependencies(
     Set<BasePlannerElement> safeElements,
@@ -107,7 +105,7 @@ abstract class ElementChangeTracker<
     if (!safeElements.contains(element)) {
       visitedElements.add(element);
 
-      for (var dependency in cachedDependencies.allElements) {
+      for (var dependency in _getCachedDependencies().allElements) {
         dependency.getChangeTracker()._checkForCircularDependencies(
           safeElements,
           visitedElements,

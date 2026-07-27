@@ -253,17 +253,17 @@ class EdgeChangeTracker
     ..getStateBuilder()._edges.remove(element);
 
   double _getAmountToRequest() =>
-      cachedDependencies.parentProdLineDep!.ioData.itemIo.inputs[element
+      _getCachedDependencies().parentProdLineDep!.ioData.itemIo.inputs[element
           .item]! -
-      cachedDependencies.orderedParentEdgeDeps!.fold(
+      _getCachedDependencies().orderedParentEdgeDeps!.fold(
         0.0,
         (amount, edge) => amount + edge.amount,
       );
 
   double _getAmountToPush() =>
-      cachedDependencies.childProdLineDep!.ioData.itemIo.outputs[element
+      _getCachedDependencies().childProdLineDep!.ioData.itemIo.outputs[element
           .item]! -
-      cachedDependencies.orderedChildEdgeDeps!.fold(
+      _getCachedDependencies().orderedChildEdgeDeps!.fold(
         0.0,
         (amount, edge) => amount + edge.amount,
       );
