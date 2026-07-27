@@ -2,6 +2,8 @@ part of 'change_trackers.dart';
 
 class GraphStateBuilder extends NodeState
     implements NodeStateBuilder<GraphStateImpl>, GraphState {
+  final Graph _graph;
+
   String _name;
   Icon? _icon;
   final Set<ProdLineNode> _prodLineNodes;
@@ -83,7 +85,7 @@ class GraphStateBuilder extends NodeState
   @override
   LayoutOrientation get orientation => _orientation;
 
-  GraphStateBuilder.initial([Icon? icon])
+  GraphStateBuilder.initial(this._graph, [Icon? icon])
     : _name = 'graph',
       _icon = icon,
       _ioData = const GraphIo.empty(),
@@ -100,7 +102,7 @@ class GraphStateBuilder extends NodeState
       _cachedParents = {},
       _cachedChildren = {};
 
-  GraphStateBuilder.from(GraphStateImpl previousState)
+  GraphStateBuilder.from(this._graph, GraphStateImpl previousState)
     : _name = previousState.name,
       _icon = previousState.icon,
       _prodLineNodes = Set.from(previousState.prodLineNodes),
@@ -138,6 +140,7 @@ class GraphStateBuilder extends NodeState
 
   @override
   GraphStateImpl build() => GraphStateImpl(
+    _graph,
     icon: _icon,
     name: _name,
     prodLineNodes: _prodLineNodes,

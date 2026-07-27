@@ -157,7 +157,7 @@ class GraphChangeTracker
 
   @override
   GraphStateBuilder _createStateBuilder() =>
-      GraphStateBuilder.from(previousState);
+      GraphStateBuilder.from(element, previousState);
 
   @override
   void _removeSelfOnly() {

@@ -88,7 +88,8 @@ class GraphStateImpl extends GraphState implements ToJson {
   @override
   ItemIoImpl get edgeConstraints => ioData.constraints;
 
-  GraphStateImpl({
+  GraphStateImpl(
+    Graph graph, {
     required this.name,
     required Icon? icon,
     required Iterable<ProdLineNode> prodLineNodes,
@@ -125,7 +126,11 @@ class GraphStateImpl extends GraphState implements ToJson {
            ..updateAll((item, edges) => Set.unmodifiable(edges)),
        ),
        inputItems = Set.unmodifiable(inputNodes.keys),
-       outputItems = Set.unmodifiable(outputNodes.keys);
+       outputItems = Set.unmodifiable(outputNodes.keys) {
+    if (graph.isRoot && (inputNodes.isNotEmpty || outputNodes.isNotEmpty)) {
+      throw const GraphException('Root graph cannot have IO nodes');
+    }
+  }
 
   GraphStateImpl.rootGraphFirstState(Icon? icon)
     : name = 'Root Graph',

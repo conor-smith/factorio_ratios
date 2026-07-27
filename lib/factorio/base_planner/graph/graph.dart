@@ -92,7 +92,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
     GraphChangeTracker.newGraph(
       this,
       _internalState,
-      GraphStateBuilder.initial(icon),
+      GraphStateBuilder.initial(this, icon),
     );
   }
 
