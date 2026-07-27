@@ -240,12 +240,9 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   ///
   /// This operation is applied to the root graph, and then recursively to all
   /// graphs in the tree
-  void fulfilAllNodeIo() {
+  void fulfillAllNodeIo() {
     basePlanner.buildNextSnapshot(() {
       var rootGraph = basePlanner.rootGraph;
-
-      // lazy iterable can be reused
-      var allUnfulfilledNodes = rootGraph._recursivelyGetAllProdLineNodes();
 
       // Perform operation max of 5 times
       for (var i = 0; i < 5; i++) {
@@ -255,7 +252,10 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
 
         rootGraph._recursivelyFulfilAllIo();
 
-        if (allUnfulfilledNodes.any((node) => node.hasUnfulfilledIo)) {
+        if (rootGraph._recursivelyGetAllProdLineNodes().every(
+              (node) => !node.hasUnfulfilledIo,
+            ) &&
+            !basePlanner.getSnapshotBuilderOrThrow().hasQueuedIoOperations) {
           break;
         }
       }
@@ -378,9 +378,74 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
   }
 
   void _recursivelyFulfilAllIo() {
-    var nodesWithUnfulfilledIo = DoubleLinkedQueue<NodeElement>.from(
-      allNodes.where((node) => node.hasUnfulfilledIo),
-    );
+    var nodesWithUnfulfilledIo = allNodes
+        .where((node) => node.hasUnfulfilledIo)
+        .toList();
+
+    for (var unfulfilledNode in nodesWithUnfulfilledIo) {
+      if (unfulfilledNode.nodeType != NodeType.output) {
+        var unfulfilledInput = ItemAmounts.from(unfulfilledNode.unusedIo.inputs)
+          ..removeWhere((_, amount) => amount < basePlanner.ioThreshold);
+
+        unfulfilledInput.forEach((input, amount) {
+          var nextNode =
+              getChangeTracker().cachedNodeOutputIndex[input]
+                  ?.where(
+                    (outputNode) =>
+                        unfulfilledNode.children[input]?.every(
+                          (child) => child.childNode != outputNode,
+                        ) ??
+                        true,
+                  )
+                  .firstOrNull ??
+              _createResourceNode(input) ??
+              _createRecipeNode(input) ??
+              _createMagicResourceNode(input);
+
+          Edge.addToBasePlanner(
+            basePlanner,
+            parentGraph: this,
+            edgeType: EdgeType.requestItems,
+            parentNode: unfulfilledNode,
+            childNode: nextNode,
+            item: input,
+          );
+        });
+      }
+
+      if (unfulfilledNode.nodeType != NodeType.output) {
+        var excessOutput = ItemAmounts.from(unfulfilledNode.unusedIo.outputs)
+          ..removeWhere((_, amount) => amount < basePlanner.ioThreshold);
+
+        excessOutput.forEach((output, amount) {
+          var nextNode =
+              getChangeTracker().cachedDisposalNodes[output]
+                  ?.where(
+                    (disposalNode) =>
+                        unfulfilledNode.parents[output]?.every(
+                          (parent) => parent.parentNode != disposalNode,
+                        ) ??
+                        true,
+                  )
+                  .firstOrNull ??
+              ProdLineNode.addToBasePlanner(
+                basePlanner,
+                parentGraph: this,
+                nodeType: NodeType.disposal,
+                productionLine: MagicLine.singleItemConsumer(output),
+              );
+
+          Edge.addToBasePlanner(
+            basePlanner,
+            parentGraph: this,
+            edgeType: EdgeType.pushExcess,
+            parentNode: nextNode,
+            childNode: unfulfilledNode,
+            item: output,
+          );
+        });
+      }
+    }
   }
 
   void _createNodeTree(NodeElement startNode) {

@@ -41,6 +41,8 @@ abstract class ElementChangeTracker<
   bool _queuedForRemoval;
   IoUpdateStatus _ioUpdateStatus;
 
+  IoUpdateStatus get ioUpdateStatus => _ioUpdateStatus;
+
   ElementChangeTracker(this.element, this.previousState)
     : snapshotBuilder = element.basePlanner.getSnapshotBuilderOrThrow(),
       _queuedForRemoval = false,

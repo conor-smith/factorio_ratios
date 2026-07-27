@@ -22,6 +22,13 @@ class SnapshotBuilder implements Builder<Snapshot> {
   bool get hasChanges =>
       _elementsToRemove.isNotEmpty ||
       _allTrackers.any((tracker) => tracker.hasUpdates);
+  bool get hasQueuedIoOperations => _allTrackers.any(
+    (tracker) =>
+        tracker._queuedForRemoval ||
+        tracker._circularDependencyCheck ||
+        !tracker._ioUpdateStatus.isComplete ||
+        (tracker is NodeChangeTracker && tracker._checkForUnusedIo),
+  );
 
   SnapshotBuilder.from(this._previousSnapshot);
 
