@@ -257,7 +257,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       for (var i = 0; i < 5; i++) {
         rootGraph._recursivelyCreateTree();
 
-        basePlanner.getSnapshotBuilderOrThrow().performAllQueuedOperations();
+        basePlanner.getSnapshotBuilderOrThrow().performQueuedIoOperations();
 
         rootGraph._recursivelyFulfilAllIo();
 

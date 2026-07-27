@@ -160,7 +160,9 @@ class BasePlanner
 
       if (firstCall) {
         var snapshotBuilder = _snapshotBuilder!;
-        snapshotBuilder.performAllQueuedOperations();
+        snapshotBuilder
+          ..performQueuedIoOperations()
+          ..performQueuedLayoutUpdates();
 
         if (snapshotBuilder.hasChanges) {
           var newSnapshot = snapshotBuilder.build();

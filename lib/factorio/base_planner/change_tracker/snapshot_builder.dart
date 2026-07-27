@@ -40,7 +40,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
     EdgeStateImpl currentState,
   ) => _edgeTrackers[edge] ?? EdgeChangeTracker(edge, currentState);
 
-  void performAllQueuedOperations() {
+  void performQueuedIoOperations() {
     // Any trackers queued for removal do not need to be processed
     // As such, they can be removed from this list
     _allTrackers.removeWhere((tracker) {
@@ -61,7 +61,17 @@ class SnapshotBuilder implements Builder<Snapshot> {
     _checkForCircularDependencies();
     _performIoUdpates();
     _calculateUnusedIo();
-    _performGraphLayoutUpdates();
+  }
+
+  void performQueuedLayoutUpdates() {
+    var graphsToUpdate = _allTrackers.whereType<GraphChangeTracker>().where(
+      (tracker) => tracker.layoutUpdateQueued,
+    );
+
+    for (var toUpdate in graphsToUpdate) {
+      toUpdate._performLayoutUpdate();
+      toUpdate._layoutUpdateQueued = false;
+    }
   }
 
   @override
@@ -168,17 +178,6 @@ class SnapshotBuilder implements Builder<Snapshot> {
     for (var node in nodeTrackers) {
       node._performUnusedIoCheck();
       node._checkForUnusedIo = false;
-    }
-  }
-
-  void _performGraphLayoutUpdates() {
-    var graphsToUpdate = _allTrackers.whereType<GraphChangeTracker>().where(
-      (tracker) => tracker.layoutUpdateQueued,
-    );
-
-    for (var toUpdate in graphsToUpdate) {
-      toUpdate._performLayoutUpdate();
-      toUpdate._layoutUpdateQueued = false;
     }
   }
 }
