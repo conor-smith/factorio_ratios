@@ -59,7 +59,7 @@ class ProdLineNodeChangeTracker
   }
 
   @override
-  Iterable<BasePlannerElement> _determineDependants() {
+  List<BasePlannerElement> _determineDependants() {
     var parentDependants = state.allParents.where(
       (parent) => parent.edgeType != EdgeType.requestItems,
     );

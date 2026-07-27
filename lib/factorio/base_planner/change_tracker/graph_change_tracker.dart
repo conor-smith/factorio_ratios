@@ -56,13 +56,12 @@ class GraphChangeTracker
       child.getChangeTracker()._removeSelfFromChildOnly();
     }
 
-    List<BasePlannerElement> allElements = [
-      ...state.inputNodes.values,
-      ...state.outputNodes.values,
-      ...state.prodLineNodes,
-      ...state.graphNodes,
-      ...state.edges,
-    ];
+    var allElements = Iterable<BasePlannerElement>.empty()
+        .followedBy(state.inputNodes.values)
+        .followedBy(state.outputNodes.values)
+        .followedBy(state.prodLineNodes)
+        .followedBy(state.graphNodes)
+        .followedBy(state.edges);
 
     for (var element in allElements) {
       element.getChangeTracker()._removeSelfOnly();
@@ -98,11 +97,11 @@ class GraphChangeTracker
     _clearCachedDisposalNodes();
     _clearCachedOutputIndex();
 
-    List<BasePlannerElement> elementsToRemove = [
-      ...state.prodLineNodes,
-      ...state.graphNodes,
-      ...state.edges,
-    ];
+    var elementsToRemove = Iterable<BasePlannerElement>.empty()
+        .followedBy(state.prodLineNodes)
+        .followedBy(state.graphNodes)
+        .followedBy(state.edges);
+
     for (var element in elementsToRemove) {
       element.getChangeTracker()._removeSelfOnly();
     }
@@ -114,10 +113,9 @@ class GraphChangeTracker
       outputNode.getStateBuilder()._children.clear();
     }
 
-    for (var ioNode in [
-      ...state.inputNodes.values,
-      ...state.outputNodes.values,
-    ]) {
+    for (var ioNode in state.inputNodes.values.followedBy(
+      state.outputNodes.values,
+    )) {
       ioNode.getChangeTracker()
         ..queueIoUpdate()
         ..queueUnusedIoCheck();

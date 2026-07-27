@@ -87,11 +87,12 @@ class GeometryOperation {
   }
 
   void cancel() {
-    for (BasePlannerElement element in [
-      ..._nodeGeometries.keys,
-      ..._edgeGeometries.keys,
-      ..._affectedEdgeGeometries.keys,
-    ]) {
+    var allElements = Iterable<BasePlannerElement>.empty()
+        .followedBy(_nodeGeometries.keys)
+        .followedBy(_edgeGeometries.keys)
+        .followedBy(_affectedEdgeGeometries.keys);
+
+    for (var element in allElements) {
       element.notifyListenersOfUpdate();
     }
   }

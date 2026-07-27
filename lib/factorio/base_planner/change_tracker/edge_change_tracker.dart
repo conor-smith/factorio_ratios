@@ -108,10 +108,8 @@ class EdgeChangeTracker
       EdgeStateBuilder.from(element, previousState);
 
   @override
-  List<BasePlannerElement> _determineDependants() => [
-    ..._determineParentDependants(),
-    ..._determineChildDependants(),
-  ];
+  Iterable<BasePlannerElement> _determineDependants() =>
+      _determineParentDependants().followedBy(_determineChildDependants());
 
   @override
   EdgeDependencies _determineDependencies() => switch (element.edgeType) {
