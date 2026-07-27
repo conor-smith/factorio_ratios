@@ -54,6 +54,10 @@ abstract class NodeElement<St extends NodeState, E extends NodeEvent>
   ProdLineNode getOutputItemNode(InGameItem item);
   ProdLineNode getInputItemNode(InGameItem item);
 
+  bool get hasUnfulfilledIo => unusedIo.inputs.values
+      .followedBy(unusedIo.outputs.values)
+      .any((amount) => amount > basePlanner.ioThreshold);
+
   GeometryOperation beginDrag() => GeometryOperation.drag(
     basePlanner,
     parentGraph,

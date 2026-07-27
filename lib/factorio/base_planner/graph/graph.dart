@@ -245,13 +245,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       var rootGraph = basePlanner.rootGraph;
 
       // lazy iterable can be reused
-      var allUnfulfilledNodes = rootGraph
-          ._recursivelyGetAllProdLineNodes()
-          .where(
-            (node) => node.unusedIo.inputs.values
-                .followedBy(node.unusedIo.outputs.values)
-                .any((amount) => amount > basePlanner.ioThreshold),
-          );
+      var allUnfulfilledNodes = rootGraph._recursivelyGetAllProdLineNodes();
 
       // Perform operation max of 5 times
       for (var i = 0; i < 5; i++) {
@@ -261,7 +255,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
 
         rootGraph._recursivelyFulfilAllIo();
 
-        if (allUnfulfilledNodes.isEmpty) {
+        if (allUnfulfilledNodes.any((node) => node.hasUnfulfilledIo)) {
           break;
         }
       }
@@ -338,11 +332,55 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       );
 
   void _recursivelyCreateTree() {
-    // TODO
+    var nodesMissingInput = DoubleLinkedQueue<NodeElement>.from(
+      allNodes.where(
+        (node) =>
+            node.nodeType != NodeType.input &&
+            node.inputItems.any(
+              (inputItem) => node.children[inputItem]?.isEmpty ?? true,
+            ),
+      ),
+    );
+
+    while (nodesMissingInput.isNotEmpty) {
+      var nodeToFix = nodesMissingInput.removeFirst();
+
+      var missingInputs = nodeToFix.inputItems.where(
+        (inputItem) => nodeToFix.children[inputItem]?.isEmpty ?? true,
+      );
+      for (var input in missingInputs) {
+        var nextNode =
+            getChangeTracker().cachedNodeOutputIndex[input]?.firstOrNull;
+
+        if (nextNode == null) {
+          nextNode =
+              _createResourceNode(input) ??
+              _createRecipeNode(input) ??
+              _createMagicResourceNode(input);
+
+          nodesMissingInput.addLast(nextNode);
+        }
+
+        Edge.addToBasePlanner(
+          basePlanner,
+          parentGraph: this,
+          edgeType: EdgeType.requestItems,
+          parentNode: nodeToFix,
+          childNode: nextNode,
+          item: input,
+        );
+      }
+    }
+
+    for (var graph in graphNodes) {
+      graph._recursivelyCreateTree();
+    }
   }
 
   void _recursivelyFulfilAllIo() {
-    // TODO
+    var nodesWithUnfulfilledIo = DoubleLinkedQueue<NodeElement>.from(
+      allNodes.where((node) => node.hasUnfulfilledIo),
+    );
   }
 
   void _createNodeTree(NodeElement startNode) {
