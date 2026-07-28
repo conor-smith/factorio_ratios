@@ -4,6 +4,7 @@ import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/ui/base_planner/edge_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/node_widget.dart';
 import 'package:factorio_ratios/ui/factorio_icon_menu.dart';
@@ -43,7 +44,12 @@ class _GraphWidgetState extends State<GraphWidget> {
   void initState() {
     super.initState();
 
-    graph.addListener(this, (_) => setState(() {}));
+    graph.addListener(
+      this,
+      (_) => setState(() {
+        operation = _GraphWidgetOperation.noOperation;
+      }),
+    );
     focusNode.requestFocus();
   }
 
@@ -131,6 +137,10 @@ class _GraphWidgetState extends State<GraphWidget> {
             text: 'Create consumer node',
             operation: () => createConsumerMenu(graphPosition),
           ),
+          MenuOption(
+            text: 'Build full graph',
+            operation: () => graph.fulfillAllNodeIo(),
+          ),
         ],
       );
     });
@@ -144,10 +154,11 @@ class _GraphWidgetState extends State<GraphWidget> {
         child: FactorioIconMenuWidget<Item>(
           itemGroups: graph.basePlanner.validConsumerNodeItems,
           onSelected: (item) {
-            graph.addConsumerNodeAndTree(InGameItem(item));
-            setState(() {
-              operation = _GraphWidgetOperation.noOperation;
-            });
+            graph.addNode(
+              nodeType: NodeType.consumer,
+              productionLine: MagicLine.singleItemConsumer(InGameItem(item)),
+              initialPosition: graphPosition,
+            );
           },
         ),
       );
