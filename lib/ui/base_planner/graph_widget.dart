@@ -305,7 +305,12 @@ class ContextMenu extends StatelessWidget {
     return Positioned(
       top: screenLocation.dy,
       left: screenLocation.dx,
-      child: IntrinsicWidth(child: Column(children: options)),
+      child: IntrinsicWidth(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: options,
+        ),
+      ),
     );
   }
 }
