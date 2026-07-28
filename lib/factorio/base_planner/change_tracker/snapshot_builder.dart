@@ -27,7 +27,8 @@ class SnapshotBuilder implements Builder<Snapshot> {
         tracker._queuedForRemoval ||
         tracker._circularDependencyCheck ||
         !tracker._ioUpdateStatus.isComplete ||
-        (tracker is NodeChangeTracker && tracker._checkForUnusedIo),
+        (tracker is NodeChangeTracker && tracker._checkForUnusedIo) ||
+        (tracker is GraphChangeTracker && tracker._layoutUpdateQueued),
   );
 
   SnapshotBuilder.from(this._previousSnapshot);
