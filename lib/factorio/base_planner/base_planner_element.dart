@@ -4,9 +4,7 @@ part of 'base_planner.dart';
 ///
 /// As all elements are listenable, state changes should only be
 /// registered via events.
-abstract class BasePlannerElement<St, E>
-    with EventNotifier<E>
-    implements ToJson {
+abstract class BasePlannerElement<St> implements ToJson {
   final BasePlanner basePlanner;
 
   BasePlannerElement(this.basePlanner);
@@ -19,26 +17,4 @@ abstract class BasePlannerElement<St, E>
 
   ElementChangeTracker getChangeTracker();
   Builder<St> getStateBuilder();
-
-  /// Used in the event of a dragging or resizing operation.
-  /// Allows notifying listeners of some [Geometry] object without updating state
-  void notifyListenersOfGeometryUpdate(covariant Geometry geometry);
-
-  void notifyListenersOfUpdate();
-
-  bool get isSelected => parentGraph.selectedElements.contains(this);
-
-  void selectToggle(bool clearPreviousSelection) {
-    var isSelectedAtStart = isSelected;
-
-    if (clearPreviousSelection) {
-      parentGraph.clearSelected(true);
-    }
-
-    if (!isSelectedAtStart) {
-      parentGraph.addToSelected(this);
-    } else if (isSelectedAtStart && !clearPreviousSelection) {
-      parentGraph.removeFromSelected(this);
-    }
-  }
 }

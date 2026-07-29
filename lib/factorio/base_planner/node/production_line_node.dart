@@ -1,7 +1,6 @@
 part of 'node.dart';
 
-class ProdLineNode
-    extends NodeElement<ProdLineNodeStateImpl, ProdLineNodeEvent> {
+class ProdLineNode extends NodeElement<ProdLineNodeStateImpl> {
   @override
   final Graph parentGraph;
   @override
@@ -102,15 +101,6 @@ class ProdLineNode
   }
 
   @override
-  void notifyListenersOfGeometryUpdate(NodeGeometry geometry) =>
-      notifyListeners(ProdLineNodeEvent.geometryOp(geometry));
-
-  @override
-  void notifyListenersOfUpdate() {
-    notifyListeners(const ProdLineNodeEvent());
-  }
-
-  @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
@@ -118,10 +108,4 @@ class ProdLineNode
 
   @override
   String toString() => productionLine.toString();
-}
-
-class ProdLineNodeEvent extends NodeEvent {
-  ProdLineNodeEvent.geometryOp(NodeGeometry super.geometry);
-
-  const ProdLineNodeEvent();
 }

@@ -24,7 +24,7 @@ abstract interface class Dependencies {
 }
 
 abstract class ElementChangeTracker<
-  E extends BasePlannerElement<St, dynamic>,
+  E extends BasePlannerElement<St>,
   St,
   D extends Dependencies,
   B extends Builder<St>
@@ -121,7 +121,7 @@ abstract class ElementChangeTracker<
 }
 
 abstract class NodeChangeTracker<
-  E extends NodeElement<St, NodeEvent>,
+  E extends NodeElement<St>,
   St extends NodeState,
   D extends Dependencies,
   B extends NodeStateBuilder<St>

@@ -8,63 +8,91 @@ import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:flutter/foundation.dart';
 
-class GeometryOperation {
+class GeometryOperation with ChangeNotifier {
   final BasePlanner basePlanner;
   final Graph parentGraph;
 
-  final Map<NodeElement, NodeGeometryBuilder> _nodeGeometries = {};
-  final Map<Edge, EdgeGeometryBuilder> _edgeGeometries = {};
-  final Map<Edge, EdgeGeometryBuilder> _affectedEdgeGeometries = {};
+  final Map<NodeElement, NodeGeometryBuilder> _nodeGeometries;
+  final Map<Edge, EdgeGeometryBuilder> _edgeGeometries;
+  final Map<Edge, EdgeGeometryBuilder> _affectedEdgeGeometries;
 
-  GeometryOperation.drag(
+  final Map<NodeElement, NodeGeometryBuilder> allNodes;
+  final Map<Edge, EdgeGeometryBuilder> allEdges;
+
+  GeometryOperation._(
     this.basePlanner,
     this.parentGraph,
+    Map<NodeElement, NodeGeometryBuilder> nodeGeometries,
+    Map<Edge, EdgeGeometryBuilder> edgeGeometries,
+    Map<Edge, EdgeGeometryBuilder> affectedEdgeGeometries,
+  ) : _nodeGeometries = Map.unmodifiable(nodeGeometries),
+      _edgeGeometries = Map.unmodifiable(edgeGeometries),
+      _affectedEdgeGeometries = Map.unmodifiable(affectedEdgeGeometries),
+      allNodes = Map.unmodifiable(nodeGeometries),
+      allEdges = Map.unmodifiable(
+        Map.from(edgeGeometries)..addAll(affectedEdgeGeometries),
+      );
+
+  factory GeometryOperation.drag(
+    BasePlanner basePlanner,
+    Graph parentGraph,
     Iterable<NodeElement> selectedNodes,
   ) {
+    Map<NodeElement, NodeGeometryBuilder> nodeGeometries = {};
     for (var node in selectedNodes) {
-      _nodeGeometries[node] = NodeGeometryBuilder.from(node.geometry);
+      nodeGeometries[node] = NodeGeometryBuilder.from(node.geometry);
     }
 
+    Map<Edge, EdgeGeometryBuilder> edgeGeometries = {};
+    Map<Edge, EdgeGeometryBuilder> affectedEdgeGeometries = {};
     var allEdges = selectedNodes
         .expand((node) => node.allParents.followedBy(node.allChildren))
         .toSet();
 
     for (var edge in allEdges) {
-      var parentGeometry = _nodeGeometries[edge.parentNode];
-      var childGeometry = _nodeGeometries[edge.childNode];
+      var parentGeometry = nodeGeometries[edge.parentNode];
+      var childGeometry = nodeGeometries[edge.childNode];
 
       if (parentGeometry != null && childGeometry != null) {
-        _edgeGeometries[edge] = EdgeGeometryBuilder.from(
+        edgeGeometries[edge] = EdgeGeometryBuilder.from(
           edge.geometry,
           parentGeometry,
           childGeometry,
         );
       } else {
-        _affectedEdgeGeometries[edge] = EdgeGeometryBuilder.from(
+        affectedEdgeGeometries[edge] = EdgeGeometryBuilder.from(
           edge.geometry,
           parentGeometry ?? edge.parentNode.geometry,
           childGeometry ?? edge.childNode.geometry,
         );
       }
     }
+
+    return GeometryOperation._(
+      basePlanner,
+      parentGraph,
+      nodeGeometries,
+      edgeGeometries,
+      affectedEdgeGeometries,
+    );
   }
 
   void performOperation(Offset shiftFromStart) {
     _nodeGeometries.forEach((node, builder) {
       builder.shift(shiftFromStart);
-      node.notifyListenersOfGeometryUpdate(builder);
     });
 
     _edgeGeometries.forEach((edge, builder) {
       builder.shift(shiftFromStart);
-      edge.notifyListenersOfGeometryUpdate(builder);
     });
 
     _affectedEdgeGeometries.forEach((edge, builder) {
       builder.nodeUpdateRedraw();
-      edge.notifyListenersOfGeometryUpdate(builder);
     });
+
+    notifyListeners();
   }
 
   void applyUpdate() {
@@ -84,17 +112,6 @@ class GeometryOperation {
             edge.getStateBuilder().updateGeometry(builder.build()),
       );
     });
-  }
-
-  void cancel() {
-    var allElements = Iterable<BasePlannerElement>.empty()
-        .followedBy(_nodeGeometries.keys)
-        .followedBy(_edgeGeometries.keys)
-        .followedBy(_affectedEdgeGeometries.keys);
-
-    for (var element in allElements) {
-      element.notifyListenersOfUpdate();
-    }
   }
 }
 

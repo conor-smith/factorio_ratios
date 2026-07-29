@@ -11,7 +11,6 @@ import 'package:factorio_ratios/utility/json.dart';
 import 'package:factorio_ratios/utility/builder.dart';
 
 part 'base_planner_element.dart';
-part 'event_notifier.dart';
 
 /// The single source of truth for the application.
 ///
@@ -35,9 +34,7 @@ part 'event_notifier.dart';
 /// one from there, all subsequent snapshots will be deleted.
 ///
 /// [activeGraph] represents the current [Graph] to be displayed.
-class BasePlanner
-    with EventNotifier<BasePlannerEvent>
-    implements ToJson, EventNotifier<BasePlannerEvent> {
+class BasePlanner implements ToJson {
   static const maxSnapshots = 20;
 
   final FactorioDatabase db;
@@ -51,9 +48,6 @@ class BasePlanner
   // TODO - Rename, document, and make mutable
   final double ioThreshold = 0.1;
 
-  /// Current graph to display in UI
-  Graph get activeGraph => _activeGraph;
-
   /// Current active snapshot in [snapshots]
   int get snapshotIndex => _snapshotIndex;
 
@@ -61,8 +55,6 @@ class BasePlanner
   late final List<Snapshot> snapshots = UnmodifiableListView(_snapshots);
 
   SnapshotBuilder? get snapshotBuilder => _snapshotBuilder;
-
-  late Graph _activeGraph;
 
   final List<Snapshot> _snapshots = [];
   int _snapshotIndex = 0;
@@ -102,7 +94,6 @@ class BasePlanner
     var nauvis = db.surfaceMap['nauvis']!;
     var firstState = GraphStateImpl.rootGraphFirstState(nauvis.icon);
     rootGraph = Graph.rootGraph(this, firstState, nauvis);
-    _activeGraph = rootGraph;
     _snapshots.add(
       Snapshot({
         rootGraph: ElementAndState<Graph, GraphStateImpl>(
@@ -111,12 +102,6 @@ class BasePlanner
         ),
       }),
     );
-  }
-
-  void updateActiveGraph(Graph newActiveGraph) {
-    if (newActiveGraph != activeGraph) {
-      _updateActiveGraph(newActiveGraph);
-    }
   }
 
   /// Throws an exception if mutation is not permitted
@@ -209,17 +194,6 @@ class BasePlanner
     throw UnimplementedError();
   }
 
-  void _updateActiveGraph(Graph newActiveGraph, [bool updateListeners = true]) {
-    if (newActiveGraph != activeGraph) {
-      _activeGraph.clearSelected(false);
-      _activeGraph = newActiveGraph;
-
-      if (updateListeners) {
-        notifyListeners(const BasePlannerEvent());
-      }
-    }
-  }
-
   void _applySnapshot(Snapshot oldSnapshot, Snapshot newSnapshot) {
     try {
       _mutationLock++;
@@ -232,22 +206,6 @@ class BasePlanner
       }
 
       _mutationLock--;
-
-      // Due to complications with the UI, notifying listeners must take place
-      // after all state updates are complete
-      for (var eAndS in updatedElements) {
-        eAndS.element.notifyListenersOfUpdate();
-      }
-
-      if (!newSnapshot.stateMap.containsKey(activeGraph)) {
-        var newActiveGraph = activeGraph.parentGraph;
-
-        while (!newSnapshot.stateMap.containsKey(newActiveGraph)) {
-          newActiveGraph = newActiveGraph.parentGraph;
-        }
-
-        notifyListeners(const BasePlannerEvent());
-      }
     } catch (e) {
       _mutationLock--;
       rethrow;
@@ -256,7 +214,7 @@ class BasePlanner
 }
 
 // Just exists as a convenient way to skip type checks when updating state
-class ElementAndState<E extends BasePlannerElement<St, dynamic>, St> {
+class ElementAndState<E extends BasePlannerElement<St>, St> {
   final E element;
   final St state;
 
@@ -271,10 +229,6 @@ class Snapshot {
 
   Snapshot(Map<BasePlannerElement, ElementAndState> stateMap)
     : stateMap = Map.unmodifiable(stateMap);
-}
-
-class BasePlannerEvent {
-  const BasePlannerEvent();
 }
 
 class SurfaceProperties {

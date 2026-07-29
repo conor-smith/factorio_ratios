@@ -10,7 +10,7 @@ part 'edge_state.dart';
 
 /// Represents an edge connecting two [NodeElement]s.
 /// Items flow from [childProdLine] to [parentProdLine].
-class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
+class Edge extends BasePlannerElement<EdgeStateImpl> {
   @override
   final Graph parentGraph;
   final EdgeType edgeType;
@@ -86,27 +86,10 @@ class Edge extends BasePlannerElement<EdgeStateImpl, EdgeEvent> {
   EdgeStateBuilder getStateBuilder() => getChangeTracker().stateBuilder;
 
   @override
-  void notifyListenersOfGeometryUpdate(EdgeGeometry geometry) =>
-      notifyListeners(EdgeEvent.geometryOp(geometry));
-
-  @override
-  void notifyListenersOfUpdate() {
-    notifyListeners(const EdgeEvent());
-  }
-
-  @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson
     throw UnimplementedError();
   }
-}
-
-class EdgeEvent {
-  final EdgeGeometry? geometry;
-
-  EdgeEvent.geometryOp(EdgeGeometry this.geometry);
-
-  const EdgeEvent() : geometry = null;
 }
 
 enum EdgeType {

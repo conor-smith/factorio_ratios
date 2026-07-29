@@ -18,17 +18,12 @@ import 'package:factorio_ratios/utility/collections.dart';
 part 'graph_state.dart';
 
 /// Represents a graph of [NodeElement]s connected by [Edge]s.
-class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
+class Graph extends NodeElement<GraphStateImpl> {
   // TODO - Graph preferred layout
   final Surface? surface;
   @override
   late final Graph parentGraph;
   bool get isRoot => this == parentGraph;
-
-  final Set<BasePlannerElement> _selectedElements = {};
-  late final Set<BasePlannerElement> selectedElements = UnmodifiableSetView(
-    _selectedElements,
-  );
 
   final SurfaceProperties _surfaceProperties;
 
@@ -103,44 +98,9 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
     parentGraph = this;
   }
 
-  void addToSelected(BasePlannerElement element) {
-    _selectedElements.add(element);
-    element.notifyListenersOfUpdate();
-  }
-
-  void removeFromSelected(BasePlannerElement element) {
-    _selectedElements.remove(element);
-    element.notifyListenersOfUpdate();
-  }
-
-  void clearSelected(bool notifyListeners) {
-    if (notifyListeners) {
-      List<BasePlannerElement> deselectedElements = List.from(
-        _selectedElements,
-      );
-      _selectedElements.clear();
-
-      for (var element in deselectedElements) {
-        element.notifyListenersOfUpdate();
-      }
-    } else {
-      _selectedElements.clear();
-    }
-  }
-
   @override
   void updateState(GraphStateImpl newState) {
     basePlanner.throwIfMutationNotPermitted();
-    if (_selectedElements.isNotEmpty) {
-      Set<BasePlannerElement> allElements = {
-        ...newState.allNodes,
-        ...newState.edges,
-      };
-
-      _selectedElements.removeWhere(
-        (element) => !allElements.contains(element),
-      );
-    }
 
     _internalState = newState;
   }
@@ -177,15 +137,6 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
         'Graph $this does not have an input node for item $item',
       );
     }
-  }
-
-  @override
-  void notifyListenersOfGeometryUpdate(NodeGeometry geometry) =>
-      notifyListeners(GraphEvent.geometryOp(geometry));
-
-  @override
-  void notifyListenersOfUpdate() {
-    notifyListeners(const GraphEvent());
   }
 
   /// Clears all nodes except IO nodes
@@ -719,12 +670,6 @@ class GraphIo extends ProductionLineIoData {
   });
 
   const GraphIo.empty() : super.empty();
-}
-
-class GraphEvent extends NodeEvent {
-  GraphEvent.geometryOp(NodeGeometry super.geometry);
-
-  const GraphEvent();
 }
 
 class GraphException extends BasePlannerException {

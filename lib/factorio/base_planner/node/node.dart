@@ -1,7 +1,6 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/change_tracker/change_trackers.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
-import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
@@ -11,8 +10,8 @@ import 'package:factorio_ratios/utility/json.dart';
 part 'production_line_node.dart';
 part 'production_line_node_state.dart';
 
-abstract class NodeElement<St extends NodeState, E extends NodeEvent>
-    extends BasePlannerElement<St, E> {
+abstract class NodeElement<St extends NodeState>
+    extends BasePlannerElement<St> {
   NodeElement(super.basePlanner);
 
   NodeType get nodeType;
@@ -39,8 +38,6 @@ abstract class NodeElement<St extends NodeState, E extends NodeEvent>
   NodeChangeTracker getChangeTracker();
   @override
   NodeStateBuilder<St> getStateBuilder();
-  @override
-  void notifyListenersOfGeometryUpdate(NodeGeometry geometry);
 
   Map<InGameItem, Set<Edge>> get parents;
   Map<InGameItem, Set<Edge>> get children;
@@ -57,12 +54,6 @@ abstract class NodeElement<St extends NodeState, E extends NodeEvent>
   bool get hasUnfulfilledIo => unusedIo.inputs.values
       .followedBy(unusedIo.outputs.values)
       .any((amount) => amount > basePlanner.ioThreshold);
-
-  GeometryOperation beginDrag() => GeometryOperation.drag(
-    basePlanner,
-    parentGraph,
-    parentGraph.selectedElements.whereType<NodeElement>(),
-  );
 }
 
 abstract class NodeState {
@@ -189,12 +180,6 @@ enum NodeType implements Comparable<NodeType> {
   @override
   int compareTo(NodeType other) =>
       outputPriority.compareTo(other.outputPriority);
-}
-
-abstract class NodeEvent {
-  final NodeGeometry? geometry;
-
-  const NodeEvent([this.geometry]);
 }
 
 class NodeException extends BasePlannerException {
