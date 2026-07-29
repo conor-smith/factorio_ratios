@@ -286,8 +286,6 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
       );
 
       _createNodeTree(consumerNode);
-
-      layoutNodes();
     });
   }
 
@@ -313,7 +311,7 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
           _tableLayout();
 
         case GraphLayout.custom:
-          break;
+          _customLayout();
       }
     });
   }
@@ -670,6 +668,32 @@ class Graph extends NodeElement<GraphStateImpl, GraphEvent> {
             ),
           )
           .fold(rowNumber, math.max);
+    }
+  }
+
+  void _customLayout() {
+    // TODO - Improve
+    for (var node in allNodes) {
+      _placeNodeInCustomLayout(node);
+    }
+  }
+
+  void _placeNodeInCustomLayout(NodeElement node) {
+    if (node.geometry != NodeGeometryImpl.uninitialised) {
+      node.getStateBuilder().updateGeometry(
+        NodeGeometryImpl(
+          Rect.fromPoints(
+            const Offset(
+              NodeGeometryImpl.defaultPadding,
+              NodeGeometryImpl.defaultPadding,
+            ),
+            const Offset(
+              NodeGeometryImpl.defaultPadding + NodeGeometryImpl.defaultWidth,
+              NodeGeometryImpl.defaultPadding + NodeGeometryImpl.defaultHeight,
+            ),
+          ),
+        ),
+      );
     }
   }
 }
