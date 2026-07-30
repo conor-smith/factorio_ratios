@@ -18,9 +18,6 @@ class GeometryOperation with ChangeNotifier {
   final Map<Edge, EdgeGeometryBuilder> _edgeGeometries;
   final Map<Edge, EdgeGeometryBuilder> _affectedEdgeGeometries;
 
-  final Map<NodeElement, NodeGeometryBuilder> allNodes;
-  final Map<Edge, EdgeGeometryBuilder> allEdges;
-
   GeometryOperation._(
     this.basePlanner,
     this.parentGraph,
@@ -29,11 +26,7 @@ class GeometryOperation with ChangeNotifier {
     Map<Edge, EdgeGeometryBuilder> affectedEdgeGeometries,
   ) : _nodeGeometries = Map.unmodifiable(nodeGeometries),
       _edgeGeometries = Map.unmodifiable(edgeGeometries),
-      _affectedEdgeGeometries = Map.unmodifiable(affectedEdgeGeometries),
-      allNodes = Map.unmodifiable(nodeGeometries),
-      allEdges = Map.unmodifiable(
-        Map.from(edgeGeometries)..addAll(affectedEdgeGeometries),
-      );
+      _affectedEdgeGeometries = Map.unmodifiable(affectedEdgeGeometries);
 
   factory GeometryOperation.drag(
     BasePlanner basePlanner,
@@ -78,6 +71,12 @@ class GeometryOperation with ChangeNotifier {
       affectedEdgeGeometries,
     );
   }
+
+  NodeGeometryBuilder? getNodeGeometryBuilder(NodeElement node) =>
+      _nodeGeometries[node];
+
+  EdgeGeometryBuilder? getEdgeGeometryBuilder(Edge edge) =>
+      _edgeGeometries[edge] ?? _affectedEdgeGeometries[edge];
 
   void performOperation(Offset shiftFromStart) {
     _nodeGeometries.forEach((node, builder) {
