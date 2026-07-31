@@ -105,7 +105,8 @@ class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
             (aspect.element == activeElement) !=
                 (aspect.element == oldModel.activeElement),
 
-      DependencyType.geometryOp => geometryOp != null,
+      DependencyType.geometryOp =>
+        geometryOp?.containsElement(aspect.element) ?? false,
     },
   );
 }

@@ -72,6 +72,11 @@ class GeometryOperation with ChangeNotifier {
     );
   }
 
+  bool containsElement(BasePlannerElement element) =>
+      _nodeGeometries.containsKey(element) ||
+      _edgeGeometries.containsKey(element) ||
+      _affectedEdgeGeometries.containsKey(element);
+
   NodeGeometryBuilder? getNodeGeometryBuilder(NodeElement node) =>
       _nodeGeometries[node];
 

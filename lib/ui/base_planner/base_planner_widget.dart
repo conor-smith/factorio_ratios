@@ -29,6 +29,8 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
 
   GeometryOperation? geometryOp;
 
+  Widget? overlayMenu;
+
   static _BasePlannerWidgetState _getStateOrThrow(BuildContext context) {
     var state = context.findAncestorStateOfType<_BasePlannerWidgetState>();
 
@@ -88,24 +90,32 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     if (selectedElements.isNotEmpty) {
       setState(() {
         selectedElements.clear();
-        BasePlannerModel(
-          activeSnapshot: activeSnapshot,
-          activeGraph: activeGraph,
-          transformationAllowed: transformationAllowed,
-          orderedNodes: orderedNodes,
-          orderedEdges: orderedEdges,
-          selectedElements: selectedElements,
-          activeElement: activeElement,
-          geometryOp: geometryOp,
-          child: const Placeholder(),
-        );
+        activeElement = null;
       });
     }
   }
 
+  Widget? popOverlayMenu() {
+    var poppedMenu = overlayMenu;
+    overlayMenu = null;
+    return poppedMenu;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: Placeholder());
+    return Scaffold(
+      body: BasePlannerModel(
+        activeSnapshot: activeSnapshot,
+        activeGraph: activeGraph,
+        transformationAllowed: transformationAllowed,
+        orderedNodes: orderedNodes,
+        orderedEdges: orderedEdges,
+        selectedElements: selectedElements,
+        activeElement: activeElement,
+        geometryOp: geometryOp,
+        child: const Placeholder(),
+      ),
+    );
   }
 }
 
