@@ -8,7 +8,6 @@ import 'package:flutter/widgets.dart';
 class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
   final Snapshot activeSnapshot;
   final Graph activeGraph;
-  final bool transformationAllowed;
 
   final int orderedNodesHash;
   final List<NodeElement> orderedNodes;
@@ -26,7 +25,6 @@ class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
     Key? key,
     required Snapshot activeSnapshot,
     required Graph activeGraph,
-    required bool transformationAllowed,
     required List<NodeElement> orderedNodes,
     required List<Edge> orderedEdges,
     required Set<BasePlannerElement> selectedElements,
@@ -53,7 +51,6 @@ class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
       key: key,
       activeSnapshot: activeSnapshot,
       activeGraph: activeGraph,
-      transformationAllowed: transformationAllowed,
       orderedNodesHash: orderedNodesHash,
       orderedNodes: orderedNodes,
       orderedEdgesHash: orderedEdgesHash,
@@ -70,7 +67,6 @@ class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
     super.key,
     required this.activeSnapshot,
     required this.activeGraph,
-    required this.transformationAllowed,
     required this.orderedNodesHash,
     required this.orderedNodes,
     required this.orderedEdgesHash,

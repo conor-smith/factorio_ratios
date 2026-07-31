@@ -60,6 +60,8 @@ class BasePlanner implements ToJson {
   int _snapshotIndex = 0;
   SnapshotBuilder? _snapshotBuilder;
 
+  Function(Snapshot oldSnapshot, Snapshot newSnapshot)? _callOnSnapshotUpdate;
+
   int _mutationLock = 0;
 
   BasePlanner(this.db)
@@ -97,6 +99,11 @@ class BasePlanner implements ToJson {
     _snapshots.add(Snapshot({rootGraph: firstState}));
   }
 
+  void setListener(
+    Function(Snapshot oldSnapshot, Snapshot newSnapshot) onSnapshotUpdate,
+  ) => _callOnSnapshotUpdate = onSnapshotUpdate;
+  void removeListener() => _callOnSnapshotUpdate = null;
+
   /// Throws an exception if mutation is not permitted
   void throwIfMutationNotPermitted() {
     if (_mutationLock == 0) {
@@ -112,7 +119,7 @@ class BasePlanner implements ToJson {
     if (newIndex < 0 || newIndex >= _snapshots.length) {
       throw BasePlannerException('Snapshot index $newIndex is out of bounds');
     } else if (newIndex != _snapshotIndex) {
-      _applySnapshot(_snapshots[newIndex]);
+      _applySnapshot(_snapshots[_snapshotIndex], _snapshots[newIndex]);
       _snapshotIndex = newIndex;
     }
   }
@@ -145,16 +152,18 @@ class BasePlanner implements ToJson {
         if (snapshotBuilder.hasChanges) {
           var newSnapshot = snapshotBuilder.build();
 
+          int newSnapshotIndex;
           if (_snapshotIndex == maxSnapshots - 1) {
             _snapshots.removeAt(0);
+            newSnapshotIndex = _snapshotIndex;
           } else {
-            _snapshotIndex++;
             _snapshots.removeRange(_snapshotIndex, _snapshots.length);
+            newSnapshotIndex = _snapshotIndex + 1;
           }
           _snapshots.add(newSnapshot);
 
-          _applySnapshot(newSnapshot);
-          _snapshotIndex = _snapshots.length - 1;
+          _applySnapshot(_snapshots[_snapshotIndex], newSnapshot);
+          _snapshotIndex = newSnapshotIndex;
         }
 
         _snapshotBuilder = null;
@@ -187,7 +196,7 @@ class BasePlanner implements ToJson {
     throw UnimplementedError();
   }
 
-  void _applySnapshot(Snapshot newSnapshot) {
+  void _applySnapshot(Snapshot oldSnapshot, Snapshot newSnapshot) {
     try {
       _mutationLock++;
       newSnapshot.stateMap.forEach(
@@ -198,6 +207,8 @@ class BasePlanner implements ToJson {
       _mutationLock--;
       rethrow;
     }
+
+    _callOnSnapshotUpdate?.call(oldSnapshot, newSnapshot);
   }
 }
 
@@ -209,6 +220,7 @@ class Snapshot {
     : stateMap = Map.unmodifiable(stateMap);
 
   Object? operator [](BasePlannerElement? key) => stateMap[key];
+  bool containsKey(BasePlannerElement? key) => stateMap.containsKey(key);
 }
 
 class SurfaceProperties {

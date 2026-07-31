@@ -19,7 +19,6 @@ class BasePlannerWidget extends StatefulWidget {
 class _BasePlannerWidgetState extends State<BasePlannerWidget> {
   late Snapshot activeSnapshot;
   late Graph activeGraph;
-  bool transformationAllowed = true;
 
   final List<NodeElement> orderedNodes = [];
   final List<Edge> orderedEdges = [];
@@ -48,7 +47,53 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     activeSnapshot =
         widget.basePlanner.snapshots[widget.basePlanner.snapshotIndex];
     activeGraph = widget.basePlanner.rootGraph;
+
+    widget.basePlanner.setListener(snapshotUpdate);
   }
+
+  @override
+  void dispose() {
+    super.dispose();
+
+    widget.basePlanner.removeListener();
+  }
+
+  void snapshotUpdate(Snapshot oldSnapshot, Snapshot newSnapshot) => setState(
+    () {
+      activeSnapshot = newSnapshot;
+
+      if (!newSnapshot.containsKey(activeGraph)) {
+        do {
+          activeGraph = activeGraph.parentGraph;
+        } while (!newSnapshot.containsKey(activeGraph) && !activeGraph.isRoot);
+
+        activeElement = null;
+        selectedElements.clear();
+        orderedNodes
+          ..clear()
+          ..addAll(activeGraph.allNodes);
+        orderedEdges
+          ..clear()
+          ..addAll(activeGraph.edges);
+      } else if (activeGraph.allElementsHash !=
+          (oldSnapshot[activeGraph] as GraphStateImpl?)?.allElementsHash) {
+        orderedNodes
+          ..removeWhere((node) => !activeGraph.allNodes.contains(node))
+          ..addAll(
+            activeGraph.allNodes
+                .where((node) => !orderedNodes.contains(node))
+                .toList(),
+          );
+        orderedEdges
+          ..removeWhere((edge) => !activeGraph.edges.contains(edge))
+          ..addAll(
+            activeGraph.edges
+                .where((edge) => !orderedEdges.contains(edge))
+                .toList(),
+          );
+      }
+    },
+  );
 
   void toggleSelect<T extends BasePlannerElement>(
     T element,
@@ -101,18 +146,23 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     return poppedMenu;
   }
 
+  GeometryOperation? popGeometryOp() {
+    var poppedOp = geometryOp;
+    geometryOp = null;
+    return poppedOp;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: BasePlannerModel(
         activeSnapshot: activeSnapshot,
         activeGraph: activeGraph,
-        transformationAllowed: transformationAllowed,
         orderedNodes: orderedNodes,
         orderedEdges: orderedEdges,
         selectedElements: selectedElements,
         activeElement: activeElement,
-        geometryOp: geometryOp,
+        geometryOp: popGeometryOp(),
         child: const Placeholder(),
       ),
     );

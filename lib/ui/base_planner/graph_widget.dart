@@ -44,12 +44,6 @@ class _GraphWidgetState extends State<GraphWidget> {
   void initState() {
     super.initState();
 
-    graph.addListener(
-      this,
-      (_) => setState(() {
-        operation = _GraphWidgetOperation.noOperation;
-      }),
-    );
     focusNode.requestFocus();
   }
 
@@ -57,7 +51,6 @@ class _GraphWidgetState extends State<GraphWidget> {
   void dispose() {
     super.dispose();
 
-    graph.removeListener(this);
     focusNode.dispose();
   }
 
