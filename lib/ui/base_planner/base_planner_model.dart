@@ -59,7 +59,7 @@ class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
       orderedEdgesHash: orderedEdgesHash,
       orderedEdges: orderedEdges,
       selectedElementsHash: selectedElementsHash,
-      selectedElements: selectedElements,
+      selectedElements: Set.unmodifiable(selectedElements),
       activeElement: activeElement,
       geometryOp: geometryOp,
       child: child,
@@ -101,8 +101,9 @@ class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
                 oldModel.selectedElements.contains(aspect.element),
 
       DependencyType.activeElement =>
-        (aspect.element == activeElement) !=
-            (aspect.element == oldModel.activeElement),
+        activeElement != oldModel.activeElement &&
+            (aspect.element == activeElement) !=
+                (aspect.element == oldModel.activeElement),
 
       DependencyType.geometryOp => geometryOp != null,
     },
