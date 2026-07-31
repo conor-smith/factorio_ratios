@@ -16,18 +16,9 @@ abstract class GraphState extends NodeState {
   @override
   GraphIo get ioData;
 
-  const GraphState();
+  int get allElementsHash;
 
-  static Iterable<NodeElement> calculateAllNodes(
-    Iterable<ProdLineNode> prodLineNodes,
-    Iterable<Graph> graphNodes,
-    Map<InGameItem, ProdLineNode> inputNodes,
-    Map<InGameItem, ProdLineNode> outputNodes,
-  ) => Iterable<NodeElement>.empty()
-      .followedBy(prodLineNodes)
-      .followedBy(graphNodes)
-      .followedBy(inputNodes.values)
-      .followedBy(outputNodes.values);
+  const GraphState();
 
   static Map<InGameItem, Set<Edge>> calculateParents(
     Map<InGameItem, ProdLineNode> outputNodes,
@@ -88,6 +79,9 @@ class GraphStateImpl extends GraphState implements ToJson {
   @override
   ItemIoImpl get edgeConstraints => ioData.constraints;
 
+  @override
+  final int allElementsHash;
+
   GraphStateImpl(
     Graph graph, {
     required this.name,
@@ -109,14 +103,12 @@ class GraphStateImpl extends GraphState implements ToJson {
        edges = Set.unmodifiable(edges),
        inputNodes = Map.unmodifiable(inputNodes),
        outputNodes = Map.unmodifiable(outputNodes),
-       allNodes = Set.unmodifiable(
-         GraphState.calculateAllNodes(
-           prodLineNodes,
-           graphNodes,
-           inputNodes,
-           outputNodes,
-         ),
-       ),
+       allNodes = Set.unmodifiable({
+         ...prodLineNodes,
+         ...graphNodes,
+         ...inputNodes.values,
+         ...outputNodes.values,
+       }),
        parents = Map.unmodifiable(
          GraphState.calculateParents(outputNodes)
            ..updateAll((item, edges) => Set.unmodifiable(edges)),
@@ -126,7 +118,14 @@ class GraphStateImpl extends GraphState implements ToJson {
            ..updateAll((item, edges) => Set.unmodifiable(edges)),
        ),
        inputItems = Set.unmodifiable(inputNodes.keys),
-       outputItems = Set.unmodifiable(outputNodes.keys) {
+       outputItems = Set.unmodifiable(outputNodes.keys),
+       allElementsHash = Iterable<BasePlannerElement>.empty()
+           .followedBy(prodLineNodes)
+           .followedBy(graphNodes)
+           .followedBy(inputNodes.values)
+           .followedBy(outputNodes.values)
+           .followedBy(edges)
+           .fold(0, (hash, element) => hash + element.hashCode) {
     if (graph.isRoot && (inputNodes.isNotEmpty || outputNodes.isNotEmpty)) {
       throw const GraphException('Root graph cannot have IO nodes');
     }
@@ -150,7 +149,8 @@ class GraphStateImpl extends GraphState implements ToJson {
       geometry = NodeGeometryImpl.uninitialised,
       ioData = const GraphIo.empty(),
       layout = GraphLayout.table,
-      orientation = LayoutOrientation.up;
+      orientation = LayoutOrientation.up,
+      allElementsHash = 0;
 
   const GraphStateImpl._uninitialised()
     : name = '',
@@ -170,7 +170,8 @@ class GraphStateImpl extends GraphState implements ToJson {
       geometry = NodeGeometryImpl.uninitialised,
       ioData = const GraphIo.empty(),
       layout = GraphLayout.table,
-      orientation = LayoutOrientation.up;
+      orientation = LayoutOrientation.up,
+      allElementsHash = 0;
 
   @override
   Map<String, dynamic> toJson() {

@@ -73,17 +73,22 @@ class GraphStateBuilder extends NodeState
   }
 
   @override
-  Set<NodeElement> get allNodes => GraphState.calculateAllNodes(
-    _prodLineNodes,
-    _graphNodes,
-    _inputNodes,
-    _outputNodes,
-  ).toSet();
+  Set<NodeElement> get allNodes => {
+    ..._prodLineNodes,
+    ..._graphNodes,
+    ...inputNodes.values,
+    ...outputNodes.values,
+  };
 
   @override
   GraphLayout get layout => _layout;
   @override
   LayoutOrientation get orientation => _orientation;
+
+  @override
+  int get allElementsHash => throw const GraphException(
+    'Cannot evaluate elementsHash while building snapshot',
+  );
 
   GraphStateBuilder.initial(this._graph, [Icon? icon])
     : _name = 'graph',
