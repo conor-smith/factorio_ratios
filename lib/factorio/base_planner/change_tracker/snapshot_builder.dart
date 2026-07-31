@@ -84,7 +84,7 @@ class SnapshotBuilder implements Builder<Snapshot> {
 
   @override
   Snapshot build() {
-    Map<BasePlannerElement, ElementAndState> newStateMap = Map.from(
+    Map<BasePlannerElement, Object> newStateMap = Map.from(
       _previousSnapshot.stateMap,
     );
 

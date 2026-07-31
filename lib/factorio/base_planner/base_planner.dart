@@ -94,14 +94,7 @@ class BasePlanner implements ToJson {
     var nauvis = db.surfaceMap['nauvis']!;
     var firstState = GraphStateImpl.rootGraphFirstState(nauvis.icon);
     rootGraph = Graph.rootGraph(this, firstState, nauvis);
-    _snapshots.add(
-      Snapshot({
-        rootGraph: ElementAndState<Graph, GraphStateImpl>(
-          rootGraph,
-          firstState,
-        ),
-      }),
-    );
+    _snapshots.add(Snapshot({rootGraph: firstState}));
   }
 
   /// Throws an exception if mutation is not permitted
@@ -114,13 +107,13 @@ class BasePlanner implements ToJson {
   }
 
   /// Check out a particular snapshot in [snapshots].
-  /// Will reset the state of all elements and call
-  /// [BasePlannerElement.notifyListeners] where appropriate
+  /// Will reset the state of all elements.
   void goToSnapshot(int newIndex) {
     if (newIndex < 0 || newIndex >= _snapshots.length) {
       throw BasePlannerException('Snapshot index $newIndex is out of bounds');
     } else if (newIndex != _snapshotIndex) {
-      _applySnapshot(_snapshots[_snapshotIndex], _snapshots[newIndex]);
+      _applySnapshot(_snapshots[newIndex]);
+      _snapshotIndex = newIndex;
     }
   }
 
@@ -151,7 +144,6 @@ class BasePlanner implements ToJson {
 
         if (snapshotBuilder.hasChanges) {
           var newSnapshot = snapshotBuilder.build();
-          var oldSnapshot = _snapshots[_snapshotIndex];
 
           if (_snapshotIndex == maxSnapshots - 1) {
             _snapshots.removeAt(0);
@@ -161,7 +153,8 @@ class BasePlanner implements ToJson {
           }
           _snapshots.add(newSnapshot);
 
-          _applySnapshot(oldSnapshot, newSnapshot);
+          _applySnapshot(newSnapshot);
+          _snapshotIndex = _snapshots.length - 1;
         }
 
         _snapshotBuilder = null;
@@ -194,17 +187,12 @@ class BasePlanner implements ToJson {
     throw UnimplementedError();
   }
 
-  void _applySnapshot(Snapshot oldSnapshot, Snapshot newSnapshot) {
+  void _applySnapshot(Snapshot newSnapshot) {
     try {
       _mutationLock++;
-      var updatedElements = newSnapshot.stateMap.values
-          .where((eAndS) => eAndS != oldSnapshot.stateMap[eAndS.element])
-          .toList();
-
-      for (var eAndS in updatedElements) {
-        eAndS.update();
-      }
-
+      newSnapshot.stateMap.forEach(
+        (element, state) => element.updateState(state),
+      );
       _mutationLock--;
     } catch (e) {
       _mutationLock--;
@@ -213,24 +201,14 @@ class BasePlanner implements ToJson {
   }
 }
 
-// Just exists as a convenient way to skip type checks when updating state
-class ElementAndState<E extends BasePlannerElement<St>, St> {
-  final E element;
-  final St state;
-
-  ElementAndState(this.element, this.state);
-
-  void update() => element.updateState(state);
-}
-
 /// Represents a snapshot of all states of elements in [BasePlanner].
 class Snapshot {
-  final Map<BasePlannerElement, ElementAndState> stateMap;
+  final Map<BasePlannerElement, Object> stateMap;
 
-  Snapshot(Map<BasePlannerElement, ElementAndState> stateMap)
+  Snapshot(Map<BasePlannerElement, Object> stateMap)
     : stateMap = Map.unmodifiable(stateMap);
 
-  ElementAndState? operator [](BasePlannerElement? key) => stateMap[key];
+  Object? operator [](BasePlannerElement? key) => stateMap[key];
 }
 
 class SurfaceProperties {

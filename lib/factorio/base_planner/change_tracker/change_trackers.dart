@@ -29,7 +29,7 @@ abstract class ElementChangeTracker<
   D extends Dependencies,
   B extends Builder<St>
 >
-    implements Builder<ElementAndState<E, St>> {
+    implements Builder<St> {
   final SnapshotBuilder snapshotBuilder;
   final E element;
   final St previousState;
@@ -93,8 +93,7 @@ abstract class ElementChangeTracker<
   void queueIoUpdate() => _ioUpdateStatus = IoUpdateStatus.required;
 
   @override
-  ElementAndState<E, St> build() =>
-      ElementAndState(element, _cachedStateBuilder?.build() ?? previousState);
+  St build() => _cachedStateBuilder?.build() ?? previousState;
 
   void _checkForCircularDependencies(
     Set<BasePlannerElement> safeElements,
