@@ -1,5 +1,7 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
+import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/ui/base_planner/base_planner_model.dart';
@@ -15,14 +17,17 @@ class BasePlannerWidget extends StatefulWidget {
 }
 
 class _BasePlannerWidgetState extends State<BasePlannerWidget> {
-  late BasePlannerData activeData;
+  late Snapshot activeSnapshot;
+  late Graph activeGraph;
+  bool transformationAllowed = true;
 
   final List<NodeElement> orderedNodes = [];
   final List<Edge> orderedEdges = [];
 
   final Set<BasePlannerElement> selectedElements = {};
+  BasePlannerElement? activeElement;
 
-  bool allowTransformation = true;
+  GeometryOperation? geometryOp;
 
   static _BasePlannerWidgetState _getStateOrThrow(BuildContext context) {
     var state = context.findAncestorStateOfType<_BasePlannerWidgetState>();
@@ -38,10 +43,9 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
   void initState() {
     super.initState();
 
-    activeData = BasePlannerData.initial(
-      activeSnapshot: widget.basePlanner.snapshots.last,
-      activeGraph: widget.basePlanner.rootGraph,
-    );
+    activeSnapshot =
+        widget.basePlanner.snapshots[widget.basePlanner.snapshotIndex];
+    activeGraph = widget.basePlanner.rootGraph;
   }
 
   void toggleSelect<T extends BasePlannerElement>(
@@ -49,7 +53,7 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     bool clearPreviousSelection,
     List<T> orderedElements,
   ) {
-    if (element == activeData.activeElement &&
+    if (element == activeElement &&
         selectedElements.length == 1 &&
         clearPreviousSelection) {
       // User clicked on already selected element. No action needed
@@ -57,8 +61,6 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     }
 
     setState(() {
-      BasePlannerElement? activeElement = activeData.activeElement;
-
       if (clearPreviousSelection) {
         selectedElements
           ..clear()
@@ -79,13 +81,6 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
           activeElement = null;
         }
       }
-
-      activeData = BasePlannerData.update(
-        oldModel: activeData,
-        newSelection: selectedElements,
-        nullableActiveElement: true,
-        newActiveElement: activeElement,
-      );
     });
   }
 
@@ -93,10 +88,16 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     if (selectedElements.isNotEmpty) {
       setState(() {
         selectedElements.clear();
-        activeData = BasePlannerData.update(
-          oldModel: activeData,
-          newSelection: selectedElements,
-          nullableActiveElement: true,
+        BasePlannerModel(
+          activeSnapshot: activeSnapshot,
+          activeGraph: activeGraph,
+          transformationAllowed: transformationAllowed,
+          orderedNodes: orderedNodes,
+          orderedEdges: orderedEdges,
+          selectedElements: selectedElements,
+          activeElement: activeElement,
+          geometryOp: geometryOp,
+          child: const Placeholder(),
         );
       });
     }

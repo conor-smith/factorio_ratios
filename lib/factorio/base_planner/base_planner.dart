@@ -229,6 +229,8 @@ class Snapshot {
 
   Snapshot(Map<BasePlannerElement, ElementAndState> stateMap)
     : stateMap = Map.unmodifiable(stateMap);
+
+  ElementAndState? operator [](BasePlannerElement? key) => stateMap[key];
 }
 
 class SurfaceProperties {

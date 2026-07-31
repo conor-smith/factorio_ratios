@@ -1,22 +1,86 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:flutter/widgets.dart';
 
 class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
-  final BasePlannerData _data;
+  final Snapshot activeSnapshot;
+  final Graph activeGraph;
+  final bool transformationAllowed;
 
-  Snapshot get activeSnapshot => _data.activeSnapshot;
-  bool get selectionUpdate => _data.selectionUpdate;
-  Set<BasePlannerElement> get selectedElements => _data.selectedElements;
-  GeometryOperation? get geometryOperation => _data.geometryOperation;
-  Widget? get overlayMenu => _data.overlayMenu;
+  final int orderedNodesHash;
+  final List<NodeElement> orderedNodes;
 
-  const BasePlannerModel({
+  final int orderedEdgesHash;
+  final List<Edge> orderedEdges;
+
+  final int selectedElementsHash;
+  final Set<BasePlannerElement> selectedElements;
+  final BasePlannerElement? activeElement;
+
+  final GeometryOperation? geometryOp;
+
+  factory BasePlannerModel({
+    Key? key,
+    required Snapshot activeSnapshot,
+    required Graph activeGraph,
+    required bool transformationAllowed,
+    required List<NodeElement> orderedNodes,
+    required List<Edge> orderedEdges,
+    required Set<BasePlannerElement> selectedElements,
+    required BasePlannerElement? activeElement,
+    required GeometryOperation? geometryOp,
+    required Widget child,
+  }) {
+    var orderedNodesHash = 0;
+    for (var i = 0; i < orderedNodes.length; i++) {
+      orderedNodesHash += orderedNodes[i].hashCode * (i + 1);
+    }
+
+    var orderedEdgesHash = 0;
+    for (var i = 0; i < orderedEdges.length; i++) {
+      orderedEdgesHash += orderedEdges[i].hashCode * (i + 1);
+    }
+
+    var selectedElementsHash = selectedElements.fold(
+      0,
+      (hash, element) => hash += element.hashCode,
+    );
+
+    return BasePlannerModel._(
+      key: key,
+      activeSnapshot: activeSnapshot,
+      activeGraph: activeGraph,
+      transformationAllowed: transformationAllowed,
+      orderedNodesHash: orderedNodesHash,
+      orderedNodes: orderedNodes,
+      orderedEdgesHash: orderedEdgesHash,
+      orderedEdges: orderedEdges,
+      selectedElementsHash: selectedElementsHash,
+      selectedElements: selectedElements,
+      activeElement: activeElement,
+      geometryOp: geometryOp,
+      child: child,
+    );
+  }
+
+  const BasePlannerModel._({
     super.key,
-    required BasePlannerData data,
+    required this.activeSnapshot,
+    required this.activeGraph,
+    required this.transformationAllowed,
+    required this.orderedNodesHash,
+    required this.orderedNodes,
+    required this.orderedEdgesHash,
+    required this.orderedEdges,
+    required this.selectedElementsHash,
+    required this.selectedElements,
+    required this.activeElement,
+    required this.geometryOp,
     required super.child,
-  }) : _data = data;
+  });
 
   @override
   bool updateShouldNotify(BasePlannerModel oldModel) => oldModel != this;
@@ -28,87 +92,21 @@ class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
   ) => aspects.any(
     (aspect) => switch (aspect.dependencyType) {
       DependencyType.stateChange =>
-        oldModel.activeSnapshot != activeSnapshot &&
-            oldModel.activeSnapshot.stateMap[aspect.element] !=
-                activeSnapshot.stateMap[aspect.element],
+        activeSnapshot[aspect.element] !=
+            oldModel.activeSnapshot[aspect.element],
 
       DependencyType.selectionToggle =>
-        selectionUpdate &&
-            oldModel.selectedElements.contains(aspect.element) !=
-                selectedElements.contains(aspect.element),
+        selectedElementsHash != oldModel.selectedElementsHash &&
+            selectedElements.contains(aspect.element) !=
+                oldModel.selectedElements.contains(aspect.element),
 
-      DependencyType.activeElement => selectionUpdate,
+      DependencyType.activeElement =>
+        (aspect.element == activeElement) !=
+            (aspect.element == oldModel.activeElement),
 
-      DependencyType.geometryOp => geometryOperation != null,
+      DependencyType.geometryOp => geometryOp != null,
     },
   );
-}
-
-class BasePlannerData {
-  final Snapshot activeSnapshot;
-
-  final bool selectionUpdate;
-  final Set<BasePlannerElement> selectedElements;
-  final BasePlannerElement? activeElement;
-
-  final GeometryOperation? geometryOperation;
-
-  final Widget? overlayMenu;
-
-  const BasePlannerData._({
-    required this.activeSnapshot,
-    required this.selectionUpdate,
-    required this.selectedElements,
-    required this.activeElement,
-    required this.geometryOperation,
-    required this.overlayMenu,
-  });
-
-  const BasePlannerData.initial({
-    required Snapshot activeSnapshot,
-    required Graph activeGraph,
-  }) : this._(
-         activeSnapshot: activeSnapshot,
-         selectionUpdate: true,
-         activeElement: null,
-         selectedElements: const {},
-         geometryOperation: null,
-         overlayMenu: null,
-       );
-
-  factory BasePlannerData.update({
-    required BasePlannerData oldModel,
-    Snapshot? newSnapshot,
-    Set<BasePlannerElement>? newSelection,
-    bool nullableActiveElement = false,
-    BasePlannerElement? newActiveElement,
-    GeometryOperation? geometryOp,
-    Widget? overlayMenu,
-  }) {
-    var activeSnapshot = newSnapshot ?? oldModel.activeSnapshot;
-
-    Set<BasePlannerElement> selectedElements = newSelection != null
-        ? Set.unmodifiable(newSelection)
-        : oldModel.selectedElements;
-
-    BasePlannerElement? activeElement;
-    if (newActiveElement == null) {
-      activeElement = nullableActiveElement ? null : oldModel.activeElement;
-    } else {
-      activeElement = newActiveElement;
-    }
-    var selectionUpdate =
-        newSelection != null || activeElement != oldModel.activeElement;
-
-    return BasePlannerData._(
-      activeSnapshot: activeSnapshot,
-      selectionUpdate: selectionUpdate,
-      selectedElements: selectedElements,
-      activeElement: activeElement,
-      geometryOperation: geometryOp,
-      overlayMenu: overlayMenu,
-    );
-  }
 }
 
 enum DependencyType { stateChange, selectionToggle, activeElement, geometryOp }
