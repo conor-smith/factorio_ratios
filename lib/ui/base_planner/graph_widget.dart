@@ -5,206 +5,24 @@ import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
+import 'package:factorio_ratios/ui/base_planner/base_planner_model.dart';
+import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/edge_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/node_widget.dart';
 import 'package:factorio_ratios/ui/factorio_icon_menu.dart';
 import 'package:factorio_ratios/ui/icon_widgets.dart';
-import 'package:factorio_ratios/utility/flutter.dart' as utility;
-import 'package:flutter/gestures.dart' as gestures;
 import 'package:flutter/material.dart' hide Icon;
-import 'package:flutter/services.dart';
-
-const List<LogicalKeyboardKey> _shiftKeys = [
-  LogicalKeyboardKey.shiftLeft,
-  LogicalKeyboardKey.shiftRight,
-  LogicalKeyboardKey.shift,
-];
-
-class GraphWidget extends StatefulWidget {
-  final Graph graph;
-
-  const GraphWidget({super.key, required this.graph});
-
-  @override
-  State<GraphWidget> createState() => _GraphWidgetState();
-}
-
-class _GraphWidgetState extends State<GraphWidget> {
-  FocusNode focusNode = FocusNode();
-  _GraphWidgetOperation operation = _GraphWidgetOperation.noOperation;
-
-  PointerDownEvent? gestureStart;
-  bool shiftKeyHeld = false;
-
-  Widget overlayMenu = const Placeholder();
-
-  Graph get graph => widget.graph;
-
-  @override
-  void initState() {
-    super.initState();
-
-    focusNode.requestFocus();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-
-    focusNode.dispose();
-  }
-
-  void handleKeyEvent(KeyEvent event) {
-    if (_shiftKeys.contains(event.logicalKey)) {
-      if (event is KeyDownEvent) {
-        shiftKeyHeld = true;
-      } else if (event is KeyUpEvent) {
-        shiftKeyHeld = false;
-      }
-
-      if (operation == _GraphWidgetOperation.noOperation) {
-        setState(() {});
-      }
-    }
-  }
-
-  void beginGesture(PointerDownEvent event) {
-    gestureStart = event;
-
-    if (shiftKeyHeld && event.buttons == gestures.kPrimaryButton) {
-      setState(() {
-        operation = _GraphWidgetOperation.shiftGesture;
-      });
-    } else {
-      operation = _GraphWidgetOperation.nonShiftGesture;
-    }
-  }
-
-  void cancelGesture(_) {
-    setState(() {
-      operation = _GraphWidgetOperation.noOperation;
-      gestureStart = null;
-    });
-  }
-
-  void endGesture(PointerUpEvent event) {
-    if (gestureStart == null) {
-      setState(() {
-        operation = _GraphWidgetOperation.noOperation;
-      });
-      return;
-    }
-
-    if (utility.isSimpleClick(gestureStart!, event) &&
-        gestureStart!.buttons == gestures.kSecondaryButton) {
-      createContextMenu(event.position, event.localPosition);
-    } else {
-      setState(() {
-        operation = _GraphWidgetOperation.noOperation;
-      });
-    }
-
-    gestureStart = null;
-  }
-
-  void beginElementOperation() {
-    setState(() {
-      operation = _GraphWidgetOperation.elementOperation;
-    });
-  }
-
-  void endElementOperation() {
-    setState(() {
-      operation = _GraphWidgetOperation.noOperation;
-    });
-  }
-
-  void createContextMenu(Offset screenPosition, Offset graphPosition) {
-    setState(() {
-      operation = _GraphWidgetOperation.overlayMenu;
-
-      overlayMenu = ContextMenu(
-        screenLocation: screenPosition,
-        options: [
-          MenuOption(
-            text: 'Create consumer node',
-            operation: () => createConsumerMenu(graphPosition),
-          ),
-          MenuOption(
-            text: 'Build full graph',
-            operation: () => graph.fulfillAllNodeIo(),
-          ),
-        ],
-      );
-    });
-  }
-
-  void createConsumerMenu(Offset graphPosition) {
-    setState(() {
-      operation = _GraphWidgetOperation.overlayMenu;
-
-      overlayMenu = Center(
-        child: FactorioIconMenuWidget<Item>(
-          itemGroups: graph.basePlanner.validConsumerNodeItems,
-          onSelected: (item) {
-            graph.addNode(
-              nodeType: NodeType.consumer,
-              productionLine: MagicLine.singleItemConsumer(InGameItem(item)),
-              initialPosition: graphPosition,
-            );
-          },
-        ),
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    List<Widget> children = [
-      GraphWindow(
-        key: BasePlannerElementKey(graph),
-        nodes: graph.allNodes,
-        edges: graph.edges,
-        transformEnabled: operation.transformEnabled && !shiftKeyHeld,
-        shiftKeyHeld: shiftKeyHeld,
-        onPointerDown: beginGesture,
-        onPointerCancel: cancelGesture,
-        onPointerUp: endGesture,
-        beginElementOperation: beginElementOperation,
-        endElementOperation: endElementOperation,
-      ),
-      GraphOverlay(icon: graph.icon, name: graph.name),
-    ];
-
-    if (operation == _GraphWidgetOperation.overlayMenu) {
-      children
-        ..add(
-          Listener(
-            behavior: HitTestBehavior.opaque,
-            onPointerUp: (_) => setState(() {
-              operation = _GraphWidgetOperation.noOperation;
-            }),
-          ),
-        )
-        ..add(overlayMenu);
-    }
-
-    return KeyboardListener(
-      focusNode: focusNode,
-      onKeyEvent: handleKeyEvent,
-      child: Stack(fit: StackFit.expand, children: children),
-    );
-  }
-}
 
 class GraphOverlay extends StatelessWidget {
-  final Icon? icon;
-  final String name;
-
-  const GraphOverlay({super.key, required this.icon, required this.name});
+  const GraphOverlay({super.key});
 
   @override
   Widget build(BuildContext context) {
+    var model = BasePlannerModel.of(
+      context,
+      BasePlannerModelAspect(DependencyType.graphOverlay),
+    );
+
     return Column(
       children: [
         Container(
@@ -215,9 +33,9 @@ class GraphOverlay extends StatelessWidget {
             children: [
               Padding(
                 padding: EdgeInsetsGeometry.all(5),
-                child: IconWidgetCache.get(icon),
+                child: IconWidgetCache.get(model.activeGraphIcon),
               ),
-              Text(name),
+              Text(model.activeGraphName),
             ],
           ),
         ),
@@ -227,55 +45,125 @@ class GraphOverlay extends StatelessWidget {
 }
 
 class GraphWindow extends StatelessWidget {
-  final Iterable<NodeElement> nodes;
-  final Iterable<Edge> edges;
+  const GraphWindow({super.key});
 
-  final bool transformEnabled;
-  final bool shiftKeyHeld;
-  final Function(PointerDownEvent) onPointerDown;
-  final Function(PointerCancelEvent) onPointerCancel;
-  final Function(PointerUpEvent) onPointerUp;
-  final Function() beginElementOperation;
-  final Function() endElementOperation;
+  void createContextMenu(
+    BuildContext context,
+    Graph activeGraph,
+    Offset screenPosition,
+    Offset graphPosition,
+  ) {
+    pushOverlayMenu(
+      context,
+      ContextMenu(
+        screenLocation: screenPosition,
+        options: [
+          MenuOption(
+            text: 'Create consumer node',
+            operation: (ctx) =>
+                createConsumerMenu(ctx, graphPosition, activeGraph),
+          ),
+          MenuOption(
+            text: 'Build full graph',
+            operation: (_) => activeGraph.fulfillAllNodeIo(),
+          ),
+        ],
+      ),
+    );
+  }
 
-  const GraphWindow({
-    super.key,
-    required this.nodes,
-    required this.edges,
-    required this.transformEnabled,
-    required this.shiftKeyHeld,
-    required this.onPointerDown,
-    required this.onPointerCancel,
-    required this.onPointerUp,
-    required this.beginElementOperation,
-    required this.endElementOperation,
-  });
+  void createConsumerMenu(
+    BuildContext context,
+    Offset graphPosition,
+    Graph activeGraph,
+  ) {
+    pushOverlayMenu(
+      context,
+      Center(
+        child: FactorioIconMenuWidget<Item>(
+          itemGroups: activeGraph.basePlanner.validConsumerNodeItems,
+          onSelected: (item) {
+            activeGraph.addNode(
+              nodeType: NodeType.consumer,
+              productionLine: MagicLine.singleItemConsumer(InGameItem(item)),
+              initialPosition: graphPosition,
+            );
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    var model = BasePlannerModel.of(
+      context,
+      BasePlannerModelAspect(DependencyType.graphView),
+    );
+
+    List<NodeElement> unselectedNodes;
+    List<NodeElement> selectedNodes;
+    List<Edge> unselectedEdges;
+    List<Edge> selectedEdges;
+
+    if (model.selectedElements.isEmpty) {
+      unselectedNodes = model.orderedNodes;
+      unselectedEdges = model.orderedEdges;
+      selectedNodes = const [];
+      selectedEdges = const [];
+    } else {
+      unselectedNodes = [];
+      selectedNodes = [];
+      for (var node in model.orderedNodes) {
+        if (!model.selectedElements.contains(node)) {
+          unselectedNodes.add(node);
+        } else {
+          selectedNodes.add(node);
+        }
+      }
+
+      unselectedEdges = [];
+      selectedEdges = [];
+      for (var edge in model.orderedEdges) {
+        if (!model.selectedElements.contains(edge)) {
+          unselectedEdges.add(edge);
+        } else {
+          selectedEdges.add(edge);
+        }
+      }
+    }
+
     return InteractiveViewer(
-      panEnabled: transformEnabled,
-      scaleEnabled: transformEnabled,
+      panEnabled: model.allowTransformation,
+      scaleEnabled: model.allowTransformation,
       child: Stack(
         fit: StackFit.expand,
+        clipBehavior: Clip.none,
         children: [
-          Listener(
+          GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onPointerDown: onPointerDown,
-            onPointerCancel: onPointerCancel,
-            onPointerUp: onPointerUp,
+            onSecondaryTapUp: (details) {
+              if (!isShiftKeyHeld(context)) {
+                createContextMenu(
+                  context,
+                  model.activeGraph,
+                  details.globalPosition,
+                  details.localPosition,
+                );
+              }
+            },
           ),
-          ...nodes.map(
-            (node) => NodeWidget(
-              key: BasePlannerElementKey(node),
-              node: node,
-              shiftKeyHeld: shiftKeyHeld,
-              beginElementOperation: beginElementOperation,
-              endElementOperation: endElementOperation,
-            ),
-          ),
-          ...edges.map(
+          ...unselectedEdges.map(
             (edge) => EdgeWidget(key: BasePlannerElementKey(edge), edge: edge),
+          ),
+          ...unselectedNodes.map(
+            (node) => NodeWidget(key: BasePlannerElementKey(node), node: node),
+          ),
+          ...selectedEdges.map(
+            (edge) => EdgeWidget(key: BasePlannerElementKey(edge), edge: edge),
+          ),
+          ...selectedNodes.map(
+            (node) => NodeWidget(key: BasePlannerElementKey(node), node: node),
           ),
         ],
       ),
@@ -310,13 +198,13 @@ class ContextMenu extends StatelessWidget {
 
 class MenuOption extends StatelessWidget {
   final String text;
-  final Function() operation;
+  final Function(BuildContext context) operation;
 
   const MenuOption({super.key, required this.text, required this.operation});
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(onPressed: operation, child: Text(text));
+    return TextButton(onPressed: () => operation(context), child: Text(text));
   }
 }
 
@@ -332,16 +220,4 @@ class BasePlannerElementKey extends LocalKey {
 
   @override
   int get hashCode => element.hashCode;
-}
-
-enum _GraphWidgetOperation {
-  noOperation(true),
-  shiftGesture(false),
-  nonShiftGesture(true),
-  overlayMenu(false),
-  elementOperation(false);
-
-  final bool transformEnabled;
-
-  const _GraphWidgetOperation(this.transformEnabled);
 }

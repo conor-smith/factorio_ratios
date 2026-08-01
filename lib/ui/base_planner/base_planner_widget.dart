@@ -5,6 +5,7 @@ import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/ui/base_planner/base_planner_model.dart';
+import 'package:factorio_ratios/ui/base_planner/graph_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -218,6 +219,8 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     return poppedMenu;
   }
 
+  void pushOverlayMenu(Widget newMenu) => setState(() => overlayMenu = newMenu);
+
   GeometryOperation? popGeometryOp() {
     var poppedOp = geometryOp;
     performingGeometryOp = poppedOp != null;
@@ -227,6 +230,24 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    var children = <Widget>[const GraphWindow(), const GraphOverlay()];
+
+    var poppedMenu = popOverlayMenu();
+    if (poppedMenu != null) {
+      children
+        ..add(
+          Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerUp: (_) => setState(() {
+              // refreshing state removes overlay menu
+            }),
+          ),
+        )
+        ..add(poppedMenu);
+    }
+
+    var geometryOp = popGeometryOp();
+
     return Scaffold(
       body: BasePlannerModel(
         activeSnapshot: activeSnapshot,
@@ -237,12 +258,17 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
         activeElement: activeElement,
         allowTransformation:
             !shiftKeyHeld && !performingGeometryOp && !displayingOverlayMenu,
-        geometryOp: popGeometryOp(),
-        child: const Placeholder(),
+        geometryOp: geometryOp,
+        child: Stack(fit: StackFit.expand, children: children),
       ),
     );
   }
 }
+
+void pushOverlayMenu(BuildContext context, Widget overlayMenu) =>
+    _BasePlannerWidgetState._getStateOrThrow(
+      context,
+    ).pushOverlayMenu(overlayMenu);
 
 // TODO: Document
 void toggleSelectNode(
@@ -265,3 +291,6 @@ void toggleSelectEdge(
 
 void clearSelectedElements(BuildContext context) =>
     _BasePlannerWidgetState._getStateOrThrow(context).clearSelectedElements();
+
+bool isShiftKeyHeld(BuildContext context) =>
+    _BasePlannerWidgetState._getStateOrThrow(context).shiftKeyHeld;

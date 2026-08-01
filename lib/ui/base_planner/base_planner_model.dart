@@ -87,6 +87,20 @@ class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
   }) : activeGraphName = activeGraph.name,
        activeGraphIcon = activeGraph.icon;
 
+  static BasePlannerModel of(
+    BuildContext context,
+    BasePlannerModelAspect aspect,
+  ) {
+    var model = InheritedModel.inheritFrom<BasePlannerModel>(
+      context,
+      aspect: aspect,
+    );
+    if (model == null) {
+      throw const BasePlannerException('BasePlannerModel not in tree');
+    }
+    return model;
+  }
+
   bool _stateUpdate(BasePlannerModel oldModel, BasePlannerElement element) =>
       activeSnapshot[element] != oldModel.activeSnapshot[element];
   bool _selectionUpdate(
@@ -110,9 +124,9 @@ class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
   ) => aspects.any(
     (aspect) => switch (aspect.dependencyType) {
       DependencyType.elementWidget =>
-        _stateUpdate(oldModel, aspect.element) ||
-            _selectionUpdate(oldModel, aspect.element) ||
-            _geometryOpOnElement(aspect.element),
+        _stateUpdate(oldModel, aspect.element!) ||
+            _selectionUpdate(oldModel, aspect.element!) ||
+            _geometryOpOnElement(aspect.element!),
 
       DependencyType.graphView =>
         allowTransformation != oldModel.allowTransformation ||
@@ -131,9 +145,9 @@ enum DependencyType { elementWidget, graphView, graphOverlay }
 
 class BasePlannerModelAspect {
   final DependencyType dependencyType;
-  final BasePlannerElement element;
+  final BasePlannerElement? element;
 
-  const BasePlannerModelAspect(this.dependencyType, this.element);
+  const BasePlannerModelAspect(this.dependencyType, [this.element]);
 
   @override
   bool operator ==(Object other) {

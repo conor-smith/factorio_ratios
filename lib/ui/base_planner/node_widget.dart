@@ -16,17 +16,8 @@ const _selectedBoxDecoration = BoxDecoration(
 
 class NodeWidget extends StatefulWidget {
   final NodeElement node;
-  final bool shiftKeyHeld;
-  final Function() beginElementOperation;
-  final Function() endElementOperation;
 
-  const NodeWidget({
-    super.key,
-    required this.node,
-    required this.shiftKeyHeld,
-    required this.beginElementOperation,
-    required this.endElementOperation,
-  });
+  const NodeWidget({super.key, required this.node});
 
   @override
   State<NodeWidget> createState() => _NodeWidgetState();
