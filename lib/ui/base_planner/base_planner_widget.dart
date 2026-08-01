@@ -6,6 +6,13 @@ import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/ui/base_planner/base_planner_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+const List<LogicalKeyboardKey> _shiftKeys = [
+  LogicalKeyboardKey.shiftLeft,
+  LogicalKeyboardKey.shiftRight,
+  LogicalKeyboardKey.shift,
+];
 
 class BasePlannerWidget extends StatefulWidget {
   final BasePlanner basePlanner;
@@ -17,6 +24,9 @@ class BasePlannerWidget extends StatefulWidget {
 }
 
 class _BasePlannerWidgetState extends State<BasePlannerWidget> {
+  final FocusNode focusNode = FocusNode();
+  bool shiftKeyHeld = false;
+
   late Snapshot activeSnapshot;
   late Graph activeGraph;
 
@@ -26,8 +36,10 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
   final Set<BasePlannerElement> selectedElements = {};
   BasePlannerElement? activeElement;
 
+  bool performingGeometryOp = false;
   GeometryOperation? geometryOp;
 
+  bool displayingOverlayMenu = false;
   Widget? overlayMenu;
 
   static _BasePlannerWidgetState _getStateOrThrow(BuildContext context) {
@@ -49,6 +61,8 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     activeGraph = widget.basePlanner.rootGraph;
 
     widget.basePlanner.setListener(snapshotUpdate);
+
+    focusNode.requestFocus();
   }
 
   @override
@@ -56,6 +70,29 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
     super.dispose();
 
     widget.basePlanner.removeListener();
+    focusNode.dispose();
+  }
+
+  void handleKeyEvent(KeyEvent event) {
+    if (_shiftKeys.contains(event.logicalKey)) {
+      if (event is KeyDownEvent) {
+        shiftKeyHeld = true;
+      } else if (event is KeyUpEvent) {
+        shiftKeyHeld = false;
+      }
+
+      if (!performingGeometryOp && !displayingOverlayMenu) {
+        setState(() {
+          // updates allowTransformation
+        });
+      }
+    } else if (event.logicalKey == LogicalKeyboardKey.escape &&
+        event is KeyUpEvent &&
+        (performingGeometryOp || displayingOverlayMenu)) {
+      setState(() {
+        // Removes overlay menu. Cancels geometry op
+      });
+    }
   }
 
   void snapshotUpdate(Snapshot oldSnapshot, Snapshot newSnapshot) => setState(
@@ -142,12 +179,14 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
 
   Widget? popOverlayMenu() {
     var poppedMenu = overlayMenu;
+    displayingOverlayMenu = poppedMenu != null;
     overlayMenu = null;
     return poppedMenu;
   }
 
   GeometryOperation? popGeometryOp() {
     var poppedOp = geometryOp;
+    performingGeometryOp = poppedOp != null;
     geometryOp = null;
     return poppedOp;
   }
@@ -162,6 +201,8 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
         orderedEdges: orderedEdges,
         selectedElements: selectedElements,
         activeElement: activeElement,
+        allowTransformation:
+            !shiftKeyHeld && !performingGeometryOp && !displayingOverlayMenu,
         geometryOp: popGeometryOp(),
         child: const Placeholder(),
       ),
