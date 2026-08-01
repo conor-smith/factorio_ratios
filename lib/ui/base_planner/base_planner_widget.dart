@@ -114,20 +114,54 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
           ..addAll(activeGraph.edges);
       } else if (activeGraph.allElementsHash !=
           (oldSnapshot[activeGraph] as GraphStateImpl?)?.allElementsHash) {
-        orderedNodes
-          ..removeWhere((node) => !activeGraph.allNodes.contains(node))
-          ..addAll(
-            activeGraph.allNodes
-                .where((node) => !orderedNodes.contains(node))
-                .toList(),
-          );
-        orderedEdges
-          ..removeWhere((edge) => !activeGraph.edges.contains(edge))
-          ..addAll(
-            activeGraph.edges
-                .where((edge) => !orderedEdges.contains(edge))
-                .toList(),
-          );
+        Set<BasePlannerElement> graphAllElements = {
+          ...activeGraph.allNodes,
+          ...activeGraph.edges,
+        };
+
+        orderedNodes.removeWhere((node) => !graphAllElements.contains(node));
+        orderedEdges.removeWhere((edge) => !graphAllElements.contains(edge));
+        selectedElements.removeWhere(
+          (element) => !graphAllElements.contains(element),
+        );
+
+        var newNodes = activeGraph.allNodes
+            .where((node) => !orderedNodes.contains(node))
+            .toList();
+        var newEdges = activeGraph.edges
+            .where((edge) => !orderedEdges.contains(edge))
+            .toList();
+
+        if (selectedElements.isEmpty) {
+          orderedNodes.addAll(newNodes);
+          orderedEdges.addAll(newEdges);
+        } else {
+          if (newNodes.isNotEmpty) {
+            // Insert new nodes under first selected items
+            var insertionIndex = orderedNodes.length;
+            for (var i = 0; i < orderedNodes.length; i++) {
+              if (selectedElements.contains(orderedNodes[i])) {
+                insertionIndex = i;
+                break;
+              }
+            }
+
+            newNodes.insertAll(insertionIndex, newNodes);
+          }
+        }
+
+        if (newEdges.isNotEmpty) {
+          // Insert new edges under first selected edges
+          var insertionIndex = orderedEdges.length;
+          for (var i = 0; i < orderedEdges.length; i++) {
+            if (selectedElements.contains(orderedEdges[i])) {
+              insertionIndex = i;
+              break;
+            }
+          }
+
+          newEdges.insertAll(insertionIndex, newEdges);
+        }
       }
     },
   );

@@ -115,7 +115,8 @@ class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
             _geometryOpOnElement(aspect.element),
 
       DependencyType.graphView =>
-        activeGraph != oldModel.activeGraph ||
+        allowTransformation != oldModel.allowTransformation ||
+            activeGraph != oldModel.activeGraph ||
             orderedNodesHash != oldModel.orderedNodesHash ||
             orderedEdgesHash != oldModel.orderedEdgesHash,
 
