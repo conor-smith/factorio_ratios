@@ -132,7 +132,8 @@ class BasePlannerModel extends InheritedModel<BasePlannerModelAspect> {
         allowTransformation != oldModel.allowTransformation ||
             activeGraph != oldModel.activeGraph ||
             orderedNodesHash != oldModel.orderedNodesHash ||
-            orderedEdgesHash != oldModel.orderedEdgesHash,
+            orderedEdgesHash != oldModel.orderedEdgesHash ||
+            selectedElementsHash != oldModel.selectedElementsHash,
 
       DependencyType.graphOverlay =>
         activeGraphName != oldModel.activeGraphName ||
