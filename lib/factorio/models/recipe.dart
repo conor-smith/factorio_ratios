@@ -43,16 +43,26 @@ class Recipe extends PrototypeWithIcon {
   /// Crafting machines sorted by speed in descending order
   late final List<CraftingMachine> sortedCraftingMachines = List.unmodifiable(
     categories
-        .expand(
+        .expand<CraftingMachine>(
           (category) =>
               factorioDb._craftingCategoryToMachines[category] ?? const [],
         )
         .toSet() // Removes duplicates
-        .toList()
-      ..sort(
-        (machine1, machine2) =>
-            machine2.craftingSpeed.compareTo(machine1.craftingSpeed),
-      ),
+        .toList(growable: false)
+      ..sort((machine1, machine2) {
+        var speedCompare = machine2.craftingSpeed.compareTo(
+          machine1.craftingSpeed,
+        );
+        if (speedCompare != 0) {
+          return speedCompare;
+        } else {
+          var electricMachine1 =
+              machine1.energySource.type == EnergySourceType.electric ? 1 : 0;
+          var electricMachine2 =
+              machine2.energySource.type == EnergySourceType.electric ? 1 : 0;
+          return electricMachine2 - electricMachine1;
+        }
+      }),
   );
 
   late final List<Surface> surfaces = List.unmodifiable(
