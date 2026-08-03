@@ -1,52 +1,120 @@
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
 import 'package:flutter/material.dart';
 
-class EdgeWidget extends StatefulWidget {
-  final Edge edge;
+class EdgeWidget extends StatelessWidget {
+  final EdgeChangeNotifier edgeChangeNotifier;
 
-  const EdgeWidget({super.key, required this.edge});
-
-  @override
-  State<EdgeWidget> createState() => _EdgeWidgetState();
-}
-
-class _EdgeWidgetState extends State<EdgeWidget> {
-  late EdgeGeometry geometry;
-
-  // For convenience
-  Edge get edge => widget.edge;
-
-  @override
-  void initState() {
-    super.initState();
-
-    geometry = edge.geometry;
-
-    edge.addListener(
-      this,
-      (event) => setState(() => geometry = event.geometry ?? edge.geometry),
-    );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-
-    edge.removeListener(this);
-  }
+  const EdgeWidget({super.key, required this.edgeChangeNotifier});
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: CustomPaint(
-        size: geometry.rect.size,
-        painter: LinesPainter(geometry.lines[0], edge.isSelected),
-      ),
-    );
+    return const Placeholder();
   }
 }
+
+class EdgeChangeNotifier with ChangeNotifier {
+  final Edge edge;
+
+  EdgeGeometry _geometry;
+  bool _selected;
+  bool _isActiveElement;
+  GeometryOperation? _geometryOp;
+
+  EdgeChangeNotifier(this.edge)
+    : _geometry = edge.geometry,
+      _selected = false,
+      _isActiveElement = false,
+      _geometryOp = null;
+
+  EdgeGeometry get geometry => _geometry;
+  bool get selected => _selected;
+  bool get isActiveElement => _isActiveElement;
+
+  void newSnapshot() {
+    if (edge.geometry != _geometry) {
+      _geometry = edge.geometry;
+      notifyListeners();
+    }
+  }
+
+  set selected(bool newSelected) {
+    if (newSelected != _selected) {
+      _selected = newSelected;
+      notifyListeners();
+    }
+  }
+
+  set isActiveElement(bool newIsActiveElement) {
+    if (newIsActiveElement != _isActiveElement) {
+      _isActiveElement = newIsActiveElement;
+      notifyListeners();
+    }
+  }
+
+  GeometryOperation? popGeometryOp() {
+    var geometryOp = _geometryOp;
+    _geometryOp = null;
+    return geometryOp;
+  }
+
+  void checkForBuilder(GeometryOperation geometryOp) {
+    var builder = geometryOp.getEdgeGeometryBuilder(edge);
+
+    if (builder != null) {
+      _geometryOp = geometryOp;
+      _geometry = builder;
+      notifyListeners();
+    }
+  }
+}
+
+// class EdgeWidget extends StatefulWidget {
+//   final Edge edge;
+
+//   const EdgeWidget({super.key, required this.edge});
+
+//   @override
+//   State<EdgeWidget> createState() => _EdgeWidgetState();
+// }
+
+// class _EdgeWidgetState extends State<EdgeWidget> {
+//   late EdgeGeometry geometry;
+
+//   // For convenience
+//   Edge get edge => widget.edge;
+
+//   @override
+//   void initState() {
+//     super.initState();
+
+//     geometry = edge.geometry;
+
+//     edge.addListener(
+//       this,
+//       (event) => setState(() => geometry = event.geometry ?? edge.geometry),
+//     );
+//   }
+
+//   @override
+//   void dispose() {
+//     super.dispose();
+
+//     edge.removeListener(this);
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return IgnorePointer(
+//       child: CustomPaint(
+//         size: geometry.rect.size,
+//         painter: LinesPainter(geometry.lines[0], edge.isSelected),
+//       ),
+//     );
+//   }
+// }
 
 class LinesPainter extends CustomPainter {
   final Line line;
