@@ -9,6 +9,7 @@ import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/utility/collections.dart';
 import 'package:factorio_ratios/utility/json.dart';
 import 'package:factorio_ratios/utility/builder.dart';
+import 'package:flutter/foundation.dart';
 
 part 'base_planner_element.dart';
 
@@ -32,9 +33,7 @@ part 'base_planner_element.dart';
 /// the first snapshot in the list will be removed.
 /// Alternatively, if the user navigates to a previous snapshot and builds a new
 /// one from there, all subsequent snapshots will be deleted.
-///
-/// [activeGraph] represents the current [Graph] to be displayed.
-class BasePlanner implements ToJson {
+class BasePlanner with ChangeNotifier implements ToJson {
   static const maxSnapshots = 20;
 
   final FactorioDatabase db;
@@ -54,13 +53,13 @@ class BasePlanner implements ToJson {
   /// List of saved snapshots. Current snapshot is given by [snapshotIndex]
   late final List<Snapshot> snapshots = UnmodifiableListView(_snapshots);
 
+  Snapshot get activeSnapshot => _snapshots[_snapshotIndex];
+
   SnapshotBuilder? get snapshotBuilder => _snapshotBuilder;
 
   final List<Snapshot> _snapshots = [];
   int _snapshotIndex = 0;
   SnapshotBuilder? _snapshotBuilder;
-
-  Function(Snapshot oldSnapshot, Snapshot newSnapshot)? _callOnSnapshotUpdate;
 
   int _mutationLock = 0;
 
@@ -99,11 +98,6 @@ class BasePlanner implements ToJson {
     _snapshots.add(Snapshot({rootGraph: firstState}));
   }
 
-  void setListener(
-    Function(Snapshot oldSnapshot, Snapshot newSnapshot) onSnapshotUpdate,
-  ) => _callOnSnapshotUpdate = onSnapshotUpdate;
-  void removeListener() => _callOnSnapshotUpdate = null;
-
   /// Throws an exception if mutation is not permitted
   void throwIfMutationNotPermitted() {
     if (_mutationLock == 0) {
@@ -119,8 +113,8 @@ class BasePlanner implements ToJson {
     if (newIndex < 0 || newIndex >= _snapshots.length) {
       throw BasePlannerException('Snapshot index $newIndex is out of bounds');
     } else if (newIndex != _snapshotIndex) {
-      _applySnapshot(_snapshots[_snapshotIndex], _snapshots[newIndex]);
       _snapshotIndex = newIndex;
+      _applyActiveSnapshot();
     }
   }
 
@@ -152,18 +146,15 @@ class BasePlanner implements ToJson {
         if (snapshotBuilder.hasChanges) {
           var newSnapshot = snapshotBuilder.build();
 
-          int newSnapshotIndex;
           if (_snapshotIndex == maxSnapshots - 1) {
             _snapshots.removeAt(0);
-            newSnapshotIndex = _snapshotIndex;
           } else {
             _snapshots.removeRange(_snapshotIndex, _snapshots.length);
-            newSnapshotIndex = _snapshotIndex + 1;
+            _snapshotIndex++;
           }
-          _snapshots.add(newSnapshot);
 
-          _applySnapshot(_snapshots[_snapshotIndex], newSnapshot);
-          _snapshotIndex = newSnapshotIndex;
+          _snapshots.add(newSnapshot);
+          _applyActiveSnapshot();
         }
 
         _snapshotBuilder = null;
@@ -196,19 +187,19 @@ class BasePlanner implements ToJson {
     throw UnimplementedError();
   }
 
-  void _applySnapshot(Snapshot oldSnapshot, Snapshot newSnapshot) {
+  void _applyActiveSnapshot() {
     try {
       _mutationLock++;
-      newSnapshot.stateMap.forEach(
+      activeSnapshot.stateMap.forEach(
         (element, state) => element.updateState(state),
       );
       _mutationLock--;
+
+      notifyListeners();
     } catch (e) {
       _mutationLock--;
       rethrow;
     }
-
-    _callOnSnapshotUpdate?.call(oldSnapshot, newSnapshot);
   }
 }
 

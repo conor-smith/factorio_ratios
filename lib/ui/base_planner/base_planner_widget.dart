@@ -23,6 +23,10 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
   }
 }
 
+abstract class ElementChangeNotifier with ChangeNotifier {
+  void newSnapshot();
+}
+
 // class BasePlannerWidget extends StatefulWidget {
 //   final BasePlanner basePlanner;
 

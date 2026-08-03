@@ -1,12 +1,14 @@
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:flutter/material.dart';
 
 class NodeWidget extends StatefulWidget {
   final NodeChangeNotifier nodeChangeNotifier;
 
-  const NodeWidget({super.key, required this.nodeChangeNotifier});
+  NodeWidget({super.key, required NodeElement node})
+    : nodeChangeNotifier = NodeChangeNotifier(node);
 
   @override
   State<NodeWidget> createState() => _NodeWidgetState();
@@ -19,7 +21,7 @@ class _NodeWidgetState extends State<NodeWidget> {
   }
 }
 
-class NodeChangeNotifier with ChangeNotifier {
+class NodeChangeNotifier extends ElementChangeNotifier {
   final NodeElement node;
 
   NodeGeometry _geometry;
@@ -37,6 +39,7 @@ class NodeChangeNotifier with ChangeNotifier {
   bool get selected => _selected;
   bool get isActiveElement => _isActiveElement;
 
+  @override
   void newSnapshot() {
     if (node.geometry != _geometry) {
       _geometry = node.geometry;

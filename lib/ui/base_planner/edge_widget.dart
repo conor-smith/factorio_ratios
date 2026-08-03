@@ -2,12 +2,14 @@ import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
+import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:flutter/material.dart';
 
 class EdgeWidget extends StatelessWidget {
   final EdgeChangeNotifier edgeChangeNotifier;
 
-  const EdgeWidget({super.key, required this.edgeChangeNotifier});
+  EdgeWidget({super.key, required Edge edge})
+    : edgeChangeNotifier = EdgeChangeNotifier(edge);
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +17,7 @@ class EdgeWidget extends StatelessWidget {
   }
 }
 
-class EdgeChangeNotifier with ChangeNotifier {
+class EdgeChangeNotifier extends ElementChangeNotifier {
   final Edge edge;
 
   EdgeGeometry _geometry;
@@ -33,6 +35,7 @@ class EdgeChangeNotifier with ChangeNotifier {
   bool get selected => _selected;
   bool get isActiveElement => _isActiveElement;
 
+  @override
   void newSnapshot() {
     if (edge.geometry != _geometry) {
       _geometry = edge.geometry;

@@ -1,9 +1,18 @@
+import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
+import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
+import 'package:factorio_ratios/ui/base_planner/edge_widget.dart';
+import 'package:factorio_ratios/ui/base_planner/node_widget.dart';
 import 'package:flutter/material.dart' hide Icon;
 
-class GraphOverlay extends StatelessWidget {
-  const GraphOverlay({super.key});
+class GraphOverlayWidget extends StatelessWidget {
+  final OverlayChangeNotifier changeNotifier;
+
+  GraphOverlayWidget({super.key, required Graph graph})
+    : changeNotifier = OverlayChangeNotifier(graph);
 
   @override
   Widget build(BuildContext context) {
@@ -11,21 +20,138 @@ class GraphOverlay extends StatelessWidget {
   }
 }
 
-class GraphViewer extends StatefulWidget {
-  const GraphViewer({super.key});
+class GraphWidget extends StatefulWidget {
+  final GraphWidgetPersistentState persistentState;
+
+  const GraphWidget({super.key, required this.persistentState});
 
   @override
-  State<GraphViewer> createState() => _GraphViewerState();
+  State<GraphWidget> createState() => _GraphWidgetState();
 }
 
-class _GraphViewerState extends State<GraphViewer> {
+class _GraphWidgetState extends State<GraphWidget> {
+  Graph get graph => widget.persistentState.graph;
+  List<NodeElement> get nodeDisplayOrder =>
+      widget.persistentState.nodeDisplayOrder;
+  List<Edge> get edgeDisplayOrder => widget.persistentState.edgeDisplayOrder;
+
+  final Set<BasePlannerElement> selectedElements = {};
+  BasePlannerElement? activeElement;
+
+  final Map<NodeElement, NodeWidget> nodeWidgets = {};
+  final Map<Edge, EdgeWidget> edgeWidgets = {};
+  late final GraphOverlayWidget graphOverlay = GraphOverlayWidget(graph: graph);
+
+  bool hasBeenInitiated = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    onSnapshotUpdate();
+
+    for (var node in nodeDisplayOrder) {
+      nodeWidgets[node] = NodeWidget(node: node);
+    }
+    for (var edge in edgeDisplayOrder) {
+      edgeWidgets[edge] = EdgeWidget(edge: edge);
+    }
+
+    graph.basePlanner.addListener(onSnapshotUpdate);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+
+    graph.basePlanner.removeListener(onSnapshotUpdate);
+  }
+
+  void onSnapshotUpdate() {
+    if (graph.allElementsHash != widget.persistentState._allElementsHash) {
+      widget.persistentState._allElementsHash = graph.allElementsHash;
+
+      if (activeElement != null &&
+          !graph.allNodes.contains(activeElement) &&
+          !graph.edges.contains(activeElement)) {
+        activeElement = null;
+      }
+
+      nodeDisplayOrder.removeWhere((node) {
+        if (!graph.allNodes.contains(node)) {
+          nodeWidgets.remove(node);
+          selectedElements.remove(node);
+          return true;
+        } else {
+          return false;
+        }
+      });
+
+      edgeDisplayOrder.removeWhere((edge) {
+        if (!graph.edges.contains(edge)) {
+          edgeWidgets.remove(edge);
+          selectedElements.remove(edge);
+          return true;
+        } else {
+          return false;
+        }
+      });
+
+      var newNodes = graph.allNodes
+          .where((node) => !nodeDisplayOrder.contains(node))
+          .toList();
+      var newEdges = graph.edges
+          .where((edge) => !edgeDisplayOrder.contains(edge))
+          .toList();
+
+      // Insert new elements in under currently selected elements
+      for (var i = nodeDisplayOrder.length - 1; i >= 0; i--) {
+        if (selectedElements.contains(nodeDisplayOrder[i])) {
+          nodeDisplayOrder.insertAll(i + 1, newNodes);
+          break;
+        }
+      }
+
+      for (var i = edgeDisplayOrder.length - 1; i >= 0; i--) {
+        if (selectedElements.contains(edgeDisplayOrder[i])) {
+          edgeDisplayOrder.insertAll(i + 1, newEdges);
+          break;
+        }
+      }
+
+      if (hasBeenInitiated) {
+        setState(() {
+          for (var newNode in newNodes) {
+            nodeWidgets[newNode] = NodeWidget(node: newNode);
+          }
+
+          for (var newEdge in newEdges) {
+            edgeWidgets[newEdge] = EdgeWidget(edge: newEdge);
+          }
+        });
+      }
+    }
+
+    if (hasBeenInitiated) {
+      for (var elementChangeNotifier in [
+        ...nodeWidgets.values.map((widget) => widget.nodeChangeNotifier),
+        ...edgeWidgets.values.map((widget) => widget.edgeChangeNotifier),
+        graphOverlay.changeNotifier,
+      ]) {
+        elementChangeNotifier.newSnapshot();
+      }
+    }
+
+    hasBeenInitiated = true;
+  }
+
   @override
   Widget build(BuildContext context) {
     return const Placeholder();
   }
 }
 
-class OverlayChangeNotifier with ChangeNotifier {
+class OverlayChangeNotifier extends ElementChangeNotifier {
   final Graph graph;
 
   String _name;
@@ -36,6 +162,7 @@ class OverlayChangeNotifier with ChangeNotifier {
   String get name => _name;
   Icon? get icon => _icon;
 
+  @override
   void newSnapshot() {
     var newName = graph.name;
     var newIcon = graph.icon;
@@ -46,6 +173,21 @@ class OverlayChangeNotifier with ChangeNotifier {
       notifyListeners();
     }
   }
+}
+
+class GraphWidgetPersistentState {
+  final Graph graph;
+  final TransformationController controller;
+  final List<NodeElement> nodeDisplayOrder;
+  final List<Edge> edgeDisplayOrder;
+
+  int _allElementsHash;
+
+  GraphWidgetPersistentState(this.graph)
+    : controller = TransformationController(),
+      nodeDisplayOrder = List.from(graph.allNodes),
+      edgeDisplayOrder = List.from(graph.edges),
+      _allElementsHash = graph.allElementsHash;
 }
 
 // class GraphOverlay extends StatelessWidget {
