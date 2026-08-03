@@ -74,7 +74,6 @@ class Graph extends NodeElement<GraphStateImpl> {
   @override
   ItemIoImpl get ioRatios => _state.ioRatios;
 
-  @override
   int get allElementsHash => _state.allElementsHash;
 
   Graph.addToBasePlanner(
