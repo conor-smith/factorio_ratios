@@ -11,6 +11,7 @@ abstract class BasePlannerElement<St> implements ToJson {
 
   Graph get parentGraph;
   Geometry get geometry;
+  ElementType get elementType;
 
   /// Will only be permitted if [BasePlanner] allows. Will throw an exception otherwise.
   void updateState(St newState);
@@ -18,3 +19,5 @@ abstract class BasePlannerElement<St> implements ToJson {
   ElementChangeTracker getChangeTracker();
   Builder<St> getStateBuilder();
 }
+
+enum ElementType { graph, prodLineNode, edge }

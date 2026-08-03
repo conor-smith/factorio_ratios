@@ -76,6 +76,9 @@ class Graph extends NodeElement<GraphStateImpl> {
 
   int get allElementsHash => _state.allElementsHash;
 
+  @override
+  ElementType get elementType => ElementType.graph;
+
   Graph.addToBasePlanner(
     super.basePlanner, {
     required this.parentGraph,

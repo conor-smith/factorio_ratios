@@ -28,6 +28,9 @@ class Edge extends BasePlannerElement<EdgeStateImpl> {
   final ProdLineNode childProdLine;
   final InGameItem item;
 
+  @override
+  ElementType get elementType => ElementType.edge;
+
   EdgeStateImpl _internalState;
 
   // For convenience

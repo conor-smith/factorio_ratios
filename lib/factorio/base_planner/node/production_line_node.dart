@@ -39,6 +39,9 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl> {
   @override
   ProductionLineIoData get ioData => _state.ioData;
 
+  @override
+  ElementType get elementType => ElementType.edge;
+
   ProdLineNodeStateImpl _internalState;
 
   ProdLineNode.addToBasePlanner(
