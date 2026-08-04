@@ -47,11 +47,13 @@ class _GraphWidgetState extends State<GraphWidget> {
 
   final Map<BasePlannerElement, ElementViewChangeNotifier> changeNotifiers = {};
   final Map<BasePlannerElement, Widget> elementWidgets = {};
+  List<Widget>? cachedWidgetList;
 
   late final GraphOverlayWidget graphOverlay = GraphOverlayWidget(graph: graph);
 
   GeometryOperation? geometryOp;
   bool allowTransformation = true;
+  bool elementPointerOperation = false;
   bool hasBeenInitiated = false;
 
   @override
@@ -105,10 +107,10 @@ class _GraphWidgetState extends State<GraphWidget> {
       });
 
       var newNodes = graph.allNodes
-          .where((node) => !elementDisplayOrder.contains(node))
+          .where((node) => !changeNotifiers.containsKey(node))
           .toList();
       var newEdges = graph.edges
-          .where((edge) => !elementDisplayOrder.contains(edge))
+          .where((edge) => !changeNotifiers.containsKey(edge))
           .toList();
 
       // Insert new elements in under currently selected elements
@@ -141,6 +143,8 @@ class _GraphWidgetState extends State<GraphWidget> {
             changeNotifiers[newEdge] = edgeChangeNotifier;
             elementWidgets[newEdge] = EdgeWidget(notifier: edgeChangeNotifier);
           }
+
+          cachedWidgetList = null;
         });
       }
     }
@@ -157,6 +161,29 @@ class _GraphWidgetState extends State<GraphWidget> {
     hasBeenInitiated = true;
   }
 
+  void handleTrasformationState() {
+    var newAllowTransformation =
+        !shiftKeyHeld && !elementPointerOperation && geometryOp == null;
+
+    if (newAllowTransformation != allowTransformation) {
+      setState(() {
+        allowTransformation = newAllowTransformation;
+      });
+    }
+  }
+
+  void beginElementPointerOperation() {
+    elementPointerOperation = true;
+
+    handleTrasformationState();
+  }
+
+  void endElementPointerOperation() {
+    elementPointerOperation = false;
+
+    handleTrasformationState();
+  }
+
   void handleKeyEvent(KeyEvent event) {
     if (_shiftKeys.contains(event.logicalKey)) {
       if (event is KeyDownEvent) {
@@ -165,13 +192,7 @@ class _GraphWidgetState extends State<GraphWidget> {
         shiftKeyHeld = false;
       }
 
-      bool newAllowTransformation = !shiftKeyHeld && geometryOp == null;
-
-      if (newAllowTransformation != allowTransformation) {
-        setState(() {
-          allowTransformation = newAllowTransformation;
-        });
-      }
+      handleTrasformationState();
     }
   }
 
@@ -201,6 +222,8 @@ class _GraphWidgetState extends State<GraphWidget> {
           elementDisplayOrder
             ..remove(toToggle)
             ..add(toToggle);
+
+          cachedWidgetList = null;
         });
       }
     } else if (!toToggleNotifier.isActiveElement) {
@@ -215,11 +238,13 @@ class _GraphWidgetState extends State<GraphWidget> {
       toToggleNotifier.updateSelectedState(true, true);
 
       if (elementDisplayOrder.last != toToggle) {
-        setState(
-          () => elementDisplayOrder
+        setState(() {
+          elementDisplayOrder
             ..remove(toToggle)
-            ..add(toToggle),
-        );
+            ..add(toToggle);
+
+          cachedWidgetList = null;
+        });
       }
     } else {
       // shiftKeyHeld == true and toToggleNotifier.isActiveElement == true
@@ -230,17 +255,17 @@ class _GraphWidgetState extends State<GraphWidget> {
 
   @override
   Widget build(BuildContext context) {
+    cachedWidgetList ??= elementDisplayOrder
+        .map((element) => elementWidgets[element]!)
+        .toList(growable: false);
+
     return KeyboardListener(
       focusNode: focusNode,
       onKeyEvent: handleKeyEvent,
       child: InteractiveViewer(
         panEnabled: allowTransformation,
         scaleEnabled: allowTransformation,
-        child: Stack(
-          children: elementDisplayOrder
-              .map((element) => elementWidgets[element]!)
-              .toList(),
-        ),
+        child: Stack(children: cachedWidgetList!),
       ),
     );
   }
@@ -321,6 +346,11 @@ _GraphWidgetState _getStateOrThrow(BuildContext context) {
 
 void selectToggle(BuildContext context, BasePlannerElement element) =>
     _getStateOrThrow(context).toggleSelection(element);
+
+void beginElementPointerOperation(BuildContext context) =>
+    _getStateOrThrow(context).beginElementPointerOperation();
+void endElementPointerOperation(BuildContext context) =>
+    _getStateOrThrow(context).endElementPointerOperation();
 
 // class GraphOverlay extends StatelessWidget {
 //   const GraphOverlay({super.key});
