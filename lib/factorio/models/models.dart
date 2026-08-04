@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:convert';
 
 import 'package:factorio_ratios/factorio/factorio.dart';
+import 'package:factorio_ratios/utility/collections.dart';
 
 part 'crafting_machines.dart';
 part 'group.dart';

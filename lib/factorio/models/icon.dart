@@ -17,9 +17,7 @@ class Icon {
     Map<double, Icon>? cachedIconsMap,
   ]) : icons = List.unmodifiable(icons),
        _cachedSizedIcons = cachedIconsMap ?? {},
-       hashCode =
-           icons.fold(0, (sum, iconData) => sum + iconData.hashCode) +
-           size.hashCode {
+       hashCode = createHashFromOrderedIterable(icons) + size.hashCode {
     _cachedSizedIcons[size] = this;
   }
 

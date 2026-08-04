@@ -58,3 +58,16 @@ T? maxOrNull<T>(Iterable<T> iterable, Comparator<T> comparator) {
     return max;
   }
 }
+
+int createHashFromOrderedIterable(Iterable iterable) {
+  int index = 1;
+
+  return iterable.fold(0, (hash, item) {
+    var newHash = hash + (item.hashCode * index);
+    index++;
+    return newHash;
+  });
+}
+
+int createHashFromIterable(Iterable iterable) =>
+    iterable.fold(0, (hash, item) => hash += item.hashCode);

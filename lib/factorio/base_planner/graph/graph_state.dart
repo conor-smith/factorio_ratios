@@ -119,13 +119,14 @@ class GraphStateImpl extends GraphState implements ToJson {
        ),
        inputItems = Set.unmodifiable(inputNodes.keys),
        outputItems = Set.unmodifiable(outputNodes.keys),
-       allElementsHash = Iterable<BasePlannerElement>.empty()
-           .followedBy(prodLineNodes)
-           .followedBy(graphNodes)
-           .followedBy(inputNodes.values)
-           .followedBy(outputNodes.values)
-           .followedBy(edges)
-           .fold(0, (hash, element) => hash + element.hashCode) {
+       allElementsHash = createHashFromIterable(
+         Iterable<BasePlannerElement>.empty()
+             .followedBy(prodLineNodes)
+             .followedBy(graphNodes)
+             .followedBy(inputNodes.values)
+             .followedBy(outputNodes.values)
+             .followedBy(edges),
+       ) {
     if (graph.isRoot && (inputNodes.isNotEmpty || outputNodes.isNotEmpty)) {
       throw const GraphException('Root graph cannot have IO nodes');
     }
