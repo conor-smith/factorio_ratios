@@ -309,6 +309,19 @@ abstract class ElementViewChangeNotifier extends ElementChangeNotifier {
   void checkForBuilder(GeometryOperation geometryOp);
 }
 
+_GraphWidgetState _getStateOrThrow(BuildContext context) {
+  var state = context.findAncestorStateOfType<_GraphWidgetState>();
+
+  if (state == null) {
+    throw const BasePlannerException('Graph widget not found in context');
+  }
+
+  return state;
+}
+
+void selectToggle(BuildContext context, BasePlannerElement element) =>
+    _getStateOrThrow(context).toggleSelection(element);
+
 // class GraphOverlay extends StatelessWidget {
 //   const GraphOverlay({super.key});
 
