@@ -21,6 +21,10 @@ abstract class ElementChangeNotifier with ChangeNotifier {
   void newSnapshot();
 }
 
+void pushOverlayMenu(Widget widget) {
+  // TODO
+}
+
 // class BasePlannerWidget extends StatefulWidget {
 //   final BasePlanner basePlanner;
 

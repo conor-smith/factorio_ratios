@@ -72,10 +72,11 @@ class GeometryOperation with ChangeNotifier {
     );
   }
 
-  bool containsElement(BasePlannerElement element) =>
-      _nodeGeometries.containsKey(element) ||
-      _edgeGeometries.containsKey(element) ||
-      _affectedEdgeGeometries.containsKey(element);
+  Iterable<BasePlannerElement> allAffectedElements() =>
+      Iterable<BasePlannerElement>.empty()
+          .followedBy(_nodeGeometries.keys)
+          .followedBy(_edgeGeometries.keys)
+          .followedBy(_affectedEdgeGeometries.keys);
 
   NodeGeometryBuilder? getNodeGeometryBuilder(NodeElement node) =>
       _nodeGeometries[node];
@@ -100,6 +101,8 @@ class GeometryOperation with ChangeNotifier {
   }
 
   void applyUpdate() {
+    dispose();
+
     basePlanner.buildNextSnapshot(() {
       if (parentGraph.layout != GraphLayout.custom) {
         parentGraph.getStateBuilder().updateLayout(GraphLayout.custom);
@@ -117,6 +120,8 @@ class GeometryOperation with ChangeNotifier {
       );
     });
   }
+
+  void cancel() => dispose();
 }
 
 class NodeGeometryBuilder

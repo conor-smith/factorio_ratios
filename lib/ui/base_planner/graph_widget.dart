@@ -51,10 +51,11 @@ class _GraphWidgetState extends State<GraphWidget> {
 
   late final GraphOverlayWidget graphOverlay = GraphOverlayWidget(graph: graph);
 
-  GeometryOperation? geometryOp;
   bool allowTransformation = true;
-  bool elementPointerOperation = false;
   bool hasBeenInitiated = false;
+
+  GeometryOperation? geometryOp;
+  bool elementPointerOperation = false;
 
   @override
   void initState() {
@@ -156,12 +157,17 @@ class _GraphWidgetState extends State<GraphWidget> {
       ]) {
         elementChangeNotifier.newSnapshot();
       }
+
+      elementPointerOperation = false;
+      geometryOp?.cancel();
+      geometryOp = null;
+      handleTransformationState();
     }
 
     hasBeenInitiated = true;
   }
 
-  void handleTrasformationState() {
+  void handleTransformationState() {
     var newAllowTransformation =
         !shiftKeyHeld && !elementPointerOperation && geometryOp == null;
 
@@ -172,16 +178,16 @@ class _GraphWidgetState extends State<GraphWidget> {
     }
   }
 
-  void beginElementPointerOperation() {
+  void beginElementOperation() {
     elementPointerOperation = true;
 
-    handleTrasformationState();
+    handleTransformationState();
   }
 
-  void endElementPointerOperation() {
+  void endElementOperation() {
     elementPointerOperation = false;
 
-    handleTrasformationState();
+    handleTransformationState();
   }
 
   void handleKeyEvent(KeyEvent event) {
@@ -192,7 +198,7 @@ class _GraphWidgetState extends State<GraphWidget> {
         shiftKeyHeld = false;
       }
 
-      handleTrasformationState();
+      handleTransformationState();
     }
   }
 
@@ -250,6 +256,28 @@ class _GraphWidgetState extends State<GraphWidget> {
       // shiftKeyHeld == true and toToggleNotifier.isActiveElement == true
       // Deselect toToggle only
       toToggleNotifier.updateSelectedState(false, false);
+    }
+  }
+
+  void beginDraggingSelectedNodes() {
+    var selectedNodes = changeNotifiers.values
+        .whereType<NodeChangeNotifier>()
+        .where((notifier) => notifier.selected)
+        .map((notifier) => notifier.node)
+        .toList();
+
+    if (selectedNodes.isNotEmpty) {
+      geometryOp = GeometryOperation.drag(
+        graph.basePlanner,
+        graph,
+        selectedNodes,
+      );
+
+      for (var element in geometryOp!.allAffectedElements()) {
+        changeNotifiers[element]?.geometryOp = geometryOp!;
+      }
+
+      handleTransformationState();
     }
   }
 
@@ -311,15 +339,16 @@ class GraphWidgetPersistentState {
 abstract class ElementViewChangeNotifier extends ElementChangeNotifier {
   bool _selected;
   bool _isActiveElement;
-  GeometryOperation? geometryOp;
+  GeometryOperation? _geometryOp;
 
   ElementViewChangeNotifier()
     : _selected = false,
       _isActiveElement = false,
-      geometryOp = null;
+      _geometryOp = null;
 
   bool get selected => _selected;
   bool get isActiveElement => _isActiveElement;
+  GeometryOperation? get geometryOp => _geometryOp;
 
   void updateSelectedState(bool selected, bool isActiveElement) {
     if (selected != _selected || isActiveElement != _isActiveElement) {
@@ -329,9 +358,14 @@ abstract class ElementViewChangeNotifier extends ElementChangeNotifier {
     }
   }
 
-  GeometryOperation? popGeometryOp();
+  set geometryOp(GeometryOperation newOp) {
+    _geometryOp = newOp;
+  }
 
-  void checkForBuilder(GeometryOperation geometryOp);
+  @override
+  void newSnapshot() {
+    _geometryOp = null;
+  }
 }
 
 _GraphWidgetState _getStateOrThrow(BuildContext context) {
@@ -344,10 +378,19 @@ _GraphWidgetState _getStateOrThrow(BuildContext context) {
   return state;
 }
 
-void selectToggle(BuildContext context, BasePlannerElement element) =>
-    _getStateOrThrow(context).toggleSelection(element);
+void selectToggleAndEndElementOperation(
+  BuildContext context,
+  BasePlannerElement element,
+) => _getStateOrThrow(context)
+  ..toggleSelection(element)
+  ..endElementOperation();
 
-void beginElementPointerOperation(BuildContext context) =>
-    _getStateOrThrow(context).beginElementPointerOperation();
-void endElementPointerOperation(BuildContext context) =>
-    _getStateOrThrow(context).endElementPointerOperation();
+void beginElementOperation(BuildContext context) =>
+    _getStateOrThrow(context).beginElementOperation();
+void endElementOperation(BuildContext context) =>
+    _getStateOrThrow(context).endElementOperation();
+
+void beginNodeDragOperation(BuildContext context) =>
+    _getStateOrThrow(context).beginDraggingSelectedNodes();
+void cancelGeometryOperation(BuildContext context) =>
+    _getStateOrThrow(context).onSnapshotUpdate();

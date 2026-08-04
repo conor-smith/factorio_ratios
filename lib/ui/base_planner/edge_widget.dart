@@ -20,35 +20,28 @@ class EdgeChangeNotifier extends ElementViewChangeNotifier {
   final Edge edge;
 
   EdgeGeometry _geometry;
-  GeometryOperation? _geometryOp;
 
-  EdgeChangeNotifier(this.edge) : _geometry = edge.geometry, _geometryOp = null;
+  EdgeChangeNotifier(this.edge) : _geometry = edge.geometry;
 
   EdgeGeometry get geometry => _geometry;
 
   @override
   void newSnapshot() {
+    super.newSnapshot();
+
     if (edge.geometry != _geometry) {
       _geometry = edge.geometry;
       notifyListeners();
     }
   }
 
-  GeometryOperation? popGeometryOp() {
-    var geometryOp = _geometryOp;
-    _geometryOp = null;
-    return geometryOp;
-  }
-
   @override
-  void checkForBuilder(GeometryOperation geometryOp) {
-    var builder = geometryOp.getEdgeGeometryBuilder(edge);
+  set geometryOp(GeometryOperation newOp) {
+    super.geometryOp = newOp;
 
-    if (builder != null) {
-      _geometryOp = geometryOp;
-      _geometry = builder;
-      notifyListeners();
-    }
+    _geometry = newOp.getEdgeGeometryBuilder(edge)!;
+
+    notifyListeners();
   }
 }
 
