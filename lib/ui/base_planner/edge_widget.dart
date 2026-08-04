@@ -10,9 +10,30 @@ class EdgeWidget extends StatelessWidget {
 
   const EdgeWidget({super.key, required this.notifier});
 
+  Widget _buildEdgeWidget(BuildContext context) => IgnorePointer(
+    child: CustomPaint(
+      size: notifier.geometry.rect.size,
+      painter: LinesPainter(notifier.geometry.lines[0], notifier.selected),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return ListenableBuilder(
+      listenable: notifier,
+      builder: (context, _) {
+        var geometryOp = notifier.geometryOp;
+
+        if (geometryOp != null) {
+          return ListenableBuilder(
+            listenable: geometryOp,
+            builder: (newContext, _) => _buildEdgeWidget(newContext),
+          );
+        } else {
+          return _buildEdgeWidget(context);
+        }
+      },
+    );
   }
 }
 
@@ -44,51 +65,6 @@ class EdgeChangeNotifier extends ElementViewChangeNotifier {
     notifyListeners();
   }
 }
-
-// class EdgeWidget extends StatefulWidget {
-//   final Edge edge;
-
-//   const EdgeWidget({super.key, required this.edge});
-
-//   @override
-//   State<EdgeWidget> createState() => _EdgeWidgetState();
-// }
-
-// class _EdgeWidgetState extends State<EdgeWidget> {
-//   late EdgeGeometry geometry;
-
-//   // For convenience
-//   Edge get edge => widget.edge;
-
-//   @override
-//   void initState() {
-//     super.initState();
-
-//     geometry = edge.geometry;
-
-//     edge.addListener(
-//       this,
-//       (event) => setState(() => geometry = event.geometry ?? edge.geometry),
-//     );
-//   }
-
-//   @override
-//   void dispose() {
-//     super.dispose();
-
-//     edge.removeListener(this);
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return IgnorePointer(
-//       child: CustomPaint(
-//         size: geometry.rect.size,
-//         painter: LinesPainter(geometry.lines[0], edge.isSelected),
-//       ),
-//     );
-//   }
-// }
 
 class LinesPainter extends CustomPainter {
   final Line line;
