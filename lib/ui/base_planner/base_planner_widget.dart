@@ -21,7 +21,7 @@ abstract class ElementChangeNotifier with ChangeNotifier {
   void newSnapshot();
 }
 
-void pushOverlayMenu(Widget widget) {
+void pushOverlayMenu(BuildContext context, Widget widget) {
   // TODO
 }
 

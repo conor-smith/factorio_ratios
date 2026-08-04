@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 class SimpleGestureDetector extends StatefulWidget {
+  final HitTestBehavior behaviour;
+
   final Function(PointerDownEvent event)? onPrimaryPointerDown;
   final Function(PointerDownEvent event)? onSecondaryPointerDown;
   final Function(PointerCancelEvent event)? onPointerCancel;
@@ -12,10 +14,11 @@ class SimpleGestureDetector extends StatefulWidget {
   final Function(PointerDownEvent start, PointerUpEvent end)? onDragEnd;
   final Function(PointerCancelEvent event)? onDragCancel;
 
-  final Widget child;
+  final Widget? child;
 
   const SimpleGestureDetector({
     super.key,
+    this.behaviour = HitTestBehavior.deferToChild,
     this.onPrimaryPointerDown,
     this.onSecondaryPointerDown,
     this.onPointerCancel,
@@ -25,7 +28,7 @@ class SimpleGestureDetector extends StatefulWidget {
     this.onDrag,
     this.onDragEnd,
     this.onDragCancel,
-    required this.child,
+    this.child,
   });
 
   @override
@@ -47,6 +50,7 @@ class _SimpleGestureDetectorState extends State<SimpleGestureDetector> {
   @override
   Widget build(BuildContext context) {
     return Listener(
+      behavior: widget.behaviour,
       onPointerDown: (event) {
         if (event.buttons == kPrimaryButton) {
           start = event;

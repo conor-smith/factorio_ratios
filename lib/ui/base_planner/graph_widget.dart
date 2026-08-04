@@ -3,10 +3,15 @@ import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
+import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/edge_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/node_widget.dart';
+import 'package:factorio_ratios/ui/factorio_icon_menu.dart';
+import 'package:factorio_ratios/ui/positioned_context_menu.dart';
+import 'package:factorio_ratios/ui/simple_gesture_detector.dart';
 import 'package:flutter/material.dart' hide Icon;
 import 'package:flutter/services.dart';
 
@@ -281,19 +286,58 @@ class _GraphWidgetState extends State<GraphWidget> {
     }
   }
 
+  Widget createContextMenu(BuildContext context, PointerEvent event) =>
+      PositionedContextMenu(
+        position: event.position,
+        options: [
+          MenuOption(
+            text: 'Add consumer node',
+            action: () => pushOverlayMenu(
+              context,
+              FactorioIconMenuWidget(
+                itemGroups: graph.basePlanner.validConsumerNodeItems,
+                onSelected: (item) => graph.addNode(
+                  nodeType: NodeType.consumer,
+                  productionLine: MagicLine.singleItemConsumer(
+                    InGameItem(item),
+                  ),
+                  initialPosition: event.localPosition,
+                ),
+              ),
+            ),
+          ),
+          MenuOption(
+            text: 'Create full tree',
+            action: () => graph.fulfillAllNodeIo(),
+          ),
+        ],
+      );
+
   @override
   Widget build(BuildContext context) {
-    cachedWidgetList ??= elementDisplayOrder
-        .map((element) => elementWidgets[element]!)
-        .toList(growable: false);
+    cachedWidgetList ??= [
+      SimpleGestureDetector(
+        behaviour: HitTestBehavior.opaque,
+        onSecondaryClick: (event) =>
+            pushOverlayMenu(context, createContextMenu(context, event)),
+      ),
+      ...elementDisplayOrder.map((element) => elementWidgets[element]!),
+    ];
 
     return KeyboardListener(
       focusNode: focusNode,
       onKeyEvent: handleKeyEvent,
-      child: InteractiveViewer(
-        panEnabled: allowTransformation,
-        scaleEnabled: allowTransformation,
-        child: Stack(children: cachedWidgetList!),
+
+      child: Stack(
+        children: [
+          InteractiveViewer(
+            panEnabled: allowTransformation,
+            scaleEnabled: allowTransformation,
+            transformationController: widget.persistentState.controller,
+            child: Stack(children: cachedWidgetList!),
+          ),
+          graphOverlay,
+        ],
       ),
     );
   }
