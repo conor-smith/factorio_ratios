@@ -1,12 +1,6 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:flutter/material.dart';
 
-// const List<LogicalKeyboardKey> _shiftKeys = [
-//   LogicalKeyboardKey.shiftLeft,
-//   LogicalKeyboardKey.shiftRight,
-//   LogicalKeyboardKey.shift,
-// ];
-
 class BasePlannerWidget extends StatefulWidget {
   final BasePlanner basePlanner;
 

@@ -1,5 +1,6 @@
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
 import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
+import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
 import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
@@ -7,6 +8,13 @@ import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/edge_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/node_widget.dart';
 import 'package:flutter/material.dart' hide Icon;
+import 'package:flutter/services.dart';
+
+const List<LogicalKeyboardKey> _shiftKeys = [
+  LogicalKeyboardKey.shiftLeft,
+  LogicalKeyboardKey.shiftRight,
+  LogicalKeyboardKey.shift,
+];
 
 class GraphOverlayWidget extends StatelessWidget {
   final OverlayChangeNotifier changeNotifier;
@@ -31,17 +39,19 @@ class GraphWidget extends StatefulWidget {
 
 class _GraphWidgetState extends State<GraphWidget> {
   Graph get graph => widget.persistentState.graph;
-  List<NodeElement> get nodeDisplayOrder =>
-      widget.persistentState.nodeDisplayOrder;
-  List<Edge> get edgeDisplayOrder => widget.persistentState.edgeDisplayOrder;
+  List<BasePlannerElement> get elementDisplayOrder =>
+      widget.persistentState.elementDisplayOrder;
 
-  final Set<BasePlannerElement> selectedElements = {};
-  BasePlannerElement? activeElement;
+  final FocusNode focusNode = FocusNode();
+  bool shiftKeyHeld = false;
 
-  final Map<NodeElement, NodeWidget> nodeWidgets = {};
-  final Map<Edge, EdgeWidget> edgeWidgets = {};
+  final Map<BasePlannerElement, ElementViewChangeNotifier> changeNotifiers = {};
+  final Map<BasePlannerElement, Widget> elementWidgets = {};
+
   late final GraphOverlayWidget graphOverlay = GraphOverlayWidget(graph: graph);
 
+  GeometryOperation? geometryOp;
+  bool allowTransformation = true;
   bool hasBeenInitiated = false;
 
   @override
@@ -49,15 +59,23 @@ class _GraphWidgetState extends State<GraphWidget> {
     super.initState();
 
     onSnapshotUpdate();
+    for (var element in elementDisplayOrder) {
+      switch (element.elementType) {
+        case ElementType.graph:
+        case ElementType.prodLineNode:
+          var notifier = NodeChangeNotifier(element as NodeElement);
+          changeNotifiers[element] = notifier;
+          elementWidgets[element] = NodeWidget(notifier: notifier);
 
-    for (var node in nodeDisplayOrder) {
-      nodeWidgets[node] = NodeWidget(node: node);
-    }
-    for (var edge in edgeDisplayOrder) {
-      edgeWidgets[edge] = EdgeWidget(edge: edge);
+        case ElementType.edge:
+          var notifier = EdgeChangeNotifier(element as Edge);
+          changeNotifiers[element] = notifier;
+          elementWidgets[element] = EdgeWidget(notifier: notifier);
+      }
     }
 
     graph.basePlanner.addListener(onSnapshotUpdate);
+    focusNode.requestFocus();
   }
 
   @override
@@ -65,32 +83,21 @@ class _GraphWidgetState extends State<GraphWidget> {
     super.dispose();
 
     graph.basePlanner.removeListener(onSnapshotUpdate);
+    focusNode.dispose();
+    for (var notifier in changeNotifiers.values) {
+      notifier.dispose();
+    }
   }
 
   void onSnapshotUpdate() {
     if (graph.allElementsHash != widget.persistentState._allElementsHash) {
       widget.persistentState._allElementsHash = graph.allElementsHash;
 
-      if (activeElement != null &&
-          !graph.allNodes.contains(activeElement) &&
-          !graph.edges.contains(activeElement)) {
-        activeElement = null;
-      }
-
-      nodeDisplayOrder.removeWhere((node) {
-        if (!graph.allNodes.contains(node)) {
-          nodeWidgets.remove(node);
-          selectedElements.remove(node);
-          return true;
-        } else {
-          return false;
-        }
-      });
-
-      edgeDisplayOrder.removeWhere((edge) {
-        if (!graph.edges.contains(edge)) {
-          edgeWidgets.remove(edge);
-          selectedElements.remove(edge);
+      elementDisplayOrder.removeWhere((element) {
+        if (!graph.allNodes.contains(element) &&
+            graph.edges.contains(element)) {
+          changeNotifiers.remove(element);
+          elementWidgets.remove(element);
           return true;
         } else {
           return false;
@@ -98,35 +105,41 @@ class _GraphWidgetState extends State<GraphWidget> {
       });
 
       var newNodes = graph.allNodes
-          .where((node) => !nodeDisplayOrder.contains(node))
+          .where((node) => !elementDisplayOrder.contains(node))
           .toList();
       var newEdges = graph.edges
-          .where((edge) => !edgeDisplayOrder.contains(edge))
+          .where((edge) => !elementDisplayOrder.contains(edge))
           .toList();
 
       // Insert new elements in under currently selected elements
-      for (var i = nodeDisplayOrder.length - 1; i >= 0; i--) {
-        if (selectedElements.contains(nodeDisplayOrder[i])) {
-          nodeDisplayOrder.insertAll(i + 1, newNodes);
+      int firstUnselectedIndex;
+      for (
+        firstUnselectedIndex = elementDisplayOrder.length - 1;
+        firstUnselectedIndex >= 0;
+        firstUnselectedIndex--
+      ) {
+        if (!changeNotifiers[elementDisplayOrder[firstUnselectedIndex]]!
+            .selected) {
           break;
         }
       }
-
-      for (var i = edgeDisplayOrder.length - 1; i >= 0; i--) {
-        if (selectedElements.contains(edgeDisplayOrder[i])) {
-          edgeDisplayOrder.insertAll(i + 1, newEdges);
-          break;
-        }
-      }
+      elementDisplayOrder.insertAll(firstUnselectedIndex + 1, [
+        ...newEdges,
+        ...newNodes,
+      ]);
 
       if (hasBeenInitiated) {
         setState(() {
           for (var newNode in newNodes) {
-            nodeWidgets[newNode] = NodeWidget(node: newNode);
+            var nodeChangeNotifier = NodeChangeNotifier(newNode);
+            changeNotifiers[newNode] = nodeChangeNotifier;
+            elementWidgets[newNode] = NodeWidget(notifier: nodeChangeNotifier);
           }
 
           for (var newEdge in newEdges) {
-            edgeWidgets[newEdge] = EdgeWidget(edge: newEdge);
+            var edgeChangeNotifier = EdgeChangeNotifier(newEdge);
+            changeNotifiers[newEdge] = edgeChangeNotifier;
+            elementWidgets[newEdge] = EdgeWidget(notifier: edgeChangeNotifier);
           }
         });
       }
@@ -134,8 +147,7 @@ class _GraphWidgetState extends State<GraphWidget> {
 
     if (hasBeenInitiated) {
       for (var elementChangeNotifier in [
-        ...nodeWidgets.values.map((widget) => widget.nodeChangeNotifier),
-        ...edgeWidgets.values.map((widget) => widget.edgeChangeNotifier),
+        ...changeNotifiers.values,
         graphOverlay.changeNotifier,
       ]) {
         elementChangeNotifier.newSnapshot();
@@ -145,9 +157,92 @@ class _GraphWidgetState extends State<GraphWidget> {
     hasBeenInitiated = true;
   }
 
+  void handleKeyEvent(KeyEvent event) {
+    if (_shiftKeys.contains(event.logicalKey)) {
+      if (event is KeyDownEvent) {
+        shiftKeyHeld = true;
+      } else if (event is KeyUpEvent) {
+        shiftKeyHeld = false;
+      }
+
+      bool newAllowTransformation = !shiftKeyHeld && geometryOp == null;
+
+      if (newAllowTransformation != allowTransformation) {
+        setState(() {
+          allowTransformation = newAllowTransformation;
+        });
+      }
+    }
+  }
+
+  void toggleSelection(BasePlannerElement toToggle) {
+    var toToggleNotifier = changeNotifiers[toToggle]!;
+    var selectedElementNotifiers = changeNotifiers.values
+        .where((notifier) => notifier.selected)
+        .toList();
+
+    if (toToggleNotifier.isActiveElement &&
+        selectedElementNotifiers.length == 1 &&
+        !shiftKeyHeld) {
+      // User clicked on the selected element again. No change needed
+      return;
+    } else if (!shiftKeyHeld) {
+      // Unselect all other elements, and make toToggle activeElement
+      for (var selected in selectedElementNotifiers.where(
+        (notifier) => notifier != toToggleNotifier,
+      )) {
+        selected.updateSelectedState(false, false);
+      }
+
+      toToggleNotifier.updateSelectedState(true, true);
+
+      if (elementDisplayOrder.last != toToggle) {
+        setState(() {
+          elementDisplayOrder
+            ..remove(toToggle)
+            ..add(toToggle);
+        });
+      }
+    } else if (!toToggleNotifier.isActiveElement) {
+      // shiftKeyHeld = true
+      // select toToggle and make activeElement. Clear previous activeElement
+      // Move to front of display
+      selectedElementNotifiers
+          .where((notifier) => notifier.isActiveElement)
+          .firstOrNull
+          ?.updateSelectedState(true, false);
+
+      toToggleNotifier.updateSelectedState(true, true);
+
+      if (elementDisplayOrder.last != toToggle) {
+        setState(
+          () => elementDisplayOrder
+            ..remove(toToggle)
+            ..add(toToggle),
+        );
+      }
+    } else {
+      // shiftKeyHeld == true and toToggleNotifier.isActiveElement == true
+      // Deselect toToggle only
+      toToggleNotifier.updateSelectedState(false, false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return KeyboardListener(
+      focusNode: focusNode,
+      onKeyEvent: handleKeyEvent,
+      child: InteractiveViewer(
+        panEnabled: allowTransformation,
+        scaleEnabled: allowTransformation,
+        child: Stack(
+          children: elementDisplayOrder
+              .map((element) => elementWidgets[element]!)
+              .toList(),
+        ),
+      ),
+    );
   }
 }
 
@@ -178,16 +273,40 @@ class OverlayChangeNotifier extends ElementChangeNotifier {
 class GraphWidgetPersistentState {
   final Graph graph;
   final TransformationController controller;
-  final List<NodeElement> nodeDisplayOrder;
-  final List<Edge> edgeDisplayOrder;
+  final List<BasePlannerElement> elementDisplayOrder;
 
   int _allElementsHash;
 
   GraphWidgetPersistentState(this.graph)
     : controller = TransformationController(),
-      nodeDisplayOrder = List.from(graph.allNodes),
-      edgeDisplayOrder = List.from(graph.edges),
+      elementDisplayOrder = [...graph.edges, ...graph.allNodes],
       _allElementsHash = graph.allElementsHash;
+}
+
+abstract class ElementViewChangeNotifier extends ElementChangeNotifier {
+  bool _selected;
+  bool _isActiveElement;
+  GeometryOperation? geometryOp;
+
+  ElementViewChangeNotifier()
+    : _selected = false,
+      _isActiveElement = false,
+      geometryOp = null;
+
+  bool get selected => _selected;
+  bool get isActiveElement => _isActiveElement;
+
+  void updateSelectedState(bool selected, bool isActiveElement) {
+    if (selected != _selected || isActiveElement != _isActiveElement) {
+      _selected = selected;
+      _isActiveElement = isActiveElement;
+      notifyListeners();
+    }
+  }
+
+  GeometryOperation? popGeometryOp();
+
+  void checkForBuilder(GeometryOperation geometryOp);
 }
 
 // class GraphOverlay extends StatelessWidget {

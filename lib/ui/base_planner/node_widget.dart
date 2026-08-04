@@ -1,14 +1,13 @@
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
-import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
+import 'package:factorio_ratios/ui/base_planner/graph_widget.dart';
 import 'package:flutter/material.dart';
 
 class NodeWidget extends StatefulWidget {
-  final NodeChangeNotifier nodeChangeNotifier;
+  final NodeChangeNotifier notifier;
 
-  NodeWidget({super.key, required NodeElement node})
-    : nodeChangeNotifier = NodeChangeNotifier(node);
+  const NodeWidget({super.key, required this.notifier});
 
   @override
   State<NodeWidget> createState() => _NodeWidgetState();
@@ -21,23 +20,15 @@ class _NodeWidgetState extends State<NodeWidget> {
   }
 }
 
-class NodeChangeNotifier extends ElementChangeNotifier {
+class NodeChangeNotifier extends ElementViewChangeNotifier {
   final NodeElement node;
 
   NodeGeometry _geometry;
-  bool _selected;
-  bool _isActiveElement;
   GeometryOperation? _geometryOp;
 
-  NodeChangeNotifier(this.node)
-    : _geometry = node.geometry,
-      _selected = false,
-      _isActiveElement = false,
-      _geometryOp = null;
+  NodeChangeNotifier(this.node) : _geometry = node.geometry;
 
   NodeGeometry get geometry => _geometry;
-  bool get selected => _selected;
-  bool get isActiveElement => _isActiveElement;
 
   @override
   void newSnapshot() {
@@ -47,26 +38,14 @@ class NodeChangeNotifier extends ElementChangeNotifier {
     }
   }
 
-  set selected(bool newSelected) {
-    if (newSelected != _selected) {
-      _selected = newSelected;
-      notifyListeners();
-    }
-  }
-
-  set isActiveElement(bool newIsActiveElement) {
-    if (newIsActiveElement != _isActiveElement) {
-      _isActiveElement = newIsActiveElement;
-      notifyListeners();
-    }
-  }
-
+  @override
   GeometryOperation? popGeometryOp() {
     var geometryOp = _geometryOp;
     _geometryOp = null;
     return geometryOp;
   }
 
+  @override
   void checkForBuilder(GeometryOperation geometryOp) {
     var builder = geometryOp.getNodeGeometryBuilder(node);
 

@@ -2,14 +2,13 @@ import 'package:factorio_ratios/factorio/base_planner/edge/edge.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/geometry/geometry_operation.dart';
-import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
+import 'package:factorio_ratios/ui/base_planner/graph_widget.dart';
 import 'package:flutter/material.dart';
 
 class EdgeWidget extends StatelessWidget {
-  final EdgeChangeNotifier edgeChangeNotifier;
+  final EdgeChangeNotifier notifier;
 
-  EdgeWidget({super.key, required Edge edge})
-    : edgeChangeNotifier = EdgeChangeNotifier(edge);
+  const EdgeWidget({super.key, required this.notifier});
 
   @override
   Widget build(BuildContext context) {
@@ -17,42 +16,20 @@ class EdgeWidget extends StatelessWidget {
   }
 }
 
-class EdgeChangeNotifier extends ElementChangeNotifier {
+class EdgeChangeNotifier extends ElementViewChangeNotifier {
   final Edge edge;
 
   EdgeGeometry _geometry;
-  bool _selected;
-  bool _isActiveElement;
   GeometryOperation? _geometryOp;
 
-  EdgeChangeNotifier(this.edge)
-    : _geometry = edge.geometry,
-      _selected = false,
-      _isActiveElement = false,
-      _geometryOp = null;
+  EdgeChangeNotifier(this.edge) : _geometry = edge.geometry, _geometryOp = null;
 
   EdgeGeometry get geometry => _geometry;
-  bool get selected => _selected;
-  bool get isActiveElement => _isActiveElement;
 
   @override
   void newSnapshot() {
     if (edge.geometry != _geometry) {
       _geometry = edge.geometry;
-      notifyListeners();
-    }
-  }
-
-  set selected(bool newSelected) {
-    if (newSelected != _selected) {
-      _selected = newSelected;
-      notifyListeners();
-    }
-  }
-
-  set isActiveElement(bool newIsActiveElement) {
-    if (newIsActiveElement != _isActiveElement) {
-      _isActiveElement = newIsActiveElement;
       notifyListeners();
     }
   }
@@ -63,6 +40,7 @@ class EdgeChangeNotifier extends ElementChangeNotifier {
     return geometryOp;
   }
 
+  @override
   void checkForBuilder(GeometryOperation geometryOp) {
     var builder = geometryOp.getEdgeGeometryBuilder(edge);
 
