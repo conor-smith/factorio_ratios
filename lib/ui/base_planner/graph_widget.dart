@@ -10,6 +10,7 @@ import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/edge_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/node_widget.dart';
 import 'package:factorio_ratios/ui/factorio_icon_menu.dart';
+import 'package:factorio_ratios/ui/icon_widgets.dart';
 import 'package:factorio_ratios/ui/positioned_context_menu.dart';
 import 'package:factorio_ratios/ui/simple_gesture_detector.dart';
 import 'package:flutter/material.dart' hide Icon;
@@ -22,14 +23,40 @@ const List<LogicalKeyboardKey> _shiftKeys = [
 ];
 
 class GraphOverlayWidget extends StatelessWidget {
-  final OverlayChangeNotifier changeNotifier;
+  final OverlayChangeNotifier notifier;
 
-  GraphOverlayWidget({super.key, required Graph graph})
-    : changeNotifier = OverlayChangeNotifier(graph);
+  const GraphOverlayWidget({super.key, required this.notifier});
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return ListenableBuilder(
+      listenable: notifier,
+      builder: (newContext, _) => Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.black)),
+            ),
+            child: Row(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    // TODO - Allow editing of icon
+                  },
+                  child: notifier.icon != null
+                      ? Padding(
+                          padding: EdgeInsetsGeometry.all(5),
+                          child: FactorioIconWidget(icon: notifier.icon),
+                        )
+                      : SizedBox(height: 74, width: 30),
+                ),
+                Text(notifier.name), // TODO - Allow editing of name
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -54,7 +81,9 @@ class _GraphWidgetState extends State<GraphWidget> {
   final Map<BasePlannerElement, Widget> elementWidgets = {};
   List<Widget>? cachedWidgetList;
 
-  late final GraphOverlayWidget graphOverlay = GraphOverlayWidget(graph: graph);
+  late final GraphOverlayWidget graphOverlay = GraphOverlayWidget(
+    notifier: OverlayChangeNotifier(graph),
+  );
 
   bool allowTransformation = true;
   bool hasBeenInitiated = false;
@@ -158,7 +187,7 @@ class _GraphWidgetState extends State<GraphWidget> {
     if (hasBeenInitiated) {
       for (var elementChangeNotifier in [
         ...changeNotifiers.values,
-        graphOverlay.changeNotifier,
+        graphOverlay.notifier,
       ]) {
         elementChangeNotifier.newSnapshot();
       }

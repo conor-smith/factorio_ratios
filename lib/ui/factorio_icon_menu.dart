@@ -62,7 +62,7 @@ class _FactorioIconMenuWidgetState<T extends PrototypeWithIcon>
                     onPressed: () => widget.onSelected(item),
                     child: Tooltip(
                       message: item.name,
-                      child: IconWidgetCache.get(item.icon),
+                      child: FactorioIconWidget(icon: item.icon),
                     ),
                   ),
                 )

@@ -11,11 +11,25 @@ const String _factorioFilesPath =
     '/.local/share/Steam/steamapps/common/Factorio/data/';
 
 class FactorioIconWidget extends StatelessWidget {
+  static final Map<Icon, FactorioIconWidget> _cachedWidgets = {};
+
   final Icon icon;
 
   final List<Widget> iconWidgets;
 
-  FactorioIconWidget({super.key, required this.icon})
+  factory FactorioIconWidget({
+    Icon? icon,
+    double expectedSize = ExpectedIconSize.other,
+  }) {
+    icon ??= Icon.unknownIcon(expectedSize);
+
+    return _cachedWidgets.putIfAbsent(
+      icon,
+      () => FactorioIconWidget._(icon: icon!),
+    );
+  }
+
+  FactorioIconWidget._({required this.icon})
     : iconWidgets = icon.icons
           .map((iconData) => _createWidgetFromIconData(iconData, icon.size))
           .toList(growable: false);
@@ -27,22 +41,6 @@ class FactorioIconWidget extends StatelessWidget {
       height: icon.size,
       clipBehavior: Clip.none,
       child: Stack(clipBehavior: Clip.none, children: iconWidgets),
-    );
-  }
-}
-
-abstract final class IconWidgetCache {
-  static final Map<Icon, FactorioIconWidget> _cachedWidgets = {};
-
-  static FactorioIconWidget get(
-    Icon? icon, [
-    double expectedSize = ExpectedIconSize.other,
-  ]) {
-    icon ??= Icon.unknownIcon(expectedSize);
-
-    return _cachedWidgets.putIfAbsent(
-      icon,
-      () => FactorioIconWidget(icon: icon!),
     );
   }
 }
