@@ -218,33 +218,6 @@ class Graph extends NodeElement<GraphStateImpl> {
     });
   }
 
-  void addConsumerNodeAndTree(InGameItem item) {
-    if (surface == null) {
-      throw const GraphException(
-        'Cannot build node tree of graph with no surface',
-      );
-    }
-
-    // Check if consumer node already exists
-    if (prodLineNodes.any(
-      (node) =>
-          node.nodeType == NodeType.consumer && node.inputItems.contains(item),
-    )) {
-      return;
-    }
-
-    basePlanner.buildNextSnapshot(() {
-      var consumerNode = ProdLineNode.addToBasePlanner(
-        basePlanner,
-        parentGraph: this,
-        nodeType: NodeType.consumer,
-        productionLine: MagicLine.singleItemConsumer(item),
-      );
-
-      _createNodeTree(consumerNode);
-    });
-  }
-
   void layoutNodes({
     GraphLayout? newLayout,
     LayoutOrientation? newOrientation,
@@ -399,36 +372,6 @@ class Graph extends NodeElement<GraphStateImpl> {
           );
         });
       }
-    }
-  }
-
-  void _createNodeTree(NodeElement startNode) {
-    // Ignore items that already have an input edge
-    var requiredInputs = startNode.inputItems.difference(
-      startNode.allChildren.map((edge) => edge.item).toSet(),
-    );
-
-    for (var input in requiredInputs) {
-      var nextNode =
-          getChangeTracker().cachedNodeOutputIndex[input]?.firstOrNull;
-
-      if (nextNode == null) {
-        nextNode =
-            _createResourceNode(input) ??
-            _createRecipeNode(input) ??
-            _createMagicResourceNode(input);
-
-        _createNodeTree(nextNode);
-      }
-
-      Edge.addToBasePlanner(
-        basePlanner,
-        parentGraph: this,
-        edgeType: EdgeType.requestItems,
-        parentNode: startNode,
-        childNode: nextNode,
-        item: input,
-      );
     }
   }
 
