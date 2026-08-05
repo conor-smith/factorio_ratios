@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
+import 'package:factorio_ratios/factorio/base_planner/graph/graph.dart';
 import 'package:factorio_ratios/ui/base_planner/graph_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -77,6 +78,23 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
         focusNode.unfocus(
           disposition: UnfocusDisposition.previouslyFocusedChild,
         );
+      });
+    }
+  }
+
+  void pushGraph(Graph graph) {
+    setState(() {
+      var newState = GraphWidgetPersistentState(graph);
+      graphStack.addLast(newState);
+      graphWidget = GraphWidget(persistentState: newState);
+    });
+  }
+
+  void popGraph() {
+    if (graphStack.length > 1) {
+      setState(() {
+        graphStack.removeLast();
+        graphWidget = GraphWidget(persistentState: graphStack.last);
       });
     }
   }

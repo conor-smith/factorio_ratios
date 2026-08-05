@@ -121,7 +121,7 @@ class _GraphWidgetState extends State<GraphWidget> {
 
     graph.basePlanner.removeListener(onSnapshotUpdate);
     focusNode.dispose();
-    for (var notifier in changeNotifiers.values) {
+    for (var notifier in [...changeNotifiers.values, graphOverlay.notifier]) {
       notifier.dispose();
     }
   }
