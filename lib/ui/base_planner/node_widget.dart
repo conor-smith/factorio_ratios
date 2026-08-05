@@ -19,22 +19,22 @@ class NodeWidget extends StatelessWidget {
 
   const NodeWidget({super.key, required this.notifier});
 
-  Widget _buildNodeWidget(BuildContext context) => SimpleGestureDetector(
-    onPrimaryPointerDown: (_) => beginElementOperation(context),
-    onPrimaryClick: (_) =>
-        selectToggleAndEndElementOperation(context, notifier.node),
-    onPointerCancel: (_) => endElementOperation(context),
-    onDragStart: (_) {
-      if (notifier.selected) {
-        beginNodeDragOperation(context);
-      }
-    },
-    onDrag: (start, move) =>
-        notifier.geometryOp?.performOperation(move.position - start.position),
-    onDragCancel: (_) => cancelGeometryOperation(context),
-    onDragEnd: (_, _) => notifier.geometryOp?.applyUpdate(),
-    child: Positioned.fromRect(
-      rect: notifier.geometry.rect,
+  Widget _buildNodeWidget(BuildContext context) => Positioned.fromRect(
+    rect: notifier.geometry.rect,
+    child: SimpleGestureDetector(
+      onPrimaryPointerDown: (_) => beginElementOperation(context),
+      onPrimaryClick: (_) =>
+          selectToggleAndEndElementOperation(context, notifier.node),
+      onPointerCancel: (_) => endElementOperation(context),
+      onDragStart: (_) {
+        if (notifier.selected) {
+          beginNodeDragOperation(context);
+        }
+      },
+      onDrag: (start, move) =>
+          notifier.geometryOp?.performOperation(move.position - start.position),
+      onDragCancel: (_) => cancelGeometryOperation(context),
+      onDragEnd: (_, _) => finishGeometryOperation(context),
       child: Container(
         decoration: notifier.selected
             ? _selectedBoxDecoration

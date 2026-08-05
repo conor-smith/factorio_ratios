@@ -13,6 +13,8 @@ class PositionedContextMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
+      left: position.dx,
+      top: position.dy,
       child: IntrinsicWidth(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

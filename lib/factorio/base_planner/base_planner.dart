@@ -115,6 +115,7 @@ class BasePlanner with ChangeNotifier implements ToJson {
     } else if (newIndex != _snapshotIndex) {
       _snapshotIndex = newIndex;
       _applyActiveSnapshot();
+      notifyListeners();
     }
   }
 
@@ -149,8 +150,8 @@ class BasePlanner with ChangeNotifier implements ToJson {
           if (_snapshotIndex == maxSnapshots - 1) {
             _snapshots.removeAt(0);
           } else {
-            _snapshots.removeRange(_snapshotIndex, _snapshots.length);
             _snapshotIndex++;
+            _snapshots.removeRange(_snapshotIndex, _snapshots.length);
           }
 
           _snapshots.add(newSnapshot);
@@ -158,6 +159,7 @@ class BasePlanner with ChangeNotifier implements ToJson {
         }
 
         _snapshotBuilder = null;
+        notifyListeners();
       }
 
       _mutationLock--;
@@ -194,8 +196,6 @@ class BasePlanner with ChangeNotifier implements ToJson {
         (element, state) => element.updateState(state),
       );
       _mutationLock--;
-
-      notifyListeners();
     } catch (e) {
       _mutationLock--;
       rethrow;

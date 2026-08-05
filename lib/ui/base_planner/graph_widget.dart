@@ -6,7 +6,6 @@ import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
-import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/edge_widget.dart';
 import 'package:factorio_ratios/ui/base_planner/node_widget.dart';
 import 'package:factorio_ratios/ui/factorio_icon_menu.dart';
@@ -21,44 +20,6 @@ const List<LogicalKeyboardKey> _shiftKeys = [
   LogicalKeyboardKey.shiftRight,
   LogicalKeyboardKey.shift,
 ];
-
-class GraphOverlayWidget extends StatelessWidget {
-  final OverlayChangeNotifier notifier;
-
-  const GraphOverlayWidget({super.key, required this.notifier});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: notifier,
-      builder: (newContext, _) => Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.black)),
-            ),
-            child: Row(
-              children: [
-                TextButton(
-                  onPressed: () {
-                    // TODO - Allow editing of icon
-                  },
-                  child: notifier.icon != null
-                      ? Padding(
-                          padding: EdgeInsetsGeometry.all(5),
-                          child: FactorioIconWidget(icon: notifier.icon),
-                        )
-                      : SizedBox(height: 74, width: 30),
-                ),
-                Text(notifier.name), // TODO - Allow editing of name
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class GraphWidget extends StatefulWidget {
   final GraphWidgetPersistentState persistentState;
@@ -79,11 +40,13 @@ class _GraphWidgetState extends State<GraphWidget> {
 
   final Map<BasePlannerElement, ElementChangeNotifier> changeNotifiers = {};
   final Map<BasePlannerElement, Widget> elementWidgets = {};
-  List<Widget>? cachedWidgetList;
+  List<Widget>? cachedElementWidgetList;
 
   late final GraphOverlayWidget graphOverlay = GraphOverlayWidget(
     notifier: OverlayChangeNotifier(graph),
   );
+
+  Widget? overlayMenu;
 
   bool allowTransformation = true;
   bool hasBeenInitiated = false;
@@ -179,7 +142,7 @@ class _GraphWidgetState extends State<GraphWidget> {
             elementWidgets[newEdge] = EdgeWidget(notifier: edgeChangeNotifier);
           }
 
-          cachedWidgetList = null;
+          cachedElementWidgetList = null;
         });
       }
     }
@@ -195,6 +158,7 @@ class _GraphWidgetState extends State<GraphWidget> {
       elementPointerOperation = false;
       geometryOp?.cancel();
       geometryOp = null;
+      overlayMenu = null;
       handleTransformationState();
     }
 
@@ -203,7 +167,10 @@ class _GraphWidgetState extends State<GraphWidget> {
 
   void handleTransformationState() {
     var newAllowTransformation =
-        !shiftKeyHeld && !elementPointerOperation && geometryOp == null;
+        !shiftKeyHeld &&
+        !elementPointerOperation &&
+        geometryOp == null &&
+        overlayMenu == null;
 
     if (newAllowTransformation != allowTransformation) {
       setState(() {
@@ -224,6 +191,24 @@ class _GraphWidgetState extends State<GraphWidget> {
     handleTransformationState();
   }
 
+  void pushOverlayMenu(Widget newMenu) {
+    setState(() {
+      overlayMenu = newMenu;
+    });
+
+    handleTransformationState();
+  }
+
+  void clearOverlayMenu() {
+    if (overlayMenu != null) {
+      setState(() {
+        overlayMenu = null;
+      });
+
+      handleTransformationState();
+    }
+  }
+
   void handleKeyEvent(KeyEvent event) {
     if (_shiftKeys.contains(event.logicalKey)) {
       if (event is KeyDownEvent) {
@@ -231,6 +216,14 @@ class _GraphWidgetState extends State<GraphWidget> {
       } else if (event is KeyUpEvent) {
         shiftKeyHeld = false;
       }
+
+      handleTransformationState();
+    } else if (overlayMenu != null &&
+        event.logicalKey == LogicalKeyboardKey.escape &&
+        event is KeyUpEvent) {
+      setState(() {
+        overlayMenu = null;
+      });
 
       handleTransformationState();
     }
@@ -263,7 +256,7 @@ class _GraphWidgetState extends State<GraphWidget> {
             ..remove(toToggle)
             ..add(toToggle);
 
-          cachedWidgetList = null;
+          cachedElementWidgetList = null;
         });
       }
     } else if (!toToggleNotifier.isActiveElement) {
@@ -283,7 +276,7 @@ class _GraphWidgetState extends State<GraphWidget> {
             ..remove(toToggle)
             ..add(toToggle);
 
-          cachedWidgetList = null;
+          cachedElementWidgetList = null;
         });
       }
     } else {
@@ -315,6 +308,22 @@ class _GraphWidgetState extends State<GraphWidget> {
     }
   }
 
+  void cancelGeometryOperation() {
+    if (geometryOp != null) {
+      geometryOp?.cancel();
+      geometryOp = null;
+      onSnapshotUpdate();
+    }
+  }
+
+  void finishGeometryOperation() {
+    if (geometryOp != null) {
+      var op = geometryOp!;
+      geometryOp = null;
+      op.applyUpdate();
+    }
+  }
+
   Widget createContextMenu(BuildContext context, PointerEvent event) =>
       PositionedContextMenu(
         position: event.position,
@@ -322,7 +331,6 @@ class _GraphWidgetState extends State<GraphWidget> {
           MenuOption(
             text: 'Add consumer node',
             action: () => pushOverlayMenu(
-              context,
               FactorioIconMenuWidget(
                 itemGroups: graph.basePlanner.validConsumerNodeItems,
                 onSelected: (item) => graph.addNode(
@@ -344,28 +352,77 @@ class _GraphWidgetState extends State<GraphWidget> {
 
   @override
   Widget build(BuildContext context) {
-    cachedWidgetList ??= [
+    cachedElementWidgetList ??= [
       SimpleGestureDetector(
         behaviour: HitTestBehavior.opaque,
         onSecondaryClick: (event) =>
-            pushOverlayMenu(context, createContextMenu(context, event)),
+            pushOverlayMenu(createContextMenu(context, event)),
       ),
       ...elementDisplayOrder.map((element) => elementWidgets[element]!),
     ];
+
+    List<Widget> children = [
+      InteractiveViewer(
+        panEnabled: allowTransformation,
+        scaleEnabled: allowTransformation,
+        transformationController: widget.persistentState.controller,
+        child: Stack(children: cachedElementWidgetList!),
+      ),
+      graphOverlay,
+    ];
+
+    if (overlayMenu != null) {
+      children
+        ..add(
+          Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerUp: (_) => clearOverlayMenu(),
+          ),
+        )
+        ..add(overlayMenu!);
+    }
 
     return KeyboardListener(
       focusNode: focusNode,
       onKeyEvent: handleKeyEvent,
 
-      child: Stack(
+      child: Stack(children: children),
+    );
+  }
+}
+
+class GraphOverlayWidget extends StatelessWidget {
+  final OverlayChangeNotifier notifier;
+
+  const GraphOverlayWidget({super.key, required this.notifier});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: notifier,
+      builder: (newContext, _) => Column(
         children: [
-          InteractiveViewer(
-            panEnabled: allowTransformation,
-            scaleEnabled: allowTransformation,
-            transformationController: widget.persistentState.controller,
-            child: Stack(children: cachedWidgetList!),
+          Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.black)),
+            ),
+            child: Row(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    // TODO - Allow editing of icon
+                  },
+                  child: notifier.icon != null
+                      ? Padding(
+                          padding: EdgeInsetsGeometry.all(5),
+                          child: FactorioIconWidget(icon: notifier.icon),
+                        )
+                      : SizedBox(height: 74, width: 30),
+                ),
+                Text(notifier.name), // TODO - Allow editing of name
+              ],
+            ),
           ),
-          graphOverlay,
         ],
       ),
     );
@@ -470,4 +527,11 @@ void endElementOperation(BuildContext context) =>
 void beginNodeDragOperation(BuildContext context) =>
     _getStateOrThrow(context).beginDraggingSelectedNodes();
 void cancelGeometryOperation(BuildContext context) =>
-    _getStateOrThrow(context).onSnapshotUpdate();
+    _getStateOrThrow(context).cancelGeometryOperation();
+void finishGeometryOperation(BuildContext context) =>
+    _getStateOrThrow(context).finishGeometryOperation();
+
+void pushOverlayMenu(BuildContext context, Widget newMenu) =>
+    _getStateOrThrow(context).pushOverlayMenu(newMenu);
+void clearOverlayMenu(BuildContext context) =>
+    _getStateOrThrow(context).clearOverlayMenu();

@@ -113,7 +113,8 @@ class GeometryOperation with ChangeNotifier {
             node.getStateBuilder().updateGeometry(builder.build()),
       );
 
-      var allEdges = _edgeGeometries..addAll(_affectedEdgeGeometries);
+      Map<Edge, EdgeGeometryBuilder> allEdges = Map.from(_edgeGeometries)
+        ..addAll(_affectedEdgeGeometries);
       allEdges.forEach(
         (edge, builder) =>
             edge.getStateBuilder().updateGeometry(builder.build()),
