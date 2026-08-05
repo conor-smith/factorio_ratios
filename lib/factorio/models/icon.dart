@@ -5,7 +5,8 @@ class Icon {
   final double size;
 
   @override
-  final int hashCode;
+  late final int hashCode =
+      createHashFromOrderedIterable(icons) + size.hashCode;
 
   final Map<double, Icon> _cachedSizedIcons;
 
@@ -16,28 +17,25 @@ class Icon {
     this.size, [
     Map<double, Icon>? cachedIconsMap,
   ]) : icons = List.unmodifiable(icons),
-       _cachedSizedIcons = cachedIconsMap ?? {},
-       hashCode = createHashFromOrderedIterable(icons) + size.hashCode {
+       _cachedSizedIcons = cachedIconsMap ?? {} {
     _cachedSizedIcons[size] = this;
   }
 
   factory Icon.unknownIcon(double expectedSize) =>
-      _cachedUnknownIcons.putIfAbsent(
-        expectedSize,
-        () => Icon._(
-          [
-            IconData._(
-              icon: '__core__/graphics/icons/unknown.png',
-              iconSize: ExpectedIconSize.other,
-              tint: IconTint.defaultIconTint,
-              shift: Vector.defaultVector,
-              scale: (expectedSize / 2) / ExpectedIconSize.other,
-              floating: false,
-            ),
-          ],
-          ExpectedIconSize.other,
-          _cachedUnknownIcons,
-        ),
+      _cachedUnknownIcons[expectedSize] ??
+      Icon._(
+        [
+          IconData._(
+            icon: '__core__/graphics/icons/unknown.png',
+            iconSize: ExpectedIconSize.other,
+            tint: IconTint.defaultIconTint,
+            shift: Vector.defaultVector,
+            scale: (expectedSize / 2) / ExpectedIconSize.other,
+            floating: false,
+          ),
+        ],
+        ExpectedIconSize.other,
+        _cachedUnknownIcons,
       );
 
   static Icon? fromTopLevelJson(Map json, double expectedSize) {
