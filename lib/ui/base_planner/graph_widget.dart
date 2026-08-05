@@ -286,6 +286,12 @@ class _GraphWidgetState extends State<GraphWidget> {
     }
   }
 
+  void deselectAll() {
+    for (var notifier in changeNotifiers.values) {
+      notifier.updateSelectedState(false, false);
+    }
+  }
+
   void beginDraggingSelectedNodes() {
     var selectedNodes = changeNotifiers.values
         .whereType<NodeChangeNotifier>()
@@ -324,30 +330,35 @@ class _GraphWidgetState extends State<GraphWidget> {
     }
   }
 
-  Widget createContextMenu(BuildContext context, PointerEvent event) =>
-      PositionedContextMenu(
-        position: event.position,
-        options: [
-          MenuOption(
-            text: 'Add consumer node',
-            action: () => pushOverlayMenu(
-              FactorioIconMenuWidget(
-                itemGroups: graph.basePlanner.validConsumerNodeItems,
-                onSelected: (item) => graph.addNode(
-                  nodeType: NodeType.consumer,
-                  productionLine: MagicLine.singleItemConsumer(
-                    InGameItem(item),
-                  ),
-                  initialPosition: event.localPosition,
-                ),
-              ),
+  void createConsumerMenu(BuildContext context, PointerEvent event) =>
+      pushOverlayMenu(
+        Center(
+          child: FactorioIconMenuWidget(
+            itemGroups: graph.basePlanner.validConsumerNodeItems,
+            onSelected: (item) => graph.addNode(
+              nodeType: NodeType.consumer,
+              productionLine: MagicLine.singleItemConsumer(InGameItem(item)),
+              initialPosition: event.localPosition,
             ),
           ),
-          MenuOption(
-            text: 'Create full tree',
-            action: () => graph.fulfillAllNodeIo(),
-          ),
-        ],
+        ),
+      );
+
+  void createContextMenu(BuildContext context, PointerEvent event) =>
+      pushOverlayMenu(
+        PositionedContextMenu(
+          position: event.position,
+          options: [
+            MenuOption(
+              text: 'Add consumer node',
+              action: () => createConsumerMenu(context, event),
+            ),
+            MenuOption(
+              text: 'Create full tree',
+              action: () => graph.fulfillAllNodeIo(),
+            ),
+          ],
+        ),
       );
 
   @override
@@ -355,8 +366,8 @@ class _GraphWidgetState extends State<GraphWidget> {
     cachedElementWidgetList ??= [
       SimpleGestureDetector(
         behaviour: HitTestBehavior.opaque,
-        onSecondaryClick: (event) =>
-            pushOverlayMenu(createContextMenu(context, event)),
+        onSecondaryClick: (event) => createContextMenu(context, event),
+        onPrimaryClick: (_) => deselectAll(),
       ),
       ...elementDisplayOrder.map((element) => elementWidgets[element]!),
     ];
