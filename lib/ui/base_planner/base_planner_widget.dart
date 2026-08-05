@@ -114,14 +114,16 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
         ..add(overlayMenu!);
     }
 
-    return KeyboardListener(
-      focusNode: focusNode,
-      onKeyEvent: (event) {
-        if (event.logicalKey == LogicalKeyboardKey.escape) {
-          clearOverlayMenu();
-        }
-      },
-      child: Stack(fit: StackFit.expand, children: children),
+    return Scaffold(
+      body: KeyboardListener(
+        focusNode: focusNode,
+        onKeyEvent: (event) {
+          if (event.logicalKey == LogicalKeyboardKey.escape) {
+            clearOverlayMenu();
+          }
+        },
+        child: Stack(fit: StackFit.expand, children: children),
+      ),
     );
   }
 }
