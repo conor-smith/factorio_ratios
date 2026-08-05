@@ -77,7 +77,7 @@ class _GraphWidgetState extends State<GraphWidget> {
   final FocusNode focusNode = FocusNode();
   bool shiftKeyHeld = false;
 
-  final Map<BasePlannerElement, ElementViewChangeNotifier> changeNotifiers = {};
+  final Map<BasePlannerElement, ElementChangeNotifier> changeNotifiers = {};
   final Map<BasePlannerElement, Widget> elementWidgets = {};
   List<Widget>? cachedWidgetList;
 
@@ -372,7 +372,11 @@ class _GraphWidgetState extends State<GraphWidget> {
   }
 }
 
-class OverlayChangeNotifier extends ElementChangeNotifier {
+abstract class BasePlannerChangeNotifier with ChangeNotifier {
+  void newSnapshot();
+}
+
+class OverlayChangeNotifier extends BasePlannerChangeNotifier {
   final Graph graph;
 
   String _name;
@@ -409,12 +413,12 @@ class GraphWidgetPersistentState {
       _allElementsHash = graph.allElementsHash;
 }
 
-abstract class ElementViewChangeNotifier extends ElementChangeNotifier {
+abstract class ElementChangeNotifier extends BasePlannerChangeNotifier {
   bool _selected;
   bool _isActiveElement;
   GeometryOperation? _geometryOp;
 
-  ElementViewChangeNotifier()
+  ElementChangeNotifier()
     : _selected = false,
       _isActiveElement = false,
       _geometryOp = null;

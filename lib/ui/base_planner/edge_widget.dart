@@ -37,7 +37,7 @@ class EdgeWidget extends StatelessWidget {
   }
 }
 
-class EdgeChangeNotifier extends ElementViewChangeNotifier {
+class EdgeChangeNotifier extends ElementChangeNotifier {
   final Edge edge;
 
   EdgeGeometry _geometry;

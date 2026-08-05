@@ -64,7 +64,7 @@ class NodeWidget extends StatelessWidget {
   }
 }
 
-class NodeChangeNotifier extends ElementViewChangeNotifier {
+class NodeChangeNotifier extends ElementChangeNotifier {
   final NodeElement node;
 
   NodeGeometry _geometry;
