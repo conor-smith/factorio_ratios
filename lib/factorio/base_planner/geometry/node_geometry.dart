@@ -16,6 +16,25 @@ class NodeGeometryImpl implements NodeGeometry, ToJson {
 
   const NodeGeometryImpl(this.rect);
 
+  factory NodeGeometryImpl.fromLTRB(
+    double left,
+    double top,
+    double right,
+    double bottom, [
+    double? snapValue,
+  ]) {
+    Rect rect = snapValue == null
+        ? Rect.fromLTRB(left, top, right, bottom)
+        : Rect.fromLTRB(
+            roundToNearestSnapValue(left, snapValue),
+            roundToNearestSnapValue(top, snapValue),
+            roundToNearestSnapValue(right, snapValue),
+            roundToNearestSnapValue(bottom, snapValue),
+          );
+
+    return NodeGeometryImpl(rect);
+  }
+
   @override
   Map<String, dynamic> toJson() {
     // TODO: implement toJson

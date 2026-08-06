@@ -47,6 +47,9 @@ class BasePlanner with ChangeNotifier implements ToJson {
   // TODO - Rename, document, and make mutable
   final double ioThreshold = 0.1;
 
+  // TODO - Rename, document, and make mutable
+  final int geometrySnap = 10;
+
   /// Current active snapshot in [snapshots]
   int get snapshotIndex => _snapshotIndex;
 

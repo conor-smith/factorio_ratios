@@ -24,3 +24,10 @@ class Line {
   @override
   String toString() => 'Line($start, $end)';
 }
+
+double roundToNearestSnapValue(double position, double snapValue) {
+  var remainder = position % snapValue;
+  return remainder < snapValue / 2
+      ? position - remainder
+      : position - remainder + snapValue;
+}
