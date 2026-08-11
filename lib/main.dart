@@ -23,12 +23,16 @@ class MainApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: FutureBuilder(
-        future: _db,
-        builder: (context, snapShot) => switch (snapShot.connectionState) {
-          ConnectionState.done => FactorioRatiosApp(factorioDb: snapShot.data!),
-          _ => Center(child: CircularProgressIndicator()),
-        },
+      home: Scaffold(
+        body: FutureBuilder(
+          future: _db,
+          builder: (context, snapShot) => switch (snapShot.connectionState) {
+            ConnectionState.done => FactorioRatiosApp(
+              factorioDb: snapShot.data!,
+            ),
+            _ => Center(child: CircularProgressIndicator()),
+          },
+        ),
       ),
     );
   }

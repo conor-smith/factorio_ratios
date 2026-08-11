@@ -70,6 +70,6 @@ class _BasePlannerWidgetState extends State<BasePlannerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: graphWidget);
+    return graphWidget;
   }
 }
