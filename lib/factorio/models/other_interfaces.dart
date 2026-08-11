@@ -1,6 +1,6 @@
 part of 'models.dart';
 
-abstract class Prototype implements Comparable<Prototype> {
+abstract mixin class Prototype implements Comparable<Prototype> {
   String get name;
   String get type;
   String get localisedName;

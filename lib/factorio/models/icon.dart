@@ -28,7 +28,7 @@ class Icon {
           IconData._(
             icon: '__core__/graphics/icons/unknown.png',
             iconSize: ExpectedIconSize.other,
-            tint: IconTint.defaultIconTint,
+            tint: Tint.defaultIconTint,
             shift: Vector.defaultVector,
             scale: (expectedSize / 2) / ExpectedIconSize.other,
             floating: false,
@@ -100,7 +100,7 @@ class Icon {
 class IconData {
   final String icon;
   final double iconSize;
-  final IconTint tint;
+  final Tint tint;
   final Vector shift;
   final double scale;
   final bool floating;
@@ -128,9 +128,9 @@ class IconData {
     // default scale is 0.5 for most icons
     double scale = json['scale'] ?? (expectedSize / 2) / iconSize;
 
-    IconTint tint = json['tint'] != null
-        ? IconTint.fromJson(json['tint'])
-        : IconTint.defaultIconTint;
+    Tint tint = json['tint'] != null
+        ? Tint.fromJson(json['tint'])
+        : Tint.defaultIconTint;
     Vector shift = json['shift'] != null
         ? Vector.fromJson(json['shift'])
         : Vector.defaultVector;
@@ -152,7 +152,7 @@ class IconData {
   ) => IconData._(
     icon: path,
     iconSize: iconSize,
-    tint: IconTint.defaultIconTint,
+    tint: Tint.defaultIconTint,
     shift: Vector.defaultVector,
     scale: (expectedSize / 2) / iconSize,
     floating: false,
@@ -161,7 +161,7 @@ class IconData {
   factory IconData.unknownIcon(double expectedSize) => IconData._(
     icon: '__core__/graphics/icons/unknown.png',
     iconSize: ExpectedIconSize.other,
-    tint: IconTint.defaultIconTint,
+    tint: Tint.defaultIconTint,
     shift: Vector.defaultVector,
     scale: (expectedSize / 2) / ExpectedIconSize.other,
     floating: false,
@@ -177,59 +177,6 @@ class IconData {
           shift == other.shift &&
           scale == other.scale &&
           floating == other.floating);
-}
-
-class IconTint {
-  static const defaultIconTint = IconTint._(1, 1, 1, 1);
-
-  final double r;
-  final double g;
-  final double b;
-  final double a;
-
-  const IconTint._(this.r, this.g, this.b, this.a);
-
-  factory IconTint.fromJson(dynamic json) {
-    double r, g, b, a;
-
-    if (json is Map) {
-      r = json['r']?.toDouble() ?? 0;
-      g = json['g']?.toDouble() ?? 0;
-      b = json['b']?.toDouble() ?? 0;
-      a = json['a']?.toDouble() ?? 1;
-    } else {
-      List jsonList = json as List;
-      r = jsonList[0].toDouble();
-      g = jsonList[1].toDouble();
-      b = jsonList[2].toDouble();
-      a = jsonList.length == 4 ? jsonList[3].toDouble() : 1;
-    }
-
-    if (r > 1 || g > 1 || b > 1 || a > 1) {
-      r /= 255;
-      g /= 255;
-      b /= 255;
-      a /= 255;
-    }
-
-    return IconTint._(r, g, b, a);
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      super == other ||
-      (other is IconTint &&
-          r == other.r &&
-          g == other.g &&
-          b == other.b &&
-          a == other.a);
-
-  @override
-  int get hashCode =>
-      r.hashCode +
-      (g * 100).hashCode +
-      (b * 10000).hashCode +
-      (a * 1000000).hashCode;
 }
 
 class Vector {

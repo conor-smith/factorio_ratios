@@ -155,6 +155,22 @@ class InGameRecipeIngredient implements RecipeIngredient {
                 item.temperature <= maximumTemperature!;
     }
   }
+
+  @override
+  // TODO: implement qualityChange
+  int get qualityChange => throw UnimplementedError();
+
+  @override
+  // TODO: implement qualityMax
+  int? get qualityMax => throw UnimplementedError();
+
+  @override
+  // TODO: implement qualityMin
+  int? get qualityMin => throw UnimplementedError();
+
+  @override
+  // TODO: implement spoilWeight
+  double get spoilWeight => throw UnimplementedError();
 }
 
 class InGameRecipeProduct implements RecipeProduct {
@@ -190,4 +206,24 @@ class InGameRecipeProduct implements RecipeProduct {
   double? get temperature => internalRecipeProduct.temperature;
   @override
   String get type => internalRecipeProduct.type;
+
+  @override
+  // TODO: implement affectedByQuality
+  bool get affectedByQuality => throw UnimplementedError();
+
+  @override
+  // TODO: implement alwaysFresh
+  bool get alwaysFresh => throw UnimplementedError();
+
+  @override
+  // TODO: implement qualityChange
+  int get qualityChange => throw UnimplementedError();
+
+  @override
+  // TODO: implement qualityMax
+  int? get qualityMax => throw UnimplementedError();
+
+  @override
+  // TODO: implement qualityMin
+  int? get qualityMin => throw UnimplementedError();
 }

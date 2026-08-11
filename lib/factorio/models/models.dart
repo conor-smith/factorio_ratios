@@ -28,6 +28,59 @@ const Map<String, double> _multipliers = {
   "Q": 1.0e30,
 };
 
+class Tint {
+  static const defaultIconTint = Tint._(1, 1, 1, 1);
+
+  final double r;
+  final double g;
+  final double b;
+  final double a;
+
+  const Tint._(this.r, this.g, this.b, this.a);
+
+  factory Tint.fromJson(dynamic json) {
+    double r, g, b, a;
+
+    if (json is Map) {
+      r = json['r']?.toDouble() ?? 0;
+      g = json['g']?.toDouble() ?? 0;
+      b = json['b']?.toDouble() ?? 0;
+      a = json['a']?.toDouble() ?? 1;
+    } else {
+      List jsonList = json as List;
+      r = jsonList[0].toDouble();
+      g = jsonList[1].toDouble();
+      b = jsonList[2].toDouble();
+      a = jsonList.length == 4 ? jsonList[3].toDouble() : 1;
+    }
+
+    if (r > 1 || g > 1 || b > 1 || a > 1) {
+      r /= 255;
+      g /= 255;
+      b /= 255;
+      a /= 255;
+    }
+
+    return Tint._(r, g, b, a);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      super == other ||
+      (other is Tint &&
+          r == other.r &&
+          g == other.g &&
+          b == other.b &&
+          a == other.a);
+
+  @override
+  int get hashCode =>
+      r.hashCode +
+      (g * 100).hashCode +
+      (b * 10000).hashCode +
+      (a * 1000000).hashCode;
+}
+
 enum Effects {
   consumption('consumption', minMultiplier: 0.2),
   productivity('productivity', minMultiplier: 1),

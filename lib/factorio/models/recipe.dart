@@ -241,6 +241,13 @@ class RecipeIngredient extends RecipeItem {
   final double? _jsonMaximumTemperature;
 
   final double amount;
+
+  final int? qualityMin;
+  final int? qualityMax;
+  final int qualityChange;
+
+  final double spoilWeight;
+
   final double? temperature;
   late final double? minimumTemperature =
       _jsonMinimumTemperature ??
@@ -257,6 +264,10 @@ class RecipeIngredient extends RecipeItem {
     required this.temperature,
     required double? minimumTemperature,
     required double? maximumTemperature,
+    required this.qualityMin,
+    required this.qualityMax,
+    required this.qualityChange,
+    required this.spoilWeight,
   }) : _jsonMinimumTemperature = minimumTemperature,
        _jsonMaximumTemperature = maximumTemperature,
        super._();
@@ -270,10 +281,16 @@ class RecipeIngredient extends RecipeItem {
         temperature: json['temperature']?.toDouble(),
         minimumTemperature: json['maximum_temperature']?.toDouble(),
         maximumTemperature: json['minimum_temperature']?.toDouble(),
+        qualityMin: json['quality_min'],
+        qualityMax: json['quality_max'],
+        qualityChange: json['quality_change'] ?? 0,
+        spoilWeight: json['spoil_weight'] ?? 1,
       );
 }
 
 class RecipeProduct extends RecipeItem {
+  // TODO - Determine how independent_probability and shared_probability work
+
   final double? amount;
   final double? amountMin;
   final double? amountMax;
@@ -281,7 +298,14 @@ class RecipeProduct extends RecipeItem {
   final double ignoredByProductivity;
 
   final double extraCountFraction;
+
   final double percentSpoiled;
+  final bool alwaysFresh;
+
+  final int? qualityMin;
+  final int? qualityMax;
+  final int qualityChange;
+  final bool affectedByQuality;
 
   final double? temperature;
 
@@ -296,6 +320,11 @@ class RecipeProduct extends RecipeItem {
     required this.ignoredByProductivity,
     required this.extraCountFraction,
     required this.percentSpoiled,
+    required this.alwaysFresh,
+    required this.qualityMin,
+    required this.qualityMax,
+    required this.qualityChange,
+    required this.affectedByQuality,
     required this.temperature,
   }) : super._();
 
@@ -311,6 +340,11 @@ class RecipeProduct extends RecipeItem {
         ignoredByProductivity: json['ignored_by_productivity']?.toDouble() ?? 0,
         extraCountFraction: json['extra_count_fraction']?.toDouble() ?? 0,
         percentSpoiled: json['percent_spoiled']?.toDouble() ?? 0,
+        alwaysFresh: json['always_fresh'] ?? false,
+        qualityMin: json['quality_min'],
+        qualityMax: json['quality_max'],
+        qualityChange: json['quality_change'] ?? 0,
+        affectedByQuality: json['affected_by_quality'] ?? true,
         temperature: json['temperature']?.toDouble(),
       );
 }
