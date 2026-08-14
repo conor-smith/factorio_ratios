@@ -9,6 +9,7 @@ part 'group.dart';
 part 'icon.dart';
 part 'item.dart';
 part 'other_interfaces.dart';
+part 'quality.dart';
 part 'recipe.dart';
 part 'resource.dart';
 part 'subgroup.dart';
@@ -28,17 +29,17 @@ const Map<String, double> _multipliers = {
   "Q": 1.0e30,
 };
 
-class Tint {
-  static const defaultIconTint = Tint._(1, 1, 1, 1);
+class Colour {
+  static const defaultIconTint = Colour._(1, 1, 1, 1);
 
   final double r;
   final double g;
   final double b;
   final double a;
 
-  const Tint._(this.r, this.g, this.b, this.a);
+  const Colour._(this.r, this.g, this.b, this.a);
 
-  factory Tint.fromJson(dynamic json) {
+  factory Colour.fromJson(dynamic json) {
     double r, g, b, a;
 
     if (json is Map) {
@@ -61,13 +62,13 @@ class Tint {
       a /= 255;
     }
 
-    return Tint._(r, g, b, a);
+    return Colour._(r, g, b, a);
   }
 
   @override
   bool operator ==(Object other) =>
       super == other ||
-      (other is Tint &&
+      (other is Colour &&
           r == other.r &&
           g == other.g &&
           b == other.b &&
@@ -153,6 +154,7 @@ class FactorioDatabase {
   late final Map<String, ItemSubgroup> itemSubgroupMap;
   late final Map<String, Surface> surfaceMap;
   late final Map<String, Resource> resourceMap;
+  late final Map<String, Quality> qualityMap;
 
   // Each of these fields acts as an index when querying the db
   late final Map<String, List<Recipe>> _craftingCategoryToRecipes;
@@ -180,6 +182,7 @@ class FactorioDatabase {
     Map<String, ItemSubgroup> itemSubgroups = {};
     Map<String, Surface> surfaces = {};
     Map<String, Resource> resources = {};
+    Map<String, Quality> qualities = {};
 
     List<String> itemSections = [
       'item',
@@ -336,6 +339,20 @@ class FactorioDatabase {
       }
     });
 
+    Map<String, Map> rawQualities = (factorioRawData['quality'] as Map).cast();
+    rawQualities.forEach((name, qualityJson) {
+      try {
+        if (qualityJson['hidden'] != true) {
+          qualities[name] = Quality.fromJson(this, qualityJson);
+        }
+      } catch (e) {
+        throw FactorioException(
+          'Encountered error when decoding quality $name',
+          e,
+        );
+      }
+    });
+
     itemMap = Map.unmodifiable(items);
     recipeMap = Map.unmodifiable(recipes);
     craftingMachineMap = Map.unmodifiable(craftingMachines);
@@ -343,6 +360,7 @@ class FactorioDatabase {
     itemSubgroupMap = Map.unmodifiable(itemSubgroups);
     surfaceMap = Map.unmodifiable(surfaces);
     resourceMap = Map.unmodifiable(resources);
+    qualityMap = Map.unmodifiable(qualities);
   }
 
   void _buildIndices() {

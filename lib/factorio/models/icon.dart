@@ -28,7 +28,7 @@ class Icon {
           IconData._(
             icon: '__core__/graphics/icons/unknown.png',
             iconSize: ExpectedIconSize.other,
-            tint: Tint.defaultIconTint,
+            tint: Colour.defaultIconTint,
             shift: Vector.defaultVector,
             scale: (expectedSize / 2) / ExpectedIconSize.other,
             floating: false,
@@ -100,7 +100,7 @@ class Icon {
 class IconData {
   final String icon;
   final double iconSize;
-  final Tint tint;
+  final Colour tint;
   final Vector shift;
   final double scale;
   final bool floating;
@@ -128,9 +128,9 @@ class IconData {
     // default scale is 0.5 for most icons
     double scale = json['scale'] ?? (expectedSize / 2) / iconSize;
 
-    Tint tint = json['tint'] != null
-        ? Tint.fromJson(json['tint'])
-        : Tint.defaultIconTint;
+    Colour tint = json['tint'] != null
+        ? Colour.fromJson(json['tint'])
+        : Colour.defaultIconTint;
     Vector shift = json['shift'] != null
         ? Vector.fromJson(json['shift'])
         : Vector.defaultVector;
@@ -152,7 +152,7 @@ class IconData {
   ) => IconData._(
     icon: path,
     iconSize: iconSize,
-    tint: Tint.defaultIconTint,
+    tint: Colour.defaultIconTint,
     shift: Vector.defaultVector,
     scale: (expectedSize / 2) / iconSize,
     floating: false,
@@ -161,7 +161,7 @@ class IconData {
   factory IconData.unknownIcon(double expectedSize) => IconData._(
     icon: '__core__/graphics/icons/unknown.png',
     iconSize: ExpectedIconSize.other,
-    tint: Tint.defaultIconTint,
+    tint: Colour.defaultIconTint,
     shift: Vector.defaultVector,
     scale: (expectedSize / 2) / ExpectedIconSize.other,
     floating: false,
