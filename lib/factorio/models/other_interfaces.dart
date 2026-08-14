@@ -1,6 +1,8 @@
 part of 'models.dart';
 
 abstract class Prototype implements Comparable<Prototype> {
+  FactorioDatabase get factorioDb;
+
   String get name;
   String get type;
   String get localisedName;

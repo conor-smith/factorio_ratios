@@ -5,8 +5,8 @@ abstract class ItemSpec implements DelegatingItem, ToJson {
 
   factory ItemSpec(
     Item item, {
-    int? qualityMin,
-    int? qualityMax,
+    Quality? qualityMin,
+    Quality? qualityMax,
     double? minimumTemperature,
     double? maximumTemperature,
   }) {
@@ -15,8 +15,8 @@ abstract class ItemSpec implements DelegatingItem, ToJson {
     }
 
     if (item is SolidItem) {
-      qualityMin ??= 1;
-      qualityMax ??= 1;
+      qualityMin ??= item.factorioDb.defaultQuality;
+      qualityMax ??= item.factorioDb.defaultQuality;
 
       return SolidItemSpec._(item, qualityMin, qualityMax);
     } else {
@@ -33,14 +33,14 @@ class SolidItemSpec extends DelegatingSolidItem implements ItemSpec {
   @override
   final SolidItem internal;
 
-  final int qualityMin;
-  final int qualityMax;
+  final Quality qualityMin;
+  final Quality qualityMax;
 
   @override
   final Icon? icon;
 
   SolidItemSpec._(this.internal, this.qualityMin, this.qualityMax)
-    : icon = internal.icon?.withQuality(qualityMax);
+    : icon = internal.icon?.withQuality(qualityMin);
 
   @override
   bool accepts(Item item) =>
@@ -63,7 +63,8 @@ class SolidItemSpec extends DelegatingSolidItem implements ItemSpec {
           qualityMax == other.qualityMax;
 
   @override
-  int get hashCode => internal.hashCode + qualityMin + (qualityMax * 10);
+  int get hashCode =>
+      internal.hashCode + qualityMin.hashCode + (qualityMax.hashCode * 10);
 }
 
 class FluidItemSpec extends DelegatingFluidItem implements ItemSpec {

@@ -1,6 +1,9 @@
 part of 'models.dart';
 
 class Surface extends PrototypeWithIcon {
+  static const String defaultName = 'nauvis';
+
+  @override
   final FactorioDatabase factorioDb;
 
   @override

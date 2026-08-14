@@ -1,6 +1,7 @@
 part of 'models.dart';
 
 class ItemGroup extends PrototypeWithIcon {
+  @override
   final FactorioDatabase factorioDb;
 
   @override

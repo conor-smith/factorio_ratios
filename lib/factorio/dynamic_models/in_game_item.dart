@@ -1,7 +1,7 @@
 part of 'dynamic_models.dart';
 
 abstract class InGameItem implements DelegatingItem, ItemSpec {
-  factory InGameItem(Item item, {int quality = 1, double? temperature}) {
+  factory InGameItem(Item item, {Quality? quality, double? temperature}) {
     if (item is SolidItem) {
       return InGameSolidItem(item, quality: quality);
     } else {
@@ -18,7 +18,7 @@ class InGameSolidItem extends DelegatingSolidItem
   @override
   final SolidItem internal;
   @override
-  final int quality;
+  final Quality quality;
 
   @override
   final String name;
@@ -31,11 +31,13 @@ class InGameSolidItem extends DelegatingSolidItem
   final InGameItem? burntResult;
 
   @override
-  int get qualityMin => quality;
+  Quality get qualityMin => quality;
   @override
-  int get qualityMax => quality;
+  Quality get qualityMax => quality;
 
-  factory InGameSolidItem(SolidItem item, {int quality = 1}) {
+  factory InGameSolidItem(SolidItem item, {Quality? quality}) {
+    quality ??= item.factorioDb.defaultQuality;
+
     if (item is InGameSolidItem && item.quality == quality) {
       return item;
     } else if (item is DelegatingSolidItem) {
@@ -46,7 +48,9 @@ class InGameSolidItem extends DelegatingSolidItem
   }
 
   InGameSolidItem._(this.internal, this.quality)
-    : name = internal.name + (quality == 1 ? '' : ': Q$quality'),
+    : name = quality.name != Quality.defaultName
+          ? '$quality ${internal.name}'
+          : internal.name,
       icon = internal.icon?.withQuality(quality),
       spoilResult = internal.spoilResult != null
           ? InGameItem(internal.spoilResult!)
@@ -69,7 +73,7 @@ class InGameSolidItem extends DelegatingSolidItem
           quality == other.quality;
 
   @override
-  int get hashCode => internal.hashCode + quality;
+  int get hashCode => internal.hashCode + quality.hashCode;
 
   @override
   Map<String, dynamic> toJson() {

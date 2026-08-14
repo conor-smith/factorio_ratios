@@ -8,7 +8,7 @@ class InGameMachine extends DelegatingCraftingMachine
   final CraftingMachine internal;
 
   @override
-  final int quality;
+  final Quality quality;
   @override
   final String name;
   @override
@@ -16,7 +16,9 @@ class InGameMachine extends DelegatingCraftingMachine
   @override
   final Icon? icon;
 
-  factory InGameMachine(CraftingMachine machine, [int quality = 1]) {
+  factory InGameMachine(CraftingMachine machine, [Quality? quality]) {
+    quality ??= machine.factorioDb.defaultQuality;
+
     if (machine is InGameMachine && machine.quality == quality) {
       return machine;
     } else if (machine is DelegatingCraftingMachine) {
@@ -26,7 +28,9 @@ class InGameMachine extends DelegatingCraftingMachine
   }
 
   InGameMachine._(this.internal, this.quality)
-    : name = internal.name + (quality == 1 ? '' : ': Q$quality'),
+    : name = quality.name != Quality.defaultName
+          ? '$quality ${internal.name}'
+          : internal.name,
       item = internal.item != null
           ? InGameItem(internal.item!, quality: quality)
           : null,
@@ -53,7 +57,7 @@ class InGameMachine extends DelegatingCraftingMachine
           quality == other.quality;
 
   @override
-  int get hashCode => internal.hashCode + quality;
+  int get hashCode => internal.hashCode + quality.hashCode;
 
   @override
   Map<String, dynamic> toJson() {

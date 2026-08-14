@@ -1,6 +1,7 @@
 part of 'models.dart';
 
 class ItemSubgroup extends Prototype {
+  @override
   final FactorioDatabase factorioDb;
 
   @override

@@ -166,6 +166,9 @@ class FactorioDatabase {
   late final Map<Item, List<Recipe>> _producedBy;
   late final Map<Item, List<Recipe>> _consumedBy;
 
+  Surface get defaultSurface => surfaceMap[Surface.defaultName]!;
+  Quality get defaultQuality => qualityMap[Quality.defaultName]!;
+
   FactorioDatabase.fromJson(String rawJson) {
     _parseJson(rawJson);
     _buildIndices();

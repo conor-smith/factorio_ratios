@@ -27,9 +27,23 @@ int compareTwoQualityPrototypes(Prototype prototype1, Prototype prototype2) {
   var prototypeCompare = compareTwoPrototypes(prototype1, prototype2);
 
   if (prototypeCompare == 0) {
-    var quality1 = prototype1 is QualityPrototype ? prototype1.quality : 1;
-    var quality2 = prototype2 is QualityPrototype ? prototype2.quality : 1;
-    return quality1.compareTo(quality2);
+    var quality1 = prototype1 is QualityPrototype
+        ? prototype1.quality
+        : prototype1.factorioDb.defaultQuality;
+    var quality2 = prototype2 is QualityPrototype
+        ? prototype2.quality
+        : prototype2.factorioDb.defaultQuality;
+
+    if (quality1 == quality2) {
+      return 0;
+    } else if (quality1 < quality2) {
+      return -1;
+    } else if (quality1 > quality2) {
+      return 1;
+    } else {
+      // Can get here if two qualities are not on same quality chain
+      return 0;
+    }
   } else {
     return prototypeCompare;
   }
@@ -166,9 +180,9 @@ abstract class DelegatingRecipeIngredient implements RecipeIngredient {
   @override
   double get amount => internal.amount;
   @override
-  int? get qualityMin => internal.qualityMin;
+  Quality? get qualityMin => internal.qualityMin;
   @override
-  int? get qualityMax => internal.qualityMax;
+  Quality? get qualityMax => internal.qualityMax;
   @override
   int? get qualityChange => internal.qualityChange;
 
@@ -213,9 +227,9 @@ abstract class DelegatingRecipeProduct implements RecipeProduct {
   bool get alwaysFresh => internal.alwaysFresh;
 
   @override
-  int? get qualityMin => internal.qualityMin;
+  Quality? get qualityMin => internal.qualityMin;
   @override
-  int? get qualityMax => internal.qualityMax;
+  Quality? get qualityMax => internal.qualityMax;
   @override
   int? get qualityChange => internal.qualityChange;
   @override

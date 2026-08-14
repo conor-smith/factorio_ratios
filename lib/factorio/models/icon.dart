@@ -62,7 +62,7 @@ class Icon {
     }
   }
 
-  Icon withQuality(int quality) {
+  Icon withQuality(Quality quality) {
     // TODO
     return this;
   }

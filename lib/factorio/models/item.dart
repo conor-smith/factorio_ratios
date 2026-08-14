@@ -1,8 +1,6 @@
 part of 'models.dart';
 
 abstract class Item extends PrototypeWithIcon {
-  FactorioDatabase get factorioDb;
-
   double? get fuelValue;
 
   bool get hidden;

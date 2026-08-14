@@ -1,6 +1,9 @@
 part of 'models.dart';
 
 class Quality extends PrototypeWithIcon {
+  static const String defaultName = 'normal';
+
+  @override
   final FactorioDatabase factorioDb;
 
   @override
@@ -80,4 +83,40 @@ class Quality extends PrototypeWithIcon {
       previousChainProbability: previousChainProbability,
     );
   }
+
+  bool operator <(Quality other) {
+    Quality? current = next;
+
+    while (current != null) {
+      if (current == other) {
+        return true;
+      } else if (current == this) {
+        // Should only get here if someone's made a circular chain
+        return false;
+      }
+
+      current = current.next;
+    }
+
+    return false;
+  }
+
+  bool operator <=(Quality other) => this == other || this < other;
+
+  bool operator >(Quality other) {
+    Quality? current = previous;
+
+    while (current != null) {
+      if (current == other) {
+        return true;
+      } else if (current == this) {
+        // Should only get here if someone's made a circular chain
+        return false;
+      }
+    }
+
+    return false;
+  }
+
+  bool operator >=(Quality other) => this == other || this > other;
 }

@@ -3,6 +3,7 @@ part of 'models.dart';
 class Recipe extends PrototypeWithIcon {
   static const double defaultEnergyRequired = 0.5;
 
+  @override
   final FactorioDatabase factorioDb;
 
   @override
@@ -231,8 +232,11 @@ class RecipeIngredient {
 
   final double amount;
 
-  final int? qualityMin;
-  final int? qualityMax;
+  final String? _qualityMinString;
+  final String? _qualityMaxString;
+  late final Quality? qualityMin = factorioDb.qualityMap[_qualityMinString];
+  late final Quality? qualityMax = factorioDb.qualityMap[_qualityMaxString];
+
   final int? qualityChange;
 
   final double? spoilWeight;
@@ -249,12 +253,14 @@ class RecipeIngredient {
     required this.factorioDb,
     required String name,
     required this.amount,
-    required this.qualityMin,
-    required this.qualityMax,
+    required String? qualityMin,
+    required String? qualityMax,
     required int this.qualityChange,
     required double this.spoilWeight,
   }) : _name = name,
        type = 'item',
+       _qualityMinString = qualityMin,
+       _qualityMaxString = qualityMax,
        temperature = null,
        _givenMinimumTemperature = null,
        _givenMaximumTemperature = null;
@@ -270,8 +276,8 @@ class RecipeIngredient {
        type = 'fluid',
        _givenMinimumTemperature = minimumTemperature,
        _givenMaximumTemperature = maximumTemperature,
-       qualityMin = null,
-       qualityMax = null,
+       _qualityMinString = null,
+       _qualityMaxString = null,
        qualityChange = null,
        spoilWeight = null;
 
@@ -299,7 +305,6 @@ class RecipeIngredient {
 }
 
 class RecipeProduct {
-  // TODO - Determine how independent_probability and shared_probability work
   final FactorioDatabase factorioDb;
 
   final String _name;
@@ -319,8 +324,11 @@ class RecipeProduct {
   final double? percentSpoiled;
   final bool alwaysFresh;
 
-  final int? qualityMin;
-  final int? qualityMax;
+  final String? _qualityMinString;
+  final String? _qualityMaxString;
+  late final Quality? qualityMin = factorioDb.qualityMap[_qualityMinString];
+  late final Quality? qualityMax = factorioDb.qualityMap[_qualityMaxString];
+
   final int? qualityChange;
   final bool affectedByQuality;
 
@@ -341,12 +349,14 @@ class RecipeProduct {
     required this.extraCountFraction,
     required this.percentSpoiled,
     required this.alwaysFresh,
-    required this.qualityMin,
-    required this.qualityMax,
+    required String? qualityMin,
+    required String? qualityMax,
     required this.qualityChange,
     required this.affectedByQuality,
   }) : _name = name,
        type = 'item',
+       _qualityMinString = qualityMin,
+       _qualityMaxString = qualityMax,
        _givenTemperature = null;
 
   RecipeProduct._fluid({
@@ -364,8 +374,8 @@ class RecipeProduct {
        extraCountFraction = null,
        percentSpoiled = null,
        alwaysFresh = true,
-       qualityMin = null,
-       qualityMax = null,
+       _qualityMinString = null,
+       _qualityMaxString = null,
        qualityChange = null,
        affectedByQuality = false,
        _givenTemperature = temperature;

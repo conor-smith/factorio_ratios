@@ -5,7 +5,7 @@ class InGameRecipe extends DelegatingRecipe
   @override
   final Recipe internal;
   @override
-  final int quality;
+  final Quality quality;
 
   @override
   final String name;
@@ -18,7 +18,9 @@ class InGameRecipe extends DelegatingRecipe
   @override
   final InGameItem? mainProduct;
 
-  factory InGameRecipe(Recipe recipe, [int quality = 1]) {
+  factory InGameRecipe(Recipe recipe, [Quality? quality]) {
+    quality ??= recipe.factorioDb.defaultQuality;
+
     if (recipe is InGameRecipe && quality == recipe.quality) {
       return recipe;
     } else if (recipe is DelegatingRecipe) {
@@ -28,7 +30,9 @@ class InGameRecipe extends DelegatingRecipe
   }
 
   InGameRecipe._(this.internal, this.quality)
-    : name = internal.name + (quality == 1 ? '' : ': Q$quality'),
+    : name = quality.name != Quality.defaultName
+          ? '$quality ${internal.name}'
+          : internal.name,
       icon = internal.icon?.withQuality(quality),
       mainProduct = internal.mainProduct != null
           ? InGameItem(internal.mainProduct!)
@@ -73,15 +77,17 @@ class InGameRecipeIngredient extends DelegatingRecipeIngredient {
 
   factory InGameRecipeIngredient(
     RecipeIngredient ingredient,
-    int recipeQuality,
+    Quality recipeQuality,
   ) {
-    int? qualityMin = ingredient.qualityMin;
-    int? qualityMax = ingredient.qualityMax;
+    Quality? qualityMin = ingredient.qualityMin;
+    Quality? qualityMax = ingredient.qualityMax;
     double? minimumTemperature = ingredient.minimumTemperature;
     double? maximumTemperature = ingredient.maximumTemperature;
 
     if (ingredient.type == 'item') {
-      if (qualityMin == null && qualityMax != null) {}
+      if (qualityMin == null && qualityMax != null) {
+        // TODO
+      }
     }
   }
 }
@@ -89,40 +95,37 @@ class InGameRecipeIngredient extends DelegatingRecipeIngredient {
 class InGameRecipeProduct implements RecipeProduct {
   @override
   final InGameItem item;
-  final RecipeProduct internalRecipeProduct;
+  final RecipeProduct internal;
 
-  InGameRecipeProduct(this.internalRecipeProduct, int quality)
+  InGameRecipeProduct(this.internal, Quality quality)
     : item = InGameItem(
-        internalRecipeProduct.item,
+        internal.item,
         quality: quality,
-        temperature: internalRecipeProduct.temperature,
+        temperature: internal.temperature,
       );
 
   @override
-  double? get amount => internalRecipeProduct.amount;
+  double? get amount => internal.amount;
   @override
-  double? get amountMax => internalRecipeProduct.amountMax;
+  double? get amountMax => internal.amountMax;
   @override
-  double? get amountMin => internalRecipeProduct.amountMin;
+  double? get amountMin => internal.amountMin;
   @override
-  double? get extraCountFraction => internalRecipeProduct.extraCountFraction;
+  double? get extraCountFraction => internal.extraCountFraction;
   @override
-  FactorioDatabase get factorioDb => internalRecipeProduct.factorioDb;
+  FactorioDatabase get factorioDb => internal.factorioDb;
   @override
-  double get ignoredByProductivity =>
-      internalRecipeProduct.ignoredByProductivity;
+  double get ignoredByProductivity => internal.ignoredByProductivity;
   @override
-  double? get percentSpoiled => internalRecipeProduct.percentSpoiled;
+  double? get percentSpoiled => internal.percentSpoiled;
   @override
-  double get independentProbability =>
-      internalRecipeProduct.independentProbability;
+  double get independentProbability => internal.independentProbability;
   @override
-  SharedProbability get sharedProbability =>
-      internalRecipeProduct.sharedProbability;
+  SharedProbability get sharedProbability => internal.sharedProbability;
   @override
-  double? get temperature => internalRecipeProduct.temperature;
+  double? get temperature => internal.temperature;
   @override
-  String get type => internalRecipeProduct.type;
+  String get type => internal.type;
 
   @override
   // TODO: implement affectedByQuality

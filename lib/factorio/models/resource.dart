@@ -1,6 +1,7 @@
 part of 'models.dart';
 
 class Resource extends PrototypeWithIcon {
+  @override
   final FactorioDatabase factorioDb;
 
   @override

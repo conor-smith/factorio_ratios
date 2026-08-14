@@ -17,7 +17,7 @@ part 'sorted_item_groups.dart';
 typedef ItemAmounts = Map<InGameItem, double>;
 
 abstract class QualityPrototype implements Prototype {
-  int get quality;
+  Quality get quality;
 }
 
 abstract class ItemIo {

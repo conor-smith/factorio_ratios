@@ -4,6 +4,7 @@ class Technology extends PrototypeWithIcon {
   // Only used to determine available recipes for now
   // But this class might be useful later. Best keep it around
 
+  @override
   final FactorioDatabase factorioDb;
 
   @override

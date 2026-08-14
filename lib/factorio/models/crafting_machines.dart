@@ -2,6 +2,7 @@ part of 'models.dart';
 
 class CraftingMachine extends PrototypeWithIcon {
   // TODO - Quality effects on module and energy usage
+  @override
   final FactorioDatabase factorioDb;
 
   @override
