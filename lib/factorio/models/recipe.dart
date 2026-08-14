@@ -193,9 +193,6 @@ class Recipe extends PrototypeWithIcon {
     );
   }
 
-  @override
-  String toString() => name;
-
   Item? _determineMainProduct() {
     if (_mainProductString != null) {
       return factorioDb.itemMap[_mainProductString];
@@ -221,7 +218,7 @@ class Recipe extends PrototypeWithIcon {
   }
 }
 
-abstract class RecipeItem {
+class RecipeIngredient {
   final FactorioDatabase factorioDb;
 
   final String _name;
@@ -229,95 +226,118 @@ abstract class RecipeItem {
 
   late final Item item = factorioDb.itemMap[_name]!;
 
-  RecipeItem._({
-    required this.factorioDb,
-    required String name,
-    required this.type,
-  }) : _name = name;
-}
-
-class RecipeIngredient extends RecipeItem {
-  final double? _jsonMinimumTemperature;
-  final double? _jsonMaximumTemperature;
+  final double? _givenMinimumTemperature;
+  final double? _givenMaximumTemperature;
 
   final double amount;
 
   final int? qualityMin;
   final int? qualityMax;
-  final int qualityChange;
+  final int? qualityChange;
 
-  final double spoilWeight;
+  final double? spoilWeight;
 
   final double? temperature;
   late final double? minimumTemperature =
-      _jsonMinimumTemperature ??
+      _givenMinimumTemperature ??
       (type == 'fluid' ? (item as FluidItem).defaultTemperature : null);
   late final double? maximumTemperature =
-      _jsonMaximumTemperature ??
+      _givenMaximumTemperature ??
       (type == 'fluid' ? (item as FluidItem).defaultTemperature : null);
 
-  RecipeIngredient._({
-    required super.factorioDb,
-    required super.name,
-    required super.type,
+  RecipeIngredient._item({
+    required this.factorioDb,
+    required String name,
+    required this.amount,
+    required this.qualityMin,
+    required this.qualityMax,
+    required int this.qualityChange,
+    required double this.spoilWeight,
+  }) : _name = name,
+       type = 'item',
+       temperature = null,
+       _givenMinimumTemperature = null,
+       _givenMaximumTemperature = null;
+
+  RecipeIngredient._fluid({
+    required this.factorioDb,
+    required String name,
     required this.amount,
     required this.temperature,
     required double? minimumTemperature,
     required double? maximumTemperature,
-    required this.qualityMin,
-    required this.qualityMax,
-    required this.qualityChange,
-    required this.spoilWeight,
-  }) : _jsonMinimumTemperature = minimumTemperature,
-       _jsonMaximumTemperature = maximumTemperature,
-       super._();
+  }) : _name = name,
+       type = 'fluid',
+       _givenMinimumTemperature = minimumTemperature,
+       _givenMaximumTemperature = maximumTemperature,
+       qualityMin = null,
+       qualityMax = null,
+       qualityChange = null,
+       spoilWeight = null;
 
   factory RecipeIngredient.fromJson(FactorioDatabase factorioDb, Map json) =>
-      RecipeIngredient._(
-        factorioDb: factorioDb,
-        name: json['name'],
-        type: json['type'],
-        amount: json['amount']?.toDouble(),
-        temperature: json['temperature']?.toDouble(),
-        minimumTemperature: json['maximum_temperature']?.toDouble(),
-        maximumTemperature: json['minimum_temperature']?.toDouble(),
-        qualityMin: json['quality_min'],
-        qualityMax: json['quality_max'],
-        qualityChange: json['quality_change'] ?? 0,
-        spoilWeight: json['spoil_weight'] ?? 1,
-      );
+      switch (json['type']) {
+        'item' => RecipeIngredient._item(
+          factorioDb: factorioDb,
+          name: json['name'],
+          amount: json['amount']?.toDouble(),
+          qualityMin: json['quality_min'],
+          qualityMax: json['quality_max'],
+          qualityChange: json['quality_change'] ?? 0,
+          spoilWeight: json['spoil_weight'] ?? 1,
+        ),
+        'fluid' => RecipeIngredient._fluid(
+          factorioDb: factorioDb,
+          name: json['name'],
+          amount: json['amount']?.toDouble(),
+          temperature: json['temperature']?.toDouble(),
+          minimumTemperature: json['minimum_temperature']?.toDouble(),
+          maximumTemperature: json['maximum_temperature']?.toDouble(),
+        ),
+        _ => throw UnimplementedError(),
+      };
 }
 
-class RecipeProduct extends RecipeItem {
+class RecipeProduct {
   // TODO - Determine how independent_probability and shared_probability work
+  final FactorioDatabase factorioDb;
+
+  final String _name;
+  final String type;
+
+  late final Item item = factorioDb.itemMap[_name]!;
 
   final double? amount;
   final double? amountMin;
   final double? amountMax;
-  final double probability;
   final double ignoredByProductivity;
 
-  final double extraCountFraction;
+  final double independentProbability;
+  final SharedProbability sharedProbability;
+  final double? extraCountFraction;
 
-  final double percentSpoiled;
+  final double? percentSpoiled;
   final bool alwaysFresh;
 
   final int? qualityMin;
   final int? qualityMax;
-  final int qualityChange;
+  final int? qualityChange;
   final bool affectedByQuality;
 
-  final double? temperature;
+  final double? _givenTemperature;
+  late final double? temperature = type == 'fluid'
+      ? _givenTemperature ?? (item as FluidItem).defaultTemperature
+      : null;
 
-  RecipeProduct._({
-    required super.factorioDb,
-    required super.name,
-    required super.type,
+  RecipeProduct._item({
+    required this.factorioDb,
+    required String name,
     required this.amount,
     required this.amountMin,
     required this.amountMax,
-    required this.probability,
     required this.ignoredByProductivity,
+    required this.independentProbability,
+    required this.sharedProbability,
     required this.extraCountFraction,
     required this.percentSpoiled,
     required this.alwaysFresh,
@@ -325,19 +345,56 @@ class RecipeProduct extends RecipeItem {
     required this.qualityMax,
     required this.qualityChange,
     required this.affectedByQuality,
-    required this.temperature,
-  }) : super._();
+  }) : _name = name,
+       type = 'item',
+       _givenTemperature = null;
 
-  factory RecipeProduct.fromJson(FactorioDatabase factorioDb, Map json) =>
-      RecipeProduct._(
+  RecipeProduct._fluid({
+    required this.factorioDb,
+    required String name,
+    required this.amount,
+    required this.amountMin,
+    required this.amountMax,
+    required this.ignoredByProductivity,
+    required this.independentProbability,
+    required this.sharedProbability,
+    required double temperature,
+  }) : _name = name,
+       type = 'fluid',
+       extraCountFraction = null,
+       percentSpoiled = null,
+       alwaysFresh = true,
+       qualityMin = null,
+       qualityMax = null,
+       qualityChange = null,
+       affectedByQuality = false,
+       _givenTemperature = temperature;
+
+  factory RecipeProduct.fromJson(FactorioDatabase factorioDb, Map json) {
+    double? amount = json['amount']?.toDouble();
+    double? amountMin = json['amount_min']?.toDouble();
+    double? amountMax = json['amount_max']?.toDouble();
+    double ignoredByProductivity =
+        json['ignored_by_productivity']?.toDouble() ??
+        json['ignored_by_stats']?.toDouble() ??
+        0;
+
+    double independentProbability =
+        json['independent_probability']?.toDouble() ?? 1;
+    SharedProbability sharedProbability = json['shared_probability'] != null
+        ? SharedProbability.fromJson(json['shared_probability'])
+        : SharedProbability.defaultValue;
+
+    return switch (json['type']) {
+      'item' => RecipeProduct._item(
         factorioDb: factorioDb,
         name: json['name'],
-        type: json['type'],
-        amount: json['amount']?.toDouble(),
-        amountMin: json['amount_min']?.toDouble(),
-        amountMax: json['amount_max']?.toDouble(),
-        probability: json['probability']?.toDouble() ?? 1,
-        ignoredByProductivity: json['ignored_by_productivity']?.toDouble() ?? 0,
+        amount: amount,
+        amountMin: amountMin,
+        amountMax: amountMax,
+        ignoredByProductivity: ignoredByProductivity,
+        independentProbability: independentProbability,
+        sharedProbability: sharedProbability,
         extraCountFraction: json['extra_count_fraction']?.toDouble() ?? 0,
         percentSpoiled: json['percent_spoiled']?.toDouble() ?? 0,
         alwaysFresh: json['always_fresh'] ?? false,
@@ -345,8 +402,32 @@ class RecipeProduct extends RecipeItem {
         qualityMax: json['quality_max'],
         qualityChange: json['quality_change'] ?? 0,
         affectedByQuality: json['affected_by_quality'] ?? true,
-        temperature: json['temperature']?.toDouble(),
-      );
+      ),
+      'fluid' => RecipeProduct._fluid(
+        factorioDb: factorioDb,
+        name: json['name'],
+        amount: amount,
+        amountMin: amountMin,
+        amountMax: amountMax,
+        ignoredByProductivity: ignoredByProductivity,
+        independentProbability: independentProbability,
+        sharedProbability: sharedProbability,
+        temperature: json['temperature'],
+      ),
+      _ => throw UnimplementedError(),
+    };
+  }
+}
+
+class SharedProbability {
+  static const defaultValue = SharedProbability._(min: 0, max: 1);
+  final double min;
+  final double max;
+
+  const SharedProbability._({required this.min, required this.max});
+
+  factory SharedProbability.fromJson(Map json) =>
+      SharedProbability._(min: json['min'], max: json['max']);
 }
 
 class SurfaceCondition {

@@ -70,7 +70,4 @@ class Surface extends PrototypeWithIcon {
       resources: resources,
     );
   }
-
-  @override
-  String toString() => name;
 }

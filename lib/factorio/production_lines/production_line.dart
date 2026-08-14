@@ -67,9 +67,6 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
       );
     }
   }
-
-  @override
-  String toString() => name;
 }
 
 /// Represents a line output given a set of constraints.

@@ -112,9 +112,6 @@ class CraftingMachine extends PrototypeWithIcon {
       return item?.subgroup;
     }
   }
-
-  @override
-  String toString() => name;
 }
 
 class EffectReceiver {

@@ -6,13 +6,19 @@ import 'package:factorio_ratios/utility/json.dart';
 import 'package:factorio_ratios/utility/builder.dart';
 import 'package:factorio_ratios/utility/collections.dart';
 
+part 'delegating_models.dart';
 part 'display_data.dart';
 part 'in_game_item.dart';
 part 'in_game_recipe.dart';
 part 'in_game_machine.dart';
+part 'item_spec.dart';
 part 'sorted_item_groups.dart';
 
 typedef ItemAmounts = Map<InGameItem, double>;
+
+abstract class QualityPrototype implements Prototype {
+  int get quality;
+}
 
 abstract class ItemIo {
   ItemAmounts get inputs;

@@ -1,9 +1,13 @@
 part of 'dynamic_models.dart';
 
-class InGameMachine implements CraftingMachine, ToJson {
+class InGameMachine extends DelegatingCraftingMachine
+    implements QualityPrototype, ToJson {
   // TODO - Quality effects
-  final CraftingMachine internalMachine;
 
+  @override
+  final CraftingMachine internal;
+
+  @override
   final int quality;
   @override
   final String name;
@@ -12,20 +16,21 @@ class InGameMachine implements CraftingMachine, ToJson {
   @override
   final Icon? icon;
 
-  factory InGameMachine(CraftingMachine internalMachine, [int quality = 1]) {
-    if (internalMachine is InGameMachine) {
-      return internalMachine;
-    } else {
-      return InGameMachine._(internalMachine, quality);
+  factory InGameMachine(CraftingMachine machine, [int quality = 1]) {
+    if (machine is InGameMachine && machine.quality == quality) {
+      return machine;
+    } else if (machine is DelegatingCraftingMachine) {
+      machine = machine.internal;
     }
+    return InGameMachine._(machine, quality);
   }
 
-  InGameMachine._(this.internalMachine, this.quality)
-    : name = internalMachine.name + (quality == 1 ? '' : ': Q$quality'),
-      item = internalMachine.item != null
-          ? InGameItem(internalMachine.item!, quality: quality)
+  InGameMachine._(this.internal, this.quality)
+    : name = internal.name + (quality == 1 ? '' : ': Q$quality'),
+      item = internal.item != null
+          ? InGameItem(internal.item!, quality: quality)
           : null,
-      icon = internalMachine.icon?.withQuality(quality);
+      icon = internal.icon?.withQuality(quality);
 
   // Ensure that machines of different quality are separated
   @override
@@ -37,52 +42,18 @@ class InGameMachine implements CraftingMachine, ToJson {
         return 1;
       }
     }
-    return internalMachine.compareTo(other);
+    return internal.compareTo(other);
   }
-
-  @override
-  String get type => internalMachine.type;
-  @override
-  double get energyUsage => internalMachine.energyUsage;
-  @override
-  double get craftingSpeed => internalMachine.craftingSpeed;
-  @override
-  List<String> get allowedEffects => internalMachine.allowedEffects;
-  @override
-  bool get needsSolidFuel => internalMachine.needsSolidFuel;
-  @override
-  List<String> get craftingCategories => internalMachine.craftingCategories;
-  @override
-  EffectReceiver get effectReceiver => internalMachine.effectReceiver;
-  @override
-  CraftingMachineEnergySource get energySource => internalMachine.energySource;
-  @override
-  FactorioDatabase get factorioDb => internalMachine.factorioDb;
-  @override
-  String get localisedName => internalMachine.localisedName;
-  @override
-  int get moduleSlots => internalMachine.moduleSlots;
-  @override
-  List<Recipe> get recipes => internalMachine.recipes;
-  @override
-  String get order => internalMachine.order;
-  @override
-  ItemSubgroup? get subgroup => internalMachine.subgroup;
-  @override
-  List<Item> get fuelItems => internalMachine.fuelItems;
 
   @override
   bool operator ==(Object other) =>
       super == other ||
       other is InGameMachine &&
-          internalMachine == other.internalMachine &&
+          internal == other.internal &&
           quality == other.quality;
 
   @override
-  int get hashCode => internalMachine.hashCode + quality;
-
-  @override
-  String toString() => name;
+  int get hashCode => internal.hashCode + quality;
 
   @override
   Map<String, dynamic> toJson() {

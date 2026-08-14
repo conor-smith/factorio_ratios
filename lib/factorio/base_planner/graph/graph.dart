@@ -393,7 +393,7 @@ class Graph extends NodeElement<GraphStateImpl> {
     var baseRecipe = _surfaceProperties.defaultRecipes
         .where(
           (recipe) => recipe.results.any(
-            (product) => product.item == requiredOutput.internalItem,
+            (product) => product.item == requiredOutput.internal,
           ),
         )
         .firstOrNull;
@@ -425,7 +425,7 @@ class Graph extends NodeElement<GraphStateImpl> {
 
         // Search surface for valid fuel
         var surfaceFuels = _surfaceProperties.availableSolidFuels.where(
-          (surfaceFuel) => burner.fuelItems.contains(surfaceFuel.internalItem),
+          (surfaceFuel) => burner.fuelItems.contains(surfaceFuel.internal),
         );
 
         // Use first valid fuel

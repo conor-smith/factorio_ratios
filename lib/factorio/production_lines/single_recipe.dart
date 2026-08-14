@@ -75,7 +75,7 @@ class SingleRecipeLine
   }) {
     var craftingMachine = plMachine.internalMachine;
 
-    if (!craftingMachine.recipes.contains(recipe.internalRecipe)) {
+    if (!craftingMachine.recipes.contains(recipe.internal)) {
       throw ProductionLineException(
         'Recipe $recipe cannot be crafted on machine $craftingMachine',
       );
@@ -92,7 +92,7 @@ class SingleRecipeLine
         'Machine $craftingMachine needs fuel and was not supplied any',
       );
     } else if (craftingMachine.needsSolidFuel &&
-        !craftingMachine.fuelItems.contains(fuel!.internalItem)) {
+        !craftingMachine.fuelItems.contains(fuel!.internal)) {
       throw ProductionLineException(
         'Fuel $fuel is not a valid fuel source for machine $craftingMachine',
       );
@@ -158,7 +158,7 @@ class SingleRecipeLine
         amountPerCycle += productivityBonusPerCycle;
       }
 
-      amountPerCycle *= product.probability;
+      amountPerCycle *= product.independentProbability;
       amountPerCycle += product.extraCountFraction;
 
       machineTotalOutput[product.item] = amountPerCycle * cyclesPerMinute;
