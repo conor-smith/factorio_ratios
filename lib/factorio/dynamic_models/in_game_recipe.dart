@@ -56,7 +56,7 @@ class InGameRecipe extends DelegatingRecipe
           quality == other.quality;
 
   @override
-  int get hashCode => internal.hashCode + quality;
+  int get hashCode => internal.hashCode + quality.hashCode;
 
   @override
   Map<String, dynamic> toJson() {

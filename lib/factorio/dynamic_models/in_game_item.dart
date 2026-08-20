@@ -1,6 +1,6 @@
 part of 'dynamic_models.dart';
 
-abstract class InGameItem implements DelegatingItem, ItemSpec {
+abstract class InGameItem implements DelegatingItem, ToJson {
   factory InGameItem(Item item, {Quality? quality, double? temperature}) {
     if (item is SolidItem) {
       return InGameSolidItem(item, quality: quality);
@@ -14,7 +14,7 @@ abstract class InGameItem implements DelegatingItem, ItemSpec {
 
 // TODO - Add spoilage
 class InGameSolidItem extends DelegatingSolidItem
-    implements InGameItem, QualityPrototype, SolidItemSpec {
+    implements InGameItem, QualityPrototype {
   @override
   final SolidItem internal;
   @override
@@ -29,11 +29,6 @@ class InGameSolidItem extends DelegatingSolidItem
   final InGameItem? spoilResult;
   @override
   final InGameItem? burntResult;
-
-  @override
-  Quality get qualityMin => quality;
-  @override
-  Quality get qualityMax => quality;
 
   factory InGameSolidItem(SolidItem item, {Quality? quality}) {
     quality ??= item.factorioDb.defaultQuality;
@@ -60,12 +55,6 @@ class InGameSolidItem extends DelegatingSolidItem
           : null;
 
   @override
-  bool accepts(Item item) =>
-      item is InGameSolidItem &&
-      item.internal == internal &&
-      item.quality == quality;
-
-  @override
   bool operator ==(Object other) =>
       super == other ||
       other is InGameSolidItem &&
@@ -82,19 +71,13 @@ class InGameSolidItem extends DelegatingSolidItem
   }
 }
 
-class InGameFluidItem extends DelegatingFluidItem
-    implements InGameItem, FluidItemSpec {
+class InGameFluidItem extends DelegatingFluidItem implements InGameItem {
   @override
   final FluidItem internal;
   final double temperature;
 
   @override
   final String name;
-
-  @override
-  double get minimumTemperature => temperature;
-  @override
-  double get maximumTemperature => temperature;
 
   factory InGameFluidItem(FluidItem item, {double? temperature}) {
     if (item is InGameFluidItem && temperature == item.temperature) {
@@ -109,9 +92,6 @@ class InGameFluidItem extends DelegatingFluidItem
 
   InGameFluidItem._(this.internal, this.temperature)
     : name = '${internal.name}: T$temperature';
-
-  @override
-  bool accepts(Item item) => this == item;
 
   // Ensure that fluids of different temperature are sorted
   @override
