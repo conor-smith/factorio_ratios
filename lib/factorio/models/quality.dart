@@ -119,4 +119,26 @@ class Quality extends PrototypeWithIcon {
   }
 
   bool operator >=(Quality other) => this == other || this > other;
+
+  Quality operator +(int toAdd) => _qualitySum(toAdd);
+
+  Quality operator -(int toSubtract) => _qualitySum(-toSubtract);
+
+  Quality _qualitySum(int toAdd) {
+    Quality currentQuality = this;
+
+    for (var i = 0; i < toAdd.abs(); i++) {
+      var nextQuality = toAdd > 0
+          ? currentQuality.next
+          : currentQuality.previous;
+
+      if (nextQuality == null) {
+        break;
+      } else {
+        currentQuality = nextQuality;
+      }
+    }
+
+    return currentQuality;
+  }
 }
