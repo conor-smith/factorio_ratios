@@ -93,6 +93,13 @@ abstract class DelegatingSolidItem extends DelegatingItem implements SolidItem {
   double? get fuelEmissionsMultiplier => internal.fuelEmissionsMultiplier;
 
   @override
+  int? get spoilQualityChange => internal.spoilQualityChange;
+  @override
+  Quality? get spoilQualityMin => internal.spoilQualityMin;
+  @override
+  Quality? get spoilQualityMax => internal.spoilQualityMax;
+
+  @override
   Item? get spoilResult => internal.spoilResult;
   @override
   List<Item> get producedFromSpoiling => internal.producedFromSpoiling;
