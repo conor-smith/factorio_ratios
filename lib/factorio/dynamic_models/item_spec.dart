@@ -10,21 +10,20 @@ abstract class ItemSpec implements DelegatingItem, ToJson {
     double? minimumTemperature,
     double? maximumTemperature,
   }) {
-    if (item is DelegatingItem) {
-      item = item.internal;
-    }
-
     if (item is SolidItem) {
-      qualityMin ??= item.factorioDb.defaultQuality;
-      qualityMax ??= item.factorioDb.defaultQuality;
-
-      return SolidItemSpec._(item, qualityMin, qualityMax);
+      return SolidItemSpec(
+        item,
+        qualityMin: qualityMin,
+        qualityMax: qualityMax,
+      );
     } else {
       item = item as FluidItem;
-      minimumTemperature ??= item.defaultTemperature;
-      maximumTemperature ??= item.defaultTemperature;
 
-      return FluidItemSpec._(item, minimumTemperature, maximumTemperature);
+      return FluidItemSpec(
+        item,
+        minimumTemperature: minimumTemperature,
+        maximumTemperature: maximumTemperature,
+      );
     }
   }
 }
@@ -41,6 +40,21 @@ class SolidItemSpec extends DelegatingSolidItem implements ItemSpec {
 
   SolidItemSpec._(this.internal, this.qualityMin, this.qualityMax)
     : icon = internal.icon?.withQuality(qualityMin);
+
+  factory SolidItemSpec(
+    SolidItem internal, {
+    Quality? qualityMin,
+    Quality? qualityMax,
+  }) {
+    if (internal is DelegatingSolidItem) {
+      internal = internal.internal;
+    }
+
+    qualityMin ??= internal.factorioDb.defaultQuality;
+    qualityMax ??= internal.factorioDb.defaultQuality;
+
+    return SolidItemSpec._(internal, qualityMin, qualityMax);
+  }
 
   @override
   bool accepts(Item item) =>
@@ -79,6 +93,21 @@ class FluidItemSpec extends DelegatingFluidItem implements ItemSpec {
     this.minimumTemperature,
     this.maximumTemperature,
   );
+
+  factory FluidItemSpec(
+    FluidItem internal, {
+    double? minimumTemperature,
+    double? maximumTemperature,
+  }) {
+    if (internal is DelegatingFluidItem) {
+      internal = internal.internal;
+    }
+
+    minimumTemperature ??= internal.defaultTemperature;
+    maximumTemperature ??= internal.defaultTemperature;
+
+    return FluidItemSpec._(internal, minimumTemperature, maximumTemperature);
+  }
 
   @override
   bool accepts(Item item) =>
