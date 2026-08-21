@@ -1,6 +1,6 @@
 part of 'dynamic_models.dart';
 
-class InGameRecipe extends DelegatingRecipe
+class QualityRecipe extends DelegatingRecipe
     implements QualityPrototype, ToJson {
   @override
   final Recipe internal;
@@ -10,26 +10,26 @@ class InGameRecipe extends DelegatingRecipe
   @override
   final String name;
   @override
-  final List<InGameRecipeIngredient> ingredients;
+  final List<QualityRecipeIngredient> ingredients;
   @override
-  final List<InGameRecipeProduct> results;
+  final List<QualityRecipeProduct> results;
   @override
   final Icon? icon;
   @override
   final InGameItem? mainProduct;
 
-  factory InGameRecipe(Recipe recipe, [Quality? quality]) {
+  factory QualityRecipe(Recipe recipe, [Quality? quality]) {
     quality ??= recipe.factorioDb.defaultQuality;
 
-    if (recipe is InGameRecipe && quality == recipe.quality) {
+    if (recipe is QualityRecipe && quality == recipe.quality) {
       return recipe;
     } else if (recipe is DelegatingRecipe) {
       recipe = recipe.internal;
     }
-    return InGameRecipe._(recipe, quality);
+    return QualityRecipe._(recipe, quality);
   }
 
-  InGameRecipe._(this.internal, this.quality)
+  QualityRecipe._(this.internal, this.quality)
     : name = quality.name != Quality.defaultName
           ? '$quality ${internal.name}'
           : internal.name,
@@ -39,19 +39,19 @@ class InGameRecipe extends DelegatingRecipe
           : null,
       ingredients = List.unmodifiable(
         internal.ingredients.map(
-          (ingredient) => InGameRecipeIngredient(ingredient, quality),
+          (ingredient) => QualityRecipeIngredient(ingredient, quality),
         ),
       ),
       results = List.unmodifiable(
         internal.results.map(
-          (product) => InGameRecipeProduct(product, quality),
+          (product) => QualityRecipeProduct(product, quality),
         ),
       );
 
   @override
   bool operator ==(Object other) =>
       super == other ||
-      other is InGameRecipe &&
+      other is QualityRecipe &&
           internal == other.internal &&
           quality == other.quality;
 
@@ -65,85 +65,105 @@ class InGameRecipe extends DelegatingRecipe
   }
 }
 
-class InGameRecipeIngredient extends DelegatingRecipeIngredient {
-  // TODO
+class QualityRecipeIngredient extends DelegatingRecipeIngredient {
   @override
   final RecipeIngredient internal;
 
   @override
   final ItemSpec item;
 
-  InGameRecipeIngredient._(this.internal);
+  QualityRecipeIngredient._(this.internal, this.item);
 
-  factory InGameRecipeIngredient(
+  factory QualityRecipeIngredient(
     RecipeIngredient ingredient,
     Quality recipeQuality,
   ) {
-    Quality? qualityMin = ingredient.qualityMin;
-    Quality? qualityMax = ingredient.qualityMax;
-    double? minimumTemperature = ingredient.minimumTemperature;
-    double? maximumTemperature = ingredient.maximumTemperature;
+    Item item = ingredient.item;
 
-    if (ingredient.type == 'item') {
+    if (item is SolidItem) {
+      Quality? qualityMin = ingredient.qualityMin;
+      Quality? qualityMax = ingredient.qualityMax;
       if (qualityMin == null && qualityMax != null) {
-        // TODO
+        qualityMin = qualityMax.firstQualityInChain;
+      } else if (qualityMin != null && qualityMax == null) {
+        qualityMax = qualityMin.finalQualityInChain;
+      } else if (qualityMin == null && qualityMax == null) {
+        qualityMin = recipeQuality;
+        qualityMax = recipeQuality;
       }
+
+      return QualityRecipeIngredient._(
+        ingredient,
+        SolidItemSpec(item, qualityMin: qualityMin, qualityMax: qualityMax),
+      );
+    } else {
+      item = item as FluidItem;
+
+      double? temperature = ingredient.temperature;
+      double? minimumTemperature = ingredient.minimumTemperature;
+      double? maximumTemperature = ingredient.maximumTemperature;
+
+      if (temperature == null) {
+        minimumTemperature ??= item.defaultTemperature;
+        maximumTemperature ??= item.maxTemperature;
+      } else {
+        minimumTemperature = temperature;
+        maximumTemperature = temperature;
+      }
+
+      return QualityRecipeIngredient._(
+        ingredient,
+        FluidItemSpec(
+          item,
+          minimumTemperature: minimumTemperature,
+          maximumTemperature: maximumTemperature,
+        ),
+      );
     }
   }
 }
 
-class InGameRecipeProduct implements RecipeProduct {
+class QualityRecipeProduct extends DelegatingRecipeProduct {
   @override
-  final InGameItem item;
   final RecipeProduct internal;
 
-  InGameRecipeProduct(this.internal, Quality quality)
-    : item = InGameItem(
-        internal.item,
-        quality: quality,
-        temperature: internal.temperature,
+  @override
+  final ItemSpec item;
+
+  QualityRecipeProduct._(this.internal, this.item);
+
+  factory QualityRecipeProduct(RecipeProduct product, Quality recipeQuality) {
+    Item item = product.item;
+
+    if (item is SolidItem) {
+      Quality? qualityMin = product.qualityMin;
+      Quality? qualityMax = product.qualityMax;
+      if (qualityMin == null && qualityMax != null) {
+        qualityMin = qualityMax.firstQualityInChain;
+      } else if (qualityMin != null && qualityMax == null) {
+        qualityMax = qualityMin.finalQualityInChain;
+      } else if (qualityMin == null && qualityMax == null) {
+        qualityMin = recipeQuality;
+        qualityMax = recipeQuality;
+      }
+
+      return QualityRecipeProduct._(
+        product,
+        SolidItemSpec(item, qualityMin: qualityMin, qualityMax: qualityMax),
       );
+    } else {
+      item = item as FluidItem;
 
-  @override
-  double? get amount => internal.amount;
-  @override
-  double? get amountMax => internal.amountMax;
-  @override
-  double? get amountMin => internal.amountMin;
-  @override
-  double? get extraCountFraction => internal.extraCountFraction;
-  @override
-  FactorioDatabase get factorioDb => internal.factorioDb;
-  @override
-  double get ignoredByProductivity => internal.ignoredByProductivity;
-  @override
-  double? get percentSpoiled => internal.percentSpoiled;
-  @override
-  double get independentProbability => internal.independentProbability;
-  @override
-  SharedProbability get sharedProbability => internal.sharedProbability;
-  @override
-  double? get temperature => internal.temperature;
-  @override
-  String get type => internal.type;
+      double temperature = product.temperature ?? item.defaultTemperature;
 
-  @override
-  // TODO: implement affectedByQuality
-  bool get affectedByQuality => throw UnimplementedError();
-
-  @override
-  // TODO: implement alwaysFresh
-  bool get alwaysFresh => throw UnimplementedError();
-
-  @override
-  // TODO: implement qualityChange
-  int get qualityChange => throw UnimplementedError();
-
-  @override
-  // TODO: implement qualityMax
-  int? get qualityMax => throw UnimplementedError();
-
-  @override
-  // TODO: implement qualityMin
-  int? get qualityMin => throw UnimplementedError();
+      return QualityRecipeProduct._(
+        product,
+        FluidItemSpec(
+          item,
+          minimumTemperature: temperature,
+          maximumTemperature: temperature,
+        ),
+      );
+    }
+  }
 }

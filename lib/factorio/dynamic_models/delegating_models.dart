@@ -208,6 +208,9 @@ abstract class DelegatingRecipeProduct implements RecipeProduct {
   RecipeProduct get internal;
 
   @override
+  FactorioDatabase get factorioDb => internal.factorioDb;
+
+  @override
   String get type => internal.type;
   @override
   Item get item => internal.item;

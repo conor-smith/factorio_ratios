@@ -3,7 +3,7 @@ part of 'production_line.dart';
 class SingleRecipeLine
     with ProductionLine<SingleRecipeLineIoData>
     implements ProdLineCraftingMachine {
-  final InGameRecipe recipe;
+  final QualityRecipe recipe;
   final ProdLineCraftingMachineImpl craftingMachine;
   final Surface? surface;
   final InGameItem? fuel;
@@ -57,7 +57,7 @@ class SingleRecipeLine
 
   factory SingleRecipeLine.fromBaseMachine(
     CraftingMachine machine,
-    InGameRecipe recipe, {
+    QualityRecipe recipe, {
     Surface? surface,
     InGameItem? fuel,
   }) => SingleRecipeLine(
@@ -69,7 +69,7 @@ class SingleRecipeLine
 
   factory SingleRecipeLine(
     ProdLineCraftingMachineImpl plMachine,
-    InGameRecipe recipe, {
+    QualityRecipe recipe, {
     Surface? surface,
     InGameItem? fuel,
   }) {

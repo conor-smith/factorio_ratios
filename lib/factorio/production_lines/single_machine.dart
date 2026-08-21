@@ -20,7 +20,7 @@ abstract interface class ProdLineCraftingMachine {
   static ValueAndDisplayData<double> calculateProductivityBonus(
     InGameMachine machine, {
     Surface? surface,
-    InGameRecipe? recipe,
+    QualityRecipe? recipe,
   }) {
     double totalBonus = 0.0;
     List<DisplayData> dataList = [];
@@ -84,7 +84,7 @@ abstract interface class ProdLineCraftingMachine {
   static ValueAndDisplayData<double> calculateSpeedBonus(
     InGameMachine machine, {
     Surface? surface,
-    InGameRecipe? recipe,
+    QualityRecipe? recipe,
   }) {
     var totalBonus = 0.0;
     List<DisplayData> dataList = [];

@@ -402,7 +402,7 @@ class Graph extends NodeElement<GraphStateImpl> {
       var quality = requiredOutput is InGameSolidItem
           ? requiredOutput.quality
           : 1;
-      var inGameRecipe = InGameRecipe(baseRecipe, quality);
+      var inGameRecipe = QualityRecipe(baseRecipe, quality);
 
       var inGameMachine = InGameMachine(
         baseRecipe.sortedCraftingMachines.first,
