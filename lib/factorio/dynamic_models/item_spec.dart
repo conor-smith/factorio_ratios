@@ -32,14 +32,22 @@ class SolidItemSpec extends DelegatingSolidItem implements ItemSpec {
   @override
   final SolidItem internal;
 
-  final Quality qualityMin;
-  final Quality qualityMax;
+  final Quality? qualityMin;
+  final Quality? qualityMax;
 
   @override
   final Icon? icon;
 
   SolidItemSpec._(this.internal, this.qualityMin, this.qualityMax)
     : icon = internal.icon?.withQuality(qualityMin);
+
+  factory SolidItemSpec.allQualities(SolidItem item) {
+    if (item is DelegatingSolidItem) {
+      item = item.internal;
+    }
+
+    return SolidItemSpec._(item, null, null);
+  }
 
   factory SolidItemSpec(
     SolidItem internal, {
@@ -59,8 +67,10 @@ class SolidItemSpec extends DelegatingSolidItem implements ItemSpec {
   @override
   bool accepts(Item item) =>
       item is SolidItemEntity &&
-      qualityMin.chainCompare(item.quality).lessThanOrEqual &&
-      qualityMax.chainCompare(item.quality).greaterThanOrEqual;
+      item.internal == internal &&
+      (qualityMin == null ||
+          (qualityMin!.chainCompare(item.quality).lessThanOrEqual &&
+              qualityMax!.chainCompare(item.quality).greaterThanOrEqual));
 
   @override
   Map<String, dynamic> toJson() {
@@ -112,6 +122,7 @@ class FluidItemSpec extends DelegatingFluidItem implements ItemSpec {
   @override
   bool accepts(Item item) =>
       item is FluidItemEntity &&
+      item.internal == internal &&
       item.temperature >= minimumTemperature &&
       item.temperature <= maximumTemperature;
 
