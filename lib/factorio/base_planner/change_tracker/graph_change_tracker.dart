@@ -11,8 +11,8 @@ class GraphChangeTracker
   bool get layoutUpdateQueued => _layoutUpdateQueued;
 
   bool _layoutUpdateQueued = false;
-  Map<InGameItem, List<NodeElement>>? _cachedNodeOutputIndex;
-  Map<InGameItem, NodeElement>? _cachedDisposalNodes;
+  Map<ItemEntity, List<NodeElement>>? _cachedNodeOutputIndex;
+  Map<ItemEntity, NodeElement>? _cachedDisposalNodes;
 
   static int _orderByNodeType(NodeElement node1, NodeElement node2) =>
       node1.nodeType.compareTo(node2.nodeType);
@@ -33,14 +33,14 @@ class GraphChangeTracker
   }
 
   /// DO NOT modify this value outside this class
-  Map<InGameItem, List<NodeElement>> get cachedNodeOutputIndex {
+  Map<ItemEntity, List<NodeElement>> get cachedNodeOutputIndex {
     _cachedNodeOutputIndex ??= _createNodeOutputIndex();
 
     return _cachedNodeOutputIndex!;
   }
 
   /// DO NOT modify this value outside this class
-  Map<InGameItem, List<NodeElement>> get cachedDisposalNodes {
+  Map<ItemEntity, List<NodeElement>> get cachedDisposalNodes {
     _cachedDisposalNodes = _createCachedDisposalNodes();
 
     return _cachedNodeOutputIndex!;
@@ -175,8 +175,8 @@ class GraphChangeTracker
       .._cachedParents = const {};
   }
 
-  Map<InGameItem, List<NodeElement>> _createNodeOutputIndex() {
-    Map<InGameItem, List<NodeElement>> nodeOutputIndex = {};
+  Map<ItemEntity, List<NodeElement>> _createNodeOutputIndex() {
+    Map<ItemEntity, List<NodeElement>> nodeOutputIndex = {};
 
     for (var node in state.allNodes.where(
       (node) => node.nodeType.outputPriority < 100,
@@ -195,11 +195,11 @@ class GraphChangeTracker
     return nodeOutputIndex;
   }
 
-  Map<InGameItem, NodeElement> _createCachedDisposalNodes() {
+  Map<ItemEntity, NodeElement> _createCachedDisposalNodes() {
     // If two disposal nodes exist for one item, this will only account for
     // one of them. This is intentional, but also means we need to clear
     // the cache every time a disposal node is removed or updated
-    Map<InGameItem, NodeElement> cachedNodes = {};
+    Map<ItemEntity, NodeElement> cachedNodes = {};
 
     for (var node in state.prodLineNodes.where(
       (node) => node.nodeType == NodeType.disposal,

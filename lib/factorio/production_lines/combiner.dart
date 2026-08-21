@@ -2,7 +2,7 @@ part of 'production_line.dart';
 
 class CombinerLine with ProductionLine<ProductionLineIoData> {
   // TODO - combine liquids to get correct temperature range
-  final InGameItem item;
+  final ItemEntity item;
 
   @override
   String get name => '$item combiner';
@@ -12,13 +12,13 @@ class CombinerLine with ProductionLine<ProductionLineIoData> {
   Icon? get icon => item.icon;
 
   @override
-  Set<InGameItem> get inputItems => _ioItem;
+  Set<ItemEntity> get inputItems => _ioItem;
   @override
-  Set<InGameItem> get outputItems => _ioItem;
+  Set<ItemEntity> get outputItems => _ioItem;
   @override
   final ItemIoImpl ioRatios;
 
-  final Set<InGameItem> _ioItem;
+  final Set<ItemEntity> _ioItem;
 
   CombinerLine(this.item)
     : _ioItem = Set.unmodifiable({item}),

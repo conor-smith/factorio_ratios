@@ -6,7 +6,7 @@ class SingleRecipeLine
   final QualityRecipe recipe;
   final ProdLineCraftingMachineImpl craftingMachine;
   final Surface? surface;
-  final InGameItem? fuel;
+  final ItemEntity? fuel;
 
   @override
   final double productivityBonus;
@@ -41,9 +41,9 @@ class SingleRecipeLine
   Icon? get icon => recipe.icon;
 
   @override
-  final Set<InGameItem> outputItems;
+  final Set<ItemEntity> outputItems;
   @override
-  final Set<InGameItem> inputItems;
+  final Set<ItemEntity> inputItems;
 
   @override
   final ItemIoImpl ioRatios;
@@ -53,15 +53,15 @@ class SingleRecipeLine
   final ItemIoImpl machineNetIo;
   final ItemIoImpl machineTotalIo;
 
-  final Map<InGameItem, InGameItem> potentialSpoilage;
+  final Map<ItemEntity, ItemEntity> potentialSpoilage;
 
   factory SingleRecipeLine.fromBaseMachine(
     CraftingMachine machine,
     QualityRecipe recipe, {
     Surface? surface,
-    InGameItem? fuel,
+    ItemEntity? fuel,
   }) => SingleRecipeLine(
-    ProdLineCraftingMachineImpl(InGameMachine(machine)),
+    ProdLineCraftingMachineImpl(MachineEntity(machine)),
     recipe,
     surface: surface,
     fuel: fuel,
@@ -71,7 +71,7 @@ class SingleRecipeLine
     ProdLineCraftingMachineImpl plMachine,
     QualityRecipe recipe, {
     Surface? surface,
-    InGameItem? fuel,
+    ItemEntity? fuel,
   }) {
     var craftingMachine = plMachine.internalMachine;
 
@@ -163,7 +163,7 @@ class SingleRecipeLine
 
       machineTotalOutput[product.item] = amountPerCycle * cyclesPerMinute;
     }
-    if (fuel is InGameSolidItem? && fuel?.burntResult != null) {
+    if (fuel is SolidItemEntity? && fuel?.burntResult != null) {
       machineTotalOutput.update(
         fuel!.burntResult!,
         (amount) => amount + fuelConsumed,
@@ -193,10 +193,10 @@ class SingleRecipeLine
 
     var ioRatios = machineNetIo.convertToRatios();
 
-    Map<InGameItem, InGameItem> potentialSpoilage = Map.fromEntries(
+    Map<ItemEntity, ItemEntity> potentialSpoilage = Map.fromEntries(
       machineNetInputs.keys
           .followedBy(machineNetOutputs.keys)
-          .whereType<InGameSolidItem>()
+          .whereType<SolidItemEntity>()
           .where((item) => item.spoilResult != null)
           .map((item) => MapEntry(item, item.spoilResult!)),
     );
@@ -246,13 +246,13 @@ class SingleRecipeLine
     required List<DisplayData> speedData,
     required List<DisplayData> pollutionData,
     required List<DisplayData> consumptionData,
-    required Iterable<InGameItem> inputItems,
-    required Iterable<InGameItem> outputItems,
+    required Iterable<ItemEntity> inputItems,
+    required Iterable<ItemEntity> outputItems,
     required this.machineNetIo,
     required this.machineTotalIo,
     required this.ioRatios,
     required this.machineCyclesPerMinute,
-    required Map<InGameItem, InGameItem> potentialSpoilage,
+    required Map<ItemEntity, ItemEntity> potentialSpoilage,
   }) : inputItems = Set.unmodifiable(inputItems),
        outputItems = Set.unmodifiable(outputItems),
        potentialSpoilage = Map.unmodifiable(potentialSpoilage),

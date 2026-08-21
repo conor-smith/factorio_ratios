@@ -8,9 +8,9 @@ abstract class ProdLineNodeState extends NodeState {
   @override
   ItemIoImpl get ioRatios => productionLine.ioRatios;
   @override
-  Set<InGameItem> get inputItems => productionLine.inputItems;
+  Set<ItemEntity> get inputItems => productionLine.inputItems;
   @override
-  Set<InGameItem> get outputItems => productionLine.outputItems;
+  Set<ItemEntity> get outputItems => productionLine.outputItems;
 
   const ProdLineNodeState();
 }
@@ -27,9 +27,9 @@ class ProdLineNodeStateImpl extends ProdLineNodeState implements ToJson {
   @override
   final NodeGeometryImpl geometry;
   @override
-  final Map<InGameItem, Set<Edge>> parents;
+  final Map<ItemEntity, Set<Edge>> parents;
   @override
-  final Map<InGameItem, Set<Edge>> children;
+  final Map<ItemEntity, Set<Edge>> children;
 
   @override
   final ProductionLine productionLine;
@@ -45,8 +45,8 @@ class ProdLineNodeStateImpl extends ProdLineNodeState implements ToJson {
     required this.productionLine,
     required this.ioData,
     required this.geometry,
-    required Map<InGameItem, Set<Edge>> parents,
-    required Map<InGameItem, Set<Edge>> children,
+    required Map<ItemEntity, Set<Edge>> parents,
+    required Map<ItemEntity, Set<Edge>> children,
   }) : parents = Map.unmodifiable(
          parents.map((item, edges) => MapEntry(item, Set.unmodifiable(edges))),
        ),

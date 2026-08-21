@@ -139,7 +139,7 @@ class ProdLineNodeChangeTracker
 
   @override
   NodeDependencies _determineDependencies() {
-    Map<InGameItem, Set<Edge>> parentDeps = Map.from(state.parents)
+    Map<ItemEntity, Set<Edge>> parentDeps = Map.from(state.parents)
       ..updateAll(
         (item, edgeSet) => edgeSet
             .where((edge) => edge.edgeType == EdgeType.requestItems)
@@ -147,7 +147,7 @@ class ProdLineNodeChangeTracker
       )
       ..removeWhere((item, edgeSet) => edgeSet.isEmpty);
 
-    Map<InGameItem, Set<Edge>> childDeps = Map.from(state.children)
+    Map<ItemEntity, Set<Edge>> childDeps = Map.from(state.children)
       ..updateAll(
         (item, edgeSet) => edgeSet
             .where((edge) => edge.edgeType == EdgeType.pushExcess)
@@ -195,8 +195,8 @@ class ProdLineNodeChangeTracker
 }
 
 class NodeDependencies implements Dependencies {
-  final Map<InGameItem, Set<Edge>> childDeps;
-  final Map<InGameItem, Set<Edge>> parentDeps;
+  final Map<ItemEntity, Set<Edge>> childDeps;
+  final Map<ItemEntity, Set<Edge>> parentDeps;
 
   NodeDependencies({required this.childDeps, required this.parentDeps});
 

@@ -37,10 +37,10 @@ abstract mixin class ProductionLine<T extends ProductionLineIoData> {
   Icon? get icon;
 
   /// All items this production line requires
-  Set<InGameItem> get inputItems;
+  Set<ItemEntity> get inputItems;
 
   /// All items this production line produces
-  Set<InGameItem> get outputItems;
+  Set<ItemEntity> get outputItems;
 
   /// Ratios of all inputs and outputs. Smallest value will be 1, and
   /// all other values will be set relative to that value.
@@ -153,13 +153,13 @@ class _NullProductionLine implements ProductionLine<ProductionLineIoData> {
   @override
   Icon? get icon => throw UnimplementedError();
   @override
-  Set<InGameItem> get inputItems => throw UnimplementedError();
+  Set<ItemEntity> get inputItems => throw UnimplementedError();
   @override
   ItemIoImpl get ioRatios => throw UnimplementedError();
   @override
   String get name => throw UnimplementedError();
   @override
-  Set<InGameItem> get outputItems => throw UnimplementedError();
+  Set<ItemEntity> get outputItems => throw UnimplementedError();
   @override
   ProductionLineType get productionLineType => throw UnimplementedError();
   @override

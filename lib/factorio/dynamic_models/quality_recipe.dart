@@ -16,7 +16,7 @@ class QualityRecipe extends DelegatingRecipe
   @override
   final Icon? icon;
   @override
-  final InGameItem? mainProduct;
+  final ItemEntity? mainProduct;
 
   factory QualityRecipe(Recipe recipe, [Quality? quality]) {
     quality ??= recipe.factorioDb.defaultQuality;
@@ -35,7 +35,7 @@ class QualityRecipe extends DelegatingRecipe
           : internal.name,
       icon = internal.icon?.withQuality(quality),
       mainProduct = internal.mainProduct != null
-          ? InGameItem(internal.mainProduct!)
+          ? ItemEntity(internal.mainProduct!)
           : null,
       ingredients = List.unmodifiable(
         internal.ingredients.map(

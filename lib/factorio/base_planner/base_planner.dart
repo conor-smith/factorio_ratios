@@ -75,11 +75,11 @@ class BasePlanner with ChangeNotifier implements ToJson {
               (recipe) =>
                   recipe.isSimple && recipe.sortedCraftingMachines.isNotEmpty,
             ),
-            resources: surface.resourceItems.map((item) => InGameItem(item)),
+            resources: surface.resourceItems.map((item) => ItemEntity(item)),
             availableSolidFuels: surface.resourceItems
                 .whereType<SolidItem>()
                 .where((solidItem) => (solidItem.fuelValue ?? 0) > 0)
-                .map((solidItem) => InGameSolidItem(solidItem)),
+                .map((solidItem) => SolidItemEntity(solidItem)),
           ),
         ),
       ),
@@ -221,14 +221,14 @@ class SurfaceProperties {
   static const empty = SurfaceProperties._empty();
 
   final List<Recipe> defaultRecipes;
-  final List<InGameItem> resources;
-  final List<InGameSolidItem> availableSolidFuels;
+  final List<ItemEntity> resources;
+  final List<SolidItemEntity> availableSolidFuels;
   // TODO - Liquid fuels
 
   SurfaceProperties._({
     required Iterable<Recipe> defaultRecipes,
-    required Iterable<InGameItem> resources,
-    required Iterable<InGameSolidItem> availableSolidFuels,
+    required Iterable<ItemEntity> resources,
+    required Iterable<SolidItemEntity> availableSolidFuels,
   }) : defaultRecipes = List.unmodifiable(defaultRecipes),
        resources = List.unmodifiable(resources),
        availableSolidFuels = List.unmodifiable(availableSolidFuels);

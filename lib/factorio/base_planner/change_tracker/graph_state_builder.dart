@@ -8,16 +8,16 @@ class GraphStateBuilder extends NodeState
   Icon? _icon;
   final Set<ProdLineNode> _prodLineNodes;
   final Set<Graph> _graphNodes;
-  final Map<InGameItem, ProdLineNode> _inputNodes;
-  final Map<InGameItem, ProdLineNode> _outputNodes;
+  final Map<ItemEntity, ProdLineNode> _inputNodes;
+  final Map<ItemEntity, ProdLineNode> _outputNodes;
   final Set<Edge> _edges;
   NodeGeometryImpl _geometry;
 
   GraphLayout _layout;
   LayoutOrientation _orientation;
 
-  Map<InGameItem, Set<Edge>>? _cachedParents;
-  Map<InGameItem, Set<Edge>>? _cachedChildren;
+  Map<ItemEntity, Set<Edge>>? _cachedParents;
+  Map<ItemEntity, Set<Edge>>? _cachedChildren;
 
   GraphIo _ioData;
   ItemIoImpl _ioRatios;
@@ -34,11 +34,11 @@ class GraphStateBuilder extends NodeState
   @override
   late final Set<Graph> graphNodes = UnmodifiableSetView(_graphNodes);
   @override
-  late final Map<InGameItem, ProdLineNode> inputNodes = UnmodifiableMapView(
+  late final Map<ItemEntity, ProdLineNode> inputNodes = UnmodifiableMapView(
     _inputNodes,
   );
   @override
-  late final Map<InGameItem, ProdLineNode> outputNodes = UnmodifiableMapView(
+  late final Map<ItemEntity, ProdLineNode> outputNodes = UnmodifiableMapView(
     _outputNodes,
   );
   @override
@@ -57,17 +57,17 @@ class GraphStateBuilder extends NodeState
   GraphIo get ioData => _ioData;
 
   @override
-  Set<InGameItem> get inputItems => _inputNodes.keys.toSet();
+  Set<ItemEntity> get inputItems => _inputNodes.keys.toSet();
   @override
-  Set<InGameItem> get outputItems => _outputNodes.keys.toSet();
+  Set<ItemEntity> get outputItems => _outputNodes.keys.toSet();
   @override
-  Map<InGameItem, Set<Edge>> get parents {
+  Map<ItemEntity, Set<Edge>> get parents {
     _cachedParents ??= GraphState.calculateParents(outputNodes);
     return _cachedParents!;
   }
 
   @override
-  Map<InGameItem, Set<Edge>> get children {
+  Map<ItemEntity, Set<Edge>> get children {
     _cachedChildren ??= GraphState.calculateChildren(inputNodes);
     return _cachedChildren!;
   }

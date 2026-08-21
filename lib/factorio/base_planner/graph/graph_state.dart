@@ -5,8 +5,8 @@ abstract class GraphState extends NodeState {
   Icon? get icon;
   Set<ProdLineNode> get prodLineNodes;
   Set<Graph> get graphNodes;
-  Map<InGameItem, ProdLineNode> get inputNodes;
-  Map<InGameItem, ProdLineNode> get outputNodes;
+  Map<ItemEntity, ProdLineNode> get inputNodes;
+  Map<ItemEntity, ProdLineNode> get outputNodes;
   Set<NodeElement> get allNodes;
   Set<Edge> get edges;
 
@@ -20,14 +20,14 @@ abstract class GraphState extends NodeState {
 
   const GraphState();
 
-  static Map<InGameItem, Set<Edge>> calculateParents(
-    Map<InGameItem, ProdLineNode> outputNodes,
+  static Map<ItemEntity, Set<Edge>> calculateParents(
+    Map<ItemEntity, ProdLineNode> outputNodes,
   ) => outputNodes.map(
     (item, node) => MapEntry(item, node.parents[item] ?? const {}),
   )..removeWhere((item, edges) => edges.isEmpty);
 
-  static Map<InGameItem, Set<Edge>> calculateChildren(
-    Map<InGameItem, ProdLineNode> inputNodes,
+  static Map<ItemEntity, Set<Edge>> calculateChildren(
+    Map<ItemEntity, ProdLineNode> inputNodes,
   ) => inputNodes.map(
     (item, node) => MapEntry(item, node.children[item] ?? const {}),
   )..removeWhere((item, edges) => edges.isEmpty);
@@ -45,9 +45,9 @@ class GraphStateImpl extends GraphState implements ToJson {
   @override
   final Set<Graph> graphNodes;
   @override
-  final Map<InGameItem, ProdLineNode> inputNodes;
+  final Map<ItemEntity, ProdLineNode> inputNodes;
   @override
-  final Map<InGameItem, ProdLineNode> outputNodes;
+  final Map<ItemEntity, ProdLineNode> outputNodes;
   @override
   final Set<Edge> edges;
 
@@ -60,13 +60,13 @@ class GraphStateImpl extends GraphState implements ToJson {
   @override
   final NodeGeometryImpl geometry;
   @override
-  final Map<InGameItem, Set<Edge>> parents;
+  final Map<ItemEntity, Set<Edge>> parents;
   @override
-  final Map<InGameItem, Set<Edge>> children;
+  final Map<ItemEntity, Set<Edge>> children;
   @override
-  final Set<InGameItem> inputItems;
+  final Set<ItemEntity> inputItems;
   @override
-  final Set<InGameItem> outputItems;
+  final Set<ItemEntity> outputItems;
 
   @override
   final Set<NodeElement> allNodes;
@@ -89,8 +89,8 @@ class GraphStateImpl extends GraphState implements ToJson {
     required Iterable<ProdLineNode> prodLineNodes,
     required Iterable<Graph> graphNodes,
     required Iterable<Edge> edges,
-    required Map<InGameItem, ProdLineNode> inputNodes,
-    required Map<InGameItem, ProdLineNode> outputNodes,
+    required Map<ItemEntity, ProdLineNode> inputNodes,
+    required Map<ItemEntity, ProdLineNode> outputNodes,
     required this.ioRatios,
     required this.unusedIo,
     required this.geometry,

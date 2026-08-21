@@ -4,9 +4,9 @@ part of 'production_line.dart';
 /// Inputs and outputs are decided at creation and cannot be changed
 class MagicLine with ProductionLine<ProductionLineIoData> {
   @override
-  final Set<InGameItem> outputItems;
+  final Set<ItemEntity> outputItems;
   @override
-  final Set<InGameItem> inputItems;
+  final Set<ItemEntity> inputItems;
   @override
   final String name;
   @override
@@ -17,14 +17,14 @@ class MagicLine with ProductionLine<ProductionLineIoData> {
   @override
   ProductionLineType get productionLineType => ProductionLineType.io;
 
-  MagicLine.singleItemProducer(InGameItem item)
+  MagicLine.singleItemProducer(ItemEntity item)
     : inputItems = const {},
       outputItems = Set.unmodifiable({item}),
       name = '${item.name} producer',
       icon = item.icon,
       ioRatios = ItemIoImpl(outputs: {item: 1});
 
-  MagicLine.singleItemConsumer(InGameItem item)
+  MagicLine.singleItemConsumer(ItemEntity item)
     : inputItems = Set.unmodifiable({item}),
       outputItems = const {},
       name = '${item.name} consumer',

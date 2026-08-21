@@ -26,7 +26,7 @@ class Edge extends BasePlannerElement<EdgeStateImpl> {
   /// It will typically be the same as [childNode], unless [childNode] is a [Graph],
   /// in which case, it will be a relevant node of type [NodeType.output].
   final ProdLineNode childProdLine;
-  final InGameItem item;
+  final ItemEntity item;
 
   @override
   ElementType get elementType => ElementType.edge;

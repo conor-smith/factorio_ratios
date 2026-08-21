@@ -1,20 +1,20 @@
 part of 'dynamic_models.dart';
 
-abstract class InGameItem implements DelegatingItem, ToJson {
-  factory InGameItem(Item item, {Quality? quality, double? temperature}) {
+abstract class ItemEntity implements DelegatingItem, ToJson {
+  factory ItemEntity(Item item, {Quality? quality, double? temperature}) {
     if (item is SolidItem) {
-      return InGameSolidItem(item, quality: quality);
+      return SolidItemEntity(item, quality: quality);
     } else {
       item = item as FluidItem;
 
-      return InGameFluidItem(item, temperature: temperature);
+      return FluidItemEntity(item, temperature: temperature);
     }
   }
 }
 
 // TODO - Add spoilage
-class InGameSolidItem extends DelegatingSolidItem
-    implements InGameItem, QualityPrototype {
+class SolidItemEntity extends DelegatingSolidItem
+    implements ItemEntity, QualityPrototype {
   @override
   final SolidItem internal;
   @override
@@ -26,38 +26,38 @@ class InGameSolidItem extends DelegatingSolidItem
   final Icon? icon;
 
   @override
-  final InGameItem? spoilResult;
+  final ItemEntity? spoilResult;
   @override
-  final InGameItem? burntResult;
+  final ItemEntity? burntResult;
 
-  factory InGameSolidItem(SolidItem item, {Quality? quality}) {
+  factory SolidItemEntity(SolidItem item, {Quality? quality}) {
     quality ??= item.factorioDb.defaultQuality;
 
-    if (item is InGameSolidItem && item.quality == quality) {
+    if (item is SolidItemEntity && item.quality == quality) {
       return item;
     } else if (item is DelegatingSolidItem) {
       item = item.internal;
     }
 
-    return InGameSolidItem._(item, quality);
+    return SolidItemEntity._(item, quality);
   }
 
-  InGameSolidItem._(this.internal, this.quality)
+  SolidItemEntity._(this.internal, this.quality)
     : name = quality.name != Quality.defaultName
           ? '$quality ${internal.name}'
           : internal.name,
       icon = internal.icon?.withQuality(quality),
       spoilResult = internal.spoilResult != null
-          ? InGameItem(internal.spoilResult!)
+          ? ItemEntity(internal.spoilResult!)
           : null,
       burntResult = internal.burntResult != null
-          ? InGameItem(internal.burntResult!)
+          ? ItemEntity(internal.burntResult!)
           : null;
 
   @override
   bool operator ==(Object other) =>
       super == other ||
-      other is InGameSolidItem &&
+      other is SolidItemEntity &&
           internal == other.internal &&
           quality == other.quality;
 
@@ -71,7 +71,7 @@ class InGameSolidItem extends DelegatingSolidItem
   }
 }
 
-class InGameFluidItem extends DelegatingFluidItem implements InGameItem {
+class FluidItemEntity extends DelegatingFluidItem implements ItemEntity {
   @override
   final FluidItem internal;
   final double temperature;
@@ -79,24 +79,24 @@ class InGameFluidItem extends DelegatingFluidItem implements InGameItem {
   @override
   final String name;
 
-  factory InGameFluidItem(FluidItem item, {double? temperature}) {
-    if (item is InGameFluidItem && temperature == item.temperature) {
+  factory FluidItemEntity(FluidItem item, {double? temperature}) {
+    if (item is FluidItemEntity && temperature == item.temperature) {
       return item;
     } else if (item is DelegatingFluidItem) {
       item = item.internal;
     }
 
     temperature ??= item.defaultTemperature;
-    return InGameFluidItem._(item, temperature);
+    return FluidItemEntity._(item, temperature);
   }
 
-  InGameFluidItem._(this.internal, this.temperature)
+  FluidItemEntity._(this.internal, this.temperature)
     : name = '${internal.name}: T$temperature';
 
   // Ensure that fluids of different temperature are sorted
   @override
   int compareTo(Prototype other) {
-    if (other is InGameFluidItem && internal == other.internal) {
+    if (other is FluidItemEntity && internal == other.internal) {
       return temperature.compareTo(other.temperature);
     } else {
       return super.compareTo(other);
@@ -106,7 +106,7 @@ class InGameFluidItem extends DelegatingFluidItem implements InGameItem {
   @override
   bool operator ==(Object other) =>
       super == other ||
-      other is InGameFluidItem &&
+      other is FluidItemEntity &&
           internal == other.internal &&
           temperature == other.temperature;
 

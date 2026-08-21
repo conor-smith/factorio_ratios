@@ -10,8 +10,8 @@ class ProdLineNodeStateBuilder extends ProdLineNodeState
   NodeGeometryImpl _geometry;
   ProductionLine _productionLine;
   ProductionLineIoData _ioData;
-  final Map<InGameItem, Set<Edge>> _parents;
-  final Map<InGameItem, Set<Edge>> _children;
+  final Map<ItemEntity, Set<Edge>> _parents;
+  final Map<ItemEntity, Set<Edge>> _children;
 
   @override
   ItemIoImpl? get internalConstraints => _internalConstraints;
@@ -28,9 +28,9 @@ class ProdLineNodeStateBuilder extends ProdLineNodeState
 
   // Do not modify the values of these maps directly
   @override
-  late final Map<InGameItem, Set<Edge>> parents = UnmodifiableMapView(_parents);
+  late final Map<ItemEntity, Set<Edge>> parents = UnmodifiableMapView(_parents);
   @override
-  late final Map<InGameItem, Set<Edge>> children = UnmodifiableMapView(
+  late final Map<ItemEntity, Set<Edge>> children = UnmodifiableMapView(
     _children,
   );
 

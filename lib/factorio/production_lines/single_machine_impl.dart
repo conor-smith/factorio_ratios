@@ -3,7 +3,7 @@ part of 'production_line.dart';
 /// Represents a single machine
 class ProdLineCraftingMachineImpl implements ProdLineCraftingMachine {
   // TODO - modules
-  final InGameMachine internalMachine;
+  final MachineEntity internalMachine;
 
   @override
   final double productivityBonus;
@@ -30,7 +30,7 @@ class ProdLineCraftingMachineImpl implements ProdLineCraftingMachine {
   @override
   final List<DisplayData> consumptionData;
 
-  factory ProdLineCraftingMachineImpl(InGameMachine machine) {
+  factory ProdLineCraftingMachineImpl(MachineEntity machine) {
     var productivityBonus = ProdLineCraftingMachine.calculateProductivityBonus(
       machine,
     );

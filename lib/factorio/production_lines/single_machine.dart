@@ -18,7 +18,7 @@ abstract interface class ProdLineCraftingMachine {
 
   // TODO - account for surface
   static ValueAndDisplayData<double> calculateProductivityBonus(
-    InGameMachine machine, {
+    MachineEntity machine, {
     Surface? surface,
     QualityRecipe? recipe,
   }) {
@@ -82,7 +82,7 @@ abstract interface class ProdLineCraftingMachine {
 
   // TODO - account for surface
   static ValueAndDisplayData<double> calculateSpeedBonus(
-    InGameMachine machine, {
+    MachineEntity machine, {
     Surface? surface,
     QualityRecipe? recipe,
   }) {
@@ -144,7 +144,7 @@ abstract interface class ProdLineCraftingMachine {
   }
 
   static ValueAndDisplayData<double> calculateConsumptionBonus(
-    InGameMachine machine, {
+    MachineEntity machine, {
     Surface? surface,
     Recipe? recipe,
   }) {
@@ -206,10 +206,10 @@ abstract interface class ProdLineCraftingMachine {
   }
 
   static ValueAndDisplayData<double> calculatePollutionBonus(
-    InGameMachine machine, {
+    MachineEntity machine, {
     Surface? surface,
     Recipe? recipe,
-    InGameItem? fuel,
+    ItemEntity? fuel,
   }) {
     var totalBonus = 0.0;
     var multiplierProduct = 1.0;
@@ -232,7 +232,7 @@ abstract interface class ProdLineCraftingMachine {
       );
     }
 
-    if (fuel is InGameSolidItem? &&
+    if (fuel is SolidItemEntity? &&
         (fuel?.fuelEmissionsMultiplier ?? 1.0) != 1.0) {
       var fuelEmissionsMultiplier = fuel!.fuelEmissionsMultiplier!;
       multiplierProduct *= fuelEmissionsMultiplier;
@@ -251,7 +251,7 @@ abstract interface class ProdLineCraftingMachine {
     var multiplierFluids = (recipe?.ingredients ?? const [])
         .map((ingredient) => ingredient.item)
         .followedBy([fuel].nonNulls)
-        .whereType<InGameFluidItem>()
+        .whereType<FluidItemEntity>()
         .where((fluid) => fluid.emissionsMultiplier != 1.0)
         .toSet();
     if (multiplierFluids.isNotEmpty) {

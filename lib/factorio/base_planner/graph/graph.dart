@@ -36,9 +36,9 @@ class Graph extends NodeElement<GraphStateImpl> {
   @override
   NodeGeometryImpl get geometry => _state.geometry;
   @override
-  Map<InGameItem, Set<Edge>> get parents => _state.parents;
+  Map<ItemEntity, Set<Edge>> get parents => _state.parents;
   @override
-  Map<InGameItem, Set<Edge>> get children => _state.children;
+  Map<ItemEntity, Set<Edge>> get children => _state.children;
   @override
   Set<Edge> get allParents => _state.allParents;
   @override
@@ -46,16 +46,16 @@ class Graph extends NodeElement<GraphStateImpl> {
 
   Set<Graph> get graphNodes => _state.graphNodes;
   Set<ProdLineNode> get prodLineNodes => _state.prodLineNodes;
-  Map<InGameItem, ProdLineNode> get outputNodes => _state.outputNodes;
-  Map<InGameItem, ProdLineNode> get inputNodes => _state.inputNodes;
+  Map<ItemEntity, ProdLineNode> get outputNodes => _state.outputNodes;
+  Map<ItemEntity, ProdLineNode> get inputNodes => _state.inputNodes;
   Set<NodeElement> get allNodes => _state.allNodes;
   GraphLayout get layout => _state.layout;
   LayoutOrientation get orientation => _state.orientation;
   Set<Edge> get edges => _state.edges;
   @override
-  Set<InGameItem> get inputItems => _state.inputItems;
+  Set<ItemEntity> get inputItems => _state.inputItems;
   @override
-  Set<InGameItem> get outputItems => _state.outputItems;
+  Set<ItemEntity> get outputItems => _state.outputItems;
 
   @override
   ProductionLineType get productionLineType => ProductionLineType.graph;
@@ -119,7 +119,7 @@ class Graph extends NodeElement<GraphStateImpl> {
   GraphStateBuilder getStateBuilder() => getChangeTracker().stateBuilder;
 
   @override
-  ProdLineNode getOutputItemNode(InGameItem item) {
+  ProdLineNode getOutputItemNode(ItemEntity item) {
     var outputNode = outputNodes[item];
 
     if (outputNode != null) {
@@ -132,7 +132,7 @@ class Graph extends NodeElement<GraphStateImpl> {
   }
 
   @override
-  ProdLineNode getInputItemNode(InGameItem item) {
+  ProdLineNode getInputItemNode(ItemEntity item) {
     var inputNode = inputNodes[item];
 
     if (inputNode != null) {
@@ -375,7 +375,7 @@ class Graph extends NodeElement<GraphStateImpl> {
     }
   }
 
-  ProdLineNode? _createResourceNode(InGameItem requiredOutput) {
+  ProdLineNode? _createResourceNode(ItemEntity requiredOutput) {
     if (_surfaceProperties.resources.contains(requiredOutput)) {
       return ProdLineNode.addToBasePlanner(
         basePlanner,
@@ -388,7 +388,7 @@ class Graph extends NodeElement<GraphStateImpl> {
     }
   }
 
-  ProdLineNode? _createRecipeNode(InGameItem requiredOutput) {
+  ProdLineNode? _createRecipeNode(ItemEntity requiredOutput) {
     // TODO - check for valid fluid temperatures
     var baseRecipe = _surfaceProperties.defaultRecipes
         .where(
@@ -399,16 +399,16 @@ class Graph extends NodeElement<GraphStateImpl> {
         .firstOrNull;
 
     if (baseRecipe != null) {
-      var quality = requiredOutput is InGameSolidItem
+      var quality = requiredOutput is SolidItemEntity
           ? requiredOutput.quality
           : 1;
       var inGameRecipe = QualityRecipe(baseRecipe, quality);
 
-      var inGameMachine = InGameMachine(
+      var inGameMachine = MachineEntity(
         baseRecipe.sortedCraftingMachines.first,
       );
 
-      InGameSolidItem? fuel;
+      SolidItemEntity? fuel;
       if (inGameMachine.needsSolidFuel) {
         var burner = inGameMachine.energySource as BurnerEnergySource;
 
@@ -416,12 +416,12 @@ class Graph extends NodeElement<GraphStateImpl> {
         var existingNodeFuel = burner.fuelItems
             .where(
               (fuelItem) =>
-                  getChangeTracker().cachedDisposalNodes[InGameSolidItem(
+                  getChangeTracker().cachedDisposalNodes[SolidItemEntity(
                     fuelItem,
                   )] !=
                   null,
             )
-            .map((item) => InGameSolidItem(item));
+            .map((item) => SolidItemEntity(item));
 
         // Search surface for valid fuel
         var surfaceFuels = _surfaceProperties.availableSolidFuels.where(
@@ -430,7 +430,7 @@ class Graph extends NodeElement<GraphStateImpl> {
 
         // Use first valid fuel
         var machineFuels = burner.fuelItems.map(
-          (fuelItem) => InGameSolidItem(fuelItem),
+          (fuelItem) => SolidItemEntity(fuelItem),
         );
 
         fuel = existingNodeFuel
@@ -461,7 +461,7 @@ class Graph extends NodeElement<GraphStateImpl> {
     }
   }
 
-  ProdLineNode _createMagicResourceNode(InGameItem requiredOutput) =>
+  ProdLineNode _createMagicResourceNode(ItemEntity requiredOutput) =>
       ProdLineNode.addToBasePlanner(
         basePlanner,
         parentGraph: this,

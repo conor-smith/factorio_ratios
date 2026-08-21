@@ -3,7 +3,7 @@ part of 'production_line.dart';
 class IoLine with ProductionLine<IoLineIoData> {
   // TODO - Add rocket launch
 
-  final InGameItem ioItem;
+  final ItemEntity ioItem;
 
   @override
   final String name;
@@ -14,13 +14,13 @@ class IoLine with ProductionLine<IoLineIoData> {
   final ItemIoImpl ioRatios;
 
   @override
-  Set<InGameItem> get inputItems => _ioItemSet;
+  Set<ItemEntity> get inputItems => _ioItemSet;
   @override
-  Set<InGameItem> get outputItems => _ioItemSet;
+  Set<ItemEntity> get outputItems => _ioItemSet;
   @override
   ProductionLineType get productionLineType => ProductionLineType.io;
 
-  final Set<InGameItem> _ioItemSet;
+  final Set<ItemEntity> _ioItemSet;
 
   IoLine({required this.ioItem})
     : name = '$ioItem IO',
@@ -51,7 +51,7 @@ class IoLine with ProductionLine<IoLineIoData> {
 class IoLineIoData extends ProductionLineIoData {
   IoLineIoData({
     required super.constraints,
-    required InGameItem ioItem,
+    required ItemEntity ioItem,
     required double amount,
   }) : super(
          itemIo: ItemIoImpl(

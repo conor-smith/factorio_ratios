@@ -39,17 +39,17 @@ abstract class NodeElement<St extends NodeState>
   @override
   NodeStateBuilder<St> getStateBuilder();
 
-  Map<InGameItem, Set<Edge>> get parents;
-  Map<InGameItem, Set<Edge>> get children;
+  Map<ItemEntity, Set<Edge>> get parents;
+  Map<ItemEntity, Set<Edge>> get children;
 
   Iterable<Edge> get allParents;
   Iterable<Edge> get allChildren;
 
-  Set<InGameItem> get inputItems;
-  Set<InGameItem> get outputItems;
+  Set<ItemEntity> get inputItems;
+  Set<ItemEntity> get outputItems;
 
-  ProdLineNode getOutputItemNode(InGameItem item);
-  ProdLineNode getInputItemNode(InGameItem item);
+  ProdLineNode getOutputItemNode(ItemEntity item);
+  ProdLineNode getInputItemNode(ItemEntity item);
 
   bool get hasUnfulfilledIo => unusedIo.inputs.values
       .followedBy(unusedIo.outputs.values)
@@ -62,11 +62,11 @@ abstract class NodeState {
   ItemIoImpl get ioRatios;
   ItemIoImpl get unusedIo;
 
-  Set<InGameItem> get inputItems;
-  Set<InGameItem> get outputItems;
+  Set<ItemEntity> get inputItems;
+  Set<ItemEntity> get outputItems;
 
-  Map<InGameItem, Set<Edge>> get parents;
-  Map<InGameItem, Set<Edge>> get children;
+  Map<ItemEntity, Set<Edge>> get parents;
+  Map<ItemEntity, Set<Edge>> get children;
   NodeGeometryImpl get geometry;
 
   Set<Edge> get allParents =>

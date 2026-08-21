@@ -58,7 +58,7 @@ class SolidItemSpec extends DelegatingSolidItem implements ItemSpec {
 
   @override
   bool accepts(Item item) =>
-      item is InGameSolidItem &&
+      item is SolidItemEntity &&
       item.quality >= qualityMin &&
       item.quality <= qualityMax;
 
@@ -111,7 +111,7 @@ class FluidItemSpec extends DelegatingFluidItem implements ItemSpec {
 
   @override
   bool accepts(Item item) =>
-      item is InGameFluidItem &&
+      item is FluidItemEntity &&
       item.temperature >= minimumTemperature &&
       item.temperature <= maximumTemperature;
 

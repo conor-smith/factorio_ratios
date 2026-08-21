@@ -337,7 +337,7 @@ class _GraphWidgetState extends State<GraphWidget> {
             itemGroups: graph.basePlanner.validConsumerNodeItems,
             onSelected: (item) => graph.addNode(
               nodeType: NodeType.consumer,
-              productionLine: MagicLine.singleItemConsumer(InGameItem(item)),
+              productionLine: MagicLine.singleItemConsumer(ItemEntity(item)),
               initialPosition: event.localPosition,
             ),
           ),

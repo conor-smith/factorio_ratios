@@ -16,9 +16,9 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl> {
   @override
   NodeGeometryImpl get geometry => _state.geometry;
   @override
-  Map<InGameItem, Set<Edge>> get parents => _state.parents;
+  Map<ItemEntity, Set<Edge>> get parents => _state.parents;
   @override
-  Map<InGameItem, Set<Edge>> get children => _state.children;
+  Map<ItemEntity, Set<Edge>> get children => _state.children;
   @override
   Set<Edge> get allParents => _state.allParents;
   @override
@@ -32,9 +32,9 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl> {
   ProductionLineType get productionLineType =>
       productionLine.productionLineType;
   @override
-  Set<InGameItem> get inputItems => _state.inputItems;
+  Set<ItemEntity> get inputItems => _state.inputItems;
   @override
-  Set<InGameItem> get outputItems => _state.outputItems;
+  Set<ItemEntity> get outputItems => _state.outputItems;
 
   @override
   ProductionLineIoData get ioData => _state.ioData;
@@ -86,7 +86,7 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl> {
   ProdLineNodeStateBuilder getStateBuilder() => getChangeTracker().stateBuilder;
 
   @override
-  ProdLineNode getOutputItemNode(InGameItem item) {
+  ProdLineNode getOutputItemNode(ItemEntity item) {
     if (outputItems.contains(item)) {
       return this;
     } else {
@@ -95,7 +95,7 @@ class ProdLineNode extends NodeElement<ProdLineNodeStateImpl> {
   }
 
   @override
-  ProdLineNode getInputItemNode(InGameItem item) {
+  ProdLineNode getInputItemNode(ItemEntity item) {
     if (inputItems.contains(item)) {
       return this;
     } else {
