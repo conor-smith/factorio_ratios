@@ -34,16 +34,11 @@ int compareTwoQualityPrototypes(Prototype prototype1, Prototype prototype2) {
         ? prototype2.quality
         : prototype2.factorioDb.defaultQuality;
 
-    if (quality1 == quality2) {
-      return 0;
-    } else if (quality1 < quality2) {
-      return -1;
-    } else if (quality1 > quality2) {
-      return 1;
-    } else {
-      // Can get here if two qualities are not on same quality chain
-      return 0;
-    }
+    return switch (quality1.chainCompare(quality2)) {
+      QualityChainComparison.equal || QualityChainComparison.notInChain => 0,
+      QualityChainComparison.greater => 1,
+      QualityChainComparison.lesser => -1,
+    };
   } else {
     return prototypeCompare;
   }
@@ -93,21 +88,21 @@ abstract class DelegatingSolidItem extends DelegatingItem implements SolidItem {
   double? get fuelEmissionsMultiplier => internal.fuelEmissionsMultiplier;
 
   @override
-  int? get spoilQualityChange => internal.spoilQualityChange;
+  int get spoilQualityChange => internal.spoilQualityChange;
   @override
   Quality? get spoilQualityMin => internal.spoilQualityMin;
   @override
   Quality? get spoilQualityMax => internal.spoilQualityMax;
 
   @override
-  Item? get spoilResult => internal.spoilResult;
+  SolidItem? get spoilResult => internal.spoilResult;
   @override
-  List<Item> get producedFromSpoiling => internal.producedFromSpoiling;
+  List<SolidItem> get producedFromSpoiling => internal.producedFromSpoiling;
 
   @override
-  Item? get burntResult => internal.burntResult;
+  SolidItem? get burntResult => internal.burntResult;
   @override
-  List<Item> get producedFromBurning => internal.producedFromBurning;
+  List<SolidItem> get producedFromBurning => internal.producedFromBurning;
 }
 
 abstract class DelegatingFluidItem extends DelegatingItem implements FluidItem {

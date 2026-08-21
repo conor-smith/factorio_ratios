@@ -26,33 +26,81 @@ class SolidItemEntity extends DelegatingSolidItem
   final Icon? icon;
 
   @override
-  final ItemEntity? spoilResult;
+  final SolidItemEntity? spoilResult;
   @override
-  final ItemEntity? burntResult;
+  final SolidItemEntity? burntResult;
 
-  factory SolidItemEntity(SolidItem item, {Quality? quality}) {
-    quality ??= item.factorioDb.defaultQuality;
+  @override
+  final List<SolidItemEntity> producedFromSpoiling;
+  @override
+  final List<SolidItem> producedFromBurning;
 
-    if (item is SolidItemEntity && item.quality == quality) {
-      return item;
-    } else if (item is DelegatingSolidItem) {
+  factory SolidItemEntity(
+    SolidItem item, {
+    Quality? quality,
+    double? percentSpoiled = 0,
+  }) {
+    if (item is DelegatingSolidItem) {
       item = item.internal;
     }
 
-    return SolidItemEntity._(item, quality);
+    quality ??= item.factorioDb.defaultQuality;
+
+    String newName = quality == item.factorioDb.defaultQuality
+        ? item.name
+        : '${quality.name} ${item.name}';
+    Icon? newIcon = item.icon?.withQuality(quality);
+
+    SolidItemEntity? spoilResult = item.spoilResult != null
+        ? SolidItemEntity(
+            item.spoilResult!,
+            quality: quality + item.spoilQualityChange,
+          )
+        : null;
+    SolidItemEntity? burntResult = item.burntResult != null
+        ? SolidItemEntity(item.burntResult!)
+        : null;
+
+    Iterable<SolidItemEntity> producedFromSpoiling = item.producedFromSpoiling
+        .map((spoilableItem) {
+          var requiredQuality = quality! - spoilableItem.spoilQualityChange;
+
+          if (requiredQuality == null) {
+            return null;
+          } else {
+            return SolidItemEntity(item, quality: requiredQuality);
+          }
+        })
+        .nonNulls;
+
+    Iterable<SolidItem> producedFromBurning =
+        quality == item.factorioDb.defaultQuality
+        ? item.producedFromBurning
+        : const [];
+
+    return SolidItemEntity._(
+      internal: item,
+      quality: quality,
+      name: newName,
+      icon: newIcon,
+      spoilResult: spoilResult,
+      burntResult: burntResult,
+      producedFromSpoiling: producedFromSpoiling,
+      producedFromBurning: producedFromBurning,
+    );
   }
 
-  SolidItemEntity._(this.internal, this.quality)
-    : name = quality.name != Quality.defaultName
-          ? '$quality ${internal.name}'
-          : internal.name,
-      icon = internal.icon?.withQuality(quality),
-      spoilResult = internal.spoilResult != null
-          ? ItemEntity(internal.spoilResult!)
-          : null,
-      burntResult = internal.burntResult != null
-          ? ItemEntity(internal.burntResult!)
-          : null;
+  SolidItemEntity._({
+    required this.internal,
+    required this.quality,
+    required this.icon,
+    required this.name,
+    required this.spoilResult,
+    required this.burntResult,
+    required Iterable<SolidItemEntity> producedFromSpoiling,
+    required Iterable<SolidItem> producedFromBurning,
+  }) : producedFromSpoiling = List.unmodifiable(producedFromSpoiling),
+       producedFromBurning = List.unmodifiable(producedFromBurning);
 
   @override
   bool operator ==(Object other) =>

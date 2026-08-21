@@ -59,8 +59,8 @@ class SolidItemSpec extends DelegatingSolidItem implements ItemSpec {
   @override
   bool accepts(Item item) =>
       item is SolidItemEntity &&
-      item.quality >= qualityMin &&
-      item.quality <= qualityMax;
+      qualityMin.chainCompare(item.quality).lessThanOrEqual &&
+      qualityMax.chainCompare(item.quality).greaterThanOrEqual;
 
   @override
   Map<String, dynamic> toJson() {

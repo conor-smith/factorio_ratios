@@ -69,7 +69,7 @@ class SolidItem extends Item {
 
   final String? _placeResultString;
 
-  final int? spoilQualityChange;
+  final int spoilQualityChange;
   final String? _spoilQualityMinString;
   final String? _spoilQualityMaxString;
   late final Quality? spoilQualityMin =
@@ -78,18 +78,16 @@ class SolidItem extends Item {
       factorioDb.qualityMap[_spoilQualityMaxString];
 
   final String? _spoilResultString;
-  late final Item? spoilResult = _spoilResultString != null
-      ? factorioDb.itemMap[_spoilResultString]!
-      : null;
-  late final List<Item> producedFromSpoiling = UnmodifiableListView(
+  late final SolidItem? spoilResult =
+      factorioDb.itemMap[_spoilResultString] as SolidItem?;
+  late final List<SolidItem> producedFromSpoiling = UnmodifiableListView(
     factorioDb._spoilResults[this] ?? const [],
   );
 
   final String? _burnResultString;
-  late final Item? burntResult = _burnResultString != null
-      ? factorioDb.itemMap[_burnResultString]!
-      : null;
-  late final List<Item> producedFromBurning = UnmodifiableListView(
+  late final SolidItem? burntResult =
+      factorioDb.itemMap[_burnResultString] as SolidItem?;
+  late final List<SolidItem> producedFromBurning = UnmodifiableListView(
     factorioDb._burnResults[this] ?? const [],
   );
 
@@ -137,7 +135,7 @@ class SolidItem extends Item {
         fuelCategory: json['fuel_category'],
         fuelEmissionsMultiplier:
             json['fuel_emissions_multiplier']?.toDouble() ?? 1,
-        spoilQualityChange: json['spoil_quality_change'],
+        spoilQualityChange: json['spoil_quality_change'] ?? 0,
         spoilQualityMin: json['spoil_quality_min'],
         spoilQualityMax: json['spoil_quality_max'],
         placeResultString: json['place_result'],

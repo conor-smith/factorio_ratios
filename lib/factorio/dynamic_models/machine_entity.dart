@@ -36,19 +36,6 @@ class MachineEntity extends DelegatingCraftingMachine
           : null,
       icon = internal.icon?.withQuality(quality);
 
-  // Ensure that machines of different quality are separated
-  @override
-  int compareTo(Prototype other) {
-    if (other is MachineEntity) {
-      if (quality > other.quality) {
-        return -1;
-      } else if (quality < other.quality) {
-        return 1;
-      }
-    }
-    return internal.compareTo(other);
-  }
-
   @override
   bool operator ==(Object other) =>
       super == other ||

@@ -92,13 +92,21 @@ class Quality extends PrototypeWithIcon {
     );
   }
 
-  bool operator <(Quality other) => nextQualityChain.contains(other);
-
-  bool operator <=(Quality other) => this == other || this < other;
-
-  bool operator >(Quality other) => previousQualityChain.contains(other);
-
-  bool operator >=(Quality other) => this == other || this > other;
+  /// Returns [QualityChainComparison.equal] if [other] is equal,
+  /// [QualityChainComparison.greater] if [other] exists in [nextQualityChain],
+  /// [QualityChainComparison.lesser] if [other] exists in [previousQualityChain],
+  /// and [QualityChainComparison.notInChain] if [other] is not in chain at all.
+  QualityChainComparison chainCompare(Quality other) {
+    if (this == other) {
+      return QualityChainComparison.equal;
+    } else if (nextQualityChain.contains(other)) {
+      return QualityChainComparison.greater;
+    } else if (previousQualityChain.contains(other)) {
+      return QualityChainComparison.lesser;
+    } else {
+      return QualityChainComparison.notInChain;
+    }
+  }
 
   Quality? operator +(int toAdd) => _qualitySum(toAdd);
 
@@ -121,4 +129,16 @@ class Quality extends PrototypeWithIcon {
       return chainToScan[toAdd];
     }
   }
+}
+
+enum QualityChainComparison {
+  equal(true, true),
+  greater(false, true),
+  lesser(true, false),
+  notInChain(false, false);
+
+  final bool lessThanOrEqual;
+  final bool greaterThanOrEqual;
+
+  const QualityChainComparison(this.lessThanOrEqual, this.greaterThanOrEqual);
 }
