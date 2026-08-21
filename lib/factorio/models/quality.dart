@@ -29,6 +29,14 @@ class Quality extends PrototypeWithIcon {
   final String? _previousQualityString;
   late final Quality? next = factorioDb.qualityMap[_nextQualityString];
   late final Quality? previous = factorioDb.qualityMap[_previousQualityString];
+  late final List<Quality> nextQualityChain = next == null
+      ? const []
+      : List.unmodifiable([next!, ...next!.nextQualityChain]);
+  late final List<Quality> previousQualityChain = previous == null
+      ? const []
+      : List.unmodifiable([previous!, ...previous!.previousQualityChain]);
+  Quality get finalQualityInChain => nextQualityChain.lastOrNull ?? this;
+  Quality get firstQualityInChain => previousQualityChain.firstOrNull ?? this;
 
   final double nextProbability;
   final double chainProbability;
@@ -84,61 +92,33 @@ class Quality extends PrototypeWithIcon {
     );
   }
 
-  bool operator <(Quality other) {
-    Quality? current = next;
-
-    while (current != null) {
-      if (current == other) {
-        return true;
-      } else if (current == this) {
-        // Should only get here if someone's made a circular chain
-        return false;
-      }
-
-      current = current.next;
-    }
-
-    return false;
-  }
+  bool operator <(Quality other) => nextQualityChain.contains(other);
 
   bool operator <=(Quality other) => this == other || this < other;
 
-  bool operator >(Quality other) {
-    Quality? current = previous;
-
-    while (current != null) {
-      if (current == other) {
-        return true;
-      } else if (current == this) {
-        // Should only get here if someone's made a circular chain
-        return false;
-      }
-    }
-
-    return false;
-  }
+  bool operator >(Quality other) => previousQualityChain.contains(other);
 
   bool operator >=(Quality other) => this == other || this > other;
 
-  Quality operator +(int toAdd) => _qualitySum(toAdd);
+  Quality? operator +(int toAdd) => _qualitySum(toAdd);
 
-  Quality operator -(int toSubtract) => _qualitySum(-toSubtract);
+  Quality? operator -(int toSubtract) => _qualitySum(-toSubtract);
 
-  Quality _qualitySum(int toAdd) {
-    Quality currentQuality = this;
-
-    for (var i = 0; i < toAdd.abs(); i++) {
-      var nextQuality = toAdd > 0
-          ? currentQuality.next
-          : currentQuality.previous;
-
-      if (nextQuality == null) {
-        break;
-      } else {
-        currentQuality = nextQuality;
-      }
+  Quality? _qualitySum(int toAdd) {
+    if (toAdd == 0) {
+      return this;
     }
 
-    return currentQuality;
+    List<Quality> chainToScan = toAdd > 0
+        ? nextQualityChain
+        : previousQualityChain;
+
+    toAdd = toAdd.abs();
+
+    if (toAdd > chainToScan.length) {
+      return null;
+    } else {
+      return chainToScan[toAdd];
+    }
   }
 }
