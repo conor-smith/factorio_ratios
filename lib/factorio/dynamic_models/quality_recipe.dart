@@ -1,8 +1,8 @@
 part of 'dynamic_models.dart';
 
-class QualityRecipe extends DelegatingRecipe
+class _QualityRecipeImpl extends DelegatingRecipe
     with QualityPrototype
-    implements ToJson {
+    implements QualityRecipe {
   @override
   final Recipe internal;
   @override
@@ -15,29 +15,27 @@ class QualityRecipe extends DelegatingRecipe
   @override
   final ItemEntity? mainProduct;
 
-  factory QualityRecipe(Recipe recipe, [Quality? quality]) {
+  factory _QualityRecipeImpl(Recipe recipe, [Quality? quality]) {
     quality ??= recipe.factorioDb.defaultQuality;
 
-    if (recipe is QualityRecipe && quality == recipe.quality) {
-      return recipe;
-    } else if (recipe is DelegatingRecipe) {
+    if (recipe is DelegatingRecipe) {
       recipe = recipe.internal;
     }
-    return QualityRecipe._(recipe, quality);
+    return _QualityRecipeImpl._(recipe, quality);
   }
 
-  QualityRecipe._(this.internal, this.quality)
+  _QualityRecipeImpl._(this.internal, this.quality)
     : mainProduct = internal.mainProduct != null
           ? ItemEntity(internal.mainProduct!)
           : null,
       ingredients = List.unmodifiable(
         internal.ingredients.map(
-          (ingredient) => QualityRecipeIngredient(ingredient, quality),
+          (ingredient) => _QualityRecipeIngredientImpl(ingredient, quality),
         ),
       ),
       results = List.unmodifiable(
         internal.results.map(
-          (product) => QualityRecipeProduct(product, quality),
+          (product) => _QualityRecipeProductImpl(product, quality),
         ),
       );
 
@@ -58,16 +56,17 @@ class QualityRecipe extends DelegatingRecipe
   }
 }
 
-class QualityRecipeIngredient extends DelegatingRecipeIngredient {
+class _QualityRecipeIngredientImpl extends DelegatingRecipeIngredient
+    implements QualityRecipeIngredient {
   @override
   final RecipeIngredient internal;
 
   @override
   final ItemInputSpec item;
 
-  QualityRecipeIngredient._(this.internal, this.item);
+  _QualityRecipeIngredientImpl._(this.internal, this.item);
 
-  factory QualityRecipeIngredient(
+  factory _QualityRecipeIngredientImpl(
     RecipeIngredient ingredient,
     Quality recipeQuality,
   ) {
@@ -85,7 +84,7 @@ class QualityRecipeIngredient extends DelegatingRecipeIngredient {
         qualityMax = recipeQuality;
       }
 
-      return QualityRecipeIngredient._(
+      return _QualityRecipeIngredientImpl._(
         ingredient,
         SolidItemInputSpec(
           item,
@@ -108,7 +107,7 @@ class QualityRecipeIngredient extends DelegatingRecipeIngredient {
         maximumTemperature = temperature;
       }
 
-      return QualityRecipeIngredient._(
+      return _QualityRecipeIngredientImpl._(
         ingredient,
         FluidItemInputSpec(
           item,
@@ -120,16 +119,20 @@ class QualityRecipeIngredient extends DelegatingRecipeIngredient {
   }
 }
 
-class QualityRecipeProduct extends DelegatingRecipeProduct {
+class _QualityRecipeProductImpl extends DelegatingRecipeProduct
+    implements QualityRecipeProduct {
   @override
   final RecipeProduct internal;
 
   @override
-  final ItemInputSpec item;
+  final ItemOutputSpec item;
 
-  QualityRecipeProduct._(this.internal, this.item);
+  _QualityRecipeProductImpl._(this.internal, this.item);
 
-  factory QualityRecipeProduct(RecipeProduct product, Quality recipeQuality) {
+  factory _QualityRecipeProductImpl(
+    RecipeProduct product,
+    Quality recipeQuality,
+  ) {
     Item item = product.item;
 
     if (item is SolidItem) {
@@ -144,9 +147,9 @@ class QualityRecipeProduct extends DelegatingRecipeProduct {
         qualityMax = recipeQuality;
       }
 
-      return QualityRecipeProduct._(
+      return _QualityRecipeProductImpl._(
         product,
-        SolidItemInputSpec(
+        SolidItemOutputSpec(
           item,
           qualityMin: qualityMin,
           qualityMax: qualityMax,
@@ -157,7 +160,7 @@ class QualityRecipeProduct extends DelegatingRecipeProduct {
 
       double temperature = product.temperature ?? item.defaultTemperature;
 
-      return QualityRecipeProduct._(
+      return _QualityRecipeProductImpl._(
         product,
         FluidItemInputSpec(
           item,

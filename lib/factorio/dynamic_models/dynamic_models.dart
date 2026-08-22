@@ -8,6 +8,7 @@ import 'package:factorio_ratios/utility/collections.dart';
 
 part 'delegating_models.dart';
 part 'display_data.dart';
+part 'interfaces.dart';
 part 'item_entity.dart';
 part 'item_spec.dart';
 part 'machine_entity.dart';
@@ -15,22 +16,6 @@ part 'quality_recipe.dart';
 part 'sorted_item_groups.dart';
 
 typedef ItemAmounts = Map<ItemEntity, double>;
-
-mixin QualityPrototype on PrototypeWithIcon {
-  Quality get quality;
-
-  @override
-  String get name {
-    if (quality == factorioDb.defaultQuality) {
-      return super.name;
-    } else {
-      return '${quality.name} ${super.name}';
-    }
-  }
-
-  @override
-  Icon? get icon => super.icon?.withQuality(quality);
-}
 
 abstract class ItemIo {
   ItemAmounts get inputs;

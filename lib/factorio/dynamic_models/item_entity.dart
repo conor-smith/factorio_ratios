@@ -1,20 +1,8 @@
 part of 'dynamic_models.dart';
 
-abstract class ItemEntity implements DelegatingItem, ItemOutputSpec {
-  factory ItemEntity(Item item, {Quality? quality, double? temperature}) {
-    if (item is SolidItem) {
-      return SolidItemEntity(item, quality: quality);
-    } else {
-      item = item as FluidItem;
-
-      return FluidItemEntity(item, temperature: temperature);
-    }
-  }
-}
-
-class SolidItemEntity extends DelegatingSolidItem
+class _SolidItemEntityImpl extends DelegatingSolidItem
     with QualityPrototype
-    implements ItemEntity, SolidItemOutputSpec {
+    implements SolidItemEntity {
   @override
   final SolidItem internal;
   @override
@@ -30,12 +18,13 @@ class SolidItemEntity extends DelegatingSolidItem
   @override
   final List<SolidItem> producedFromBurning;
 
+  @override
   final double percentSpoiled;
 
   @override
   final int hashCode;
 
-  factory SolidItemEntity(
+  factory _SolidItemEntityImpl(
     SolidItem item, {
     Quality? quality,
     double percentSpoiled = 0,
@@ -46,24 +35,25 @@ class SolidItemEntity extends DelegatingSolidItem
 
     quality ??= item.factorioDb.defaultQuality;
 
-    SolidItemEntity? spoilResult = item.spoilResult != null
-        ? SolidItemEntity(
+    _SolidItemEntityImpl? spoilResult = item.spoilResult != null
+        ? _SolidItemEntityImpl(
             item.spoilResult!,
             quality: quality + item.spoilQualityChange,
           )
         : null;
-    SolidItemEntity? burntResult = item.burntResult != null
-        ? SolidItemEntity(item.burntResult!)
+    _SolidItemEntityImpl? burntResult = item.burntResult != null
+        ? _SolidItemEntityImpl(item.burntResult!)
         : null;
 
-    Iterable<SolidItemEntity> producedFromSpoiling = item.producedFromSpoiling
+    Iterable<_SolidItemEntityImpl> producedFromSpoiling = item
+        .producedFromSpoiling
         .map((spoilableItem) {
           var requiredQuality = quality! - spoilableItem.spoilQualityChange;
 
           if (requiredQuality == null) {
             return null;
           } else {
-            return SolidItemEntity(item, quality: requiredQuality);
+            return _SolidItemEntityImpl(item, quality: requiredQuality);
           }
         })
         .nonNulls;
@@ -73,7 +63,7 @@ class SolidItemEntity extends DelegatingSolidItem
         ? item.producedFromBurning
         : const [];
 
-    return SolidItemEntity._(
+    return _SolidItemEntityImpl._(
       internal: item,
       quality: quality,
       spoilResult: spoilResult,
@@ -84,7 +74,7 @@ class SolidItemEntity extends DelegatingSolidItem
     );
   }
 
-  SolidItemEntity._({
+  _SolidItemEntityImpl._({
     required this.internal,
     required this.quality,
     required this.spoilResult,
@@ -106,7 +96,7 @@ class SolidItemEntity extends DelegatingSolidItem
   @override
   bool operator ==(Object other) =>
       super == other ||
-      (other is SolidItemEntity && hashCode == other.hashCode);
+      (other is _SolidItemEntityImpl && hashCode == other.hashCode);
 
   @override
   Map<String, dynamic> toJson() {
@@ -115,8 +105,8 @@ class SolidItemEntity extends DelegatingSolidItem
   }
 }
 
-class FluidItemEntity extends DelegatingFluidItem
-    implements ItemEntity, FluidItemOutputSpec {
+class _FluidItemEntityImpl extends DelegatingFluidItem
+    implements FluidItemEntity {
   @override
   final FluidItem internal;
   @override
@@ -125,24 +115,22 @@ class FluidItemEntity extends DelegatingFluidItem
   @override
   final String name;
 
-  factory FluidItemEntity(FluidItem item, {double? temperature}) {
-    if (item is FluidItemEntity && temperature == item.temperature) {
-      return item;
-    } else if (item is DelegatingFluidItem) {
+  factory _FluidItemEntityImpl(FluidItem item, {double? temperature}) {
+    if (item is DelegatingFluidItem) {
       item = item.internal;
     }
 
     temperature ??= item.defaultTemperature;
-    return FluidItemEntity._(item, temperature);
+    return _FluidItemEntityImpl._(item, temperature);
   }
 
-  FluidItemEntity._(this.internal, this.temperature)
+  _FluidItemEntityImpl._(this.internal, this.temperature)
     : name = '${internal.name}: T$temperature';
 
   // Ensure that fluids of different temperature are sorted
   @override
   int compareTo(Prototype other) {
-    if (other is FluidItemEntity && internal == other.internal) {
+    if (other is _FluidItemEntityImpl && internal == other.internal) {
       return temperature.compareTo(other.temperature);
     } else {
       return super.compareTo(other);
@@ -152,7 +140,9 @@ class FluidItemEntity extends DelegatingFluidItem
   @override
   bool operator ==(Object other) =>
       super == other ||
-      (other is FluidItemEntity && hashCode == other.hashCode);
+      (other is _FluidItemEntityImpl &&
+          internal == other.internal &&
+          temperature == other.temperature);
 
   @override
   int get hashCode => internal.hashCode + temperature.hashCode + 10;

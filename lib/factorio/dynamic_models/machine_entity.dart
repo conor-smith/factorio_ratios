@@ -1,8 +1,8 @@
 part of 'dynamic_models.dart';
 
-class MachineEntity extends DelegatingCraftingMachine
+class _MachineEntityImpl extends DelegatingCraftingMachine
     with QualityPrototype
-    implements ToJson {
+    implements MachineEntity {
   // TODO - Quality effects
 
   @override
@@ -13,18 +13,18 @@ class MachineEntity extends DelegatingCraftingMachine
   @override
   final ItemEntity? item;
 
-  factory MachineEntity(CraftingMachine machine, [Quality? quality]) {
+  factory _MachineEntityImpl(CraftingMachine machine, [Quality? quality]) {
     quality ??= machine.factorioDb.defaultQuality;
 
-    if (machine is MachineEntity && machine.quality == quality) {
+    if (machine is _MachineEntityImpl && machine.quality == quality) {
       return machine;
     } else if (machine is DelegatingCraftingMachine) {
       machine = machine.internal;
     }
-    return MachineEntity._(machine, quality);
+    return _MachineEntityImpl._(machine, quality);
   }
 
-  MachineEntity._(this.internal, this.quality)
+  _MachineEntityImpl._(this.internal, this.quality)
     : item = internal.item != null
           ? ItemEntity(internal.item!, quality: quality)
           : null;
@@ -32,7 +32,7 @@ class MachineEntity extends DelegatingCraftingMachine
   @override
   bool operator ==(Object other) =>
       super == other ||
-      other is MachineEntity &&
+      other is _MachineEntityImpl &&
           internal == other.internal &&
           quality == other.quality;
 
