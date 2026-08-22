@@ -1,20 +1,17 @@
 part of 'dynamic_models.dart';
 
 class QualityRecipe extends DelegatingRecipe
-    implements QualityPrototype, ToJson {
+    with QualityPrototype
+    implements ToJson {
   @override
   final Recipe internal;
   @override
   final Quality quality;
 
   @override
-  final String name;
-  @override
   final List<QualityRecipeIngredient> ingredients;
   @override
   final List<QualityRecipeProduct> results;
-  @override
-  final Icon? icon;
   @override
   final ItemEntity? mainProduct;
 
@@ -30,11 +27,7 @@ class QualityRecipe extends DelegatingRecipe
   }
 
   QualityRecipe._(this.internal, this.quality)
-    : name = quality.name != Quality.defaultName
-          ? '$quality ${internal.name}'
-          : internal.name,
-      icon = internal.icon?.withQuality(quality),
-      mainProduct = internal.mainProduct != null
+    : mainProduct = internal.mainProduct != null
           ? ItemEntity(internal.mainProduct!)
           : null,
       ingredients = List.unmodifiable(

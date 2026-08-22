@@ -14,16 +14,12 @@ abstract class ItemEntity implements DelegatingItem, ToJson {
 
 // TODO - Add spoilage
 class SolidItemEntity extends DelegatingSolidItem
-    implements ItemEntity, QualityPrototype {
+    with QualityPrototype
+    implements ItemEntity {
   @override
   final SolidItem internal;
   @override
   final Quality quality;
-
-  @override
-  final String name;
-  @override
-  final Icon? icon;
 
   @override
   final SolidItemEntity? spoilResult;
@@ -45,11 +41,6 @@ class SolidItemEntity extends DelegatingSolidItem
     }
 
     quality ??= item.factorioDb.defaultQuality;
-
-    String newName = quality == item.factorioDb.defaultQuality
-        ? item.name
-        : '${quality.name} ${item.name}';
-    Icon? newIcon = item.icon?.withQuality(quality);
 
     SolidItemEntity? spoilResult = item.spoilResult != null
         ? SolidItemEntity(
@@ -81,8 +72,6 @@ class SolidItemEntity extends DelegatingSolidItem
     return SolidItemEntity._(
       internal: item,
       quality: quality,
-      name: newName,
-      icon: newIcon,
       spoilResult: spoilResult,
       burntResult: burntResult,
       producedFromSpoiling: producedFromSpoiling,
@@ -93,8 +82,6 @@ class SolidItemEntity extends DelegatingSolidItem
   SolidItemEntity._({
     required this.internal,
     required this.quality,
-    required this.icon,
-    required this.name,
     required this.spoilResult,
     required this.burntResult,
     required Iterable<SolidItemEntity> producedFromSpoiling,

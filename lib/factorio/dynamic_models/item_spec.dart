@@ -154,7 +154,8 @@ class FluidItemInputSpec extends DelegatingFluidItem implements ItemInputSpec {
 abstract class ItemOutputSpec implements DelegatingItem, ToJson {}
 
 class SolidItemOutputSpec extends DelegatingSolidItem
-    implements ItemOutputSpec, QualityPrototype {
+    with QualityPrototype
+    implements ItemOutputSpec {
   @override
   SolidItem internal;
 

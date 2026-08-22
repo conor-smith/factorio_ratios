@@ -16,8 +16,20 @@ part 'sorted_item_groups.dart';
 
 typedef ItemAmounts = Map<ItemEntity, double>;
 
-abstract class QualityPrototype implements Prototype {
+mixin QualityPrototype on PrototypeWithIcon {
   Quality get quality;
+
+  @override
+  String get name {
+    if (quality == factorioDb.defaultQuality) {
+      return super.name;
+    } else {
+      return '${quality.name} ${super.name}';
+    }
+  }
+
+  @override
+  Icon? get icon => super.icon?.withQuality(quality);
 }
 
 abstract class ItemIo {
