@@ -1,9 +1,9 @@
 part of 'dynamic_models.dart';
 
-abstract class ItemSpec implements DelegatingItem, ToJson {
+abstract class ItemInputSpec implements DelegatingItem, ToJson {
   bool accepts(Item item);
 
-  factory ItemSpec(
+  factory ItemInputSpec(
     Item item, {
     Quality? qualityMin,
     Quality? qualityMax,
@@ -11,7 +11,7 @@ abstract class ItemSpec implements DelegatingItem, ToJson {
     double? maximumTemperature,
   }) {
     if (item is SolidItem) {
-      return SolidItemSpec(
+      return SolidItemInputSpec(
         item,
         qualityMin: qualityMin,
         qualityMax: qualityMax,
@@ -19,7 +19,7 @@ abstract class ItemSpec implements DelegatingItem, ToJson {
     } else {
       item = item as FluidItem;
 
-      return FluidItemSpec(
+      return FluidItemInputSpec(
         item,
         minimumTemperature: minimumTemperature,
         maximumTemperature: maximumTemperature,
@@ -28,7 +28,7 @@ abstract class ItemSpec implements DelegatingItem, ToJson {
   }
 }
 
-class SolidItemSpec extends DelegatingSolidItem implements ItemSpec {
+class SolidItemInputSpec extends DelegatingSolidItem implements ItemInputSpec {
   @override
   final SolidItem internal;
 
@@ -38,18 +38,18 @@ class SolidItemSpec extends DelegatingSolidItem implements ItemSpec {
   @override
   final Icon? icon;
 
-  SolidItemSpec._(this.internal, this.qualityMin, this.qualityMax)
+  SolidItemInputSpec._(this.internal, this.qualityMin, this.qualityMax)
     : icon = internal.icon?.withQuality(qualityMin);
 
-  factory SolidItemSpec.allQualities(SolidItem item) {
+  factory SolidItemInputSpec.allQualities(SolidItem item) {
     if (item is DelegatingSolidItem) {
       item = item.internal;
     }
 
-    return SolidItemSpec._(item, null, null);
+    return SolidItemInputSpec._(item, null, null);
   }
 
-  factory SolidItemSpec(
+  factory SolidItemInputSpec(
     SolidItem internal, {
     Quality? qualityMin,
     Quality? qualityMax,
@@ -61,7 +61,7 @@ class SolidItemSpec extends DelegatingSolidItem implements ItemSpec {
     qualityMin ??= internal.factorioDb.defaultQuality;
     qualityMax ??= internal.factorioDb.defaultQuality;
 
-    return SolidItemSpec._(internal, qualityMin, qualityMax);
+    return SolidItemInputSpec._(internal, qualityMin, qualityMax);
   }
 
   @override
@@ -81,7 +81,7 @@ class SolidItemSpec extends DelegatingSolidItem implements ItemSpec {
   @override
   bool operator ==(Object other) =>
       super == other ||
-      other is SolidItemSpec &&
+      other is SolidItemInputSpec &&
           internal == other.internal &&
           qualityMin == other.qualityMin &&
           qualityMax == other.qualityMax;
@@ -91,20 +91,20 @@ class SolidItemSpec extends DelegatingSolidItem implements ItemSpec {
       internal.hashCode + qualityMin.hashCode + (qualityMax.hashCode * 10);
 }
 
-class FluidItemSpec extends DelegatingFluidItem implements ItemSpec {
+class FluidItemInputSpec extends DelegatingFluidItem implements ItemInputSpec {
   @override
   final FluidItem internal;
 
   final double minimumTemperature;
   final double maximumTemperature;
 
-  FluidItemSpec._(
+  FluidItemInputSpec._(
     this.internal,
     this.minimumTemperature,
     this.maximumTemperature,
   );
 
-  factory FluidItemSpec(
+  factory FluidItemInputSpec(
     FluidItem internal, {
     double? minimumTemperature,
     double? maximumTemperature,
@@ -116,7 +116,11 @@ class FluidItemSpec extends DelegatingFluidItem implements ItemSpec {
     minimumTemperature ??= internal.defaultTemperature;
     maximumTemperature ??= internal.defaultTemperature;
 
-    return FluidItemSpec._(internal, minimumTemperature, maximumTemperature);
+    return FluidItemInputSpec._(
+      internal,
+      minimumTemperature,
+      maximumTemperature,
+    );
   }
 
   @override
@@ -135,7 +139,7 @@ class FluidItemSpec extends DelegatingFluidItem implements ItemSpec {
   @override
   bool operator ==(Object other) =>
       super == other ||
-      other is FluidItemSpec &&
+      other is FluidItemInputSpec &&
           internal == other.internal &&
           minimumTemperature == other.minimumTemperature &&
           maximumTemperature == other.maximumTemperature;
@@ -145,4 +149,33 @@ class FluidItemSpec extends DelegatingFluidItem implements ItemSpec {
       internal.hashCode +
       minimumTemperature.hashCode +
       (maximumTemperature * 32).hashCode;
+}
+
+abstract class ItemOutputSpec implements DelegatingItem, ToJson {}
+
+class SolidItemOutputSpec extends DelegatingSolidItem
+    implements ItemOutputSpec, QualityPrototype {
+  @override
+  SolidItem internal;
+
+  @override
+  final Quality quality;
+
+  SolidItemOutputSpec._(this.internal, this.quality);
+
+  factory SolidItemOutputSpec(SolidItem item, {Quality? quality}) {
+    if (item is DelegatingSolidItem) {
+      item = item.internal;
+    }
+
+    quality ??= item.factorioDb.defaultQuality;
+
+    return SolidItemOutputSpec._(item, quality);
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    // TODO: implement toJson
+    throw UnimplementedError();
+  }
 }

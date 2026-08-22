@@ -70,7 +70,7 @@ class QualityRecipeIngredient extends DelegatingRecipeIngredient {
   final RecipeIngredient internal;
 
   @override
-  final ItemSpec item;
+  final ItemInputSpec item;
 
   QualityRecipeIngredient._(this.internal, this.item);
 
@@ -94,7 +94,11 @@ class QualityRecipeIngredient extends DelegatingRecipeIngredient {
 
       return QualityRecipeIngredient._(
         ingredient,
-        SolidItemSpec(item, qualityMin: qualityMin, qualityMax: qualityMax),
+        SolidItemInputSpec(
+          item,
+          qualityMin: qualityMin,
+          qualityMax: qualityMax,
+        ),
       );
     } else {
       item = item as FluidItem;
@@ -113,7 +117,7 @@ class QualityRecipeIngredient extends DelegatingRecipeIngredient {
 
       return QualityRecipeIngredient._(
         ingredient,
-        FluidItemSpec(
+        FluidItemInputSpec(
           item,
           minimumTemperature: minimumTemperature,
           maximumTemperature: maximumTemperature,
@@ -128,7 +132,7 @@ class QualityRecipeProduct extends DelegatingRecipeProduct {
   final RecipeProduct internal;
 
   @override
-  final ItemSpec item;
+  final ItemInputSpec item;
 
   QualityRecipeProduct._(this.internal, this.item);
 
@@ -149,7 +153,11 @@ class QualityRecipeProduct extends DelegatingRecipeProduct {
 
       return QualityRecipeProduct._(
         product,
-        SolidItemSpec(item, qualityMin: qualityMin, qualityMax: qualityMax),
+        SolidItemInputSpec(
+          item,
+          qualityMin: qualityMin,
+          qualityMax: qualityMax,
+        ),
       );
     } else {
       item = item as FluidItem;
@@ -158,7 +166,7 @@ class QualityRecipeProduct extends DelegatingRecipeProduct {
 
       return QualityRecipeProduct._(
         product,
-        FluidItemSpec(
+        FluidItemInputSpec(
           item,
           minimumTemperature: temperature,
           maximumTemperature: temperature,
