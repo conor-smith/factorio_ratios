@@ -1,6 +1,6 @@
 part of 'dynamic_models.dart';
 
-abstract class ItemEntity implements DelegatingItem, ToJson {
+abstract class ItemEntity implements DelegatingItem, ItemOutputSpec {
   factory ItemEntity(Item item, {Quality? quality, double? temperature}) {
     if (item is SolidItem) {
       return SolidItemEntity(item, quality: quality);
@@ -15,7 +15,7 @@ abstract class ItemEntity implements DelegatingItem, ToJson {
 // TODO - Add spoilage
 class SolidItemEntity extends DelegatingSolidItem
     with QualityPrototype
-    implements ItemEntity {
+    implements ItemEntity, SolidItemOutputSpec {
   @override
   final SolidItem internal;
   @override
@@ -30,6 +30,9 @@ class SolidItemEntity extends DelegatingSolidItem
   final List<SolidItemEntity> producedFromSpoiling;
   @override
   final List<SolidItem> producedFromBurning;
+
+  @override
+  final int hashCode;
 
   factory SolidItemEntity(
     SolidItem item, {
@@ -87,17 +90,20 @@ class SolidItemEntity extends DelegatingSolidItem
     required Iterable<SolidItemEntity> producedFromSpoiling,
     required Iterable<SolidItem> producedFromBurning,
   }) : producedFromSpoiling = List.unmodifiable(producedFromSpoiling),
-       producedFromBurning = List.unmodifiable(producedFromBurning);
+       producedFromBurning = List.unmodifiable(producedFromBurning),
+       hashCode =
+           internal.hashCode +
+           quality.hashCode +
+           spoilResult.hashCode +
+           (burntResult.hashCode * 2) +
+           createHashFromIterable(producedFromSpoiling) +
+           createHashFromIterable(producedFromBurning) +
+           10;
 
   @override
   bool operator ==(Object other) =>
       super == other ||
-      other is SolidItemEntity &&
-          internal == other.internal &&
-          quality == other.quality;
-
-  @override
-  int get hashCode => internal.hashCode + quality.hashCode;
+      (other is SolidItemEntity && hashCode == other.hashCode);
 
   @override
   Map<String, dynamic> toJson() {
@@ -106,9 +112,11 @@ class SolidItemEntity extends DelegatingSolidItem
   }
 }
 
-class FluidItemEntity extends DelegatingFluidItem implements ItemEntity {
+class FluidItemEntity extends DelegatingFluidItem
+    implements ItemEntity, FluidItemOutputSpec {
   @override
   final FluidItem internal;
+  @override
   final double temperature;
 
   @override
@@ -141,12 +149,10 @@ class FluidItemEntity extends DelegatingFluidItem implements ItemEntity {
   @override
   bool operator ==(Object other) =>
       super == other ||
-      other is FluidItemEntity &&
-          internal == other.internal &&
-          temperature == other.temperature;
+      (other is FluidItemEntity && hashCode == other.hashCode);
 
   @override
-  int get hashCode => internal.hashCode + temperature.hashCode;
+  int get hashCode => internal.hashCode + temperature.hashCode + 10;
 
   @override
   Map<String, dynamic> toJson() {

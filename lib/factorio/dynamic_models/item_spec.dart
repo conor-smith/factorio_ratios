@@ -157,12 +157,16 @@ class SolidItemOutputSpec extends DelegatingSolidItem
     with QualityPrototype
     implements ItemOutputSpec {
   @override
-  SolidItem internal;
+  final SolidItem internal;
 
   @override
   final Quality quality;
 
-  SolidItemOutputSpec._(this.internal, this.quality);
+  @override
+  final int hashCode;
+
+  SolidItemOutputSpec._(this.internal, this.quality)
+    : hashCode = internal.hashCode + quality.hashCode;
 
   factory SolidItemOutputSpec(SolidItem item, {Quality? quality}) {
     if (item is DelegatingSolidItem) {
@@ -173,6 +177,58 @@ class SolidItemOutputSpec extends DelegatingSolidItem
 
     return SolidItemOutputSpec._(item, quality);
   }
+
+  @override
+  Map<String, dynamic> toJson() {
+    // TODO: implement toJson
+    throw UnimplementedError();
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      super == other ||
+      (other.runtimeType is SolidItemOutputSpec && other.hashCode == hashCode);
+}
+
+class FluidItemOutputSpec extends DelegatingFluidItem
+    implements ItemOutputSpec {
+  @override
+  final FluidItem internal;
+  final double temperature;
+
+  @override
+  final String name;
+
+  @override
+  final int hashCode;
+
+  factory FluidItemOutputSpec(FluidItem item, {double? temperature}) {
+    if (item is DelegatingFluidItem) {
+      item = item.internal;
+    }
+
+    temperature ??= item.defaultTemperature;
+    return FluidItemOutputSpec._(item, temperature);
+  }
+
+  FluidItemOutputSpec._(this.internal, this.temperature)
+    : name = '${internal.name}: T$temperature',
+      hashCode = internal.hashCode + temperature.hashCode;
+
+  // Ensure that fluids of different temperature are sorted
+  @override
+  int compareTo(Prototype other) {
+    if (other is FluidItemOutputSpec && internal == other.internal) {
+      return temperature.compareTo(other.temperature);
+    } else {
+      return super.compareTo(other);
+    }
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      super == other ||
+      (other is FluidItemEntity && hashCode == other.hashCode);
 
   @override
   Map<String, dynamic> toJson() {
