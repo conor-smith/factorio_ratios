@@ -12,7 +12,6 @@ abstract class ItemEntity implements DelegatingItem, ItemOutputSpec {
   }
 }
 
-// TODO - Add spoilage
 class SolidItemEntity extends DelegatingSolidItem
     with QualityPrototype
     implements ItemEntity, SolidItemOutputSpec {
@@ -31,13 +30,15 @@ class SolidItemEntity extends DelegatingSolidItem
   @override
   final List<SolidItem> producedFromBurning;
 
+  final double percentSpoiled;
+
   @override
   final int hashCode;
 
   factory SolidItemEntity(
     SolidItem item, {
     Quality? quality,
-    double? percentSpoiled = 0,
+    double percentSpoiled = 0,
   }) {
     if (item is DelegatingSolidItem) {
       item = item.internal;
@@ -77,6 +78,7 @@ class SolidItemEntity extends DelegatingSolidItem
       quality: quality,
       spoilResult: spoilResult,
       burntResult: burntResult,
+      percentSpoiled: percentSpoiled,
       producedFromSpoiling: producedFromSpoiling,
       producedFromBurning: producedFromBurning,
     );
@@ -87,6 +89,7 @@ class SolidItemEntity extends DelegatingSolidItem
     required this.quality,
     required this.spoilResult,
     required this.burntResult,
+    required this.percentSpoiled,
     required Iterable<SolidItemEntity> producedFromSpoiling,
     required Iterable<SolidItem> producedFromBurning,
   }) : producedFromSpoiling = List.unmodifiable(producedFromSpoiling),
