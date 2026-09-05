@@ -150,6 +150,9 @@ abstract class DelegatingRecipe extends DelegatingPrototypeWithIcon
   bool get allowQuality => internal.allowQuality;
 
   @override
+  bool get canSetQuality => internal.canSetQuality;
+
+  @override
   List<RecipeIngredient> get ingredients => internal.ingredients;
   @override
   List<RecipeProduct> get results => internal.results;

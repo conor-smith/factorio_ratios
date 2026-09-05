@@ -35,6 +35,8 @@ class Recipe extends PrototypeWithIcon {
   final bool allowPollution;
   final bool allowQuality;
 
+  final bool canSetQuality;
+
   final List<RecipeIngredient> ingredients;
   final List<RecipeProduct> results;
   final List<SurfaceCondition> surfaceConditions;
@@ -106,6 +108,7 @@ class Recipe extends PrototypeWithIcon {
     required this.allowProductivity,
     required this.allowPollution,
     required this.allowQuality,
+    required this.canSetQuality,
     required this.ingredients,
     required this.results,
     required this.surfaceConditions,
@@ -188,6 +191,7 @@ class Recipe extends PrototypeWithIcon {
       allowProductivity: json['allow_productivity'] ?? false,
       allowPollution: json['allow_pollution'] ?? true,
       allowQuality: json['allow_quality'] ?? true,
+      canSetQuality: json['can_set_quality'] ?? true,
       ingredients: ingredients,
       results: results,
       surfaceConditions: surfaceConditions,
@@ -249,6 +253,24 @@ class RecipeIngredient {
       _givenMaximumTemperature ??
       (type == 'fluid' ? (item as FluidItem).defaultTemperature : null);
 
+  RecipeIngredient._({
+    required this.factorioDb,
+    required String name,
+    required this.type,
+    required double? givenMaximumTemperature,
+    required double? givenMinimumTemperature,
+    required this.amount,
+    required String? qualityMinString,
+    required String? qualityMaxString,
+    required this.qualityChange,
+    required this.spoilWeight,
+    required this.temperature,
+  }) : _name = name,
+       _givenMaximumTemperature = givenMaximumTemperature,
+       _givenMinimumTemperature = givenMinimumTemperature,
+       _qualityMinString = qualityMinString,
+       _qualityMaxString = qualityMaxString;
+
   RecipeIngredient._item({
     required this.factorioDb,
     required String name,
@@ -302,6 +324,48 @@ class RecipeIngredient {
         ),
         _ => throw UnimplementedError(),
       };
+
+  RecipeIngredient withQuality(Quality quality) {
+    Quality newQualityMin;
+    if (qualityMax == null) {
+      newQualityMin = qualityMin ?? quality;
+    } else if (qualityMin == null) {
+      newQualityMin = quality.chainCompare(qualityMax!).greaterThanOrEqual
+          ? qualityMax!
+          : quality;
+    } else {
+      newQualityMin = qualityMin!;
+    }
+
+    Quality newQualityMax;
+    if (qualityMin == null) {
+      newQualityMax = qualityMax ?? quality;
+    } else if (qualityMax == null) {
+      newQualityMax = quality.chainCompare(qualityMin!).lessThanOrEqual
+          ? qualityMin!
+          : quality;
+    } else {
+      newQualityMax = qualityMax!;
+    }
+
+    if (newQualityMin == qualityMin && newQualityMax == qualityMax) {
+      return this;
+    } else {
+      return RecipeIngredient._(
+        factorioDb: factorioDb,
+        name: _name,
+        type: type,
+        givenMaximumTemperature: _givenMaximumTemperature,
+        givenMinimumTemperature: _givenMinimumTemperature,
+        amount: amount,
+        qualityMaxString: newQualityMax.name,
+        qualityMinString: newQualityMin.name,
+        qualityChange: qualityChange,
+        spoilWeight: spoilWeight,
+        temperature: temperature,
+      );
+    }
+  }
 }
 
 class RecipeProduct {
@@ -336,6 +400,29 @@ class RecipeProduct {
   late final double? temperature = type == 'fluid'
       ? _givenTemperature ?? (item as FluidItem).defaultTemperature
       : null;
+
+  RecipeProduct._({
+    required this.factorioDb,
+    required String name,
+    required this.type,
+    required this.amount,
+    required this.amountMin,
+    required this.amountMax,
+    required this.ignoredByProductivity,
+    required this.independentProbability,
+    required this.sharedProbability,
+    required this.extraCountFraction,
+    required this.percentSpoiled,
+    required this.alwaysFresh,
+    required String? qualityMin,
+    required String? qualityMax,
+    required this.qualityChange,
+    required this.affectedByQuality,
+    required double? givenTemperature,
+  }) : _name = name,
+       _qualityMinString = qualityMin,
+       _qualityMaxString = qualityMax,
+       _givenTemperature = givenTemperature;
 
   RecipeProduct._item({
     required this.factorioDb,
@@ -426,6 +513,54 @@ class RecipeProduct {
       ),
       _ => throw UnimplementedError(),
     };
+  }
+
+  RecipeProduct withQuality(Quality quality) {
+    Quality newQualityMin;
+    if (qualityMax == null) {
+      newQualityMin = qualityMin ?? quality;
+    } else if (qualityMin == null) {
+      newQualityMin = quality.chainCompare(qualityMax!).greaterThanOrEqual
+          ? qualityMax!
+          : quality;
+    } else {
+      newQualityMin = qualityMin!;
+    }
+
+    Quality newQualityMax;
+    if (qualityMin == null) {
+      newQualityMax = qualityMax ?? quality;
+    } else if (qualityMax == null) {
+      newQualityMax = quality.chainCompare(qualityMin!).lessThanOrEqual
+          ? qualityMin!
+          : quality;
+    } else {
+      newQualityMax = qualityMax!;
+    }
+
+    if (newQualityMin == qualityMin && newQualityMax == qualityMax) {
+      return this;
+    } else {
+      return RecipeProduct._(
+        factorioDb: factorioDb,
+        name: _name,
+        type: type,
+        amount: amount,
+        amountMin: amountMin,
+        amountMax: amountMax,
+        ignoredByProductivity: ignoredByProductivity,
+        independentProbability: independentProbability,
+        sharedProbability: sharedProbability,
+        extraCountFraction: extraCountFraction,
+        percentSpoiled: percentSpoiled,
+        alwaysFresh: alwaysFresh,
+        qualityMin: newQualityMin.name,
+        qualityMax: newQualityMax.name,
+        qualityChange: qualityChange,
+        affectedByQuality: affectedByQuality,
+        givenTemperature: _givenTemperature,
+      );
+    }
   }
 }
 

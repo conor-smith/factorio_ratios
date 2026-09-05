@@ -172,31 +172,6 @@ abstract class MachineEntity
 
 abstract class QualityRecipe
     implements DelegatingRecipe, QualityPrototype, ToJson {
-  @override
-  List<QualityRecipeIngredient> get ingredients;
-  @override
-  List<QualityRecipeProduct> get results;
-  @override
-  ItemOutputSpec? get mainProduct;
-
   factory QualityRecipe(Recipe recipe, [Quality? quality]) =>
-      throw UnimplementedError();
-}
-
-abstract class QualityRecipeIngredient implements DelegatingRecipeIngredient {
-  @override
-  ItemInputSpec get item;
-
-  factory QualityRecipeIngredient(
-    RecipeIngredient ingredient,
-    Quality recipeQuality,
-  ) => throw UnimplementedError();
-}
-
-abstract class QualityRecipeProduct extends DelegatingRecipeProduct {
-  @override
-  ItemOutputSpec get item;
-
-  factory QualityRecipeProduct(RecipeProduct product, Quality recipeQuality) =>
-      throw UnimplementedError();
+      _QualityRecipeImpl(recipe, quality);
 }
