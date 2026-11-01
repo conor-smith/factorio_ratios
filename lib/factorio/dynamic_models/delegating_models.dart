@@ -17,31 +17,29 @@ abstract class DelegatingPrototype implements Prototype {
   ItemSubgroup? get subgroup => internal.subgroup;
 
   @override
-  int compareTo(Prototype other) => compareTwoQualityPrototypes(this, other);
+  int compareTo(Prototype other) {
+    var prototypeCompare = internal.compareTo(other);
+
+    if (prototypeCompare == 0) {
+      var quality1 = this is QualityPrototype
+          ? (this as QualityPrototype).quality
+          : factorioDb.defaultQuality;
+      var quality2 = other is QualityPrototype
+          ? other.quality
+          : factorioDb.defaultQuality;
+
+      return switch (quality1.chainCompare(quality2)) {
+        QualityChainComparison.equal || QualityChainComparison.notInChain => 0,
+        QualityChainComparison.greater => 1,
+        QualityChainComparison.lesser => -1,
+      };
+    } else {
+      return prototypeCompare;
+    }
+  }
 
   @override
   String toString() => name;
-}
-
-int compareTwoQualityPrototypes(Prototype prototype1, Prototype prototype2) {
-  var prototypeCompare = compareTwoPrototypes(prototype1, prototype2);
-
-  if (prototypeCompare == 0) {
-    var quality1 = prototype1 is QualityPrototype
-        ? prototype1.quality
-        : prototype1.factorioDb.defaultQuality;
-    var quality2 = prototype2 is QualityPrototype
-        ? prototype2.quality
-        : prototype2.factorioDb.defaultQuality;
-
-    return switch (quality1.chainCompare(quality2)) {
-      QualityChainComparison.equal || QualityChainComparison.notInChain => 0,
-      QualityChainComparison.greater => 1,
-      QualityChainComparison.lesser => -1,
-    };
-  } else {
-    return prototypeCompare;
-  }
 }
 
 abstract class DelegatingPrototypeWithIcon extends DelegatingPrototype
