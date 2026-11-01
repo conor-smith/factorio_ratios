@@ -107,5 +107,8 @@ enum EdgeType {
 }
 
 class EdgeException extends BasePlannerException {
-  const EdgeException(super.message, [super.cause]);
+  const EdgeException(super.message);
+
+  const EdgeException.withCause(super.message, super.cause, super.stackTrace)
+    : super.withCause();
 }

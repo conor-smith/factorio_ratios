@@ -134,7 +134,8 @@ class SingleRecipeLine
 
     ItemAmounts machineTotalInput = {};
     for (var ingredient in recipe.ingredients) {
-      machineTotalInput[ingredient.item] = ingredient.amount * cyclesPerMinute;
+      // TODO - fix
+      // machineTotalInput[ingredient.item] = ingredient.amount * cyclesPerMinute;
     }
     double fuelConsumed = 0;
     if (fuel != null) {
@@ -159,9 +160,10 @@ class SingleRecipeLine
       }
 
       amountPerCycle *= product.independentProbability;
-      amountPerCycle += product.extraCountFraction;
+      // TODO - Fix
+      // amountPerCycle += product.extraCountFraction;
 
-      machineTotalOutput[product.item] = amountPerCycle * cyclesPerMinute;
+      // machineTotalOutput[product.item] = amountPerCycle * cyclesPerMinute;
     }
     if (fuel is SolidItemEntity? && fuel?.burntResult != null) {
       machineTotalOutput.update(

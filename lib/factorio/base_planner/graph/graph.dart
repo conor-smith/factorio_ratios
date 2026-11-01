@@ -401,7 +401,7 @@ class Graph extends NodeElement<GraphStateImpl> {
     if (baseRecipe != null) {
       var quality = requiredOutput is SolidItemEntity
           ? requiredOutput.quality
-          : 1;
+          : basePlanner.db.defaultQuality;
       var inGameRecipe = QualityRecipe(baseRecipe, quality);
 
       var inGameMachine = MachineEntity(
@@ -621,7 +621,10 @@ class GraphIo extends ProductionLineIoData {
 }
 
 class GraphException extends BasePlannerException {
-  const GraphException(super.message, [super.cause]);
+  const GraphException(super.message);
+
+  const GraphException.withCause(super.message, super.cause, super.stackTrace)
+    : super.withCause();
 }
 
 class GraphIoBuilder implements Builder<GraphIo> {

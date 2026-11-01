@@ -183,5 +183,8 @@ enum NodeType implements Comparable<NodeType> {
 }
 
 class NodeException extends BasePlannerException {
-  const NodeException(super.message, [super.cause]);
+  const NodeException(super.message);
+
+  const NodeException.withCause(super.message, super.cause, super.stackTrace)
+    : super.withCause();
 }

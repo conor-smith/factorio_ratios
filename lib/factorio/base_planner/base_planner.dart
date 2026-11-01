@@ -240,5 +240,11 @@ class SurfaceProperties {
 }
 
 class BasePlannerException extends FactorioException {
-  const BasePlannerException(super.message, [super.cause]);
+  const BasePlannerException(super.message);
+
+  const BasePlannerException.withCause(
+    super.message,
+    super.cause,
+    super.stackTrace,
+  ) : super.withCause();
 }

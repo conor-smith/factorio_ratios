@@ -133,7 +133,13 @@ class ProductionLineIoData {
 enum ProductionLineType { io, magic, singleRecipe, combiner, graph }
 
 class ProductionLineException extends FactorioException {
-  const ProductionLineException(super.message, [super.cause]);
+  const ProductionLineException(super.message);
+
+  const ProductionLineException.withCause(
+    super.message,
+    super.cause,
+    super.stackTrace,
+  ) : super.withCause();
 }
 
 class ValueAndDisplayData<T> {

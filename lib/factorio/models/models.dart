@@ -224,10 +224,11 @@ class FactorioDatabase {
         if (itemJson['parameter'] != true) {
           items[name] = Item.fromJson(this, itemJson);
         }
-      } catch (e) {
-        throw FactorioException(
+      } catch (e, st) {
+        throw FactorioException.withCause(
           'Encountered error when decoding item $name',
           e,
+          st,
         );
       }
     });
@@ -239,10 +240,11 @@ class FactorioDatabase {
         if (techJson['parameter'] != true) {
           technologies[name] = Technology.fromJson(this, techJson);
         }
-      } catch (e) {
-        throw FactorioException(
+      } catch (e, st) {
+        throw FactorioException.withCause(
           'Encountered error when decoding technology $name',
           e,
+          st,
         );
       }
     });
@@ -260,10 +262,11 @@ class FactorioDatabase {
         if (recipeJson['parameter'] != true) {
           recipes[name] = Recipe.fromJson(this, recipeJson);
         }
-      } catch (e) {
-        throw FactorioException(
+      } catch (e, st) {
+        throw FactorioException.withCause(
           'Encountered error when decoding recipe $name',
           e,
+          st,
         );
       }
     });
@@ -281,10 +284,11 @@ class FactorioDatabase {
     rawCraftingMachines.forEach((name, machineJson) {
       try {
         craftingMachines[name] = CraftingMachine.fromJson(this, machineJson);
-      } catch (e) {
-        throw FactorioException(
+      } catch (e, st) {
+        throw FactorioException.withCause(
           'Encountered error when decoding crafting machine $name',
           e,
+          st,
         );
       }
     });
@@ -294,10 +298,11 @@ class FactorioDatabase {
     rawItemGroups.forEach((name, groupJson) {
       try {
         itemGroups[name] = ItemGroup.fromJson(this, groupJson);
-      } catch (e) {
-        throw FactorioException(
+      } catch (e, st) {
+        throw FactorioException.withCause(
           'Encountered error when decoding item group $name',
           e,
+          st,
         );
       }
     });
@@ -307,10 +312,11 @@ class FactorioDatabase {
     rawItemSubgroups.forEach((name, subgroupJson) {
       try {
         itemSubgroups[name] = ItemSubgroup.fromJson(this, subgroupJson);
-      } catch (e) {
-        throw FactorioException(
+      } catch (e, st) {
+        throw FactorioException.withCause(
           'Encountered error when decoding item subgroup $name',
           e,
+          st,
         );
       }
     });
@@ -322,10 +328,11 @@ class FactorioDatabase {
     rawSurfaces.forEach((name, planetJson) {
       try {
         surfaces[name] = Surface.fromJson(this, planetJson);
-      } catch (e) {
-        throw FactorioException(
+      } catch (e, st) {
+        throw FactorioException.withCause(
           'Encountered error when decoding surface $name',
           e,
+          st,
         );
       }
     });
@@ -334,10 +341,11 @@ class FactorioDatabase {
     rawResources.forEach((name, resourceJson) {
       try {
         resources[name] = Resource.fromJson(this, resourceJson);
-      } catch (e) {
-        throw FactorioException(
+      } catch (e, st) {
+        throw FactorioException.withCause(
           'Encountered error when decoding resource $name',
           e,
+          st,
         );
       }
     });
@@ -348,10 +356,11 @@ class FactorioDatabase {
         if (qualityJson['hidden'] != true) {
           qualities[name] = Quality.fromJson(this, qualityJson);
         }
-      } catch (e) {
-        throw FactorioException(
+      } catch (e, st) {
+        throw FactorioException.withCause(
           'Encountered error when decoding quality $name',
           e,
+          st,
         );
       }
     });
@@ -405,10 +414,11 @@ class FactorioDatabase {
             ifAbsent: () => [recipe],
           );
         }
-      } catch (e) {
-        throw FactorioException(
+      } catch (e, st) {
+        throw FactorioException.withCause(
           'Encountered exception when building relationships for recipe $name',
           e,
+          st,
         );
       }
     });
@@ -422,10 +432,11 @@ class FactorioDatabase {
             ifAbsent: () => [craftingMachine],
           );
         }
-      } catch (e) {
-        throw FactorioException(
+      } catch (e, st) {
+        throw FactorioException.withCause(
           'Encountered error when building relationships for crafting machine $name',
           e,
+          st,
         );
       }
     });
@@ -469,10 +480,11 @@ class FactorioDatabase {
             );
           }
         }
-      } catch (e) {
-        throw FactorioException(
+      } catch (e, st) {
+        throw FactorioException.withCause(
           'Encountered error when building relationships for item $name',
           e,
+          st,
         );
       }
     });
