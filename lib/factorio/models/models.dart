@@ -198,7 +198,6 @@ class FactorioDatabase {
       'item-with-entity-data',
       'capsule',
       'rail-planner',
-      'item-with-entity-data',
       'space-platform-starter-pack',
       'blueprint',
       'blueprint-book',
@@ -216,7 +215,7 @@ class FactorioDatabase {
 
     Map<String, Map> rawItems = {};
     for (var section in itemSections) {
-      rawItems.addAll((factorioRawData[section] as Map).cast());
+      rawItems.addAll((factorioRawData[section] as Map? ?? const {}).cast());
     }
 
     rawItems.forEach((name, itemJson) {

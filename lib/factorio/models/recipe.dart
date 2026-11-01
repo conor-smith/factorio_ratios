@@ -455,7 +455,7 @@ class RecipeProduct {
     required this.ignoredByProductivity,
     required this.independentProbability,
     required this.sharedProbability,
-    required double temperature,
+    required double? temperature,
   }) : _name = name,
        type = 'fluid',
        extraCountFraction = null,
@@ -509,7 +509,7 @@ class RecipeProduct {
         ignoredByProductivity: ignoredByProductivity,
         independentProbability: independentProbability,
         sharedProbability: sharedProbability,
-        temperature: json['temperature'],
+        temperature: json['temperature']?.toDouble(),
       ),
       _ => throw UnimplementedError(),
     };
@@ -571,8 +571,10 @@ class SharedProbability {
 
   const SharedProbability._({required this.min, required this.max});
 
-  factory SharedProbability.fromJson(Map json) =>
-      SharedProbability._(min: json['min'], max: json['max']);
+  factory SharedProbability.fromJson(Map json) => SharedProbability._(
+    min: json['min'].toDouble(),
+    max: json['max'].toDouble(),
+  );
 }
 
 class SurfaceCondition {

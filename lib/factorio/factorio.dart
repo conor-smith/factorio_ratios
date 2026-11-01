@@ -15,7 +15,7 @@ class FactorioException implements Exception {
   String toString() {
     var string = '${runtimeType.toString()}: $message';
     if (cause != null) {
-      string += '\ncaused by "$cause" at\n$stackTrace';
+      string += '\ncaused by\n$cause\nat\n$stackTrace';
     }
 
     return string;
