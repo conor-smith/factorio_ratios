@@ -1,5 +1,4 @@
 import 'package:factorio_ratios/factorio/factorio.dart';
-import 'package:factorio_ratios/utility/collections.dart';
 
 part 'crafting_machines.dart';
 part 'database.dart';

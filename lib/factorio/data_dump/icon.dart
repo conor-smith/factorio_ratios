@@ -4,39 +4,8 @@ class Icon {
   final List<IconData> icons;
   final double size;
 
-  @override
-  final int hashCode;
-
-  final Map<double, Icon> _cachedSizedIcons;
-
-  static final Map<double, Icon> _cachedUnknownIcons = {};
-
-  Icon._(
-    Iterable<IconData> icons,
-    this.size, [
-    Map<double, Icon>? cachedIconsMap,
-  ]) : icons = List.unmodifiableOf(icons),
-       _cachedSizedIcons = cachedIconsMap ?? {},
-       hashCode = createHashFromOrderedIterable(icons) + size.hashCode {
-    _cachedSizedIcons[size] = this;
-  }
-
-  factory Icon.unknownIcon(double expectedSize) =>
-      _cachedUnknownIcons[expectedSize] ??
-      Icon._(
-        [
-          IconData._(
-            icon: '__core__/graphics/icons/unknown.png',
-            iconSize: ExpectedIconSize.other,
-            tint: Colour.defaultIconTint,
-            shift: Vector.defaultVector,
-            scale: (expectedSize / 2) / ExpectedIconSize.other,
-            floating: false,
-          ),
-        ],
-        ExpectedIconSize.other,
-        _cachedUnknownIcons,
-      );
+  Icon._(Iterable<IconData> icons, this.size)
+    : icons = List.unmodifiableOf(icons);
 
   static Icon? fromTopLevelJson(Map json, double expectedSize) {
     String? icon = json['icon'];
@@ -47,7 +16,7 @@ class Icon {
         IconData._fromSingleIcon(
           icon,
           expectedSize,
-          json['icon_size']?.toDouble() ?? expectedSize,
+          json['icon_size']?.toDouble(),
         ),
       ], expectedSize);
     } else if (iconsJson != null) {
@@ -61,40 +30,6 @@ class Icon {
       return null;
     }
   }
-
-  Icon withQuality(DDQuality? quality) {
-    // TODO
-    return this;
-  }
-
-  Icon resize(double newSize) {
-    var resized = _cachedSizedIcons[newSize];
-
-    if (resized == null) {
-      var multiplier = newSize / size;
-
-      resized = Icon._(
-        icons.map(
-          (iconData) => IconData._(
-            icon: iconData.icon,
-            iconSize: iconData.iconSize * multiplier,
-            tint: iconData.tint,
-            shift: iconData.shift * multiplier,
-            scale: iconData.scale * multiplier,
-            floating: iconData.floating,
-          ),
-        ),
-        newSize,
-        _cachedSizedIcons,
-      );
-    }
-
-    return resized;
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      super == other || (other is Icon && other.hashCode == hashCode);
 }
 
 class IconData {
@@ -105,43 +40,37 @@ class IconData {
   final double scale;
   final bool floating;
 
-  @override
-  final int hashCode;
-
   IconData._({
     required this.icon,
-    required this.iconSize,
-    required this.tint,
-    required this.shift,
-    required this.scale,
-    required this.floating,
-  }) : hashCode =
-           icon.hashCode +
-           iconSize.hashCode +
-           tint.hashCode +
-           shift.hashCode +
-           scale.hashCode +
-           floating.hashCode;
+    required double expectedIconSize,
+    required double? iconSize,
+    Colour? tint,
+    Vector? shift,
+    double? scale,
+    bool? floating,
+  }) : iconSize = iconSize ?? ExpectedIconSize.other,
+       tint = tint ?? const Colour._(r: 1, g: 1, b: 1, a: 1),
+       shift = shift ?? const Vector._(x: 0, y: 0),
+       scale =
+           scale ??
+           (expectedIconSize / 2) / (iconSize ?? ExpectedIconSize.other),
+       floating = floating ?? false;
 
   factory IconData.fromJson(Map json, double expectedSize) {
-    double iconSize = json['icon_size']?.toDouble() ?? ExpectedIconSize.other;
-    // default scale is 0.5 for most icons
-    double scale = json['scale'] ?? (expectedSize / 2) / iconSize;
+    var tintJson = json['tint'];
+    Colour? tint = tintJson != null ? Colour.fromJson(tintJson) : null;
 
-    Colour tint = json['tint'] != null
-        ? Colour.fromJson(json['tint'])
-        : Colour.defaultIconTint;
-    Vector shift = json['shift'] != null
-        ? Vector.fromJson(json['shift'])
-        : Vector.defaultVector;
+    var shiftJson = json['shift'];
+    Vector? shift = shiftJson != null ? Vector.fromJson(shiftJson) : null;
 
     return IconData._(
       icon: json['icon'],
-      iconSize: iconSize,
+      iconSize: json['icon_size'],
+      expectedIconSize: expectedSize,
       tint: tint,
       shift: shift,
-      scale: scale,
-      floating: json['floating'] ?? false,
+      scale: json['scale'],
+      floating: json['floating'],
     );
   }
 
@@ -152,50 +81,22 @@ class IconData {
   ) => IconData._(
     icon: path,
     iconSize: iconSize,
-    tint: Colour.defaultIconTint,
-    shift: Vector.defaultVector,
-    scale: (expectedSize / 2) / iconSize,
-    floating: false,
+    expectedIconSize: expectedSize,
   );
-
-  factory IconData.unknownIcon(double expectedSize) => IconData._(
-    icon: '__core__/graphics/icons/unknown.png',
-    iconSize: ExpectedIconSize.other,
-    tint: Colour.defaultIconTint,
-    shift: Vector.defaultVector,
-    scale: (expectedSize / 2) / ExpectedIconSize.other,
-    floating: false,
-  );
-
-  @override
-  bool operator ==(Object other) =>
-      super == other ||
-      (other is IconData &&
-          icon == other.icon &&
-          iconSize == other.iconSize &&
-          tint == other.tint &&
-          shift == other.shift &&
-          scale == other.scale &&
-          floating == other.floating);
 }
 
 class Colour {
-  static Colour defaultIconTint = Colour._(1, 1, 1, 1);
-
   final double r;
   final double g;
   final double b;
   final double a;
 
-  @override
-  final int hashCode;
-
-  Colour._(this.r, this.g, this.b, this.a)
-    : hashCode =
-          r.hashCode +
-          (g * 100).hashCode +
-          (b * 10000).hashCode +
-          (a * 1000000).hashCode;
+  const Colour._({
+    required this.r,
+    required this.g,
+    required this.b,
+    required this.a,
+  });
 
   factory Colour.fromJson(dynamic json) {
     double r, g, b, a;
@@ -220,30 +121,15 @@ class Colour {
       a /= 255;
     }
 
-    return Colour._(r, g, b, a);
+    return Colour._(r: r, g: g, b: b, a: a);
   }
-
-  @override
-  bool operator ==(Object other) =>
-      super == other ||
-      (other is Colour &&
-          r == other.r &&
-          g == other.g &&
-          b == other.b &&
-          a == other.a);
 }
 
 class Vector {
-  static Vector defaultVector = Vector._(x: 0, y: 0);
-
   final double x;
   final double y;
 
-  @override
-  final int hashCode;
-
-  Vector._({required this.x, required this.y})
-    : hashCode = x.hashCode + (y * 500).hashCode;
+  const Vector._({required this.x, required this.y});
 
   factory Vector.fromJson(dynamic json) {
     if (json is Map) {
@@ -257,12 +143,6 @@ class Vector {
       return Vector._(x: jsonList[0].toDouble(), y: jsonList[1].toDouble());
     }
   }
-
-  Vector operator *(num other) => Vector._(x: x * other, y: y * other);
-
-  @override
-  bool operator ==(Object other) =>
-      super == other || (other is Vector && x == other.x && y == other.y);
 }
 
 abstract final class ExpectedIconSize {
