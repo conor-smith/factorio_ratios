@@ -9,7 +9,7 @@ import 'package:factorio_ratios/factorio/base_planner/geometry/edge_geometry.dar
 import 'package:factorio_ratios/factorio/base_planner/geometry/node_geometry.dart';
 import 'package:factorio_ratios/factorio/base_planner/node/node.dart';
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
-import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/factorio/deprecated_models/models.dart';
 import 'package:factorio_ratios/factorio/production_lines/production_line.dart';
 import 'package:factorio_ratios/utility/json.dart';
 import 'package:factorio_ratios/utility/builder.dart';

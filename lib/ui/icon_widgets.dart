@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/factorio/deprecated_models/models.dart';
 import 'package:flutter/material.dart' hide IconData, Icon;
 
 // TODO - Get working with MacOS and Windows

@@ -1,6 +1,6 @@
 import 'package:factorio_ratios/factorio/dynamic_models/dynamic_models.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
-import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/factorio/deprecated_models/models.dart';
 import 'package:factorio_ratios/utility/collections.dart';
 
 part 'combiner.dart';

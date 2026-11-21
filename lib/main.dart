@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:factorio_ratios/factorio/base_planner/base_planner.dart';
-import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/factorio/deprecated_models/models.dart';
 import 'package:factorio_ratios/ui/base_planner/base_planner_widget.dart';
 import 'package:flutter/material.dart';
 
@@ -12,9 +12,9 @@ void main() {
 class MainApp extends StatelessWidget {
   MainApp({super.key});
 
-  final Future<FactorioDatabase> _db = File(
-    'test_resources/data-raw-dump.json',
-  ).readAsString().then((rawJson) => FactorioDatabase.fromJson(rawJson));
+  final Future<FactorioDatabase> _db = File('test_resources/data-raw-dump.json')
+      .readAsString()
+      .then((rawJson) => FactorioDatabase.fromJson(rawJson));
 
   @override
   Widget build(BuildContext context) {

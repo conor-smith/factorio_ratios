@@ -1,7 +1,7 @@
 import 'dart:collection';
 
 import 'package:factorio_ratios/factorio/factorio.dart';
-import 'package:factorio_ratios/factorio/models/models.dart';
+import 'package:factorio_ratios/factorio/deprecated_models/models.dart';
 import 'package:factorio_ratios/utility/json.dart';
 import 'package:factorio_ratios/utility/builder.dart';
 import 'package:factorio_ratios/utility/collections.dart';
