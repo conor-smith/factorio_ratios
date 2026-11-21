@@ -10,8 +10,7 @@ abstract class DDItem extends DDPrototypeWithIcon {
   factory DDItem.fromJson(Map json) {
     return switch (json['type']) {
       'fluid' => DDFluidItem.fromJson(json),
-      'item' => DDSolidItem.fromJson(json),
-      _ => throw FactorioException('Unrecognised item type: ${json['type']}'),
+      _ => DDSolidItem.fromJson(json),
     };
   }
 }
@@ -81,7 +80,7 @@ class DDSolidItem extends DDItem {
     hidden: json['hidden'],
     stackSize: json['stack_size'],
     placeResult: json['place_result'],
-    fuelCategories: json['fuel_categories'],
+    fuelCategories: json['fuel_categories']?.cast<String>(),
     burntResult: json['burnt_result'],
     spoilResult: json['spoil_result'],
     spoilQualityMin: json['spoil_quality_min'],

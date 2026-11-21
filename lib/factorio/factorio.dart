@@ -2,7 +2,6 @@ abstract class TPrototype implements Comparable<TPrototype> {
   String get name;
   String get type;
   String get order;
-  String? get localisedName;
 
   @override
   int compareTo(TPrototype other) {

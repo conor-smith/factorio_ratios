@@ -17,8 +17,7 @@ abstract class DDPrototype extends TPrototype {
   final String name;
   @override
   final String type;
-  @override
-  final String? localisedName;
+  final dynamic localisedName;
   @override
   final String order;
   final String? subgroupName;
@@ -35,7 +34,7 @@ abstract class DDPrototype extends TPrototype {
     : this(
         name: json['name'],
         type: json['type'],
-        localisedName: json['localised_name'],
+        localisedName: _unmodifiableLocalisedString(json['localised_name']),
         order: json['order'],
         subgroupName: json['subgroup'],
       );
@@ -119,3 +118,16 @@ Map<K, V>? _unmodifiableOrNullMap<K, V>(Map<K, V>? map) =>
 
 Map<String, double>? _parseStringDoubleMap(Map? map) =>
     map?.map((key, value) => MapEntry(key, value.toDouble()));
+
+// LocalisedString can be null, String, or List<dynamic>
+// Lists may contain Strings, or lists
+// This function recursively makes all internal lists unmodifiable
+dynamic _unmodifiableLocalisedString(dynamic localisedString) {
+  if (localisedString is List) {
+    localisedString = List.unmodifiable(
+      localisedString.map(_unmodifiableLocalisedString),
+    );
+  }
+
+  return localisedString;
+}

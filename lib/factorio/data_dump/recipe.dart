@@ -70,7 +70,7 @@ class DDRecipe extends DDPrototypeWithIcon {
     // Empty ingredients are serialised as "{}" in json rather than null or "[]"
     // As such, a factory method is needed
     late Iterable<DDRecipeIngredient> ingredients;
-    var rawIngredients = json['ingredients'] ?? const [];
+    var rawIngredients = json['ingredients'];
     if (rawIngredients is List) {
       ingredients = rawIngredients.map(
         (ingredientJson) => DDRecipeIngredient.fromJson(ingredientJson),
@@ -80,7 +80,7 @@ class DDRecipe extends DDPrototypeWithIcon {
     }
 
     late Iterable<DDRecipeProduct> results;
-    var rawResults = json['results'] ?? const [];
+    var rawResults = json['results'];
     if (rawResults is List) {
       results = rawResults.map(
         (resultJson) => DDRecipeProduct.fromJson(resultJson),
@@ -89,13 +89,15 @@ class DDRecipe extends DDPrototypeWithIcon {
       results = const [];
     }
 
-    Iterable<SurfaceCondition>? surfaceConditions = json['surface_conditions']
-        ?.map((scJson) => SurfaceCondition.fromJson(scJson));
+    Iterable<SurfaceCondition>? surfaceConditions =
+        (json['surface_conditions'] as List?)?.cast<Map>().map(
+          (scJson) => SurfaceCondition.fromJson(scJson),
+        );
 
     return DDRecipe._(
       json,
       mainProduct: json['main_product'],
-      categories: json['categories'],
+      categories: json['categories']?.cast<String>(),
       energyRequired: json['energy_required']?.toDouble(),
       maximumProductivity: json['maximum_productivity']?.toDouble(),
       emissionsMultiplier: json['emissions_multiplier']?.toDouble(),
@@ -137,7 +139,7 @@ abstract class DDRecipeIngredient {
       );
 
   factory DDRecipeIngredient.fromJson(Map json) => switch (json['type']) {
-    'item' => DDRecipeIngredient.fromJson(json),
+    'item' => DDRecipeItemIngredient.fromJson(json),
     'fluid' => DDRecipeFluidIngredient.fromJson(json),
     _ => throw FactorioException(
       'Unrecognised ingredient type: ${json['type']}',
@@ -294,7 +296,7 @@ class DDRecipeFluidProduct extends DDRecipeProduct {
     : super._fromJson();
 
   DDRecipeFluidProduct.fromJson(Map json)
-    : this._(json, temperature: json['temperature']);
+    : this._(json, temperature: json['temperature']?.toDouble());
 }
 
 class SharedProbability {
