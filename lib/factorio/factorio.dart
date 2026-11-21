@@ -1,3 +1,20 @@
+abstract class TPrototype implements Comparable<TPrototype> {
+  String get name;
+  String get type;
+  String get order;
+  String? get localisedName;
+
+  @override
+  int compareTo(TPrototype other) {
+    var toReturn = order.compareTo(other.order);
+
+    return toReturn != 0 ? toReturn : name.compareTo(other.name);
+  }
+
+  @override
+  String toString() => name;
+}
+
 class FactorioException implements Exception {
   final String message;
   final Object? cause;
