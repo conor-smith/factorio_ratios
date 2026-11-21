@@ -33,7 +33,7 @@ class DDCraftingMachine extends DDPrototypeWithIcon {
     required Map<String, int>? moduleSlotsQualityBonus,
     required Map<String, double>? energyUsageQualityMultiplier,
   }) : qualityAffectsEnergyUsage = qualityAffectsEnergyUsage ?? false,
-       craftingCategories = List.unmodifiable(craftingCategories),
+       craftingCategories = List.unmodifiableOf(craftingCategories),
        moduleSlots = moduleSlots ?? 0,
        qualityAffectsModuleSlots = qualityAffectsModuleSlots ?? false,
        allowedEffects = _unmodifiableOrNullList(allowedEffects),

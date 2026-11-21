@@ -1,5 +1,5 @@
 part of 'data_dump.dart';
 
-class ItemSubgroup extends DDPrototype {
-  ItemSubgroup.fromJson(super.json) : super.fromJson();
+class DDItemSubgroup extends DDPrototype {
+  DDItemSubgroup.fromJson(super.json) : super.fromJson();
 }

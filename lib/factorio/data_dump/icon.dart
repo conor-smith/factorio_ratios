@@ -15,7 +15,7 @@ class Icon {
     Iterable<IconData> icons,
     this.size, [
     Map<double, Icon>? cachedIconsMap,
-  ]) : icons = List.unmodifiable(icons),
+  ]) : icons = List.unmodifiableOf(icons),
        _cachedSizedIcons = cachedIconsMap ?? {},
        hashCode = createHashFromOrderedIterable(icons) + size.hashCode {
     _cachedSizedIcons[size] = this;

@@ -2,6 +2,7 @@ import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/utility/collections.dart';
 
 part 'crafting_machines.dart';
+part 'database.dart';
 part 'group.dart';
 part 'icon.dart';
 part 'item.dart';
@@ -111,10 +112,10 @@ enum Effects {
 }
 
 List<T>? _unmodifiableOrNullList<T>(Iterable<T>? list) =>
-    list != null ? List.unmodifiable(list) : null;
+    list != null ? List.unmodifiableOf(list) : null;
 
 Map<K, V>? _unmodifiableOrNullMap<K, V>(Map<K, V>? map) =>
-    map != null ? Map.unmodifiable(map) : null;
+    map != null ? Map.unmodifiableOf(map) : null;
 
 Map<String, double>? _parseStringDoubleMap(Map? map) =>
     map?.map((key, value) => MapEntry(key, value.toDouble()));
