@@ -6,6 +6,10 @@ part 'group.dart';
 part 'icon.dart';
 part 'item.dart';
 part 'quality.dart';
+part 'recipe.dart';
+part 'subgroup.dart';
+part 'surface.dart';
+part 'technology.dart';
 
 abstract class DDPrototype extends TPrototype {
   @override
@@ -26,6 +30,15 @@ abstract class DDPrototype extends TPrototype {
     required this.subgroupName,
   }) : order = order ?? '';
 
+  DDPrototype.fromJson(Map json)
+    : this(
+        name: json['name'],
+        type: json['type'],
+        localisedName: json['localised_name'],
+        order: json['order'],
+        subgroupName: json['subgroup'],
+      );
+
   @override
   String toString() => name;
 }
@@ -34,14 +47,9 @@ abstract class DDPrototype extends TPrototype {
 abstract class DDPrototypeWithIcon extends DDPrototype {
   final Icon? icon;
 
-  DDPrototypeWithIcon({
-    required super.name,
-    required super.type,
-    required super.localisedName,
-    required super.order,
-    required super.subgroupName,
-    required this.icon,
-  });
+  DDPrototypeWithIcon.fromJson(super.json, double expectedIconSize)
+    : icon = Icon.fromTopLevelJson(json, expectedIconSize),
+      super.fromJson();
 }
 
 class SpentFluidSpecification {

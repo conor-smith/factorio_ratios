@@ -3,20 +3,15 @@ part of 'data_dump.dart';
 abstract class DDItem extends DDPrototypeWithIcon {
   final bool hidden;
 
-  DDItem({
-    required super.name,
-    required super.type,
-    required super.localisedName,
-    required super.order,
-    required super.subgroupName,
-    required super.icon,
-    required bool? hidden,
-  }) : hidden = hidden ?? false;
+  DDItem(Map json, {required bool? hidden})
+    : hidden = hidden ?? false,
+      super.fromJson(json, ExpectedIconSize.itemGroup);
 
   factory DDItem.fromJson(Map json) {
     return switch (json['type']) {
       'fluid' => DDFluidItem.fromJson(json),
-      _ => DDSolidItem.fromJson(json),
+      'item' => DDSolidItem.fromJson(json),
+      _ => throw FactorioException('Unrecognised item type: ${json['type']}'),
     };
   }
 }
@@ -49,13 +44,8 @@ class DDSolidItem extends DDItem {
   final bool labIgnoresSpoilPercent;
   final double scienceCapacity;
 
-  DDSolidItem._({
-    required super.name,
-    required super.type,
-    required super.localisedName,
-    required super.icon,
-    required super.subgroupName,
-    required super.order,
+  DDSolidItem._(
+    super.json, {
     required super.hidden,
     required this.stackSize,
     required String? placeResult,
@@ -87,12 +77,7 @@ class DDSolidItem extends DDItem {
        scienceCapacity = scienceCapacity ?? 1;
 
   factory DDSolidItem.fromJson(Map json) => DDSolidItem._(
-    name: json['name'],
-    type: json['type'],
-    localisedName: json['localised_name'],
-    icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
-    subgroupName: json['subgroup'],
-    order: json['order'],
+    json,
     hidden: json['hidden'],
     stackSize: json['stack_size'],
     placeResult: json['place_result'],
@@ -122,13 +107,8 @@ class DDFluidItem extends DDItem {
   final double emissionsMultiplier;
   final SpentFluidSpecification? spentFluid;
 
-  DDFluidItem._({
-    required super.name,
-    required super.type,
-    required super.localisedName,
-    required super.subgroupName,
-    required super.order,
-    required super.icon,
+  DDFluidItem._(
+    super.json, {
     required super.hidden,
     required this.defaultTemperature,
     required double? maxTemperature,
@@ -148,12 +128,7 @@ class DDFluidItem extends DDItem {
         : null;
 
     return DDFluidItem._(
-      name: json['name'],
-      type: json['type'],
-      localisedName: json['localised_name'],
-      order: json['order'],
-      subgroupName: json['subgroup'],
-      icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
+      json,
       hidden: json['hidden'],
       defaultTemperature: json['default_temperature'].toDouble(),
       maxTemperature: json['max_temperature']?.toDouble(),

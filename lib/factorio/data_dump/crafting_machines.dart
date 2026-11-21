@@ -17,13 +17,8 @@ class DDCraftingMachine extends DDPrototypeWithIcon {
   final Map<String, int>? moduleSlotsQualityBonus;
   final Map<String, double>? energyUsageQualityMultiplier;
 
-  DDCraftingMachine._({
-    required super.name,
-    required super.type,
-    required super.order,
-    required super.subgroupName,
-    required super.localisedName,
-    required super.icon,
+  DDCraftingMachine._(
+    Map json, {
     required bool? qualityAffectsEnergyUsage,
     required this.energyUsage,
     required this.craftingSpeed,
@@ -53,7 +48,8 @@ class DDCraftingMachine extends DDPrototypeWithIcon {
        ),
        energyUsageQualityMultiplier = _unmodifiableOrNullMap(
          energyUsageQualityMultiplier,
-       );
+       ),
+       super.fromJson(json, ExpectedIconSize.other);
 
   factory DDCraftingMachine.fromJson(Map json) {
     List<String>? allowedEffects;
@@ -83,11 +79,7 @@ class DDCraftingMachine extends DDPrototypeWithIcon {
         : null;
 
     return DDCraftingMachine._(
-      name: json['name'],
-      type: json['type'],
-      order: json['order'],
-      subgroupName: json['subgroup'],
-      localisedName: json['localised_name'],
+      json,
       craftingSpeed: json['crafting_speed'].toDouble(),
       energyUsage: json['energy_usage'],
       moduleSlots: json['module_slots'],
@@ -95,7 +87,6 @@ class DDCraftingMachine extends DDPrototypeWithIcon {
       effectReceiver: effectReceiver,
       craftingCategories: (json['crafting_categories'] as List).cast(),
       allowedEffects: allowedEffects,
-      icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
       qualityAffectsEnergyUsage: json['quality_affects_energy_usage'],
       allowedModuleCategories: (json['allowed_module_categories'] as List?)
           ?.cast(),
@@ -203,13 +194,14 @@ class BaseEffect {
     required this.quality,
   });
 
-  factory BaseEffect.fromJson(Map json) => BaseEffect._(
-    consumption: json['consumption']?.toDouble(),
-    speed: json['speed']?.toDouble(),
-    productivity: json['productivity']?.toDouble(),
-    pollution: json['pollution']?.toDouble(),
-    quality: json['quality']?.toDouble(),
-  );
+  BaseEffect.fromJson(Map json)
+    : this._(
+        consumption: json['consumption']?.toDouble(),
+        speed: json['speed']?.toDouble(),
+        productivity: json['productivity']?.toDouble(),
+        pollution: json['pollution']?.toDouble(),
+        quality: json['quality']?.toDouble(),
+      );
 }
 
 class EffectValueRange {
@@ -218,10 +210,8 @@ class EffectValueRange {
 
   const EffectValueRange._({required this.low, required this.high});
 
-  factory EffectValueRange.fromJson(Map json) => EffectValueRange._(
-    low: json['low']?.toDouble(),
-    high: json['high']?.toDouble(),
-  );
+  EffectValueRange.fromJson(Map json)
+    : this._(low: json['low']?.toDouble(), high: json['high']?.toDouble());
 }
 
 class CraftingMachineEnergySource {
@@ -275,10 +265,11 @@ class ElectricEnergySource extends CraftingMachineEnergySource {
     required super.emissionsPerMinute,
   }) : super._(type: EnergySourceType.electric);
 
-  factory ElectricEnergySource.fromJson(Map json) => ElectricEnergySource._(
-    drain: json['drain'],
-    emissionsPerMinute: _parseStringDoubleMap(json['emissions_per_minute']),
-  );
+  ElectricEnergySource.fromJson(Map json)
+    : this._(
+        drain: json['drain'],
+        emissionsPerMinute: _parseStringDoubleMap(json['emissions_per_minute']),
+      );
 }
 
 class BurnerEnergySource extends CraftingMachineEnergySource {
@@ -300,13 +291,14 @@ class BurnerEnergySource extends CraftingMachineEnergySource {
        hideFromStats = hideFromStats ?? false,
        super._(type: EnergySourceType.burner);
 
-  factory BurnerEnergySource.fromJson(Map json) => BurnerEnergySource._(
-    effectivity: json['effectivity'].toDouble(),
-    burnerUsage: json['burner_usage'],
-    fuelCategories: (json['fuel_categories'] as List?)?.cast(),
-    emissionsPerMinute: _parseStringDoubleMap(json['emissions_per_minute']),
-    hideFromStats: json['hide_from_stats'],
-  );
+  BurnerEnergySource.fromJson(Map json)
+    : this._(
+        effectivity: json['effectivity'].toDouble(),
+        burnerUsage: json['burner_usage'],
+        fuelCategories: (json['fuel_categories'] as List?)?.cast(),
+        emissionsPerMinute: _parseStringDoubleMap(json['emissions_per_minute']),
+        hideFromStats: json['hide_from_stats'],
+      );
 }
 
 class FluidEnergySource extends CraftingMachineEnergySource {
@@ -377,11 +369,12 @@ class HeatEnergySource extends CraftingMachineEnergySource {
        minWorkingTemperature = minWorkingTemperature ?? 15,
        super._(type: EnergySourceType.heat);
 
-  factory HeatEnergySource.fromJson(Map json) => HeatEnergySource._(
-    defaultTemperature: json['default_temperature']?.toDouble(),
-    maxTemperature: json['max_temperature'].toDouble(),
-    minWorkingTemperature: json['min_working_temperature'].toDouble(),
-    specificHeat: json['specific_heat'],
-    emissionsPerMinute: _parseStringDoubleMap(json['emissions_per_minute']),
-  );
+  HeatEnergySource.fromJson(Map json)
+    : this._(
+        defaultTemperature: json['default_temperature']?.toDouble(),
+        maxTemperature: json['max_temperature'].toDouble(),
+        minWorkingTemperature: json['min_working_temperature'].toDouble(),
+        specificHeat: json['specific_heat'],
+        emissionsPerMinute: _parseStringDoubleMap(json['emissions_per_minute']),
+      );
 }

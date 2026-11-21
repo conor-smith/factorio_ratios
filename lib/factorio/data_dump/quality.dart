@@ -36,13 +36,8 @@ class DDQuality extends DDPrototypeWithIcon {
 
   // defaultMultiplier does have a default value
   // but given how many other fields depend on it, best to calculate it first
-  DDQuality._({
-    required super.name,
-    required super.type,
-    required super.localisedName,
-    required super.order,
-    required super.icon,
-    required super.subgroupName,
+  DDQuality._(
+    Map json, {
     required this.drawSpriteByDefault,
     required this.level,
     required this.next,
@@ -104,7 +99,8 @@ class DDQuality extends DDPrototypeWithIcon {
        spoilTicksMultiplier = spoilTicksMultiplier ?? defaultMultiplier,
        craftingMachineModuleSlotBonus = craftingMachineModuleSlotBonus ?? level,
        miningDrillModuleSlotsBonus = miningDrillModuleSlotBonus ?? level,
-       labModuleSlotsBonus = labModuleSlotBonus ?? level;
+       labModuleSlotsBonus = labModuleSlotBonus ?? level,
+       super.fromJson(json, ExpectedIconSize.other);
 
   factory DDQuality.fromJson(Map json) {
     int level = json['level'];
@@ -112,12 +108,7 @@ class DDQuality extends DDPrototypeWithIcon {
         json['default_multiplier']?.toDouble() ?? 1.0 + (0.3 * level);
 
     return DDQuality._(
-      name: json['name'],
-      type: json['type'],
-      localisedName: json['name'],
-      order: json['order'],
-      icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
-      subgroupName: json['subgroup'],
+      json,
       drawSpriteByDefault: json['draw_sprite_by_default'] ?? true,
       level: level,
       next: json['next'],
