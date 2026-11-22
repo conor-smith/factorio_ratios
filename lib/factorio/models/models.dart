@@ -41,11 +41,11 @@ abstract class PrototypeWithIcon extends Prototype {
 
   PrototypeWithIcon({
     required super.database,
-    required Icon? icon,
+    required DDPrototypeWithIcon internalPrototype,
     double expectedIconSize = ExpectedIconSize.other,
     Quality? quality,
   }) : icon = database.cacheAndRetrieveIcon(
-         icon: icon,
+         icon: internalPrototype.icon,
          expectedIconSize: expectedIconSize,
          quality: quality,
        );
@@ -56,7 +56,7 @@ abstract class PrototypeWithQuality extends PrototypeWithIcon {
 
   PrototypeWithQuality({
     required super.database,
-    required super.icon,
+    required super.internalPrototype,
     required Quality super.quality,
     super.expectedIconSize,
   }) : quality = quality;

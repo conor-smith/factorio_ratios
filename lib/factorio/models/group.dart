@@ -6,6 +6,10 @@ class ItemGroup extends PrototypeWithIcon {
 
   List<ItemSubgroup> get subgroups => _database.getGroupSubgroups(this);
 
-  ItemGroup({required this._internalPrototype, required super.database})
-    : super(icon: _internalPrototype.icon);
+  ItemGroup({
+    required super.database,
+    required DDItemGroup super.internalPrototype,
+  }) : _internalPrototype = internalPrototype {
+    _database._groups[name] = this;
+  }
 }

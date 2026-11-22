@@ -8,8 +8,10 @@ class Quality extends PrototypeWithIcon {
 
   Quality? get next => null; // TODO
 
-  Quality({required this._internalPrototype, required super.database})
-    : super(icon: _internalPrototype.icon);
+  Quality({required super.database, required DDQuality super.internalPrototype})
+    : _internalPrototype = internalPrototype {
+    _database._qualities[name] = this;
+  }
 
   QualityCompare compareToQuality(Quality other) {
     if (this == other) {
