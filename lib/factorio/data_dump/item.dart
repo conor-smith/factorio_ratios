@@ -6,13 +6,6 @@ abstract class DDItem extends DDPrototypeWithIcon {
   DDItem(Map json, {required bool? hidden})
     : hidden = hidden ?? false,
       super.fromJson(json, ExpectedIconSize.itemGroup);
-
-  factory DDItem.fromJson(Map json) {
-    return switch (json['type']) {
-      'fluid' => DDFluidItem.fromJson(json),
-      _ => DDSolidItem.fromJson(json),
-    };
-  }
 }
 
 class DDSolidItem extends DDItem {
@@ -98,7 +91,7 @@ class DDSolidItem extends DDItem {
   );
 }
 
-class DDFluidItem extends DDItem {
+class DDFluid extends DDItem {
   final double defaultTemperature;
   final double maxTemperature;
   final String heatCapacity;
@@ -106,7 +99,7 @@ class DDFluidItem extends DDItem {
   final double emissionsMultiplier;
   final SpentFluidSpecification? spentFluid;
 
-  DDFluidItem._(
+  DDFluid._(
     super.json, {
     required super.hidden,
     required this.defaultTemperature,
@@ -120,13 +113,13 @@ class DDFluidItem extends DDItem {
        fuelValue = fuelValue ?? '0J',
        emissionsMultiplier = emissionsMultiplier ?? 1;
 
-  factory DDFluidItem.fromJson(Map json) {
+  factory DDFluid.fromJson(Map json) {
     Map? spentFluidJson = json['spent_fluid'];
     var spentFluid = spentFluidJson != null
         ? SpentFluidSpecification.fromJson(spentFluidJson)
         : null;
 
-    return DDFluidItem._(
+    return DDFluid._(
       json,
       hidden: json['hidden'],
       defaultTemperature: json['default_temperature'].toDouble(),

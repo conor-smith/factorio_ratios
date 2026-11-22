@@ -3,6 +3,7 @@ import 'package:factorio_ratios/factorio/factorio.dart';
 
 part 'database.dart';
 part 'group.dart';
+part 'item.dart';
 part 'quality.dart';
 part 'subgroup.dart';
 

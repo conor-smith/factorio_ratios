@@ -6,6 +6,8 @@ class FactorioDatabase {
   final Map<String, ItemSubgroup> _subgroups = {};
   final Map<String, ItemGroup> _groups = {};
   final Map<String, Quality> _qualities = {};
+  final Map<String, Map<Quality, SolidItem>> _solidItems = {};
+  final Map<String, Fluid> _fluids = {};
 
   final Map<ItemGroup, List<ItemSubgroup>> _cachedSubGroups = {};
 

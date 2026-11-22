@@ -1,7 +1,8 @@
 part of 'data_dump.dart';
 
 class DDDatabase {
-  final List<DDItem> items;
+  final List<DDSolidItem> solidItems;
+  final List<DDFluid> fluid;
   final List<DDRecipe> recipes;
   final List<DDCraftingMachine> craftingMachines;
   final List<DDItemGroup> groups;
@@ -11,7 +12,8 @@ class DDDatabase {
   final List<DDTechnology> technologies;
 
   DDDatabase._({
-    required Iterable<DDItem> items,
+    required Iterable<DDSolidItem> solidItems,
+    required Iterable<DDFluid> fluids,
     required Iterable<DDRecipe> recipes,
     required Iterable<DDCraftingMachine> craftingMachines,
     required Iterable<DDItemGroup> groups,
@@ -19,7 +21,8 @@ class DDDatabase {
     required Iterable<DDQuality> qualities,
     required Iterable<DDSurface> surfaces,
     required Iterable<DDTechnology> technologies,
-  }) : items = List.unmodifiableOf(items),
+  }) : solidItems = List.unmodifiableOf(solidItems),
+       fluid = List.unmodifiableOf(fluids),
        recipes = List.unmodifiableOf(recipes),
        craftingMachines = List.unmodifiableOf(craftingMachines),
        groups = List.unmodifiableOf(groups),
@@ -30,7 +33,7 @@ class DDDatabase {
 
   DDDatabase.fromJson(Map dataDumpJson)
     : this._(
-        items: _deserialisePrototypes(dataDumpJson, const [
+        solidItems: _deserialisePrototypes(dataDumpJson, const [
           'item',
           'module',
           'gun',
@@ -47,8 +50,10 @@ class DDDatabase {
           'deconstruction-item',
           'upgrade-item',
           'selection-tool',
+        ], DDSolidItem.fromJson),
+        fluids: _deserialisePrototypes(dataDumpJson, const [
           'fluid',
-        ], DDItem.fromJson),
+        ], DDFluid.fromJson),
         recipes: _deserialisePrototypes(dataDumpJson, const [
           'recipe',
         ], DDRecipe.fromJson),

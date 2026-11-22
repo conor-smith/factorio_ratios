@@ -9,7 +9,8 @@ class ItemGroup extends PrototypeWithIcon {
   ItemGroup({
     required super.database,
     required DDItemGroup super.internalPrototype,
-  }) : _internalPrototype = internalPrototype {
+  }) : _internalPrototype = internalPrototype,
+       super(expectedIconSize: ExpectedIconSize.itemGroup) {
     _database._groups[name] = this;
   }
 }
