@@ -4,8 +4,12 @@ class Icon {
   final List<IconData> icons;
   final double size;
 
+  @override
+  final int hashCode;
+
   Icon._(Iterable<IconData> icons, this.size)
-    : icons = List.unmodifiableOf(icons);
+    : icons = List.unmodifiableOf(icons),
+      hashCode = createHashFromOrderedIterable(icons) + size.hashCode;
 
   static Icon? fromTopLevelJson(Map json, double expectedSize) {
     String? icon = json['icon'];
@@ -30,6 +34,10 @@ class Icon {
       return null;
     }
   }
+
+  @override
+  bool operator ==(Object other) =>
+      super == other || (other is Icon && hashCode == other.hashCode);
 }
 
 class IconData {
@@ -40,6 +48,9 @@ class IconData {
   final double scale;
   final bool floating;
 
+  @override
+  late final int hashCode;
+
   IconData._({
     required this.icon,
     required double expectedIconSize,
@@ -49,12 +60,20 @@ class IconData {
     double? scale,
     bool? floating,
   }) : iconSize = iconSize ?? ExpectedIconSize.other,
-       tint = tint ?? const Colour._(r: 1, g: 1, b: 1, a: 1),
-       shift = shift ?? const Vector._(x: 0, y: 0),
+       tint = tint ?? Colour._(r: 1, g: 1, b: 1, a: 1),
+       shift = shift ?? Vector._(x: 0, y: 0),
        scale =
            scale ??
            (expectedIconSize / 2) / (iconSize ?? ExpectedIconSize.other),
-       floating = floating ?? false;
+       floating = floating ?? false {
+    hashCode =
+        icon.hashCode +
+        this.iconSize.hashCode +
+        this.tint.hashCode +
+        this.shift.hashCode +
+        this.scale.hashCode +
+        this.floating.hashCode;
+  }
 
   factory IconData.fromJson(Map json, double expectedSize) {
     var tintJson = json['tint'];
@@ -83,6 +102,17 @@ class IconData {
     iconSize: iconSize,
     expectedIconSize: expectedSize,
   );
+
+  @override
+  bool operator ==(Object other) =>
+      super == other ||
+      (other is IconData &&
+          icon == other.icon &&
+          iconSize == other.iconSize &&
+          tint == other.tint &&
+          shift == other.shift &&
+          scale == other.scale &&
+          floating == other.floating);
 }
 
 class Colour {
@@ -91,12 +121,12 @@ class Colour {
   final double b;
   final double a;
 
-  const Colour._({
-    required this.r,
-    required this.g,
-    required this.b,
-    required this.a,
-  });
+  @override
+  final int hashCode;
+
+  Colour._({required this.r, required this.g, required this.b, required this.a})
+    : hashCode =
+          r.hashCode + (g.hashCode * 2) + (b.hashCode * 3) + (a.hashCode * 4);
 
   factory Colour.fromJson(dynamic json) {
     double r, g, b, a;
@@ -123,13 +153,26 @@ class Colour {
 
     return Colour._(r: r, g: g, b: b, a: a);
   }
+
+  @override
+  bool operator ==(Object other) =>
+      super == other ||
+      (other is Colour &&
+          r == other.r &&
+          g == other.g &&
+          b == other.b &&
+          a == other.a);
 }
 
 class Vector {
   final double x;
   final double y;
 
-  const Vector._({required this.x, required this.y});
+  @override
+  final int hashCode;
+
+  Vector._({required this.x, required this.y})
+    : hashCode = x.hashCode + 2 * y.hashCode;
 
   factory Vector.fromJson(dynamic json) {
     if (json is Map) {
@@ -143,6 +186,10 @@ class Vector {
       return Vector._(x: jsonList[0].toDouble(), y: jsonList[1].toDouble());
     }
   }
+
+  @override
+  bool operator ==(Object other) =>
+      super == other || (other is Vector && other.x == x && other.y == y);
 }
 
 abstract final class ExpectedIconSize {
