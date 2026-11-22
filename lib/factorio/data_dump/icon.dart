@@ -7,7 +7,7 @@ class Icon {
   @override
   final int hashCode;
 
-  Icon._(Iterable<IconData> icons, this.size)
+  Icon(Iterable<IconData> icons, this.size)
     : icons = List.unmodifiableOf(icons),
       hashCode = createHashFromOrderedIterable(icons) + size.hashCode;
 
@@ -16,7 +16,7 @@ class Icon {
     List<Map>? iconsJson = (json['icons'] as List?)?.cast();
 
     if (icon != null) {
-      return Icon._([
+      return Icon([
         IconData._fromSingleIcon(
           icon,
           expectedSize,
@@ -24,7 +24,7 @@ class Icon {
         ),
       ], expectedSize);
     } else if (iconsJson != null) {
-      return Icon._(
+      return Icon(
         iconsJson.map(
           (iconDataJson) => IconData.fromJson(iconDataJson, expectedSize),
         ),
@@ -51,7 +51,7 @@ class IconData {
   @override
   late final int hashCode;
 
-  IconData._({
+  IconData({
     required this.icon,
     required double expectedIconSize,
     required double? iconSize,
@@ -60,8 +60,8 @@ class IconData {
     double? scale,
     bool? floating,
   }) : iconSize = iconSize ?? ExpectedIconSize.other,
-       tint = tint ?? Colour._(r: 1, g: 1, b: 1, a: 1),
-       shift = shift ?? Vector._(x: 0, y: 0),
+       tint = tint ?? Colour(r: 1, g: 1, b: 1, a: 1),
+       shift = shift ?? Vector(x: 0, y: 0),
        scale =
            scale ??
            (expectedIconSize / 2) / (iconSize ?? ExpectedIconSize.other),
@@ -82,7 +82,7 @@ class IconData {
     var shiftJson = json['shift'];
     Vector? shift = shiftJson != null ? Vector.fromJson(shiftJson) : null;
 
-    return IconData._(
+    return IconData(
       icon: json['icon'],
       iconSize: json['icon_size'],
       expectedIconSize: expectedSize,
@@ -97,11 +97,7 @@ class IconData {
     String path,
     double expectedSize,
     double iconSize,
-  ) => IconData._(
-    icon: path,
-    iconSize: iconSize,
-    expectedIconSize: expectedSize,
-  );
+  ) => IconData(icon: path, iconSize: iconSize, expectedIconSize: expectedSize);
 
   @override
   bool operator ==(Object other) =>
@@ -124,7 +120,7 @@ class Colour {
   @override
   final int hashCode;
 
-  Colour._({required this.r, required this.g, required this.b, required this.a})
+  Colour({required this.r, required this.g, required this.b, required this.a})
     : hashCode =
           r.hashCode + (g.hashCode * 2) + (b.hashCode * 3) + (a.hashCode * 4);
 
@@ -151,7 +147,7 @@ class Colour {
       a /= 255;
     }
 
-    return Colour._(r: r, g: g, b: b, a: a);
+    return Colour(r: r, g: g, b: b, a: a);
   }
 
   @override
@@ -171,19 +167,19 @@ class Vector {
   @override
   final int hashCode;
 
-  Vector._({required this.x, required this.y})
+  Vector({required this.x, required this.y})
     : hashCode = x.hashCode + 2 * y.hashCode;
 
   factory Vector.fromJson(dynamic json) {
     if (json is Map) {
-      return Vector._(
+      return Vector(
         x: json['x']?.toDouble() ?? 0,
         y: json['y']?.toDouble() ?? 0,
       );
     } else {
       List jsonList = json as List;
 
-      return Vector._(x: jsonList[0].toDouble(), y: jsonList[1].toDouble());
+      return Vector(x: jsonList[0].toDouble(), y: jsonList[1].toDouble());
     }
   }
 

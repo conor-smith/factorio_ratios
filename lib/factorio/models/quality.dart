@@ -4,6 +4,8 @@ class Quality extends PrototypeWithIcon {
   @override
   final DDQuality _internalPrototype;
 
+  bool get drawSpriteByDefault => _internalPrototype.drawSpriteByDefault;
+
   Quality? get next => null; // TODO
 
   Quality({required this._internalPrototype, required super.database})

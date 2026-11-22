@@ -19,8 +19,10 @@ abstract class Prototype extends AbstractPrototype
   @override
   String get order => _internalPrototype.order;
 
-  @override
   String get localName => name; // TODO
+
+  ItemSubgroup? get subgroup =>
+      _database._subgroups[_internalPrototype.subgroupName];
 
   Prototype({required this._database});
 
@@ -41,7 +43,12 @@ abstract class PrototypeWithIcon extends Prototype {
     required super.database,
     required Icon? icon,
     double expectedIconSize = ExpectedIconSize.other,
-  })
+    Quality? quality,
+  }) : icon = database.cacheAndRetrieveIcon(
+         icon: icon,
+         expectedIconSize: expectedIconSize,
+         quality: quality,
+       );
 }
 
 abstract class PrototypeWithQuality extends PrototypeWithIcon {
@@ -50,8 +57,9 @@ abstract class PrototypeWithQuality extends PrototypeWithIcon {
   PrototypeWithQuality({
     required super.database,
     required super.icon,
-    required this.quality,
-  });
+    required Quality super.quality,
+    super.expectedIconSize,
+  }) : quality = quality;
 
   @override
   int compareTo(Prototype other) {
