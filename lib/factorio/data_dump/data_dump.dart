@@ -11,7 +11,7 @@ part 'subgroup.dart';
 part 'surface.dart';
 part 'technology.dart';
 
-abstract class DDPrototype extends TPrototype {
+abstract class DDPrototype extends AbstractPrototype {
   @override
   final String name;
   @override

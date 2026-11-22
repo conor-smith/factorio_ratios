@@ -1,14 +1,7 @@
-abstract class TPrototype implements Comparable<TPrototype> {
+abstract class AbstractPrototype {
   String get name;
   String get type;
   String get order;
-
-  @override
-  int compareTo(TPrototype other) {
-    var toReturn = order.compareTo(other.order);
-
-    return toReturn != 0 ? toReturn : name.compareTo(other.name);
-  }
 
   @override
   String toString() => name;

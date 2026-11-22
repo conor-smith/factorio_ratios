@@ -1,5 +1,7 @@
 part of 'data_dump.dart';
 
 class DDItemSubgroup extends DDPrototype {
-  DDItemSubgroup.fromJson(super.json) : super.fromJson();
+  final String group;
+
+  DDItemSubgroup.fromJson(super.json) : group = json['group'], super.fromJson();
 }
