@@ -2,14 +2,13 @@ part of 'data_dump.dart';
 
 class Icon {
   final List<IconData> icons;
-  final double size;
 
   @override
   final int hashCode;
 
-  Icon(Iterable<IconData> icons, this.size)
+  Icon(Iterable<IconData> icons)
     : icons = List.unmodifiableOf(icons),
-      hashCode = createHashFromOrderedIterable(icons) + size.hashCode;
+      hashCode = createHashFromOrderedIterable(icons);
 
   static Icon? fromTopLevelJson(Map json, double expectedSize) {
     String? icon = json['icon'];
@@ -22,13 +21,12 @@ class Icon {
           expectedSize,
           json['icon_size']?.toDouble(),
         ),
-      ], expectedSize);
+      ]);
     } else if (iconsJson != null) {
       return Icon(
         iconsJson.map(
           (iconDataJson) => IconData.fromJson(iconDataJson, expectedSize),
         ),
-        expectedSize,
       );
     } else {
       return null;
