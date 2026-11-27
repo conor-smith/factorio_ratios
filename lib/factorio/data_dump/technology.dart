@@ -1,32 +1,18 @@
 part of 'data_dump.dart';
 
-class TechnologyJson with PrototypeToString implements PrototypeWithIconJson {
-  @override
-  final String name;
-  @override
-  final String type;
-  @override
-  final String order;
-  @override
-  final String? subgroupName;
-  @override
-  final dynamic localisedName;
-  @override
-  final Icon? icon;
-
+class TechnologyJson extends PrototypeWithIconJson {
   final List<Modifier>? effects;
 
   TechnologyJson._({
-    required this.name,
-    required this.type,
-    required String? order,
-    required this.subgroupName,
-    required dynamic localisedName,
-    required this.icon,
+    required super.name,
+    required super.type,
+    required super.order,
+    required super.localisedName,
+    required super.subgroupName,
+    required super.icon,
     required Iterable<Modifier>? effects,
-  }) : order = order ?? PrototypeJson._defaultOrder,
-       localisedName = _unmodifiableLocalisedString(localisedName),
-       effects = _unmodifiableOrNullList(effects);
+  }) : effects = _unmodifiableOrNullList(effects),
+       super._();
 
   factory TechnologyJson.fromJson(Map json) {
     List? rawModifiers = json['modifiers'];

@@ -27,8 +27,3 @@ class FactorioException implements Exception {
     return string;
   }
 }
-
-mixin PrototypeToString implements AbstractPrototype {
-  @override
-  String toString() => name;
-}

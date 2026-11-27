@@ -1,28 +1,21 @@
 part of 'data_dump.dart';
 
-abstract class ItemJson
-    with PrototypeToString
-    implements PrototypeWithIconJson {
-  bool get hidden;
-}
-
-class SolidItemJson implements ItemJson {
-  @override
-  final String name;
-  @override
-  final String type;
-  @override
-  final String order;
-  @override
-  final String? subgroupName;
-  @override
-  final dynamic localisedName;
-  @override
-  final Icon? icon;
-
-  @override
+abstract class ItemJson extends PrototypeWithIconJson {
   final bool hidden;
 
+  ItemJson._({
+    required super.name,
+    required super.type,
+    required super.order,
+    required super.localisedName,
+    required super.subgroupName,
+    required super.icon,
+    required bool? hidden,
+  }) : hidden = hidden ?? false,
+       super._();
+}
+
+class SolidItemJson extends ItemJson {
   final int stackSize;
 
   final String placeResult;
@@ -51,13 +44,13 @@ class SolidItemJson implements ItemJson {
   final double scienceCapacity;
 
   SolidItemJson._({
-    required this.name,
-    required this.type,
-    required String? order,
-    required this.subgroupName,
-    required dynamic localisedName,
-    required this.icon,
-    required bool? hidden,
+    required super.name,
+    required super.type,
+    required super.order,
+    required super.subgroupName,
+    required super.localisedName,
+    required super.icon,
+    required super.hidden,
     required this.stackSize,
     required String? placeResult,
     required List<String>? fuelCategories,
@@ -75,12 +68,9 @@ class SolidItemJson implements ItemJson {
     required List<String>? rocketLaunchProducts,
     required bool? labIgnoresSpoilPercent,
     required double? scienceCapacity,
-  }) : hidden = hidden ?? false,
-       localisedName = _unmodifiableLocalisedString(localisedName),
-       order = order ?? PrototypeJson._defaultOrder,
-       placeResult = placeResult ?? "",
+  }) : placeResult = placeResult ?? '',
        fuelCategories = _unmodifiableOrNullList(fuelCategories),
-       burntResult = burntResult ?? "",
+       burntResult = burntResult ?? '',
        spoilQualityChange = spoilQualityChange ?? 0,
        spoilTicks = spoilTicks ?? 0,
        qualityAffectsSpoilTicks = qualityAffectsSpoilTicks ?? true,
@@ -88,7 +78,8 @@ class SolidItemJson implements ItemJson {
        fuelEmissionsMultiplier = fuelEmissionsMultiplier ?? 1,
        rocketLaunchProducts = _unmodifiableOrNullList(rocketLaunchProducts),
        labIgnoresSpoilPercent = labIgnoresSpoilPercent ?? false,
-       scienceCapacity = scienceCapacity ?? 1;
+       scienceCapacity = scienceCapacity ?? 1,
+       super._();
 
   factory SolidItemJson.fromJson(Map json) => SolidItemJson._(
     name: json['name'],
@@ -118,23 +109,7 @@ class SolidItemJson implements ItemJson {
   );
 }
 
-class FluidJson implements ItemJson {
-  @override
-  final String name;
-  @override
-  final String type;
-  @override
-  final String order;
-  @override
-  final String? subgroupName;
-  @override
-  final dynamic localisedName;
-  @override
-  final Icon? icon;
-
-  @override
-  final bool hidden;
-
+class FluidJson extends ItemJson {
   final double defaultTemperature;
   final double maxTemperature;
   final String heatCapacity;
@@ -143,26 +118,24 @@ class FluidJson implements ItemJson {
   final SpentFluidSpecification? spentFluid;
 
   FluidJson._({
-    required this.name,
-    required this.type,
-    required String? order,
-    required this.subgroupName,
-    required dynamic localisedName,
-    required this.icon,
-    required bool? hidden,
+    required super.name,
+    required super.type,
+    required super.order,
+    required super.subgroupName,
+    required super.localisedName,
+    required super.icon,
+    required super.hidden,
     required this.defaultTemperature,
     required double? maxTemperature,
     required String? heatCapacity,
     required String? fuelValue,
     required double? emissionsMultiplier,
     required this.spentFluid,
-  }) : order = order ?? PrototypeJson._defaultOrder,
-       localisedName = _unmodifiableLocalisedString(localisedName),
-       hidden = hidden ?? false,
-       maxTemperature = maxTemperature ?? defaultTemperature,
+  }) : maxTemperature = maxTemperature ?? defaultTemperature,
        heatCapacity = heatCapacity ?? '1kJ',
        fuelValue = fuelValue ?? '0J',
-       emissionsMultiplier = emissionsMultiplier ?? 1;
+       emissionsMultiplier = emissionsMultiplier ?? 1,
+       super._();
 
   factory FluidJson.fromJson(Map json) {
     Map? spentFluidJson = json['spent_fluid'];

@@ -1,19 +1,6 @@
 part of 'data_dump.dart';
 
-class RecipeJson with PrototypeToString implements PrototypeWithIconJson {
-  @override
-  final String name;
-  @override
-  final String type;
-  @override
-  final String order;
-  @override
-  final String? subgroupName;
-  @override
-  final dynamic localisedName;
-  @override
-  final Icon? icon;
-
+class RecipeJson extends PrototypeWithIconJson {
   final List<String> categories;
 
   final List<RecipeIngredientJson> ingredients;
@@ -41,12 +28,12 @@ class RecipeJson with PrototypeToString implements PrototypeWithIconJson {
   final bool canSetQuality;
 
   RecipeJson._({
-    required this.name,
-    required this.type,
-    required String? order,
-    required this.subgroupName,
-    required dynamic localisedName,
-    required this.icon,
+    required super.name,
+    required super.type,
+    required super.order,
+    required super.subgroupName,
+    required super.localisedName,
+    required super.icon,
     required List<String>? categories,
     required Iterable<RecipeIngredientJson> ingredients,
     required Iterable<RecipeProductJson> results,
@@ -64,9 +51,7 @@ class RecipeJson with PrototypeToString implements PrototypeWithIconJson {
     required bool? allowQuality,
     required Iterable<String>? allowedModuleCategories,
     required bool? canSetQuality,
-  }) : order = order ?? PrototypeJson._defaultOrder,
-       localisedName = _unmodifiableLocalisedString(localisedName),
-       categories = _unmodifiableOrNullList(categories) ?? const ['crafting'],
+  }) : categories = _unmodifiableOrNullList(categories) ?? const ['crafting'],
        ingredients = List.unmodifiableOf(ingredients),
        results = List.unmodifiableOf(results),
        energyRequired = energyRequired ?? 0.5,
@@ -83,7 +68,8 @@ class RecipeJson with PrototypeToString implements PrototypeWithIconJson {
        allowedModuleCategories = _unmodifiableOrNullList(
          allowedModuleCategories,
        ),
-       canSetQuality = canSetQuality ?? true;
+       canSetQuality = canSetQuality ?? true,
+       super._();
 
   factory RecipeJson.fromJson(Map json) {
     // Empty ingredients are serialised as "{}" in json rather than null or "[]"
@@ -142,10 +128,17 @@ class RecipeJson with PrototypeToString implements PrototypeWithIconJson {
 }
 
 abstract class RecipeIngredientJson {
-  String get name;
-  String get type;
-  double get amount;
-  double get ignoredByStats;
+  final String name;
+  final String type;
+  final double amount;
+  final double ignoredByStats;
+
+  RecipeIngredientJson._({
+    required this.name,
+    required this.type,
+    required this.amount,
+    required double? ignoredByStats,
+  }) : ignoredByStats = ignoredByStats ?? 0;
 
   factory RecipeIngredientJson.fromJson(Map json) => switch (json['type']) {
     'item' => RecipeItemIngredientJson.fromJson(json),
@@ -156,33 +149,24 @@ abstract class RecipeIngredientJson {
   };
 }
 
-class RecipeItemIngredientJson implements RecipeIngredientJson {
-  @override
-  final String name;
-  @override
-  final String type;
-  @override
-  final double amount;
-  @override
-  final double ignoredByStats;
-
+class RecipeItemIngredientJson extends RecipeIngredientJson {
   final String? qualityMin;
   final String? qualityMax;
   final int qualityChange;
   final double spoilWeight;
 
   RecipeItemIngredientJson._({
-    required this.name,
-    required this.type,
-    required this.amount,
-    required double? ignoredByStats,
+    required super.name,
+    required super.type,
+    required super.amount,
+    required super.ignoredByStats,
     required this.qualityMin,
     required this.qualityMax,
     required int? qualityChange,
     required double? spoilWeight,
-  }) : ignoredByStats = ignoredByStats ?? 0,
-       qualityChange = qualityChange ?? 0,
-       spoilWeight = spoilWeight ?? 1;
+  }) : qualityChange = qualityChange ?? 0,
+       spoilWeight = spoilWeight ?? 1,
+       super._();
 
   RecipeItemIngredientJson.fromJson(Map json)
     : this._(
@@ -197,29 +181,20 @@ class RecipeItemIngredientJson implements RecipeIngredientJson {
       );
 }
 
-class RecipeFluidIngredientJson implements RecipeIngredientJson {
-  @override
-  final String name;
-  @override
-  final String type;
-  @override
-  final double amount;
-  @override
-  final double ignoredByStats;
-
+class RecipeFluidIngredientJson extends RecipeIngredientJson {
   final double? temperature;
   final double? minimumTemperature;
   final double? maximumTemperature;
 
   RecipeFluidIngredientJson._({
-    required this.name,
-    required this.type,
-    required this.amount,
-    required double? ignoredByStats,
+    required super.name,
+    required super.type,
+    required super.amount,
+    required super.ignoredByStats,
     required this.temperature,
     required this.minimumTemperature,
     required this.maximumTemperature,
-  }) : ignoredByStats = ignoredByStats ?? 0;
+  }) : super._();
 
   RecipeFluidIngredientJson.fromJson(Map json)
     : this._(
@@ -234,18 +209,34 @@ class RecipeFluidIngredientJson implements RecipeIngredientJson {
 }
 
 abstract class RecipeProductJson {
-  String get name;
-  String get type;
+  final String name;
+  final String type;
 
-  double? get amount;
-  double? get amountMin;
-  double? get amountMax;
+  final double? amount;
+  final double? amountMin;
+  final double? amountMax;
 
-  double get ignoredByStats;
-  double get ignoredByProductivity;
+  final double ignoredByStats;
+  final double ignoredByProductivity;
 
-  double get independentProbability;
-  SharedProbability get sharedProbability;
+  final double independentProbability;
+  final SharedProbability sharedProbability;
+
+  RecipeProductJson._({
+    required this.name,
+    required this.type,
+    required this.amount,
+    required this.amountMin,
+    required this.amountMax,
+    required double? ignoredByStats,
+    required double? ignoredByProductivity,
+    required double? independentProbability,
+    required SharedProbability? sharedProbability,
+  }) : ignoredByStats = ignoredByStats ?? 0,
+       ignoredByProductivity = ignoredByProductivity ?? ignoredByStats ?? 0,
+       independentProbability = independentProbability ?? 1,
+       sharedProbability =
+           sharedProbability ?? const SharedProbability._(min: 0, max: 1);
 
   factory RecipeProductJson.fromJson(Map json) => switch (json['type']) {
     'item' => RecipeItemProductJson.fromJson(json),
@@ -254,29 +245,7 @@ abstract class RecipeProductJson {
   };
 }
 
-class RecipeItemProductJson implements RecipeProductJson {
-  @override
-  final String name;
-  @override
-  final String type;
-
-  @override
-  final double? amount;
-  @override
-  final double? amountMin;
-  @override
-  final double? amountMax;
-
-  @override
-  final double ignoredByStats;
-  @override
-  final double ignoredByProductivity;
-
-  @override
-  final double independentProbability;
-  @override
-  final SharedProbability sharedProbability;
-
+class RecipeItemProductJson extends RecipeProductJson {
   final double extraCountFraction;
   final double percentSpoiled;
   final bool alwaysFresh;
@@ -288,15 +257,15 @@ class RecipeItemProductJson implements RecipeProductJson {
   final bool affectedByQuality;
 
   RecipeItemProductJson._({
-    required this.name,
-    required this.type,
-    required this.amount,
-    required this.amountMin,
-    required this.amountMax,
-    required double? ignoredByStats,
-    required double? ignoredByProductivity,
-    required double? independentProbability,
-    required SharedProbability? sharedProbability,
+    required super.name,
+    required super.type,
+    required super.amount,
+    required super.amountMin,
+    required super.amountMax,
+    required super.ignoredByStats,
+    required super.ignoredByProductivity,
+    required super.independentProbability,
+    required super.sharedProbability,
     required double? extraCountFraction,
     required double? percentSpoiled,
     required bool? alwaysFresh,
@@ -305,17 +274,13 @@ class RecipeItemProductJson implements RecipeProductJson {
     required this.qualityMax,
     required int? qualityChange,
     required bool? affectedByQuality,
-  }) : ignoredByStats = ignoredByStats ?? 0,
-       ignoredByProductivity = ignoredByProductivity ?? ignoredByStats ?? 0,
-       independentProbability = independentProbability ?? 1,
-       sharedProbability =
-           sharedProbability ?? const SharedProbability._(min: 0, max: 1),
-       extraCountFraction = extraCountFraction ?? 0,
+  }) : extraCountFraction = extraCountFraction ?? 0,
        percentSpoiled = percentSpoiled ?? 0,
        alwaysFresh = alwaysFresh ?? false,
        resetFreshnessOnCraft = resetFreshnessOnCraft ?? false,
        qualityChange = qualityChange ?? 0,
-       affectedByQuality = affectedByQuality ?? true;
+       affectedByQuality = affectedByQuality ?? true,
+       super._();
 
   RecipeItemProductJson.fromJson(Map json)
     : this._(
@@ -341,47 +306,21 @@ class RecipeItemProductJson implements RecipeProductJson {
       );
 }
 
-class RecipeFluidProductJson implements RecipeProductJson {
-  @override
-  final String name;
-  @override
-  final String type;
-
-  @override
-  final double? amount;
-  @override
-  final double? amountMin;
-  @override
-  final double? amountMax;
-
-  @override
-  final double ignoredByStats;
-  @override
-  final double ignoredByProductivity;
-
-  @override
-  final double independentProbability;
-  @override
-  final SharedProbability sharedProbability;
-
+class RecipeFluidProductJson extends RecipeProductJson {
   final double? temperature;
 
   RecipeFluidProductJson._({
-    required this.name,
-    required this.type,
-    required this.amount,
-    required this.amountMin,
-    required this.amountMax,
-    required double? ignoredByStats,
-    required double? ignoredByProductivity,
-    required double? independentProbability,
-    required SharedProbability? sharedProbability,
+    required super.name,
+    required super.type,
+    required super.amount,
+    required super.amountMin,
+    required super.amountMax,
+    required super.ignoredByStats,
+    required super.ignoredByProductivity,
+    required super.independentProbability,
+    required super.sharedProbability,
     required this.temperature,
-  }) : ignoredByStats = ignoredByStats ?? 0,
-       ignoredByProductivity = ignoredByProductivity ?? ignoredByStats ?? 0,
-       independentProbability = independentProbability ?? 1,
-       sharedProbability =
-           sharedProbability ?? const SharedProbability._(min: 0, max: 1);
+  }) : super._();
 
   RecipeFluidProductJson.fromJson(Map json)
     : this._(

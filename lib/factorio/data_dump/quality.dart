@@ -1,19 +1,6 @@
 part of 'data_dump.dart';
 
-class QualityJson with PrototypeToString implements PrototypeWithIconJson {
-  @override
-  final String name;
-  @override
-  final String type;
-  @override
-  final String order;
-  @override
-  final String? subgroupName;
-  @override
-  final dynamic localisedName;
-  @override
-  final Icon? icon;
-
+class QualityJson extends PrototypeWithIconJson {
   final bool drawSpriteByDefault;
   final int level;
 
@@ -48,12 +35,12 @@ class QualityJson with PrototypeToString implements PrototypeWithIconJson {
   // defaultMultiplier does have a default value
   // but given how many other fields depend on it, best to calculate it first
   QualityJson._({
-    required this.name,
-    required this.type,
-    required String? order,
-    required this.subgroupName,
-    required dynamic localisedName,
-    required this.icon,
+    required super.name,
+    required super.type,
+    required super.order,
+    required super.subgroupName,
+    required super.localisedName,
+    required super.icon,
     required this.drawSpriteByDefault,
     required this.level,
     required this.next,
@@ -81,9 +68,7 @@ class QualityJson with PrototypeToString implements PrototypeWithIconJson {
     required int? craftingMachineModuleSlotBonus,
     required int? miningDrillModuleSlotBonus,
     required int? labModuleSlotBonus,
-  }) : order = order ?? PrototypeJson._defaultOrder,
-       localisedName = _unmodifiableLocalisedString(localisedName),
-       nextProbability = nextProbability ?? 0,
+  }) : nextProbability = nextProbability ?? 0,
        chainProbability = ((nextProbability ?? 0.0) * 0.1)
            .clamp(0, 1)
            .toDouble(),
@@ -117,7 +102,8 @@ class QualityJson with PrototypeToString implements PrototypeWithIconJson {
        spoilTicksMultiplier = spoilTicksMultiplier ?? defaultMultiplier,
        craftingMachineModuleSlotBonus = craftingMachineModuleSlotBonus ?? level,
        miningDrillModuleSlotsBonus = miningDrillModuleSlotBonus ?? level,
-       labModuleSlotsBonus = labModuleSlotBonus ?? level;
+       labModuleSlotsBonus = labModuleSlotBonus ?? level,
+       super._();
 
   factory QualityJson.fromJson(Map json) {
     int level = json['level'];

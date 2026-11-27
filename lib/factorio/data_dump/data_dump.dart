@@ -13,15 +13,41 @@ part 'surface.dart';
 part 'technology.dart';
 
 abstract class PrototypeJson implements AbstractPrototype {
-  static const _defaultOrder = '';
+  @override
+  final String name;
+  @override
+  final String type;
+  @override
+  final String order;
 
-  dynamic get localisedName;
-  String? get subgroupName;
+  final dynamic localisedName;
+  final String? subgroupName;
+
+  PrototypeJson._({
+    required this.name,
+    required this.type,
+    required String? order,
+    required dynamic localisedName,
+    required this.subgroupName,
+  }) : order = order ?? '',
+       localisedName = _unmodifiableLocalisedString(localisedName);
+
+  @override
+  String toString() => name;
 }
 
 // Not technically a factorio type, but helpful for this use case
-abstract class PrototypeWithIconJson implements PrototypeJson {
-  Icon? get icon;
+abstract class PrototypeWithIconJson extends PrototypeJson {
+  final Icon? icon;
+
+  PrototypeWithIconJson._({
+    required super.name,
+    required super.type,
+    required super.order,
+    required super.localisedName,
+    required super.subgroupName,
+    required this.icon,
+  }) : super._();
 }
 
 class SpentFluidSpecification {

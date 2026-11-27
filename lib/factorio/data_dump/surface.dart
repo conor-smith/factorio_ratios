@@ -1,32 +1,18 @@
 part of 'data_dump.dart';
 
-class SurfaceJson with PrototypeToString implements PrototypeWithIconJson {
-  @override
-  final String name;
-  @override
-  final String type;
-  @override
-  final String order;
-  @override
-  final String? subgroupName;
-  @override
-  final dynamic localisedName;
-  @override
-  final Icon? icon;
-
+class SurfaceJson extends PrototypeWithIconJson {
   final Map<String, double>? surfaceProperties;
 
   SurfaceJson._({
-    required this.name,
-    required this.type,
-    required String? order,
-    required this.subgroupName,
-    required dynamic localisedName,
-    required this.icon,
+    required super.name,
+    required super.type,
+    required super.order,
+    required super.localisedName,
+    required super.subgroupName,
+    required super.icon,
     required Map<String, double>? surfaceProperties,
-  }) : order = order ?? PrototypeJson._defaultOrder,
-       localisedName = _unmodifiableLocalisedString(localisedName),
-       surfaceProperties = _unmodifiableOrNullMap(surfaceProperties);
+  }) : surfaceProperties = _unmodifiableOrNullMap(surfaceProperties),
+       super._();
 
   SurfaceJson.fromJson(Map json)
     : this._(

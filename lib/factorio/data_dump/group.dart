@@ -1,28 +1,13 @@
 part of 'data_dump.dart';
 
-class ItemGroupJson with PrototypeToString implements PrototypeWithIconJson {
-  @override
-  final String name;
-  @override
-  final String type;
-  @override
-  final String order;
-  @override
-  final dynamic localisedName;
-  @override
-  final Icon? icon;
-
-  @override
-  String? get subgroupName => null;
-
+class ItemGroupJson extends PrototypeWithIconJson {
   ItemGroupJson._({
-    required this.name,
-    required this.type,
-    required String? order,
-    required dynamic localisedName,
-    required this.icon,
-  }) : order = order ?? PrototypeJson._defaultOrder,
-       localisedName = _unmodifiableLocalisedString(localisedName);
+    required super.name,
+    required super.type,
+    required super.order,
+    required super.localisedName,
+    required super.icon,
+  }) : super._(subgroupName: null);
 
   ItemGroupJson.fromJson(Map json)
     : this._(
