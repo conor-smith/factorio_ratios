@@ -19,7 +19,7 @@ class Icon {
         IconData._fromSingleIcon(
           icon,
           expectedSize,
-          json['icon_size']?.toDouble(),
+          json['icon_size']?.toDouble() ?? expectedSize,
         ),
       ]);
     } else if (iconsJson != null) {
@@ -82,7 +82,7 @@ class IconData {
 
     return IconData(
       icon: json['icon'],
-      iconSize: json['icon_size'],
+      iconSize: json['icon_size']?.toDouble(),
       expectedIconSize: expectedSize,
       tint: tint,
       shift: shift,

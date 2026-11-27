@@ -1,6 +1,19 @@
 part of 'data_dump.dart';
 
-class DDCraftingMachine extends DDPrototypeWithIcon {
+class CraftingMachineJson extends PrototypeWithIconJson {
+  @override
+  final String name;
+  @override
+  final String type;
+  @override
+  final String order;
+  @override
+  final String? subgroupName;
+  @override
+  final dynamic localisedName;
+  @override
+  final Icon? icon;
+
   final bool qualityAffectsEnergyUsage;
   final String energyUsage;
   final double craftingSpeed;
@@ -17,8 +30,13 @@ class DDCraftingMachine extends DDPrototypeWithIcon {
   final Map<String, int>? moduleSlotsQualityBonus;
   final Map<String, double>? energyUsageQualityMultiplier;
 
-  DDCraftingMachine._(
-    Map json, {
+  CraftingMachineJson._({
+    required this.name,
+    required this.type,
+    required String? order,
+    required this.subgroupName,
+    required dynamic localisedName,
+    required this.icon,
     required bool? qualityAffectsEnergyUsage,
     required this.energyUsage,
     required this.craftingSpeed,
@@ -32,7 +50,9 @@ class DDCraftingMachine extends DDPrototypeWithIcon {
     required Map<String, double>? craftingSpeedQualityMultiplier,
     required Map<String, int>? moduleSlotsQualityBonus,
     required Map<String, double>? energyUsageQualityMultiplier,
-  }) : qualityAffectsEnergyUsage = qualityAffectsEnergyUsage ?? false,
+  }) : order = order ?? PrototypeJson._defaultOrder,
+       localisedName = _unmodifiableLocalisedString(localisedName),
+       qualityAffectsEnergyUsage = qualityAffectsEnergyUsage ?? false,
        craftingCategories = List.unmodifiableOf(craftingCategories),
        moduleSlots = moduleSlots ?? 0,
        qualityAffectsModuleSlots = qualityAffectsModuleSlots ?? false,
@@ -48,10 +68,9 @@ class DDCraftingMachine extends DDPrototypeWithIcon {
        ),
        energyUsageQualityMultiplier = _unmodifiableOrNullMap(
          energyUsageQualityMultiplier,
-       ),
-       super.fromJson(json, ExpectedIconSize.other);
+       );
 
-  factory DDCraftingMachine.fromJson(Map json) {
+  factory CraftingMachineJson.fromJson(Map json) {
     List<String>? allowedEffects;
     var rawAllowedEffects = json['allowed_effects'];
     if (rawAllowedEffects is String) {
@@ -78,8 +97,13 @@ class DDCraftingMachine extends DDPrototypeWithIcon {
         ? EffectReceiver.fromJson(effectReceiverJson)
         : null;
 
-    return DDCraftingMachine._(
-      json,
+    return CraftingMachineJson._(
+      name: json['name'],
+      type: json['type'],
+      order: json['order'],
+      subgroupName: json['subgroup'],
+      localisedName: json['localised_name'],
+      icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
       craftingSpeed: json['crafting_speed'].toDouble(),
       energyUsage: json['energy_usage'],
       moduleSlots: json['module_slots'],

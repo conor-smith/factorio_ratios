@@ -19,7 +19,7 @@ void main() {
     String rawJson = await jsonFile.readAsString();
     Map json = jsonDecode(rawJson);
 
-    var dataDump = DDDatabase.fromJson(json);
+    var dataDump = DataDump.fromJson(json);
 
     expect(dataDump, anything);
   });

@@ -1,14 +1,26 @@
 part of 'data_dump.dart';
 
-abstract class DDItem extends DDPrototypeWithIcon {
-  final bool hidden;
-
-  DDItem(Map json, {required bool? hidden})
-    : hidden = hidden ?? false,
-      super.fromJson(json, ExpectedIconSize.itemGroup);
+abstract class ItemJson extends PrototypeWithIconJson {
+  bool get hidden;
 }
 
-class DDSolidItem extends DDItem {
+class SolidItemJson extends ItemJson {
+  @override
+  final String name;
+  @override
+  final String type;
+  @override
+  final String order;
+  @override
+  final String? subgroupName;
+  @override
+  final dynamic localisedName;
+  @override
+  final Icon? icon;
+
+  @override
+  final bool hidden;
+
   final int stackSize;
 
   final String placeResult;
@@ -36,9 +48,14 @@ class DDSolidItem extends DDItem {
   final bool labIgnoresSpoilPercent;
   final double scienceCapacity;
 
-  DDSolidItem._(
-    super.json, {
-    required super.hidden,
+  SolidItemJson._({
+    required this.name,
+    required this.type,
+    required String? order,
+    required this.subgroupName,
+    required dynamic localisedName,
+    required this.icon,
+    required bool? hidden,
     required this.stackSize,
     required String? placeResult,
     required List<String>? fuelCategories,
@@ -56,7 +73,10 @@ class DDSolidItem extends DDItem {
     required List<String>? rocketLaunchProducts,
     required bool? labIgnoresSpoilPercent,
     required double? scienceCapacity,
-  }) : placeResult = placeResult ?? "",
+  }) : hidden = hidden ?? false,
+       localisedName = _unmodifiableLocalisedString(localisedName),
+       order = order ?? PrototypeJson._defaultOrder,
+       placeResult = placeResult ?? "",
        fuelCategories = _unmodifiableOrNullList(fuelCategories),
        burntResult = burntResult ?? "",
        spoilQualityChange = spoilQualityChange ?? 0,
@@ -68,8 +88,13 @@ class DDSolidItem extends DDItem {
        labIgnoresSpoilPercent = labIgnoresSpoilPercent ?? false,
        scienceCapacity = scienceCapacity ?? 1;
 
-  factory DDSolidItem.fromJson(Map json) => DDSolidItem._(
-    json,
+  factory SolidItemJson.fromJson(Map json) => SolidItemJson._(
+    name: json['name'],
+    type: json['type'],
+    order: json['order'],
+    subgroupName: json['subgroup'],
+    localisedName: json['localised_name'],
+    icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
     hidden: json['hidden'],
     stackSize: json['stack_size'],
     placeResult: json['place_result'],
@@ -91,7 +116,23 @@ class DDSolidItem extends DDItem {
   );
 }
 
-class DDFluid extends DDItem {
+class FluidJson extends ItemJson {
+  @override
+  final String name;
+  @override
+  final String type;
+  @override
+  final String order;
+  @override
+  final String? subgroupName;
+  @override
+  final dynamic localisedName;
+  @override
+  final Icon? icon;
+
+  @override
+  final bool hidden;
+
   final double defaultTemperature;
   final double maxTemperature;
   final String heatCapacity;
@@ -99,28 +140,41 @@ class DDFluid extends DDItem {
   final double emissionsMultiplier;
   final SpentFluidSpecification? spentFluid;
 
-  DDFluid._(
-    super.json, {
-    required super.hidden,
+  FluidJson._({
+    required this.name,
+    required this.type,
+    required String? order,
+    required this.subgroupName,
+    required dynamic localisedName,
+    required this.icon,
+    required bool? hidden,
     required this.defaultTemperature,
     required double? maxTemperature,
     required String? heatCapacity,
     required String? fuelValue,
     required double? emissionsMultiplier,
     required this.spentFluid,
-  }) : maxTemperature = maxTemperature ?? defaultTemperature,
+  }) : order = order ?? PrototypeJson._defaultOrder,
+       localisedName = _unmodifiableLocalisedString(localisedName),
+       hidden = hidden ?? false,
+       maxTemperature = maxTemperature ?? defaultTemperature,
        heatCapacity = heatCapacity ?? '1kJ',
        fuelValue = fuelValue ?? '0J',
        emissionsMultiplier = emissionsMultiplier ?? 1;
 
-  factory DDFluid.fromJson(Map json) {
+  factory FluidJson.fromJson(Map json) {
     Map? spentFluidJson = json['spent_fluid'];
     var spentFluid = spentFluidJson != null
         ? SpentFluidSpecification.fromJson(spentFluidJson)
         : null;
 
-    return DDFluid._(
-      json,
+    return FluidJson._(
+      name: json['name'],
+      type: json['type'],
+      order: json['order'],
+      subgroupName: json['subgroup'],
+      localisedName: json['localised_name'],
+      icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
       hidden: json['hidden'],
       defaultTemperature: json['default_temperature'].toDouble(),
       maxTemperature: json['max_temperature']?.toDouble(),

@@ -2,14 +2,16 @@ part of 'models.dart';
 
 class Quality extends PrototypeWithIcon {
   @override
-  final DDQuality _internalPrototype;
+  final QualityJson _internalPrototype;
 
   bool get drawSpriteByDefault => _internalPrototype.drawSpriteByDefault;
 
   Quality? get next => null; // TODO
 
-  Quality({required super.database, required DDQuality super.internalPrototype})
-    : _internalPrototype = internalPrototype {
+  Quality({
+    required super.database,
+    required QualityJson super.internalPrototype,
+  }) : _internalPrototype = internalPrototype {
     _database._qualities[name] = this;
   }
 

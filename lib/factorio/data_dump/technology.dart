@@ -1,19 +1,48 @@
 part of 'data_dump.dart';
 
-class DDTechnology extends DDPrototypeWithIcon {
+class TechnologyJson extends PrototypeWithIconJson {
+  @override
+  final String name;
+  @override
+  final String type;
+  @override
+  final String order;
+  @override
+  final String? subgroupName;
+  @override
+  final dynamic localisedName;
+  @override
+  final Icon? icon;
+
   final List<Modifier>? effects;
 
-  DDTechnology._(Map json, {required Iterable<Modifier>? effects})
-    : effects = _unmodifiableOrNullList(effects),
-      super.fromJson(json, ExpectedIconSize.technology);
+  TechnologyJson._({
+    required this.name,
+    required this.type,
+    required String? order,
+    required this.subgroupName,
+    required dynamic localisedName,
+    required this.icon,
+    required Iterable<Modifier>? effects,
+  }) : order = order ?? PrototypeJson._defaultOrder,
+       localisedName = _unmodifiableLocalisedString(localisedName),
+       effects = _unmodifiableOrNullList(effects);
 
-  factory DDTechnology.fromJson(Map json) {
+  factory TechnologyJson.fromJson(Map json) {
     List? rawModifiers = json['modifiers'];
     var modifiers = rawModifiers?.map(
       (modifierJson) => Modifier.fromJson(modifierJson),
     );
 
-    return DDTechnology._(json, effects: modifiers);
+    return TechnologyJson._(
+      name: json['name'],
+      type: json['type'],
+      order: json['order'],
+      subgroupName: json['subgroup'],
+      localisedName: json['localised_name'],
+      icon: Icon.fromTopLevelJson(json, ExpectedIconSize.technology),
+      effects: modifiers,
+    );
   }
 }
 

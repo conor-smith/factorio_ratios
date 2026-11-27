@@ -2,16 +2,16 @@ part of 'models.dart';
 
 abstract class Item implements PrototypeWithIcon {
   @override
-  DDItem get _internalPrototype;
+  ItemJson get _internalPrototype;
 }
 
 class SolidItem extends PrototypeWithQuality implements Item {
   @override
-  final DDSolidItem _internalPrototype;
+  final SolidItemJson _internalPrototype;
 
   SolidItem({
     required super.database,
-    required DDSolidItem super.internalPrototype,
+    required SolidItemJson super.internalPrototype,
     required super.quality,
   }) : _internalPrototype = internalPrototype {
     _database._solidItems.update(
@@ -24,9 +24,9 @@ class SolidItem extends PrototypeWithQuality implements Item {
 
 class Fluid extends PrototypeWithIcon implements Item {
   @override
-  final DDFluid _internalPrototype;
+  final FluidJson _internalPrototype;
 
-  Fluid({required super.database, required DDFluid super.internalPrototype})
+  Fluid({required super.database, required FluidJson super.internalPrototype})
     : _internalPrototype = internalPrototype {
     _database._fluids[name] = this;
   }

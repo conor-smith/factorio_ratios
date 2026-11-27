@@ -12,44 +12,19 @@ part 'subgroup.dart';
 part 'surface.dart';
 part 'technology.dart';
 
-abstract class DDPrototype extends AbstractPrototype {
-  @override
-  final String name;
-  @override
-  final String type;
-  final dynamic localisedName;
-  @override
-  final String order;
-  final String? subgroupName;
+abstract class PrototypeJson extends AbstractPrototype {
+  static const _defaultOrder = '';
 
-  DDPrototype({
-    required this.name,
-    required this.type,
-    required this.localisedName,
-    required String? order,
-    required this.subgroupName,
-  }) : order = order ?? '';
-
-  DDPrototype.fromJson(Map json)
-    : this(
-        name: json['name'],
-        type: json['type'],
-        localisedName: _unmodifiableLocalisedString(json['localised_name']),
-        order: json['order'],
-        subgroupName: json['subgroup'],
-      );
+  dynamic get localisedName;
+  String? get subgroupName;
 
   @override
   String toString() => name;
 }
 
 // Not technically a factorio type, but helpful for this use case
-abstract class DDPrototypeWithIcon extends DDPrototype {
-  final Icon? icon;
-
-  DDPrototypeWithIcon.fromJson(super.json, double expectedIconSize)
-    : icon = Icon.fromTopLevelJson(json, expectedIconSize),
-      super.fromJson();
+abstract class PrototypeWithIconJson extends PrototypeJson {
+  Icon? get icon;
 }
 
 class SpentFluidSpecification {
@@ -70,44 +45,6 @@ class SpentFluidSpecification {
         amount: json['amount']?.toDouble(),
         temperature: json['temperature']?.toDouble(),
       );
-}
-
-enum Effects {
-  consumption('consumption', minMultiplier: 0.2),
-  productivity('productivity', minMultiplier: 1),
-  speed('speed', minMultiplier: 0.2),
-  pollution('pollution'),
-  quality('quality', defaultMultiplier: 0);
-
-  final String name;
-  final double defaultMultiplier;
-
-  final double minMultiplier;
-  final double maxMultiplier;
-
-  final double minBonus;
-  final double maxBonus;
-
-  const Effects(
-    this.name, {
-    this.defaultMultiplier = 1,
-    this.minMultiplier = double.negativeInfinity,
-    this.maxMultiplier = double.infinity,
-  }) : minBonus = minMultiplier - defaultMultiplier,
-       maxBonus = maxMultiplier - defaultMultiplier;
-
-  double bonusOrBound(double bonus) {
-    if (bonus > maxBonus) {
-      return maxBonus;
-    } else if (bonus < minBonus) {
-      return minBonus;
-    } else {
-      return bonus;
-    }
-  }
-
-  @override
-  String toString() => name;
 }
 
 List<T>? _unmodifiableOrNullList<T>(Iterable<T>? list) =>

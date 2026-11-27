@@ -1,10 +1,23 @@
 part of 'data_dump.dart';
 
-class DDRecipe extends DDPrototypeWithIcon {
+class RecipeJson extends PrototypeWithIconJson {
+  @override
+  final String name;
+  @override
+  final String type;
+  @override
+  final String order;
+  @override
+  final String? subgroupName;
+  @override
+  final dynamic localisedName;
+  @override
+  final Icon? icon;
+
   final List<String> categories;
 
-  final List<DDRecipeIngredient> ingredients;
-  final List<DDRecipeProduct> results;
+  final List<RecipeIngredientJson> ingredients;
+  final List<RecipeProductJson> results;
 
   final String? mainProduct;
 
@@ -27,11 +40,16 @@ class DDRecipe extends DDPrototypeWithIcon {
 
   final bool canSetQuality;
 
-  DDRecipe._(
-    Map json, {
+  RecipeJson._({
+    required this.name,
+    required this.type,
+    required String? order,
+    required this.subgroupName,
+    required dynamic localisedName,
+    required this.icon,
     required List<String>? categories,
-    required Iterable<DDRecipeIngredient> ingredients,
-    required Iterable<DDRecipeProduct> results,
+    required Iterable<RecipeIngredientJson> ingredients,
+    required Iterable<RecipeProductJson> results,
     required this.mainProduct,
     required double? energyRequired,
     required double? emissionsMultiplier,
@@ -46,7 +64,9 @@ class DDRecipe extends DDPrototypeWithIcon {
     required bool? allowQuality,
     required Iterable<String>? allowedModuleCategories,
     required bool? canSetQuality,
-  }) : categories = _unmodifiableOrNullList(categories) ?? const ['crafting'],
+  }) : order = order ?? PrototypeJson._defaultOrder,
+       localisedName = _unmodifiableLocalisedString(localisedName),
+       categories = _unmodifiableOrNullList(categories) ?? const ['crafting'],
        ingredients = List.unmodifiableOf(ingredients),
        results = List.unmodifiableOf(results),
        energyRequired = energyRequired ?? 0.5,
@@ -63,27 +83,26 @@ class DDRecipe extends DDPrototypeWithIcon {
        allowedModuleCategories = _unmodifiableOrNullList(
          allowedModuleCategories,
        ),
-       canSetQuality = canSetQuality ?? true,
-       super.fromJson(json, ExpectedIconSize.other);
+       canSetQuality = canSetQuality ?? true;
 
-  factory DDRecipe.fromJson(Map json) {
+  factory RecipeJson.fromJson(Map json) {
     // Empty ingredients are serialised as "{}" in json rather than null or "[]"
     // As such, a factory method is needed
-    late Iterable<DDRecipeIngredient> ingredients;
+    late Iterable<RecipeIngredientJson> ingredients;
     var rawIngredients = json['ingredients'];
     if (rawIngredients is List) {
       ingredients = rawIngredients.map(
-        (ingredientJson) => DDRecipeIngredient.fromJson(ingredientJson),
+        (ingredientJson) => RecipeIngredientJson.fromJson(ingredientJson),
       );
     } else {
       ingredients = const [];
     }
 
-    late Iterable<DDRecipeProduct> results;
+    late Iterable<RecipeProductJson> results;
     var rawResults = json['results'];
     if (rawResults is List) {
       results = rawResults.map(
-        (resultJson) => DDRecipeProduct.fromJson(resultJson),
+        (resultJson) => RecipeProductJson.fromJson(resultJson),
       );
     } else {
       results = const [];
@@ -94,8 +113,13 @@ class DDRecipe extends DDPrototypeWithIcon {
           (scJson) => SurfaceCondition.fromJson(scJson),
         );
 
-    return DDRecipe._(
-      json,
+    return RecipeJson._(
+      name: json['name'],
+      type: json['type'],
+      order: json['order'],
+      subgroupName: json['subgroup'],
+      localisedName: json['localised_name'],
+      icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
       mainProduct: json['main_product'],
       categories: json['categories']?.cast<String>(),
       energyRequired: json['energy_required']?.toDouble(),
@@ -117,20 +141,20 @@ class DDRecipe extends DDPrototypeWithIcon {
   }
 }
 
-abstract class DDRecipeIngredient {
+abstract class RecipeIngredientJson {
   final String name;
   final String type;
   final double amount;
   final double ignoredByStats;
 
-  DDRecipeIngredient({
+  RecipeIngredientJson({
     required this.name,
     required this.type,
     required this.amount,
     required double? ignoredByStats,
   }) : ignoredByStats = ignoredByStats ?? 0;
 
-  DDRecipeIngredient._fromJson(Map json)
+  RecipeIngredientJson._fromJson(Map json)
     : this(
         name: json['name'],
         type: json['type'],
@@ -138,22 +162,22 @@ abstract class DDRecipeIngredient {
         ignoredByStats: json['ignored_by_stats']?.toDouble(),
       );
 
-  factory DDRecipeIngredient.fromJson(Map json) => switch (json['type']) {
-    'item' => DDRecipeItemIngredient.fromJson(json),
-    'fluid' => DDRecipeFluidIngredient.fromJson(json),
+  factory RecipeIngredientJson.fromJson(Map json) => switch (json['type']) {
+    'item' => RecipeItemIngredientJson.fromJson(json),
+    'fluid' => RecipeFluidIngredientJson.fromJson(json),
     _ => throw FactorioException(
       'Unrecognised ingredient type: ${json['type']}',
     ),
   };
 }
 
-class DDRecipeItemIngredient extends DDRecipeIngredient {
+class RecipeItemIngredientJson extends RecipeIngredientJson {
   final String? qualityMin;
   final String? qualityMax;
   final int qualityChange;
   final double spoilWeight;
 
-  DDRecipeItemIngredient._(
+  RecipeItemIngredientJson._(
     super.json, {
     required this.qualityMin,
     required this.qualityMax,
@@ -163,7 +187,7 @@ class DDRecipeItemIngredient extends DDRecipeIngredient {
        spoilWeight = spoilWeight ?? 1,
        super._fromJson();
 
-  DDRecipeItemIngredient.fromJson(Map json)
+  RecipeItemIngredientJson.fromJson(Map json)
     : this._(
         json,
         qualityMin: json['quality_min'],
@@ -173,19 +197,19 @@ class DDRecipeItemIngredient extends DDRecipeIngredient {
       );
 }
 
-class DDRecipeFluidIngredient extends DDRecipeIngredient {
+class RecipeFluidIngredientJson extends RecipeIngredientJson {
   final double? temperature;
   final double? minimumTemperature;
   final double? maximumTemperature;
 
-  DDRecipeFluidIngredient._(
+  RecipeFluidIngredientJson._(
     super.json, {
     required this.temperature,
     required this.minimumTemperature,
     required this.maximumTemperature,
   }) : super._fromJson();
 
-  DDRecipeFluidIngredient.fromJson(Map json)
+  RecipeFluidIngredientJson.fromJson(Map json)
     : this._(
         json,
         temperature: json['temperature']?.toDouble(),
@@ -194,7 +218,7 @@ class DDRecipeFluidIngredient extends DDRecipeIngredient {
       );
 }
 
-abstract class DDRecipeProduct {
+abstract class RecipeProductJson {
   final String name;
   final String type;
 
@@ -208,7 +232,7 @@ abstract class DDRecipeProduct {
   final double independentProbability;
   final SharedProbability sharedProbability;
 
-  DDRecipeProduct({
+  RecipeProductJson({
     required this.name,
     required this.type,
     required this.amount,
@@ -224,7 +248,7 @@ abstract class DDRecipeProduct {
        sharedProbability =
            sharedProbability ?? const SharedProbability._(min: 0, max: 1);
 
-  DDRecipeProduct._fromJson(Map json)
+  RecipeProductJson._fromJson(Map json)
     : this(
         name: json['name'],
         type: json['type'],
@@ -239,14 +263,14 @@ abstract class DDRecipeProduct {
             : null,
       );
 
-  factory DDRecipeProduct.fromJson(Map json) => switch (json['type']) {
-    'item' => DDRecipeItemProduct.fromJson(json),
-    'fluid' => DDRecipeFluidProduct.fromJson(json),
+  factory RecipeProductJson.fromJson(Map json) => switch (json['type']) {
+    'item' => RecipeItemProductJson.fromJson(json),
+    'fluid' => RecipeFluidProductJson.fromJson(json),
     _ => throw FactorioException('Unrecognised product type: ${json['type']}'),
   };
 }
 
-class DDRecipeItemProduct extends DDRecipeProduct {
+class RecipeItemProductJson extends RecipeProductJson {
   final double extraCountFraction;
   final double percentSpoiled;
   final bool alwaysFresh;
@@ -257,7 +281,7 @@ class DDRecipeItemProduct extends DDRecipeProduct {
   final int qualityChange;
   final bool affectedByQuality;
 
-  DDRecipeItemProduct._(
+  RecipeItemProductJson._(
     super.json, {
     required double? extraCountFraction,
     required double? percentSpoiled,
@@ -275,7 +299,7 @@ class DDRecipeItemProduct extends DDRecipeProduct {
        affectedByQuality = affectedByQuality ?? true,
        super._fromJson();
 
-  DDRecipeItemProduct.fromJson(Map json)
+  RecipeItemProductJson.fromJson(Map json)
     : this._(
         json,
         extraCountFraction: json['extra_count_fraction']?.toDouble(),
@@ -289,13 +313,13 @@ class DDRecipeItemProduct extends DDRecipeProduct {
       );
 }
 
-class DDRecipeFluidProduct extends DDRecipeProduct {
+class RecipeFluidProductJson extends RecipeProductJson {
   final double? temperature;
 
-  DDRecipeFluidProduct._(super.json, {required this.temperature})
+  RecipeFluidProductJson._(super.json, {required this.temperature})
     : super._fromJson();
 
-  DDRecipeFluidProduct.fromJson(Map json)
+  RecipeFluidProductJson.fromJson(Map json)
     : this._(json, temperature: json['temperature']?.toDouble());
 }
 

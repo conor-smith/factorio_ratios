@@ -16,29 +16,30 @@ class FactorioDatabase {
     double expectedIconSize = ExpectedIconSize.other,
     Quality? quality,
   }) {
-    double iconSize = icon?.size ?? expectedIconSize;
+    // double iconSize = icon?.size ?? expectedIconSize;
 
-    return _iconCache.putIfAbsent(_IconCacheKey(icon, iconSize, quality), () {
-      // Use default "unknown" icon when icon is absent
-      Icon iconToCache =
-          icon ??
-          Icon([
-            IconData(
-              icon: '__core__/graphics/icons/unknown.png',
-              iconSize: iconSize,
-              expectedIconSize: expectedIconSize,
-            ),
-          ], iconSize);
+    // return _iconCache.putIfAbsent(_IconCacheKey(icon, iconSize, quality), () {
+    //   // Use default "unknown" icon when icon is absent
+    //   Icon iconToCache =
+    //       icon ??
+    //       Icon([
+    //         IconData(
+    //           icon: '__core__/graphics/icons/unknown.png',
+    //           iconSize: iconSize,
+    //           expectedIconSize: expectedIconSize,
+    //         ),
+    //       ], iconSize);
 
-      if (quality?.drawSpriteByDefault ?? false) {
-        iconToCache = Icon([
-          ...iconToCache.icons,
-          ...quality!.icon.icons,
-        ], iconSize);
-      }
+    //   if (quality?.drawSpriteByDefault ?? false) {
+    //     iconToCache = Icon([
+    //       ...iconToCache.icons,
+    //       ...quality!.icon.icons,
+    //     ], iconSize);
+    //   }
 
-      return iconToCache;
-    });
+    //   return iconToCache;
+    // });
+    throw UnimplementedError();
   }
 
   List<ItemSubgroup> getGroupSubgroups(ItemGroup group) =>

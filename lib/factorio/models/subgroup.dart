@@ -2,7 +2,7 @@ part of 'models.dart';
 
 class ItemSubgroup extends Prototype {
   @override
-  final DDItemSubgroup _internalPrototype;
+  final ItemSubgroupJson _internalPrototype;
 
   // TODO - Handle potential missing groups
   ItemGroup get group => _database._groups[_internalPrototype.group]!;

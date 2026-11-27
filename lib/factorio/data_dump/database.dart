@@ -1,26 +1,26 @@
 part of 'data_dump.dart';
 
-class DDDatabase {
-  final List<DDSolidItem> solidItems;
-  final List<DDFluid> fluid;
-  final List<DDRecipe> recipes;
-  final List<DDCraftingMachine> craftingMachines;
-  final List<DDItemGroup> groups;
-  final List<DDItemSubgroup> subgroups;
-  final List<DDQuality> qualities;
-  final List<DDSurface> surfaces;
-  final List<DDTechnology> technologies;
+class DataDump {
+  final List<SolidItemJson> solidItems;
+  final List<FluidJson> fluid;
+  final List<RecipeJson> recipes;
+  final List<CraftingMachineJson> craftingMachines;
+  final List<ItemGroupJson> groups;
+  final List<ItemSubgroupJson> subgroups;
+  final List<QualityJson> qualities;
+  final List<SurfaceJson> surfaces;
+  final List<TechnologyJson> technologies;
 
-  DDDatabase._({
-    required Iterable<DDSolidItem> solidItems,
-    required Iterable<DDFluid> fluids,
-    required Iterable<DDRecipe> recipes,
-    required Iterable<DDCraftingMachine> craftingMachines,
-    required Iterable<DDItemGroup> groups,
-    required Iterable<DDItemSubgroup> subgroups,
-    required Iterable<DDQuality> qualities,
-    required Iterable<DDSurface> surfaces,
-    required Iterable<DDTechnology> technologies,
+  DataDump._({
+    required Iterable<SolidItemJson> solidItems,
+    required Iterable<FluidJson> fluids,
+    required Iterable<RecipeJson> recipes,
+    required Iterable<CraftingMachineJson> craftingMachines,
+    required Iterable<ItemGroupJson> groups,
+    required Iterable<ItemSubgroupJson> subgroups,
+    required Iterable<QualityJson> qualities,
+    required Iterable<SurfaceJson> surfaces,
+    required Iterable<TechnologyJson> technologies,
   }) : solidItems = List.unmodifiableOf(solidItems),
        fluid = List.unmodifiableOf(fluids),
        recipes = List.unmodifiableOf(recipes),
@@ -31,7 +31,7 @@ class DDDatabase {
        surfaces = List.unmodifiableOf(surfaces),
        technologies = List.unmodifiableOf(technologies);
 
-  DDDatabase.fromJson(Map dataDumpJson)
+  DataDump.fromJson(Map dataDumpJson)
     : this._(
         solidItems: _deserialisePrototypes(dataDumpJson, const [
           'item',
@@ -50,34 +50,34 @@ class DDDatabase {
           'deconstruction-item',
           'upgrade-item',
           'selection-tool',
-        ], DDSolidItem.fromJson),
+        ], SolidItemJson.fromJson),
         fluids: _deserialisePrototypes(dataDumpJson, const [
           'fluid',
-        ], DDFluid.fromJson),
+        ], FluidJson.fromJson),
         recipes: _deserialisePrototypes(dataDumpJson, const [
           'recipe',
-        ], DDRecipe.fromJson),
+        ], RecipeJson.fromJson),
         craftingMachines: _deserialisePrototypes(dataDumpJson, const [
           'assembling-machine',
           'rocket-silo',
           'furnace',
-        ], DDCraftingMachine.fromJson),
+        ], CraftingMachineJson.fromJson),
         groups: _deserialisePrototypes(dataDumpJson, const [
           'item-group',
-        ], DDItemGroup.fromJson),
+        ], ItemGroupJson.fromJson),
         subgroups: _deserialisePrototypes(dataDumpJson, const [
           'item-subgroup',
-        ], DDItemSubgroup.fromJson),
+        ], ItemSubgroupJson.fromJson),
         qualities: _deserialisePrototypes(dataDumpJson, const [
           'quality',
-        ], DDQuality.fromJson),
+        ], QualityJson.fromJson),
         surfaces: _deserialisePrototypes(dataDumpJson, const [
           'planet',
           'surface',
-        ], DDSurface.fromJson),
+        ], SurfaceJson.fromJson),
         technologies: _deserialisePrototypes(dataDumpJson, const [
           'technology',
-        ], DDTechnology.fromJson),
+        ], TechnologyJson.fromJson),
       );
 }
 

@@ -9,7 +9,7 @@ part 'subgroup.dart';
 
 abstract class Prototype extends AbstractPrototype
     implements Comparable<Prototype> {
-  DDPrototype get _internalPrototype;
+  PrototypeJson get _internalPrototype;
 
   final FactorioDatabase _database;
 
@@ -36,13 +36,13 @@ abstract class Prototype extends AbstractPrototype
 
 abstract class PrototypeWithIcon extends Prototype {
   @override
-  DDPrototypeWithIcon get _internalPrototype;
+  PrototypeWithIconJson get _internalPrototype;
 
   final Icon icon;
 
   PrototypeWithIcon({
     required super.database,
-    required DDPrototypeWithIcon internalPrototype,
+    required PrototypeWithIconJson internalPrototype,
     double expectedIconSize = ExpectedIconSize.other,
     Quality? quality,
   }) : icon = database.cacheAndRetrieveIcon(

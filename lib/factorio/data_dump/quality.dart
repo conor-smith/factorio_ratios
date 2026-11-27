@@ -1,7 +1,18 @@
 part of 'data_dump.dart';
 
-class DDQuality extends DDPrototypeWithIcon {
-  static const String defaultName = 'normal';
+class QualityJson extends PrototypeWithIconJson {
+  @override
+  final String name;
+  @override
+  final String type;
+  @override
+  final String order;
+  @override
+  final String? subgroupName;
+  @override
+  final dynamic localisedName;
+  @override
+  final Icon? icon;
 
   final bool drawSpriteByDefault;
   final int level;
@@ -36,8 +47,13 @@ class DDQuality extends DDPrototypeWithIcon {
 
   // defaultMultiplier does have a default value
   // but given how many other fields depend on it, best to calculate it first
-  DDQuality._(
-    Map json, {
+  QualityJson._({
+    required this.name,
+    required this.type,
+    required String? order,
+    required this.subgroupName,
+    required dynamic localisedName,
+    required this.icon,
     required this.drawSpriteByDefault,
     required this.level,
     required this.next,
@@ -65,7 +81,9 @@ class DDQuality extends DDPrototypeWithIcon {
     required int? craftingMachineModuleSlotBonus,
     required int? miningDrillModuleSlotBonus,
     required int? labModuleSlotBonus,
-  }) : nextProbability = nextProbability ?? 0,
+  }) : order = order ?? PrototypeJson._defaultOrder,
+       localisedName = _unmodifiableLocalisedString(localisedName),
+       nextProbability = nextProbability ?? 0,
        chainProbability = ((nextProbability ?? 0.0) * 0.1)
            .clamp(0, 1)
            .toDouble(),
@@ -99,16 +117,20 @@ class DDQuality extends DDPrototypeWithIcon {
        spoilTicksMultiplier = spoilTicksMultiplier ?? defaultMultiplier,
        craftingMachineModuleSlotBonus = craftingMachineModuleSlotBonus ?? level,
        miningDrillModuleSlotsBonus = miningDrillModuleSlotBonus ?? level,
-       labModuleSlotsBonus = labModuleSlotBonus ?? level,
-       super.fromJson(json, ExpectedIconSize.other);
+       labModuleSlotsBonus = labModuleSlotBonus ?? level;
 
-  factory DDQuality.fromJson(Map json) {
+  factory QualityJson.fromJson(Map json) {
     int level = json['level'];
     var defaultMultiplier =
         json['default_multiplier']?.toDouble() ?? 1.0 + (0.3 * level);
 
-    return DDQuality._(
-      json,
+    return QualityJson._(
+      name: json['name'],
+      type: json['type'],
+      order: json['order'],
+      subgroupName: json['subgroup'],
+      localisedName: json['localised_name'],
+      icon: Icon.fromTopLevelJson(json, ExpectedIconSize.other),
       drawSpriteByDefault: json['draw_sprite_by_default'] ?? true,
       level: level,
       next: json['next'],
