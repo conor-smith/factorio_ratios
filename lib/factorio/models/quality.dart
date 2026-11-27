@@ -6,14 +6,14 @@ class Quality extends PrototypeWithIcon {
 
   bool get drawSpriteByDefault => _internalPrototype.drawSpriteByDefault;
 
-  Quality? get next => null; // TODO
+  @relationship
+  late final Quality? next = _database._qualities[_internalPrototype.next];
+  @relationship
+  late final Quality? previous = _database._qualities.values
+      .where((quality) => quality.next == this)
+      .firstOrNull;
 
-  Quality({
-    required super.database,
-    required QualityJson super.internalPrototype,
-  }) : _internalPrototype = internalPrototype {
-    _database._qualities[name] = this;
-  }
+  Quality({required super.database, required this._internalPrototype});
 
   QualityCompare compareToQuality(Quality other) {
     if (this == other) {

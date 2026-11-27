@@ -4,13 +4,8 @@ class ItemGroup extends PrototypeWithIcon {
   @override
   final ItemGroupJson _internalPrototype;
 
-  List<ItemSubgroup> get subgroups => _database.getGroupSubgroups(this);
+  @relationship
+  List<ItemSubgroup> get subgroups => throw UnimplementedError();
 
-  ItemGroup({
-    required super.database,
-    required ItemGroupJson super.internalPrototype,
-  }) : _internalPrototype = internalPrototype,
-       super(expectedIconSize: ExpectedIconSize.itemGroup) {
-    _database._groups[name] = this;
-  }
+  ItemGroup({required super.database, required this._internalPrototype});
 }

@@ -7,6 +7,12 @@ part 'item.dart';
 part 'quality.dart';
 part 'subgroup.dart';
 
+class _Relationship {
+  const _Relationship();
+}
+
+const relationship = _Relationship();
+
 abstract class Prototype extends AbstractPrototype
     implements Comparable<Prototype> {
   PrototypeJson get _internalPrototype;
@@ -22,45 +28,55 @@ abstract class Prototype extends AbstractPrototype
 
   String get localName => name; // TODO
 
-  ItemSubgroup? get subgroup =>
-      _database._subgroups[_internalPrototype.subgroupName];
+  @relationship
+  late final ItemSubgroup? subgroup = _getSubgroup();
 
   Prototype({required this._database});
 
   @override
   int compareTo(Prototype other) {
+    if (other is PrototypeWithQuality) {
+      return -other.compareTo(this);
+    } else {
+      return _compareToNoQuality(other);
+    }
+  }
+
+  int _compareToNoQuality(Prototype other) {
     var orderVal = order.compareTo(other.order);
     return orderVal != 0 ? orderVal : name.compareTo(other.name);
   }
+
+  ItemSubgroup? _getSubgroup() =>
+      _database._subgroups[_internalPrototype.subgroupName];
+
+  @override
+  String toString() => name;
 }
 
 abstract class PrototypeWithIcon extends Prototype {
   @override
   PrototypeWithIconJson get _internalPrototype;
 
-  final Icon icon;
+  @relationship
+  late final Icon icon = _getIcon(expectedIconSize);
+  double get expectedIconSize => ExpectedIconSize.other;
 
-  PrototypeWithIcon({
-    required super.database,
-    required PrototypeWithIconJson internalPrototype,
-    double expectedIconSize = ExpectedIconSize.other,
-    Quality? quality,
-  }) : icon = database.cacheAndRetrieveIcon(
-         icon: internalPrototype.icon,
-         expectedIconSize: expectedIconSize,
-         quality: quality,
-       );
+  PrototypeWithIcon({required super.database});
+
+  Icon _getIcon(double expectedIconSize) => _database.cacheAndRetrieveIcon(
+    icon: _internalPrototype.icon,
+    expectedIconSize: expectedIconSize,
+  );
 }
 
 abstract class PrototypeWithQuality extends PrototypeWithIcon {
-  final Quality quality;
+  final String _qualityName;
 
-  PrototypeWithQuality({
-    required super.database,
-    required super.internalPrototype,
-    required Quality super.quality,
-    super.expectedIconSize,
-  }) : quality = quality;
+  @relationship
+  late final Quality quality = _database._qualities[_qualityName]!;
+
+  PrototypeWithQuality({required super.database, required this._qualityName});
 
   @override
   int compareTo(Prototype other) {
@@ -73,9 +89,16 @@ abstract class PrototypeWithQuality extends PrototypeWithIcon {
         QualityCompare.lessThan => -1,
       };
     } else {
-      return super.compareTo(other);
+      return super._compareToNoQuality(other);
     }
   }
+
+  @override
+  Icon _getIcon(double expectedIconSize) => _database.cacheAndRetrieveIcon(
+    icon: _internalPrototype.icon,
+    expectedIconSize: expectedIconSize,
+    quality: quality,
+  );
 
   @override
   String toString() => '${quality.name} ${_internalPrototype.name}';
