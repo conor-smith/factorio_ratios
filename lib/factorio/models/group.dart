@@ -2,11 +2,11 @@ part of 'models.dart';
 
 class ItemGroup extends PrototypeWithIcon {
   @override
-  final ItemGroupJson _internalJson;
+  final ItemGroupJson internalJson;
 
   late final List<ItemSubgroup> subgroups = _getSubgroups();
 
-  ItemGroup({required super.database, required this._internalJson});
+  ItemGroup({required super.database, required this.internalJson});
 
   @override
   ItemSubgroup? _getSubgroup() => null;

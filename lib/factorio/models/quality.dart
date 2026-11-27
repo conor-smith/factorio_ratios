@@ -2,14 +2,14 @@ part of 'models.dart';
 
 class Quality extends PrototypeWithIcon {
   @override
-  final QualityJson _internalJson;
+  final QualityJson internalJson;
 
   late final Quality? next = _getNext();
   late final Quality? previous = _getPrevious();
 
-  Quality({required super.database, required this._internalJson});
+  Quality({required super.database, required this.internalJson});
 
-  Quality? _getNext() => _database._qualities[_internalJson.next];
+  Quality? _getNext() => _database._qualities[internalJson.next];
   Quality? _getPrevious() => _database._qualities.values
       .where((quality) => quality.next == this)
       .firstOrNull;

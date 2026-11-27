@@ -13,21 +13,21 @@ part 'surface.dart';
 abstract class Prototype implements AbstractPrototype, Comparable<Prototype> {
   final FactorioDatabase _database;
 
-  PrototypeJson get _internalJson;
+  PrototypeJson get internalJson;
 
   @override
-  String get name => _internalJson.name;
+  String get name => internalJson.name;
   @override
-  String get type => _internalJson.type;
+  String get type => internalJson.type;
   @override
-  String get order => _internalJson.order;
+  String get order => internalJson.order;
 
   late final ItemSubgroup? subgroup = _getSubgroup();
 
   Prototype({required this._database});
 
   ItemSubgroup? _getSubgroup() =>
-      _database._subgroups[_internalJson.subgroupName];
+      _database._subgroups[internalJson.subgroupName];
 
   @override
   int compareTo(Prototype other) {
@@ -49,14 +49,14 @@ abstract class Prototype implements AbstractPrototype, Comparable<Prototype> {
 
 abstract class PrototypeWithIcon extends Prototype {
   @override
-  PrototypeWithIconJson get _internalJson;
+  PrototypeWithIconJson get internalJson;
 
   late final Icon icon = _getIcon();
 
   PrototypeWithIcon({required super.database});
 
   Icon _getIcon() =>
-      _database._getIcon(icon: _internalJson.icon, expectedSize: expectedSize);
+      _database._getIcon(icon: internalJson.icon, expectedSize: expectedSize);
 
   double get expectedSize => ExpectedIconSize.other;
 }
@@ -79,7 +79,7 @@ abstract class PrototypeWithQuality extends PrototypeWithIcon {
 
   @override
   int compareTo(Prototype other) {
-    if (other._internalJson == _internalJson && other is PrototypeWithQuality) {
+    if (other.internalJson == internalJson && other is PrototypeWithQuality) {
       return switch (quality.compareToQuality(other.quality)) {
         QualityCompare.equalTo ||
         QualityCompare.notInChain => quality.compareTo(other.quality),

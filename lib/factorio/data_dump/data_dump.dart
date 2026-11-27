@@ -1,7 +1,7 @@
 import 'package:factorio_ratios/factorio/factorio.dart';
 import 'package:factorio_ratios/utility/collections.dart';
 
-part 'crafting_machines.dart';
+part 'crafting_machine.dart';
 part 'database.dart';
 part 'group.dart';
 part 'icon.dart';
