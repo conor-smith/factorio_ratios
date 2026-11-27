@@ -16,20 +16,6 @@ abstract class Prototype extends AbstractPrototype
   String get localName;
 }
 
-mixin PrototypeDelegator implements Prototype {
-  @override
-  String get name => _internalPrototype.name;
-  @override
-  String get order => _internalPrototype.order;
-  @override
-  String get type => _internalPrototype.type;
-  @override
-  String get localName => name; // TODO
-
-  ItemSubgroup? _getSubgroup() =>
-      _database._subgroups[_internalPrototype.subgroupName];
-}
-
 mixin BasicPrototype implements Prototype {
   @override
   int compareTo(Prototype other) {
@@ -50,7 +36,6 @@ abstract class PrototypeWithIcon implements Prototype {
   PrototypeWithIconJson get _internalPrototype;
 
   Icon get icon;
-  double get expectedIconSize;
 }
 
 abstract class PrototypeWithQuality implements PrototypeWithIcon {
@@ -62,9 +47,6 @@ abstract class PrototypeWithQuality implements PrototypeWithIcon {
 }
 
 mixin BasicPrototypeWithQuality implements PrototypeWithQuality {
-  @override
-  double get expectedIconSize => ExpectedIconSize.other;
-
   @override
   int compareTo(Prototype other) {
     if (other._internalPrototype == _internalPrototype &&
@@ -81,14 +63,20 @@ mixin BasicPrototypeWithQuality implements PrototypeWithQuality {
     }
   }
 
-  Icon _getIcon() => _database.cacheAndRetrieveIcon(
-    icon: icon,
-    expectedIconSize: expectedIconSize,
-    quality: quality,
-  );
-
-  Quality _getQuality() => _database._qualities[_qualityName]!;
-
   @override
   String toString() => '${quality.name} $name';
 }
+
+ItemSubgroup? _getSubgroup(
+  FactorioDatabase database,
+  PrototypeJson prototypeJson,
+) => database._subgroups[prototypeJson.subgroupName];
+
+String _getLocalName(
+  FactorioDatabase database,
+  String name,
+  dynamic localisedName,
+) => name; // TODO
+
+Quality _getQuality(FactorioDatabase database, String qualityName) =>
+    database._qualities[qualityName]!;

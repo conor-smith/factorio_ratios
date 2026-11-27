@@ -6,7 +6,7 @@ abstract class Item implements PrototypeWithIcon {
 }
 
 class SolidItem
-    with PrototypeDelegator, BasicPrototypeWithQuality
+    with BasicPrototypeWithQuality
     implements PrototypeWithQuality, Item {
   @override
   final FactorioDatabase _database;
@@ -16,12 +16,28 @@ class SolidItem
   final String _qualityName;
 
   @override
-  late final ItemSubgroup? subgroup = _getSubgroup();
+  late final String localName = _getLocalName(
+    _database,
+    name,
+    _internalPrototype.localisedName,
+  );
   @override
-  late final Icon icon = _getIcon();
+  late final ItemSubgroup? subgroup = _getSubgroup(
+    _database,
+    _internalPrototype,
+  );
+  @override
+  late final Icon icon = throw UnimplementedError(); // TODO
 
   @override
-  late final Quality quality = _getQuality();
+  late final Quality quality = _getQuality(_database, _qualityName);
+
+  @override
+  String get name => _internalPrototype.name;
+  @override
+  String get type => _internalPrototype.type;
+  @override
+  String get order => _internalPrototype.order;
 
   SolidItem({
     required this._database,
@@ -30,24 +46,32 @@ class SolidItem
   });
 }
 
-class Fluid
-    with PrototypeDelegator, BasicPrototype
-    implements PrototypeWithIcon, Item {
+class Fluid with BasicPrototype implements PrototypeWithIcon, Item {
   @override
   final FactorioDatabase _database;
   @override
   final FluidJson _internalPrototype;
 
   @override
-  late final ItemSubgroup? subgroup = _getSubgroup();
-  @override
-  late final Icon icon = _database.cacheAndRetrieveIcon(
-    icon: _internalPrototype.icon,
-    expectedIconSize: expectedIconSize,
+  late final String localName = _getLocalName(
+    _database,
+    name,
+    _internalPrototype.localisedName,
   );
+  @override
+  late final ItemSubgroup? subgroup = _getSubgroup(
+    _database,
+    _internalPrototype,
+  );
+  @override
+  late final Icon icon = throw UnimplementedError(); // TODO
 
   @override
-  double get expectedIconSize => ExpectedIconSize.other;
+  String get name => _internalPrototype.name;
+  @override
+  String get type => _internalPrototype.type;
+  @override
+  String get order => _internalPrototype.order;
 
   Fluid({required this._database, required this._internalPrototype});
 }
