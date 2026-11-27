@@ -1,6 +1,8 @@
 part of 'data_dump.dart';
 
-class CraftingMachineJson with PrototypeImpl implements PrototypeWithIconJson {
+class CraftingMachineJson
+    with PrototypeToString
+    implements PrototypeWithIconJson {
   @override
   final String name;
   @override

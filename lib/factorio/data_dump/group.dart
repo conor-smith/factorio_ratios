@@ -1,6 +1,6 @@
 part of 'data_dump.dart';
 
-class ItemGroupJson with PrototypeImpl implements PrototypeWithIconJson {
+class ItemGroupJson with PrototypeToString implements PrototypeWithIconJson {
   @override
   final String name;
   @override

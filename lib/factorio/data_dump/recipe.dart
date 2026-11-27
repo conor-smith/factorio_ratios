@@ -1,6 +1,6 @@
 part of 'data_dump.dart';
 
-class RecipeJson with PrototypeImpl implements PrototypeWithIconJson {
+class RecipeJson with PrototypeToString implements PrototypeWithIconJson {
   @override
   final String name;
   @override

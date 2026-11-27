@@ -1,6 +1,8 @@
 part of 'data_dump.dart';
 
-abstract class ItemJson with PrototypeImpl implements PrototypeWithIconJson {
+abstract class ItemJson
+    with PrototypeToString
+    implements PrototypeWithIconJson {
   bool get hidden;
 }
 

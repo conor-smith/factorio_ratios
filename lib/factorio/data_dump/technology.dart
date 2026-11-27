@@ -1,6 +1,6 @@
 part of 'data_dump.dart';
 
-class TechnologyJson with PrototypeImpl implements PrototypeWithIconJson {
+class TechnologyJson with PrototypeToString implements PrototypeWithIconJson {
   @override
   final String name;
   @override
