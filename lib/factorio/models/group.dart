@@ -1,33 +1,18 @@
 part of 'models.dart';
 
-class ItemGroup with BasicPrototype implements PrototypeWithIcon {
+class ItemGroup extends PrototypeWithIcon {
   @override
-  final FactorioDatabase _database;
-  @override
-  final ItemGroupJson _internalPrototype;
+  final ItemGroupJson _internalJson;
 
-  @override
-  late final String localName = _getLocalName(
-    _database,
-    name,
-    _internalPrototype.localisedName,
+  late final List<ItemSubgroup> subgroups = List.unmodifiableOf(
+    _database._subgroups.values
+        .where((subgroup) => subgroup.group == this)
+        .toList(growable: false)
+      ..sort(),
   );
 
-  @override
-  late final Icon icon = throw UnimplementedError();
-  late final List<ItemSubgroup> subgroups = List.unmodifiable(
-    _database._subgroups.values.where((subgroup) => subgroup.group == this),
-  );
+  ItemGroup({required super.database, required this._internalJson});
 
   @override
-  String get name => _internalPrototype.name;
-  @override
-  String get type => _internalPrototype.type;
-  @override
-  String get order => _internalPrototype.order;
-
-  @override
-  ItemSubgroup? get subgroup => null;
-
-  ItemGroup({required this._database, required this._internalPrototype});
+  ItemSubgroup? _getSubgroup() => null;
 }

@@ -3,54 +3,79 @@ import 'package:factorio_ratios/factorio/factorio.dart';
 
 part 'database.dart';
 part 'group.dart';
-part 'item.dart';
 part 'quality.dart';
 part 'subgroup.dart';
 
-abstract class Prototype extends AbstractPrototype
-    implements Comparable<Prototype> {
-  PrototypeJson get _internalPrototype;
-  FactorioDatabase get _database;
-  ItemSubgroup? get subgroup;
+abstract class Prototype implements AbstractPrototype, Comparable<Prototype> {
+  final FactorioDatabase _database;
 
-  String get localName;
-}
+  PrototypeJson get _internalJson;
 
-mixin BasicPrototype implements Prototype {
+  @override
+  String get name => _internalJson.name;
+  @override
+  String get type => _internalJson.type;
+  @override
+  String get order => _internalJson.order;
+
+  late final ItemSubgroup? subgroup = _getSubgroup();
+
+  Prototype({required this._database});
+
+  ItemSubgroup? _getSubgroup() =>
+      _database._subgroups[_internalJson.subgroupName];
+
   @override
   int compareTo(Prototype other) {
     if (other is PrototypeWithQuality) {
       return -other.compareTo(this);
     } else {
-      var orderVal = order.compareTo(other.order);
-      return orderVal != 0 ? orderVal : name.compareTo(other.name);
+      return _compareToNoQuality(other);
     }
+  }
+
+  int _compareToNoQuality(Prototype other) {
+    var orderVal = order.compareTo(other.order);
+    return orderVal != 0 ? orderVal : name.compareTo(other.name);
   }
 
   @override
   String toString() => name;
 }
 
-abstract class PrototypeWithIcon implements Prototype {
+abstract class PrototypeWithIcon extends Prototype {
   @override
-  PrototypeWithIconJson get _internalPrototype;
+  PrototypeWithIconJson get _internalJson;
 
-  Icon get icon;
+  late final Icon icon = _getIcon();
+
+  PrototypeWithIcon({required super.database});
+
+  Icon _getIcon() =>
+      _database._getIcon(icon: _internalJson.icon, expectedSize: expectedSize);
+
+  double get expectedSize => ExpectedIconSize.other;
 }
 
-abstract class PrototypeWithQuality implements PrototypeWithIcon {
-  String get _qualityName;
-  Quality get quality;
+abstract class PrototypeWithQuality extends PrototypeWithIcon {
+  final String _qualityName;
+
+  late final Quality quality = _getQuality();
+
+  PrototypeWithQuality({required super.database, required this._qualityName});
+
+  Quality _getQuality() => _database._qualities[_qualityName]!;
 
   @override
-  String toString() => '${quality.name} ${_internalPrototype.name}';
-}
+  Icon _getIcon() => _database._getIcon(
+    icon: icon,
+    expectedSize: expectedSize,
+    quality: quality,
+  );
 
-mixin BasicPrototypeWithQuality implements PrototypeWithQuality {
   @override
   int compareTo(Prototype other) {
-    if (other._internalPrototype == _internalPrototype &&
-        other is PrototypeWithQuality) {
+    if (other._internalJson == _internalJson && other is PrototypeWithQuality) {
       return switch (quality.compareToQuality(other.quality)) {
         QualityCompare.equalTo ||
         QualityCompare.notInChain => quality.compareTo(other.quality),
@@ -58,25 +83,10 @@ mixin BasicPrototypeWithQuality implements PrototypeWithQuality {
         QualityCompare.lessThan => -1,
       };
     } else {
-      var orderVal = order.compareTo(other.order);
-      return orderVal != 0 ? orderVal : name.compareTo(other.name);
+      return _compareToNoQuality(other);
     }
   }
 
   @override
-  String toString() => '${quality.name} $name';
+  String toString() => '$_qualityName $name';
 }
-
-ItemSubgroup? _getSubgroup(
-  FactorioDatabase database,
-  PrototypeJson prototypeJson,
-) => database._subgroups[prototypeJson.subgroupName];
-
-String _getLocalName(
-  FactorioDatabase database,
-  String name,
-  dynamic localisedName,
-) => name; // TODO
-
-Quality _getQuality(FactorioDatabase database, String qualityName) =>
-    database._qualities[qualityName]!;
