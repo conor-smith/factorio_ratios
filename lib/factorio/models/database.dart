@@ -13,10 +13,4 @@ class FactorioDatabase {
 
   static const normalQualityName = 'normal';
   late final Quality normalQuality;
-
-  Icon _getIcon({
-    required Icon? icon,
-    required double expectedSize,
-    Quality? quality,
-  }) => throw UnimplementedError();
 }

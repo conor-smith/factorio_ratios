@@ -51,31 +51,19 @@ abstract class PrototypeWithIcon extends Prototype {
   @override
   PrototypeWithIconJson get internalJson;
 
-  late final Icon icon = _getIcon();
+  late final Icon? icon = _getIcon();
 
   PrototypeWithIcon({required super.database});
 
-  Icon _getIcon() =>
-      _database._getIcon(icon: internalJson.icon, expectedSize: expectedSize);
-
-  double get expectedSize => ExpectedIconSize.other;
+  Icon? _getIcon() => internalJson.icon;
 }
 
-abstract class PrototypeWithQuality extends PrototypeWithIcon {
-  final String _qualityName;
+abstract class PrototypeWithQuality<T extends PrototypeWithQuality<T>>
+    extends PrototypeWithIcon {
+  final Quality quality;
+  T withQuality(Quality quality);
 
-  late final Quality quality = _getQuality();
-
-  PrototypeWithQuality({required super.database, required this._qualityName});
-
-  Quality _getQuality() => _database._qualities[_qualityName]!;
-
-  @override
-  Icon _getIcon() => _database._getIcon(
-    icon: icon,
-    expectedSize: expectedSize,
-    quality: quality,
-  );
+  PrototypeWithQuality({required super.database, required this.quality});
 
   @override
   int compareTo(Prototype other) {
@@ -92,5 +80,5 @@ abstract class PrototypeWithQuality extends PrototypeWithIcon {
   }
 
   @override
-  String toString() => '$_qualityName $name';
+  String toString() => '$quality $name';
 }

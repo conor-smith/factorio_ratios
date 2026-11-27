@@ -5,15 +5,18 @@ abstract class Item implements PrototypeWithIcon {
   ItemJson get internalJson;
 }
 
-class SolidItem extends PrototypeWithQuality implements Item {
+class SolidItem extends PrototypeWithQuality<SolidItem> implements Item {
   @override
   final SolidItemJson internalJson;
 
   SolidItem({
     required super.database,
-    required super.qualityName,
+    required super.quality,
     required this.internalJson,
   });
+
+  @override
+  SolidItem withQuality(Quality quality) => throw UnimplementedError(); // TODO
 }
 
 class Fluid extends PrototypeWithIcon implements Item {
