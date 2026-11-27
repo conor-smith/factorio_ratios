@@ -4,12 +4,15 @@ class Quality extends PrototypeWithIcon {
   @override
   final QualityJson _internalJson;
 
-  late final Quality? next = _database._qualities[_internalJson.next];
-  late final Quality? previous = _database._qualities.values
-      .where((quality) => quality.next == this)
-      .firstOrNull;
+  late final Quality? next = _getNext();
+  late final Quality? previous = _getPrevious();
 
   Quality({required super.database, required this._internalJson});
+
+  Quality? _getNext() => _database._qualities[_internalJson.next];
+  Quality? _getPrevious() => _database._qualities.values
+      .where((quality) => quality.next == this)
+      .firstOrNull;
 
   QualityCompare compareToQuality(Quality other) {
     if (this == other) {

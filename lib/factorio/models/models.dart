@@ -1,10 +1,14 @@
 import 'package:factorio_ratios/factorio/data_dump/data_dump.dart';
 import 'package:factorio_ratios/factorio/factorio.dart';
 
+part 'crafting_machine.dart';
 part 'database.dart';
 part 'group.dart';
+part 'item.dart';
 part 'quality.dart';
+part 'recipe.dart';
 part 'subgroup.dart';
+part 'surface.dart';
 
 abstract class Prototype implements AbstractPrototype, Comparable<Prototype> {
   final FactorioDatabase _database;
