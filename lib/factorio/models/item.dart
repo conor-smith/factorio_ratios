@@ -5,20 +5,49 @@ abstract class Item implements PrototypeWithIcon {
   ItemJson get _internalPrototype;
 }
 
-class SolidItem extends PrototypeWithQuality implements Item {
+class SolidItem
+    with PrototypeDelegator, BasicPrototypeWithQuality
+    implements PrototypeWithQuality, Item {
+  @override
+  final FactorioDatabase _database;
   @override
   final SolidItemJson _internalPrototype;
+  @override
+  final String _qualityName;
+
+  @override
+  late final ItemSubgroup? subgroup = _getSubgroup();
+  @override
+  late final Icon icon = _getIcon();
+
+  @override
+  late final Quality quality = _getQuality();
 
   SolidItem({
-    required super.database,
-    required super.qualityName,
+    required this._database,
+    required this._qualityName,
     required this._internalPrototype,
   });
 }
 
-class Fluid extends PrototypeWithIcon implements Item {
+class Fluid
+    with PrototypeDelegator, BasicPrototype
+    implements PrototypeWithIcon, Item {
+  @override
+  final FactorioDatabase _database;
   @override
   final FluidJson _internalPrototype;
 
-  Fluid({required super.database, required this._internalPrototype});
+  @override
+  late final ItemSubgroup? subgroup = _getSubgroup();
+  @override
+  late final Icon icon = _database.cacheAndRetrieveIcon(
+    icon: _internalPrototype.icon,
+    expectedIconSize: expectedIconSize,
+  );
+
+  @override
+  double get expectedIconSize => ExpectedIconSize.other;
+
+  Fluid({required this._database, required this._internalPrototype});
 }

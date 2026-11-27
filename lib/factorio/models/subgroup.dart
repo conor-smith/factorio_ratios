@@ -1,14 +1,18 @@
 part of 'models.dart';
 
-class ItemSubgroup extends Prototype {
+class ItemSubgroup
+    with PrototypeDelegator, BasicPrototype
+    implements Prototype {
+  @override
+  final FactorioDatabase _database;
   @override
   final ItemSubgroupJson _internalPrototype;
 
+  @override
+  ItemSubgroup? get subgroup => null;
+
   // TODO - Handle potential missing groups
-  @relationship
   late final ItemGroup group = _database._groups[_internalPrototype.group]!;
 
-  ItemSubgroup({required this._internalPrototype, required super.database}) {
-    _database._subgroups[_internalPrototype.name] = this;
-  }
+  ItemSubgroup({required this._internalPrototype, required this._database});
 }

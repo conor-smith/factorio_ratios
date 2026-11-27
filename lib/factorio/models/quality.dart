@@ -1,19 +1,31 @@
 part of 'models.dart';
 
-class Quality extends PrototypeWithIcon {
+class Quality
+    with PrototypeDelegator, BasicPrototype
+    implements PrototypeWithIcon {
+  @override
+  final FactorioDatabase _database;
   @override
   final QualityJson _internalPrototype;
 
-  bool get drawSpriteByDefault => _internalPrototype.drawSpriteByDefault;
+  @override
+  late final ItemSubgroup? subgroup = _getSubgroup();
+  @override
+  late final Icon icon = _database.cacheAndRetrieveIcon(
+    icon: _internalPrototype.icon,
+    expectedIconSize: expectedIconSize,
+  );
 
-  @relationship
   late final Quality? next = _database._qualities[_internalPrototype.next];
-  @relationship
   late final Quality? previous = _database._qualities.values
       .where((quality) => quality.next == this)
       .firstOrNull;
 
-  Quality({required super.database, required this._internalPrototype});
+  bool get drawSpriteByDefault => _internalPrototype.drawSpriteByDefault;
+  @override
+  double get expectedIconSize => ExpectedIconSize.other;
+
+  Quality({required this._database, required this._internalPrototype});
 
   QualityCompare compareToQuality(Quality other) {
     if (this == other) {
