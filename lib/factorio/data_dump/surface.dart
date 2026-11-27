@@ -1,6 +1,6 @@
 part of 'data_dump.dart';
 
-class SurfaceJson extends PrototypeWithIconJson {
+class SurfaceJson with PrototypeImpl implements PrototypeWithIconJson {
   @override
   final String name;
   @override

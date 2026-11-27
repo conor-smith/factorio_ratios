@@ -1,6 +1,6 @@
 part of 'data_dump.dart';
 
-class CraftingMachineJson extends PrototypeWithIconJson {
+class CraftingMachineJson with PrototypeImpl implements PrototypeWithIconJson {
   @override
   final String name;
   @override
@@ -238,14 +238,9 @@ class EffectValueRange {
     : this._(low: json['low']?.toDouble(), high: json['high']?.toDouble());
 }
 
-class CraftingMachineEnergySource {
-  final EnergySourceType type;
-  final Map<String, double>? emissionsPerMinute;
-
-  CraftingMachineEnergySource._({
-    required this.type,
-    required Map<String, double>? emissionsPerMinute,
-  }) : emissionsPerMinute = _unmodifiableOrNullMap(emissionsPerMinute);
+abstract class CraftingMachineEnergySource {
+  EnergySourceType get type;
+  Map<String, double>? get emissionsPerMinute;
 
   factory CraftingMachineEnergySource.fromJson(Map json) =>
       switch (json['type']) {
@@ -253,12 +248,7 @@ class CraftingMachineEnergySource {
         'burner' => BurnerEnergySource.fromJson(json),
         'fluid' => FluidEnergySource.fromJson(json),
         'heat' => HeatEnergySource.fromJson(json),
-        'void' => CraftingMachineEnergySource._(
-          type: EnergySourceType.fVoid,
-          emissionsPerMinute: _parseStringDoubleMap(
-            json['emissions_per_minute'],
-          ),
-        ),
+        'void' => VoidEnergySource.fromJson(json),
         _ => throw FactorioException(
           'Unrecognised energy source type - "${json['type']}',
         ),
@@ -281,13 +271,19 @@ enum EnergySourceType {
   String toString() => name;
 }
 
-class ElectricEnergySource extends CraftingMachineEnergySource {
+class ElectricEnergySource implements CraftingMachineEnergySource {
+  @override
+  EnergySourceType get type => EnergySourceType.electric;
+
+  @override
+  final Map<String, double>? emissionsPerMinute;
+
   final String? drain;
 
   ElectricEnergySource._({
     required this.drain,
-    required super.emissionsPerMinute,
-  }) : super._(type: EnergySourceType.electric);
+    required Map<String, double>? emissionsPerMinute,
+  }) : emissionsPerMinute = _unmodifiableOrNullMap(emissionsPerMinute);
 
   ElectricEnergySource.fromJson(Map json)
     : this._(
@@ -296,7 +292,13 @@ class ElectricEnergySource extends CraftingMachineEnergySource {
       );
 }
 
-class BurnerEnergySource extends CraftingMachineEnergySource {
+class BurnerEnergySource implements CraftingMachineEnergySource {
+  @override
+  EnergySourceType get type => EnergySourceType.burner;
+
+  @override
+  final Map<String, double>? emissionsPerMinute;
+
   final double effectivity;
   final String burnerUsage;
   final List<String> fuelCategories;
@@ -307,13 +309,13 @@ class BurnerEnergySource extends CraftingMachineEnergySource {
     required String? burnerUsage,
     required List<String>? fuelCategories,
     required bool? hideFromStats,
-    required super.emissionsPerMinute,
+    required Map<String, double>? emissionsPerMinute,
   }) : effectivity = effectivity ?? 1,
        burnerUsage = burnerUsage ?? 'fuel',
        fuelCategories =
            _unmodifiableOrNullList(fuelCategories) ?? const ['chemical'],
        hideFromStats = hideFromStats ?? false,
-       super._(type: EnergySourceType.burner);
+       emissionsPerMinute = _unmodifiableOrNullMap(emissionsPerMinute);
 
   BurnerEnergySource.fromJson(Map json)
     : this._(
@@ -325,7 +327,13 @@ class BurnerEnergySource extends CraftingMachineEnergySource {
       );
 }
 
-class FluidEnergySource extends CraftingMachineEnergySource {
+class FluidEnergySource implements CraftingMachineEnergySource {
+  @override
+  EnergySourceType get type => EnergySourceType.fluid;
+
+  @override
+  final Map<String, double>? emissionsPerMinute;
+
   final double effectivity;
   final bool burnsFluid;
   final bool scaleFluidUsage;
@@ -348,12 +356,12 @@ class FluidEnergySource extends CraftingMachineEnergySource {
     required this.minimumInputTemperature,
     required this.maximumInputTemperature,
     required this.spentFluid,
-    required super.emissionsPerMinute,
+    required Map<String, double>? emissionsPerMinute,
   }) : effectivity = effectivity ?? 1,
        burnsFluid = burnsFluid ?? false,
        scaleFluidUsage = scaleFluidUsage ?? false,
        hideFromStats = hideFromStats ?? false,
-       super._(type: EnergySourceType.fluid);
+       emissionsPerMinute = _unmodifiableOrNullMap(emissionsPerMinute);
 
   factory FluidEnergySource.fromJson(Map json) {
     Map? spentFluidJson = json['spent_fluid'];
@@ -377,7 +385,13 @@ class FluidEnergySource extends CraftingMachineEnergySource {
   }
 }
 
-class HeatEnergySource extends CraftingMachineEnergySource {
+class HeatEnergySource implements CraftingMachineEnergySource {
+  @override
+  EnergySourceType get type => EnergySourceType.heat;
+
+  @override
+  final Map<String, double>? emissionsPerMinute;
+
   final double maxTemperature;
   final String specificHeat;
   final double defaultTemperature;
@@ -388,10 +402,10 @@ class HeatEnergySource extends CraftingMachineEnergySource {
     required this.specificHeat,
     required double? defaultTemperature,
     required double? minWorkingTemperature,
-    required super.emissionsPerMinute,
+    required Map<String, double>? emissionsPerMinute,
   }) : defaultTemperature = defaultTemperature ?? 15,
        minWorkingTemperature = minWorkingTemperature ?? 15,
-       super._(type: EnergySourceType.heat);
+       emissionsPerMinute = _unmodifiableOrNullMap(emissionsPerMinute);
 
   HeatEnergySource.fromJson(Map json)
     : this._(
@@ -399,6 +413,22 @@ class HeatEnergySource extends CraftingMachineEnergySource {
         maxTemperature: json['max_temperature'].toDouble(),
         minWorkingTemperature: json['min_working_temperature'].toDouble(),
         specificHeat: json['specific_heat'],
+        emissionsPerMinute: _parseStringDoubleMap(json['emissions_per_minute']),
+      );
+}
+
+class VoidEnergySource implements CraftingMachineEnergySource {
+  @override
+  EnergySourceType get type => EnergySourceType.fVoid;
+
+  @override
+  final Map<String, double>? emissionsPerMinute;
+
+  VoidEnergySource._({required Map<String, double>? emissionsPerMinute})
+    : emissionsPerMinute = _unmodifiableOrNullMap(emissionsPerMinute);
+
+  VoidEnergySource.fromJson(Map json)
+    : this._(
         emissionsPerMinute: _parseStringDoubleMap(json['emissions_per_minute']),
       );
 }

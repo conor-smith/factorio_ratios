@@ -12,18 +12,15 @@ part 'subgroup.dart';
 part 'surface.dart';
 part 'technology.dart';
 
-abstract class PrototypeJson extends AbstractPrototype {
+abstract class PrototypeJson implements AbstractPrototype {
   static const _defaultOrder = '';
 
   dynamic get localisedName;
   String? get subgroupName;
-
-  @override
-  String toString() => name;
 }
 
 // Not technically a factorio type, but helpful for this use case
-abstract class PrototypeWithIconJson extends PrototypeJson {
+abstract class PrototypeWithIconJson implements PrototypeJson {
   Icon? get icon;
 }
 

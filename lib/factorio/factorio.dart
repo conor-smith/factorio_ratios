@@ -2,9 +2,6 @@ abstract class AbstractPrototype {
   String get name;
   String get type;
   String get order;
-
-  @override
-  String toString() => name;
 }
 
 class FactorioException implements Exception {
@@ -29,4 +26,9 @@ class FactorioException implements Exception {
 
     return string;
   }
+}
+
+mixin PrototypeImpl implements AbstractPrototype {
+  @override
+  String toString() => name;
 }

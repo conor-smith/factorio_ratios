@@ -1,6 +1,6 @@
 part of 'data_dump.dart';
 
-class RecipeJson extends PrototypeWithIconJson {
+class RecipeJson with PrototypeImpl implements PrototypeWithIconJson {
   @override
   final String name;
   @override
@@ -142,25 +142,10 @@ class RecipeJson extends PrototypeWithIconJson {
 }
 
 abstract class RecipeIngredientJson {
-  final String name;
-  final String type;
-  final double amount;
-  final double ignoredByStats;
-
-  RecipeIngredientJson({
-    required this.name,
-    required this.type,
-    required this.amount,
-    required double? ignoredByStats,
-  }) : ignoredByStats = ignoredByStats ?? 0;
-
-  RecipeIngredientJson._fromJson(Map json)
-    : this(
-        name: json['name'],
-        type: json['type'],
-        amount: json['amount'].toDouble(),
-        ignoredByStats: json['ignored_by_stats']?.toDouble(),
-      );
+  String get name;
+  String get type;
+  double get amount;
+  double get ignoredByStats;
 
   factory RecipeIngredientJson.fromJson(Map json) => switch (json['type']) {
     'item' => RecipeItemIngredientJson.fromJson(json),
@@ -171,25 +156,40 @@ abstract class RecipeIngredientJson {
   };
 }
 
-class RecipeItemIngredientJson extends RecipeIngredientJson {
+class RecipeItemIngredientJson implements RecipeIngredientJson {
+  @override
+  final String name;
+  @override
+  final String type;
+  @override
+  final double amount;
+  @override
+  final double ignoredByStats;
+
   final String? qualityMin;
   final String? qualityMax;
   final int qualityChange;
   final double spoilWeight;
 
-  RecipeItemIngredientJson._(
-    super.json, {
+  RecipeItemIngredientJson._({
+    required this.name,
+    required this.type,
+    required this.amount,
+    required double? ignoredByStats,
     required this.qualityMin,
     required this.qualityMax,
     required int? qualityChange,
     required double? spoilWeight,
-  }) : qualityChange = qualityChange ?? 0,
-       spoilWeight = spoilWeight ?? 1,
-       super._fromJson();
+  }) : ignoredByStats = ignoredByStats ?? 0,
+       qualityChange = qualityChange ?? 0,
+       spoilWeight = spoilWeight ?? 1;
 
   RecipeItemIngredientJson.fromJson(Map json)
     : this._(
-        json,
+        name: json['name'],
+        type: json['type'],
+        amount: json['amount'].toDouble(),
+        ignoredByStats: json['ignored_by_stats']?.toDouble(),
         qualityMin: json['quality_min'],
         qualityMax: json['quality_max'],
         qualityChange: json['quality_change'],
@@ -197,21 +197,36 @@ class RecipeItemIngredientJson extends RecipeIngredientJson {
       );
 }
 
-class RecipeFluidIngredientJson extends RecipeIngredientJson {
+class RecipeFluidIngredientJson implements RecipeIngredientJson {
+  @override
+  final String name;
+  @override
+  final String type;
+  @override
+  final double amount;
+  @override
+  final double ignoredByStats;
+
   final double? temperature;
   final double? minimumTemperature;
   final double? maximumTemperature;
 
-  RecipeFluidIngredientJson._(
-    super.json, {
+  RecipeFluidIngredientJson._({
+    required this.name,
+    required this.type,
+    required this.amount,
+    required double? ignoredByStats,
     required this.temperature,
     required this.minimumTemperature,
     required this.maximumTemperature,
-  }) : super._fromJson();
+  }) : ignoredByStats = ignoredByStats ?? 0;
 
   RecipeFluidIngredientJson.fromJson(Map json)
     : this._(
-        json,
+        name: json['name'],
+        type: json['type'],
+        amount: json['amount'].toDouble(),
+        ignoredByStats: json['ignored_by_stats']?.toDouble(),
         temperature: json['temperature']?.toDouble(),
         minimumTemperature: json['minimum_temperature']?.toDouble(),
         maximumTemperature: json['maximum_temperature']?.toDouble(),
@@ -219,20 +234,60 @@ class RecipeFluidIngredientJson extends RecipeIngredientJson {
 }
 
 abstract class RecipeProductJson {
+  String get name;
+  String get type;
+
+  double? get amount;
+  double? get amountMin;
+  double? get amountMax;
+
+  double get ignoredByStats;
+  double get ignoredByProductivity;
+
+  double get independentProbability;
+  SharedProbability get sharedProbability;
+
+  factory RecipeProductJson.fromJson(Map json) => switch (json['type']) {
+    'item' => RecipeItemProductJson.fromJson(json),
+    'fluid' => RecipeFluidProductJson.fromJson(json),
+    _ => throw FactorioException('Unrecognised product type: ${json['type']}'),
+  };
+}
+
+class RecipeItemProductJson implements RecipeProductJson {
+  @override
   final String name;
+  @override
   final String type;
 
+  @override
   final double? amount;
+  @override
   final double? amountMin;
+  @override
   final double? amountMax;
 
+  @override
   final double ignoredByStats;
+  @override
   final double ignoredByProductivity;
 
+  @override
   final double independentProbability;
+  @override
   final SharedProbability sharedProbability;
 
-  RecipeProductJson({
+  final double extraCountFraction;
+  final double percentSpoiled;
+  final bool alwaysFresh;
+  final bool resetFreshnessOnCraft;
+
+  final String? qualityMin;
+  final String? qualityMax;
+  final int qualityChange;
+  final bool affectedByQuality;
+
+  RecipeItemProductJson._({
     required this.name,
     required this.type,
     required this.amount,
@@ -242,14 +297,28 @@ abstract class RecipeProductJson {
     required double? ignoredByProductivity,
     required double? independentProbability,
     required SharedProbability? sharedProbability,
+    required double? extraCountFraction,
+    required double? percentSpoiled,
+    required bool? alwaysFresh,
+    required bool? resetFreshnessOnCraft,
+    required this.qualityMin,
+    required this.qualityMax,
+    required int? qualityChange,
+    required bool? affectedByQuality,
   }) : ignoredByStats = ignoredByStats ?? 0,
        ignoredByProductivity = ignoredByProductivity ?? ignoredByStats ?? 0,
        independentProbability = independentProbability ?? 1,
        sharedProbability =
-           sharedProbability ?? const SharedProbability._(min: 0, max: 1);
+           sharedProbability ?? const SharedProbability._(min: 0, max: 1),
+       extraCountFraction = extraCountFraction ?? 0,
+       percentSpoiled = percentSpoiled ?? 0,
+       alwaysFresh = alwaysFresh ?? false,
+       resetFreshnessOnCraft = resetFreshnessOnCraft ?? false,
+       qualityChange = qualityChange ?? 0,
+       affectedByQuality = affectedByQuality ?? true;
 
-  RecipeProductJson._fromJson(Map json)
-    : this(
+  RecipeItemProductJson.fromJson(Map json)
+    : this._(
         name: json['name'],
         type: json['type'],
         amount: json['amount']?.toDouble(),
@@ -261,47 +330,6 @@ abstract class RecipeProductJson {
         sharedProbability: json['shared_probability'] != null
             ? SharedProbability.fromJson(json['shared_probability'])
             : null,
-      );
-
-  factory RecipeProductJson.fromJson(Map json) => switch (json['type']) {
-    'item' => RecipeItemProductJson.fromJson(json),
-    'fluid' => RecipeFluidProductJson.fromJson(json),
-    _ => throw FactorioException('Unrecognised product type: ${json['type']}'),
-  };
-}
-
-class RecipeItemProductJson extends RecipeProductJson {
-  final double extraCountFraction;
-  final double percentSpoiled;
-  final bool alwaysFresh;
-  final bool resetFreshnessOnCraft;
-
-  final String? qualityMin;
-  final String? qualityMax;
-  final int qualityChange;
-  final bool affectedByQuality;
-
-  RecipeItemProductJson._(
-    super.json, {
-    required double? extraCountFraction,
-    required double? percentSpoiled,
-    required bool? alwaysFresh,
-    required bool? resetFreshnessOnCraft,
-    required this.qualityMin,
-    required this.qualityMax,
-    required int? qualityChange,
-    required bool? affectedByQuality,
-  }) : extraCountFraction = extraCountFraction ?? 0,
-       percentSpoiled = percentSpoiled ?? 0,
-       alwaysFresh = alwaysFresh ?? false,
-       resetFreshnessOnCraft = resetFreshnessOnCraft ?? false,
-       qualityChange = qualityChange ?? 0,
-       affectedByQuality = affectedByQuality ?? true,
-       super._fromJson();
-
-  RecipeItemProductJson.fromJson(Map json)
-    : this._(
-        json,
         extraCountFraction: json['extra_count_fraction']?.toDouble(),
         percentSpoiled: json['percent_spoiled']?.toDouble(),
         alwaysFresh: json['always_fresh'],
@@ -313,14 +341,63 @@ class RecipeItemProductJson extends RecipeProductJson {
       );
 }
 
-class RecipeFluidProductJson extends RecipeProductJson {
+class RecipeFluidProductJson implements RecipeProductJson {
+  @override
+  final String name;
+  @override
+  final String type;
+
+  @override
+  final double? amount;
+  @override
+  final double? amountMin;
+  @override
+  final double? amountMax;
+
+  @override
+  final double ignoredByStats;
+  @override
+  final double ignoredByProductivity;
+
+  @override
+  final double independentProbability;
+  @override
+  final SharedProbability sharedProbability;
+
   final double? temperature;
 
-  RecipeFluidProductJson._(super.json, {required this.temperature})
-    : super._fromJson();
+  RecipeFluidProductJson._({
+    required this.name,
+    required this.type,
+    required this.amount,
+    required this.amountMin,
+    required this.amountMax,
+    required double? ignoredByStats,
+    required double? ignoredByProductivity,
+    required double? independentProbability,
+    required SharedProbability? sharedProbability,
+    required this.temperature,
+  }) : ignoredByStats = ignoredByStats ?? 0,
+       ignoredByProductivity = ignoredByProductivity ?? ignoredByStats ?? 0,
+       independentProbability = independentProbability ?? 1,
+       sharedProbability =
+           sharedProbability ?? const SharedProbability._(min: 0, max: 1);
 
   RecipeFluidProductJson.fromJson(Map json)
-    : this._(json, temperature: json['temperature']?.toDouble());
+    : this._(
+        name: json['name'],
+        type: json['type'],
+        amount: json['amount']?.toDouble(),
+        amountMin: json['amount_min']?.toDouble(),
+        amountMax: json['amount_max']?.toDouble(),
+        ignoredByStats: json['ignored_by_stats']?.toDouble(),
+        ignoredByProductivity: json['ignored_by_productivity']?.toDouble(),
+        independentProbability: json['independent_probability']?.toDouble(),
+        sharedProbability: json['shared_probability'] != null
+            ? SharedProbability.fromJson(json['shared_probability'])
+            : null,
+        temperature: json['temperature']?.toDouble(),
+      );
 }
 
 class SharedProbability {

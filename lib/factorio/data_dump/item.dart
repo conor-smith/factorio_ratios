@@ -1,10 +1,10 @@
 part of 'data_dump.dart';
 
-abstract class ItemJson extends PrototypeWithIconJson {
+abstract class ItemJson with PrototypeImpl implements PrototypeWithIconJson {
   bool get hidden;
 }
 
-class SolidItemJson extends ItemJson {
+class SolidItemJson implements ItemJson {
   @override
   final String name;
   @override
@@ -116,7 +116,7 @@ class SolidItemJson extends ItemJson {
   );
 }
 
-class FluidJson extends ItemJson {
+class FluidJson implements ItemJson {
   @override
   final String name;
   @override

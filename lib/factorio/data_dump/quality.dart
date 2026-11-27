@@ -1,6 +1,6 @@
 part of 'data_dump.dart';
 
-class QualityJson extends PrototypeWithIconJson {
+class QualityJson with PrototypeImpl implements PrototypeWithIconJson {
   @override
   final String name;
   @override
