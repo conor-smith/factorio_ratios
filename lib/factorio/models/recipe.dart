@@ -1,15 +1,8 @@
 part of 'models.dart';
 
-class Recipe extends PrototypeWithQuality<Recipe> {
+class Recipe extends PrototypeWithIcon {
   @override
   final RecipeJson internalJson;
 
-  Recipe({
-    required super.database,
-    required super.quality,
-    required this.internalJson,
-  });
-
-  @override
-  Recipe withQuality(Quality quality) => throw UnimplementedError(); // TODO
+  Recipe({required super.database, required this.internalJson});
 }

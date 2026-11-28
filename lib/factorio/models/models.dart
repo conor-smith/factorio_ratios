@@ -10,7 +10,7 @@ part 'recipe.dart';
 part 'subgroup.dart';
 part 'surface.dart';
 
-abstract class Prototype implements AbstractPrototype, Comparable<Prototype> {
+abstract class Prototype implements AbstractPrototype {
   final FactorioDatabase _database;
 
   PrototypeJson get internalJson;
@@ -30,20 +30,6 @@ abstract class Prototype implements AbstractPrototype, Comparable<Prototype> {
       _database._subgroups[internalJson.subgroupName];
 
   @override
-  int compareTo(Prototype other) {
-    if (other is PrototypeWithQuality) {
-      return -other.compareTo(this);
-    } else {
-      return _compareToNoQuality(other);
-    }
-  }
-
-  int _compareToNoQuality(Prototype other) {
-    var orderVal = order.compareTo(other.order);
-    return orderVal != 0 ? orderVal : name.compareTo(other.name);
-  }
-
-  @override
   String toString() => name;
 }
 
@@ -56,29 +42,4 @@ abstract class PrototypeWithIcon extends Prototype {
   PrototypeWithIcon({required super.database});
 
   Icon? _getIcon() => internalJson.icon;
-}
-
-abstract class PrototypeWithQuality<T extends PrototypeWithQuality<T>>
-    extends PrototypeWithIcon {
-  final Quality quality;
-  T withQuality(Quality quality);
-
-  PrototypeWithQuality({required super.database, required this.quality});
-
-  @override
-  int compareTo(Prototype other) {
-    if (other.internalJson == internalJson && other is PrototypeWithQuality) {
-      return switch (quality.compareToQuality(other.quality)) {
-        QualityCompare.equalTo ||
-        QualityCompare.notInChain => quality.compareTo(other.quality),
-        QualityCompare.greaterThan => 1,
-        QualityCompare.lessThan => -1,
-      };
-    } else {
-      return _compareToNoQuality(other);
-    }
-  }
-
-  @override
-  String toString() => '$quality $name';
 }
